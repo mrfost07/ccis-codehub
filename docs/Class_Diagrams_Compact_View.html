@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCIS-CodeHub - Class Diagrams (Compact View for Screenshots)</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px;
+            background: #ffffff;
+        }
+
+        .diagram-container {
+            background: white;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+            page-break-inside: avoid;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+            font-size: 20px;
+            margin: 10px 0;
+        }
+
+        h2 {
+            color: #34495e;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+
+        .description {
+            color: #7f8c8d;
+            font-style: italic;
+            margin: 5px 0;
+            padding: 8px;
+            background: #ecf0f1;
+            border-left: 3px solid #3498db;
+            font-size: 12px;
+        }
+
+        .mermaid {
+            text-align: center;
+            background: white;
+            transform: scale(0.75);
+            transform-origin: top center;
+            margin: -20px 0;
+        }
+
+        @media print {
+            body {
+                background: white;
+            }
+
+            .diagram-container {
+                page-break-inside: avoid;
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+        }
+
+        .screenshot-tip {
+            background: #fffbea;
+            border: 2px solid #f39c12;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>CCIS-CodeHub - Class Diagrams (Compact View)</h1>
+    <div class="screenshot-tip">
+        <strong>📸 Screenshot Tips:</strong> Each diagram is scaled to fit nicely. Use browser screenshot tools or Ctrl+P → Save as PDF.
+        For best results, zoom to 80-90% before capturing.
+    </div>
+
+    <div class="diagram-container">
+        <h2>1. User Management Class Diagram</h2>
+        <p class="description">User account structure with authentication and profile management</p>
+        <div class="mermaid" id="class-user">
+classDiagram
+    class User {
++UUID id
++String firebase_uid
++String email
++String username
++String first_name
++String last_name
++String role
++String program
++String year_level
++ImageField profile_picture
++Text bio
++JSON skills
++JSON career_interests
++Integer followers_count
++Integer following_count
++Boolean is_active
++DateTime created_at
++DateTime updated_at
++login()
++logout()
++resetPassword()
++updateProfile()
+    }
+
+    class UserProfile {
+        +UUID id
+        +String github_username
+        +String linkedin_url
+        +String location
+        +Integer total_courses_completed
+        +Integer total_projects
+        +Integer contribution_points
+        +Integer current_streak
+        +Integer certificates_earned
+        +String theme_preference
+        +updateStatistics()
+    }
+
+    User "1" -- "1" UserProfile : has
+        </div>
+    </div>
+
+    <div class="diagram-container">
+        <h2>2. Learning System Class Diagram</h2>
+        <p class="description">Educational content with career paths, modules, quizzes, and progress tracking</p>
+        <div class="mermaid" id="class-learning">
+classDiagram
+    class CareerPath {
+        +UUID id
+        +String name
+        +String program_type
+        +String difficulty_level
+        +Integer total_modules
+        +FileField certificate_template
+        +addModule()
+    }
+
+    class LearningModule {
+        +UUID id
+        +String title
+        +String module_type
+        +Text content
+        +FileField file
+        +Integer duration_minutes
+        +Integer order
+        +updateContent()
+    }
+
+    class Quiz {
+        +UUID id
+        +String title
+        +Integer time_limit_minutes
+        +Integer passing_score
+        +Integer max_attempts
+        +addQuestion()
+    }
+
+    class Question {
+        +UUID id
+        +Text question_text
+        +String question_type
+        +JSON correct_answer
+        +Integer points
+        +validate()
+    }
+
+    class Enrollment {
+        +UUID id
+        +String status
+        +Integer progress_percentage
+        +DateTime enrolled_at
+        +updateProgress()
+    }
+
+    class Certificate {
+        +UUID id
+        +String certificate_id
+        +DateTime issued_at
+        +generate()
+    }
+
+    CareerPath "1" *-- "many" LearningModule
+    LearningModule "1" *-- "many" Quiz
+    Quiz "1" *-- "many" Question
+    User "many" -- "many" CareerPath
+    Enrollment -- User
+    Enrollment -- CareerPath
+    Certificate -- User
+    Certificate -- CareerPath
+        </div>
+    </div>
+
+    <div class="diagram-container">
+        <h2>3. Project Collaboration Class Diagram</h2>
+        <p class="description">Team and project management with tasks, files, and code review</p>
+        <div class="mermaid" id="class-projects">
+classDiagram
+    class Team {
+        +UUID id
+        +String name
+        +Text description
+        +Boolean is_active
+        +addMember()
+    }
+
+    class Project {
+        +UUID id
+        +String name
+        +Text description
+        +String status
+        +Date end_date
+        +Integer progress_percentage
+        +createTask()
+    }
+
+    class ProjectTask {
+        +UUID id
+        +String title
+        +String status
+        +String priority
+        +Date due_date
+        +updateStatus()
+    }
+
+    class ProjectFile {
+        +UUID id
+        +String filename
+        +FileField file
+        +Integer version
+        +upload()
+    }
+
+    class CodeReview {
+        +UUID id
+        +String title
+        +String status
+        +DateTime reviewed_at
+        +approve()
+    }
+
+    Team "1" *-- "many" Project
+    Project "1" *-- "many" ProjectTask
+    Project "1" *-- "many" ProjectFile
+    Project "1" *-- "many" CodeReview
+    ProjectTask -- User
+    CodeReview -- User
+        </div>
+    </div>
+
+    <div class="diagram-container">
+        <h2>4. Community Class Diagram</h2>
+        <p class="description">Social features with posts, comments, following, and organizations</p>
+        <div class="mermaid" id="class-community">
+classDiagram
+    class Post {
+        +UUID id
+        +String title
+        +Text content
+        +String post_type
+        +Integer like_count
+        +Integer comment_count
+        +DateTime created_at
+        +addComment()
+        +toggleLike()
+    }
+
+    class Comment {
+        +UUID id
+        +Text content
+        +Integer like_count
+        +DateTime created_at
+        +addReply()
+    }
+
+    class UserFollow {
+        +UUID id
+        +String status
+        +DateTime created_at
+        +accept()
+    }
+
+    class Organization {
+        +UUID id
+        +String name
+        +String program
+        +Boolean is_official
+        +Integer member_count
+        +addMember()
+    }
+
+    class ChatRoom {
+        +UUID id
+        +String name
+        +String room_type
+        +String program
+        +Boolean is_active
+        +sendMessage()
+    }
+
+    Post "1" *-- "many" Comment
+    Post -- User
+    Comment -- User
+    UserFollow -- User
+    Organization "1" *-- "many" Post
+    ChatRoom "1" *-- "many" User
+        </div>
+    </div>
+
+    <div class="diagram-container">
+        <h2>5. AI Mentor Class Diagram</h2>
+        <p class="description">AI-powered tutoring with sessions, code analysis, and recommendations</p>
+        <div class="mermaid" id="class-ai">
+classDiagram
+    class AIMentorProfile {
+        +UUID id
+        +String preferred_ai_model
+        +Integer total_interactions
+        +Integer code_analyses_count
+        +Integer total_tokens_used
+        +switchModel()
+    }
+
+    class ProjectMentorSession {
+        +UUID id
+        +String session_type
+        +String status
+        +DateTime started_at
+        +sendMessage()
+    }
+
+    class AIMessage {
+        +UUID id
+        +String sender
+        +Text message
+        +Integer tokens_used
+        +generateResponse()
+    }
+
+    class CodeAnalysis {
+        +UUID id
+        +Text code_snippet
+        +String language
+        +String analysis_type
+        +JSON suggestions
+        +analyze()
+    }
+
+    class LearningRecommendation {
+        +UUID id
+        +String recommendation_type
+        +Text reason
+        +Integer priority
+        +markComplete()
+    }
+
+    User "1" -- "1" AIMentorProfile
+    ProjectMentorSession "1" *-- "many" AIMessage
+    ProjectMentorSession -- User
+    CodeAnalysis -- User
+    LearningRecommendation -- User
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            themeVariables: {
+                fontSize: '12px'
+            }
+        });
+
+        // Download diagram as PNG
+        function downloadDiagram(diagramId, filename) {
+            const svg = document.querySelector(`#${diagramId} svg`);
+            if (!svg) {
+                alert('Diagram not rendered yet. Please wait a moment and try again.');
+                return;
+            }
+
+            // Create a canvas
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const svgData = new XMLSerializer().serializeToString(svg);
+
+            const img = new Image();
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(svgBlob);
+
+            img.onload = function () {
+                canvas.width = img.width * 2; // Higher resolution
+                canvas.height = img.height * 2;
+                ctx.scale(2, 2);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+
+                canvas.toBlob(function (blob) {
+                    const link = document.createElement('a');
+                    link.download = `${filename}.png`;
+                    link.href = URL.createObjectURL(blob);
+                    link.click();
+                    URL.revokeObjectURL(url);
+                });
+            };
+
+            img.src = url;
+        }
+
+        console.log('%c📸 Class Diagrams Compact View Loaded!', 'color: #3498db; font-size: 16px; font-weight: bold;');
+        console.log('%cWait for diagrams to render, then right-click to save images.', 'color: #2ecc71; font-size: 14px;');
+    </script>
+</body>
+
+</html>

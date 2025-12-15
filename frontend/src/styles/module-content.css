@@ -1,0 +1,418 @@
+/* Module Content Display Styles */
+.module-content-display {
+  color: #e2e8f0;
+  line-height: 1.8;
+}
+
+/* Slide View Content - Clean & Optimized */
+.slide-content-view {
+  font-size: 1.0625rem;
+  line-height: 1.8;
+  animation: slideContentFadeIn 0.5s ease-out;
+}
+
+@keyframes slideContentFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-content-view p {
+  font-size: 1.0625rem;
+  line-height: 1.8;
+  margin-bottom: 1.25rem;
+  color: #cbd5e1;
+}
+
+.slide-content-view ul,
+.slide-content-view ol {
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  margin: 1.25rem 0;
+  padding-left: 1.75rem;
+}
+
+.slide-content-view li {
+  margin-bottom: 0.75rem;
+  color: #cbd5e1;
+}
+
+.slide-content-view h1 {
+  font-size: 2rem;
+  background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 1.25rem;
+  margin-top: 0.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.slide-content-view h2 {
+  font-size: 1.625rem;
+  color: #93c5fd;
+  margin-top: 1.75rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.slide-content-view h3 {
+  font-size: 1.375rem;
+  color: #a78bfa;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* Enhanced code blocks for slides */
+.slide-content-view pre,
+.slide-content-view .ql-syntax {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+  position: relative;
+  overflow-x: auto;
+}
+
+.slide-content-view pre::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+}
+
+/* Enhanced blockquotes */
+.slide-content-view blockquote,
+.slide-content-view .ql-blockquote {
+  border-left: 4px solid #3b82f6;
+  background: linear-gradient(90deg, #1e293b 0%, transparent 100%);
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 0.5rem 0.5rem 0;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.2);
+}
+
+/* Smooth transitions */
+.slide-content-view * {
+  transition: color 0.2s ease;
+}
+
+/* Mobile responsiveness - Clean */
+@media (max-width: 768px) {
+  .slide-content-view {
+    font-size: 0.9375rem;
+  }
+  
+  .slide-content-view p {
+    font-size: 0.9375rem;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+  }
+  
+  .slide-content-view h1 {
+    font-size: 1.625rem;
+    margin-bottom: 1rem;
+  }
+  
+  .slide-content-view h2 {
+    font-size: 1.375rem;
+    margin-top: 1.5rem;
+  }
+  
+  .slide-content-view h3 {
+    font-size: 1.125rem;
+    margin-top: 1.25rem;
+  }
+  
+  .slide-content-view ul,
+  .slide-content-view ol {
+    font-size: 0.9375rem;
+    padding-left: 1.5rem;
+    margin: 1rem 0;
+  }
+
+  .slide-content-view li {
+    margin-bottom: 0.5rem;
+  }
+  
+  .slide-content-view pre,
+  .slide-content-view .ql-syntax {
+    padding: 0.875rem;
+    font-size: 0.8125rem;
+  }
+
+  .slide-content-view blockquote,
+  .slide-content-view .ql-blockquote {
+    padding: 1rem;
+    margin: 1rem 0;
+  }
+}
+
+/* Module Slide Containers */
+.module-slide {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+}
+
+.slide-title {
+  color: #3b82f6;
+  font-size: 1.75rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #1e293b;
+}
+
+.slide-content {
+  color: #cbd5e1;
+}
+
+.slide-separator {
+  margin: 2rem 0;
+  border: none;
+  border-top: 2px solid #334155;
+}
+
+/* Rich Text Elements */
+.module-content-display h1 {
+  color: #60a5fa;
+  font-size: 2rem;
+  font-weight: bold;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+.module-content-display h2 {
+  color: #60a5fa;
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.module-content-display h3 {
+  color: #93c5fd;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.module-content-display p {
+  margin-bottom: 1rem;
+  color: #cbd5e1;
+}
+
+.module-content-display strong {
+  color: #f1f5f9;
+  font-weight: 700;
+}
+
+.module-content-display em {
+  font-style: italic;
+  color: #e2e8f0;
+}
+
+.module-content-display u {
+  text-decoration: underline;
+}
+
+/* Lists */
+.module-content-display ul,
+.module-content-display ol {
+  margin: 1rem 0;
+  padding-left: 2rem;
+  color: #cbd5e1;
+}
+
+.module-content-display li {
+  margin-bottom: 0.5rem;
+  color: #cbd5e1;
+}
+
+.module-content-display ul {
+  list-style-type: disc;
+}
+
+.module-content-display ol {
+  list-style-type: decimal;
+}
+
+/* Checkboxes */
+.module-content-display ul[data-checked="true"],
+.module-content-display ul[data-checked="false"] {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.module-content-display li[data-checked="true"]::before,
+.module-content-display li[data-checked="false"]::before {
+  content: "☐ ";
+  margin-right: 0.5rem;
+  color: #60a5fa;
+  font-size: 1.2em;
+}
+
+.module-content-display li[data-checked="true"]::before {
+  content: "☑ ";
+  color: #22c55e;
+}
+
+/* Quill Checkbox Support */
+.module-content-display .ql-list-check {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.module-content-display .ql-list-check > li::before {
+  content: "☐ ";
+  margin-right: 0.5rem;
+  color: #60a5fa;
+  font-size: 1.2em;
+}
+
+/* Code Blocks */
+.module-content-display pre,
+.module-content-display .ql-syntax {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+  color: #e2e8f0;
+  font-family: 'Courier New', monospace;
+}
+
+.module-content-display code {
+  background: #1e293b;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  color: #60a5fa;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+/* Blockquotes */
+.module-content-display blockquote,
+.module-content-display .ql-blockquote {
+  border-left: 4px solid #3b82f6;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: #94a3b8;
+  font-style: italic;
+  background: #1e293b;
+  padding: 1rem;
+  border-radius: 0.25rem;
+}
+
+/* Links */
+.module-content-display a {
+  color: #60a5fa;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.module-content-display a:hover {
+  color: #93c5fd;
+}
+
+/* Images */
+.module-content-display img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  border: 1px solid #334155;
+}
+
+/* Videos */
+.module-content-display iframe,
+.module-content-display video {
+  max-width: 100%;
+  border-radius: 0.5rem;
+  margin: 1rem 0;
+  border: 1px solid #334155;
+}
+
+/* Text Alignment */
+.module-content-display .ql-align-center {
+  text-align: center;
+}
+
+.module-content-display .ql-align-right {
+  text-align: right;
+}
+
+.module-content-display .ql-align-justify {
+  text-align: justify;
+}
+
+/* Text Colors (from Quill editor) */
+.module-content-display .ql-color-white { color: #ffffff; }
+.module-content-display .ql-color-red { color: #ef4444; }
+.module-content-display .ql-color-orange { color: #f97316; }
+.module-content-display .ql-color-yellow { color: #eab308; }
+.module-content-display .ql-color-green { color: #22c55e; }
+.module-content-display .ql-color-blue { color: #3b82f6; }
+.module-content-display .ql-color-purple { color: #a855f7; }
+
+/* Background Colors */
+.module-content-display .ql-bg-black { background-color: #000000; }
+.module-content-display .ql-bg-red { background-color: #7f1d1d; }
+.module-content-display .ql-bg-green { background-color: #14532d; }
+.module-content-display .ql-bg-blue { background-color: #1e3a8a; }
+.module-content-display .ql-bg-yellow { background-color: #713f12; }
+.module-content-display .ql-bg-purple { background-color: #581c87; }
+
+/* Indentation */
+.module-content-display .ql-indent-1 { padding-left: 3em; }
+.module-content-display .ql-indent-2 { padding-left: 6em; }
+.module-content-display .ql-indent-3 { padding-left: 9em; }
+.module-content-display .ql-indent-4 { padding-left: 12em; }
+.module-content-display .ql-indent-5 { padding-left: 15em; }
+.module-content-display .ql-indent-6 { padding-left: 18em; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .module-content-display {
+    font-size: 0.95rem;
+  }
+  
+  .slide-title {
+    font-size: 1.5rem;
+  }
+  
+  .module-content-display h1 {
+    font-size: 1.75rem;
+  }
+  
+  .module-content-display h2 {
+    font-size: 1.25rem;
+  }
+  
+  .module-content-display h3 {
+    font-size: 1.1rem;
+  }
+  
+  .module-content-display .ql-indent-1 { padding-left: 2em; }
+  .module-content-display .ql-indent-2 { padding-left: 4em; }
+  .module-content-display .ql-indent-3 { padding-left: 6em; }
+  .module-content-display .ql-indent-4 { padding-left: 8em; }
+  .module-content-display .ql-indent-5 { padding-left: 10em; }
+  .module-content-display .ql-indent-6 { padding-left: 12em; }
+}

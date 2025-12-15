@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCIS-CodeHub Additional Sequence Diagrams</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .diagram-container {
+            background: white;
+            padding: 30px;
+            margin: 30px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            page-break-inside: avoid;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #34495e;
+            margin-top: 40px;
+        }
+
+        .download-btn {
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+
+        .download-btn:hover {
+            background: #2980b9;
+        }
+
+        .mermaid {
+            text-align: center;
+            background: white;
+        }
+
+        .description {
+            color: #7f8c8d;
+            font-style: italic;
+            margin: 15px 0;
+            padding: 15px;
+            background: #ecf0f1;
+            border-left: 4px solid #3498db;
+        }
+
+        @media print {
+            .download-btn {
+                display: none;
+            }
+
+            body {
+                background: white;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>CCIS-CodeHub - Additional Sequence Diagrams</h1>
+    <p>Detailed interaction flows for key system workflows</p>
+
+    <div class="diagram-container">
+        <h2>1. User Authentication Flow</h2>
+        <p class="description">Complete authentication sequence showing login validation, token generation, and error
+            handling.</p>
+        <button class="download-btn" onclick="downloadDiagram('seq-auth', 'Sequence-Authentication')">Download
+            PNG</button>
+        <div class="mermaid" id="seq-auth">
+            sequenceDiagram
+            actor User
+            participant UI as Frontend
+            participant API as Backend API
+            participant Auth as Auth Service
+            participant JWT as JWT Handler
+            participant DB as Database
+            participant Cache as Redis
+
+            User->>UI: Enter credentials
+            UI->>UI: Validate input format
+            UI->>API: POST /api/auth/login
+
+            API->>Auth: Validate credentials
+            Auth->>DB: Query user by email
+            DB-->>Auth: User record
+
+            Auth->>Auth: Compare password hash
+
+            alt Valid Credentials
+            Auth->>JWT: Generate access token
+            JWT->>JWT: Create refresh token
+            JWT-->>Auth: Tokens generated
+
+            Auth->>Cache: Store refresh token
+            Cache-->>Auth: Token cached
+
+            Auth->>DB: Update last_login
+            DB-->>Auth: Updated
+
+            Auth-->>API: Authentication successful
+            API-->>UI: 200 OK + tokens + user data
+
+            UI->>UI: Store tokens in localStorage
+            UI->>UI: Redirect to dashboard
+            UI-->>User: Display dashboard
+
+            else Invalid Credentials
+            Auth-->>API: 401 Unauthorized
+            API-->>UI: Error response
+            UI-->>User: Show error message
+            User->>UI: Retry login
+            end
+        </div>
+    </div>
+
+    <div class="diagram-container">
+        <h2>2. Quiz Taking Flow</h2>
+        <p class="description">End-to-end sequence for quiz attempts including timer management, answer submission, and
+            scoring.</p>
+        <button class="download-btn" onclick="downloadDiagram('seq-quiz', 'Sequence-Quiz-Taking')">Download PNG</button>
+        <div class="mermaid" id="seq-quiz">
+            sequenceDiagram
+            actor Student
+            participant UI as Frontend
+            participant API as Backend API
+            participant Quiz as Quiz Service
+            participant DB as Database
+            participant Timer as Timer Service
+
+            Student->>UI: Click "Start Quiz"
+            UI->>API: POST /api/quizzes/{id}/start
+
+            API->>DB: Check existing attempts
+            DB-->>API: Attempts count
+
+            alt Attempts Available
+            API->>DB: Create QuizAttempt
+            DB-->>API: Attempt created
+
+            API->>DB: Fetch questions
+            DB-->>API: Questions list
+
+            API->>Quiz: Randomize if enabled
+            Quiz-->>API: Ordered questions
+
+            API-->>UI: 200 OK + questions + attempt_id
+
+            UI->>Timer: Start countdown
+            UI-->>Student: Display first question
+
+            loop For each question
+            Student->>UI: Select answer
+            UI->>UI: Store answer locally
+            UI-->>Student: Show next question
+            end
+
+            Student->>UI: Click "Submit Quiz"
+            UI->>Timer: Stop timer
+            UI->>API: POST /api/quizzes/{id}/submit
+
+            API->>DB: Save all answers
+            DB-->>API: Answers saved
+
+            API->>Quiz: Calculate score
+            Quiz->>DB: Fetch correct answers
+            DB-->>Quiz: Correct answers
+            Quiz->>Quiz: Compare and score
+            Quiz-->>API: Total score
+
+            API->>DB: Update attempt status
+            DB-->>API: Updated
+
+            alt Passing Score
+            API->>DB: Update module progress
+            DB-->>API: Progress updated
+            end
+
+            API-->>UI: 200 OK + results
+            UI-->>Student: Display score & feedback
+
+            else No Attempts Remaining
+            API-->>UI: 403 Forbidden
+            UI-->>Student: Show "Max attempts reached"
+            end
+        </div>
+    </div>
+
+    <div class="diagram-container">
+        <h2>3. Project Collaboration Flow</h2>
+        <p class="description">Real-time collaboration sequence showing task creation, WebSocket notifications, and team
+            updates.</p>
+        <button class="download-btn" onclick="downloadDiagram('seq-project', 'Sequence-Project-Collaboration')">Download
+            PNG</button>
+        <div class="mermaid" id="seq-project">
+            sequenceDiagram
+            actor Student1
+            actor Student2
+            participant UI as Frontend
+            participant API as Backend API
+            participant WS as WebSocket Server
+            participant Project as Project Service
+            participant DB as Database
+            participant Notif as Notification Service
+
+            Student1->>UI: Create new task
+            UI->>API: POST /api/projects/{id}/tasks
+
+            API->>Project: Validate permissions
+            Project->>DB: Check team membership
+            DB-->>Project: Member confirmed
+
+            API->>DB: Create task
+            DB-->>API: Task created
+
+            API->>Notif: Trigger task notification
+            Notif->>DB: Create notifications for team
+            DB-->>Notif: Notifications created
+
+            Notif->>WS: Broadcast task created event
+            WS-->>UI: Real-time notification
+
+            API-->>UI: 201 Created + task data
+            UI-->>Student1: Show success message
+
+            Note over WS,Student2: Real-time update
+            WS->>Student2: New task notification
+            Student2->>UI: Open project board
+            UI->>API: GET /api/projects/{id}/tasks
+            API->>DB: Fetch tasks
+            DB-->>API: Task list
+            API-->>UI: 200 OK + tasks
+            UI-->>Student2: Display updated board
+
+            Student2->>UI: Assign self to task
+            UI->>API: PATCH /api/tasks/{id}
+            API->>DB: Update task assignee
+            DB-->>API: Updated
+
+            API->>WS: Broadcast task update
+            WS-->>Student1: Task assigned notification
+            API-->>UI: 200 OK
+            UI-->>Student2: Task assigned
+        </div>
+    </div>
+
+    <div class="diagram-container">
+        <h2>4. Content Upload and Processing Flow</h2>
+        <p class="description">Asynchronous file upload sequence with PDF processing, S3 storage, and Celery background
+            tasks.</p>
+        <button class="download-btn" onclick="downloadDiagram('seq-upload', 'Sequence-File-Upload')">Download
+            PNG</button>
+        <div class="mermaid" id="seq-upload">
+            sequenceDiagram
+            actor Instructor
+            participant UI as Frontend
+            participant API as Backend API
+            participant Upload as Upload Service
+            participant FileValidator as File Validator
+            participant S3 as S3 Storage
+            participant DB as Database
+            participant Celery as Celery Worker
+            participant PDF as PDF Processor
+
+            Instructor->>UI: Select PDF file
+            UI->>UI: Validate file size & type
+
+            UI->>API: POST /api/modules/upload
+            Note over UI,API: Multipart form data
+
+            API->>FileValidator: Validate file
+            FileValidator->>FileValidator: Check extension
+            FileValidator->>FileValidator: Scan for malware
+            FileValidator-->>API: Validation passed
+
+            API->>Upload: Generate unique filename
+            Upload-->>API: Filename generated
+
+            API->>S3: Upload file
+            S3-->>API: File URL
+
+            API->>DB: Create LearningModule record
+            DB-->>API: Module created
+
+            API->>Celery: Queue PDF processing task
+            Celery-->>API: Task queued
+
+            API-->>UI: 202 Accepted + module_id
+            UI-->>Instructor: Show "Processing..." status
+
+            Note over Celery,PDF: Async processing
+            Celery->>PDF: Extract text from PDF
+            PDF->>S3: Download PDF
+            S3-->>PDF: PDF content
+
+            PDF->>PDF: Extract text & metadata
+            PDF->>PDF: Generate slides
+            PDF->>PDF: Extract images
+
+            PDF->>DB: Update module with extracted data
+            DB-->>PDF: Updated
+
+            PDF->>Celery: Task complete
+            Celery->>UI: WebSocket notification
+            UI-->>Instructor: Show "Processing complete"
+
+            Instructor->>UI: Refresh module
+            UI->>API: GET /api/modules/{id}
+            API->>DB: Fetch module data
+            DB-->>API: Module with slides
+            API-->>UI: 200 OK + module data
+            UI-->>Instructor: Display editable content
+        </div>
+    </div>
+
+    <div class="diagram-container">
+        <h2>5. Certificate Generation Flow</h2>
+        <p class="description">Certificate generation workflow after course completion including PDF creation and email
+            delivery.</p>
+        <button class="download-btn" onclick="downloadDiagram('seq-cert', 'Sequence-Certificate-Generation')">Download
+            PNG</button>
+        <div class="mermaid" id="seq-cert">
+            sequenceDiagram
+            actor Student
+            participant UI as Frontend
+            participant API as Backend API
+            participant Progress as Progress Service
+            participant DB as Database
+            participant Cert as Certificate Service
+            participant PDF as PDF Generator
+            participant Email as Email Service
+            participant S3 as S3 Storage
+
+            Note over Student,DB: Student completes final module
+
+            Student->>UI: Complete final module
+            UI->>API: POST /api/modules/{id}/complete
+
+            API->>Progress: Check all modules complete
+            Progress->>DB: Query module progress
+            DB-->>Progress: All modules completed
+
+            Progress->>DB: Update enrollment status
+            DB-->>Progress: Status: completed
+
+            Progress->>Cert: Trigger certificate generation
+
+            Cert->>DB: Check existing certificate
+            DB-->>Cert: No certificate found
+
+            Cert->>Cert: Generate certificate ID
+
+            Cert->>PDF: Create certificate PDF
+            Note over PDF: Template + User Data
+            PDF->>PDF: Render certificate design
+            PDF->>PDF: Add QR code for verification
+            PDF-->>Cert: PDF file generated
+
+            Cert->>S3: Upload PDF to storage
+            S3-->>Cert: PDF URL
+
+            Cert->>DB: Save certificate record
+            DB-->>Cert: Certificate saved
+
+            Cert->>Email: Send certificate email
+            Email->>Email: Compose congratulations email
+            Email->>Email: Attach PDF certificate
+            Email-->>Cert: Email queued
+
+            Cert-->>API: Certificate generated
+            API-->>UI: 200 OK + certificate data
+
+            UI->>UI: Show congratulations modal
+            UI->>UI: Display download button
+            UI-->>Student: "Congratulations! Certificate ready"
+
+            Student->>UI: Click "Download Certificate"
+            UI->>S3: Download from URL
+            S3-->>Student: Certificate PDF file
+        </div>
+    </div>
+
+    <div class="diagram-container">
+        <h2>6. Real-time Chat Communication</h2>
+        <p class="description">WebSocket-based real-time messaging between students including online status and typing
+            indicators.</p>
+        <button class="download-btn" onclick="downloadDiagram('seq-chat', 'Sequence-Real-Time-Chat')">Download
+            PNG</button>
+        <div class="mermaid" id="seq-chat">
+            sequenceDiagram
+            actor Student1
+            actor Student2
+            participant UI1 as Student1 UI
+            participant UI2 as Student2 UI
+            participant WS as WebSocket Server
+            participant Channel as Django Channels
+            participant DB as Database
+            participant Cache as Redis
+
+            Note over Student1,Student2: Both students online
+
+            Student1->>UI1: Open chat with Student2
+            UI1->>WS: Connect to WebSocket
+            WS->>Channel: Establish connection
+            Channel->>Cache: Add to online users
+            Cache-->>Channel: User online
+            Channel-->>WS: Connection established
+            WS-->>UI1: Connected
+
+            Student2->>UI2: Already in chat
+            Note over UI2: Student2 sees "Student1 online"
+
+            Student1->>UI1: Type message
+            UI1->>WS: Send typing indicator
+            WS->>Channel: Broadcast typing event
+            Channel->>UI2: Student1 is typing...
+            UI2-->>Student2: Show typing indicator
+
+            Student1->>UI1: Send message
+            UI1->>WS: Send chat message
+
+            WS->>Channel: Process message
+            Channel->>DB: Save message to database
+            DB-->>Channel: Message saved
+
+            Channel->>Cache: Cache recent messages
+            Cache-->>Channel: Cached
+
+            Channel->>WS: Message saved
+            WS->>UI1: Message sent confirmation
+            UI1-->>Student1: Show message delivered
+
+            Channel->>WS: Broadcast to Student2
+            WS->>UI2: New message event
+            UI2->>UI2: Play notification sound
+            UI2->>UI2: Show message in chat
+            UI2-->>Student2: Display new message
+
+            Student2->>UI2: Read message
+            UI2->>WS: Send read receipt
+            WS->>Channel: Mark as read
+            Channel->>DB: Update message status
+            DB-->>Channel: Updated
+
+            Channel->>WS: Broadcast read receipt
+            WS->>UI1: Message read by Student2
+            UI1-->>Student1: Show "Read" indicator
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+            sequence: {
+                diagramMarginX: 50,
+                diagramMarginY: 10,
+                actorMargin: 50,
+                width: 150,
+                height: 65,
+                boxMargin: 10,
+                boxTextMargin: 5,
+                noteMargin: 10,
+                messageMargin: 35,
+                mirrorActors: true,
+                useMaxWidth: true
+            }
+        });
+
+        function downloadDiagram(diagramId, filename) {
+            const svg = document.querySelector(`#${diagramId} svg`);
+            if (!svg) {
+                alert('Diagram not rendered yet. Please wait a moment and try again.');
+                return;
+            }
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const svgData = new XMLSerializer().serializeToString(svg);
+
+            const img = new Image();
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(svgBlob);
+
+            img.onload = function () {
+                canvas.width = img.width * 2;
+                canvas.height = img.height * 2;
+                ctx.scale(2, 2);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+
+                canvas.toBlob(function (blob) {
+                    const link = document.createElement('a');
+                    link.download = `${filename}.png`;
+                    link.href = URL.createObjectURL(blob);
+                    link.click();
+                    URL.revokeObjectURL(url);
+                });
+            };
+
+            img.src = url;
+        }
+
+        console.log('%c📊 Additional Sequence Diagrams Loaded!', 'color: #3498db; font-size: 16px; font-weight: bold;');
+        console.log('%c6 detailed sequence diagrams available', 'color: #2ecc71; font-size: 14px;');
+        console.log('%cClick "Download PNG" to save or Ctrl+P to print to PDF', 'color: #2ecc71; font-size: 14px;');
+    </script>
+</body>
+
+</html>

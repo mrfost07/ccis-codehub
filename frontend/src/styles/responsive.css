@@ -1,0 +1,68 @@
+/* Mobile Responsive Utilities */
+
+/* Mobile Breakpoints */
+@media (max-width: 640px) {
+  /* Headers - Make smaller on mobile */
+  h1 {
+    font-size: 1.5rem !important; /* 24px */
+    line-height: 2rem !important;
+  }
+  
+  h2 {
+    font-size: 1.25rem !important; /* 20px */
+    line-height: 1.75rem !important;
+  }
+  
+  h3 {
+    font-size: 1.125rem !important; /* 18px */
+    line-height: 1.5rem !important;
+  }
+  
+  /* Reduce padding on mobile */
+  .mobile-px-4 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .mobile-py-4 {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+  
+  /* Stack grids on mobile */
+  .mobile-stack {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Hide on mobile */
+  .mobile-hidden {
+    display: none !important;
+  }
+  
+  /* Full width on mobile */
+  .mobile-full {
+    width: 100% !important;
+  }
+  
+  /* Smaller text on mobile */
+  .mobile-text-sm {
+    font-size: 0.875rem !important;
+  }
+  
+  /* Smaller buttons on mobile */
+  .mobile-btn-sm {
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.875rem !important;
+  }
+}
+
+/* Tablet Breakpoints */
+@media (min-width: 641px) and (max-width: 1024px) {
+  h1 {
+    font-size: 2rem !important; /* 32px */
+  }
+  
+  h2 {
+    font-size: 1.5rem !important; /* 24px */
+  }
+}

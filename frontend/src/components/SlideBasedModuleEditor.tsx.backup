@@ -1,0 +1,277 @@
+import { useState } from 'react'
+import { Plus, Trash2, ChevronLeft, ChevronRight, FileText, Save } from 'lucide-react'
+import RichTextEditor from './RichTextEditor'
+import toast from 'react-hot-toast'
+
+interface Slide {
+  id: string
+  title: string
+  content: string
+  order: number
+}
+
+interface SlideBasedModuleEditorProps {
+  initialSlides?: Slide[]
+  onSave: (slides: Slide[], fullContent: string) => void
+  onCancel: () => void
+}
+
+export default function SlideBasedModuleEditor({ 
+  initialSlides = [], 
+  onSave, 
+  onCancel 
+}: SlideBasedModuleEditorProps) {
+  const [slides, setSlides] = useState<Slide[]>(
+    initialSlides.length > 0 
+      ? initialSlides 
+      : [{ id: generateId(), title: 'Slide 1', content: '', order: 0 }]
+  )
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
+
+  function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2)
+  }
+
+  const currentSlide = slides[currentSlideIndex]
+
+  const addSlide = () => {
+    const newSlide: Slide = {
+      id: generateId(),
+      title: `Slide ${slides.length + 1}`,
+      content: '',
+      order: slides.length
+    }
+    setSlides([...slides, newSlide])
+    setCurrentSlideIndex(slides.length)
+    toast.success('New slide added')
+  }
+
+  const deleteSlide = () => {
+    if (slides.length === 1) {
+      toast.error('Cannot delete the last slide')
+      return
+    }
+    
+    if (!confirm('Delete this slide?')) return
+
+    const newSlides = slides.filter((_, i) => i !== currentSlideIndex)
+    // Reorder
+    newSlides.forEach((slide, index) => {
+      slide.order = index
+      slide.title = `Slide ${index + 1}`
+    })
+    
+    setSlides(newSlides)
+    setCurrentSlideIndex(Math.max(0, currentSlideIndex - 1))
+    toast.success('Slide deleted')
+  }
+
+  const updateSlideTitle = (title: string) => {
+    const newSlides = [...slides]
+    newSlides[currentSlideIndex] = { ...currentSlide, title }
+    setSlides(newSlides)
+  }
+
+  const updateSlideContent = (content: string) => {
+    const newSlides = [...slides]
+    newSlides[currentSlideIndex] = { ...currentSlide, content }
+    setSlides(newSlides)
+  }
+
+  const navigateSlide = (direction: 'prev' | 'next') => {
+    if (direction === 'prev' && currentSlideIndex > 0) {
+      setCurrentSlideIndex(currentSlideIndex - 1)
+    } else if (direction === 'next' && currentSlideIndex < slides.length - 1) {
+      setCurrentSlideIndex(currentSlideIndex + 1)
+    }
+  }
+
+  const handleSave = () => {
+    // Validate all slides have content
+    const emptySlides = slides.filter(s => !s.content.trim())
+    if (emptySlides.length > 0) {
+      toast.error('Please add content to all slides')
+      return
+    }
+
+    // Combine all slides into one content with HTML separators
+    const fullContent = slides.map((slide, index) => `
+      <div class="module-slide" data-slide="${index + 1}">
+        <h2 class="slide-title">${slide.title}</h2>
+        <div class="slide-content">
+          ${slide.content}
+        </div>
+        ${index < slides.length - 1 ? '<hr class="slide-separator" />' : ''}
+      </div>
+    `).join('\n')
+
+    onSave(slides, fullContent)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 overflow-y-auto">
+      <div className="min-h-screen bg-slate-900 p-6">
+        <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <FileText className="w-8 h-8 text-blue-400" />
+              <div>
+                <h2 className="text-2xl font-bold text-white">Module Editor</h2>
+                <p className="text-slate-400">Create engaging slides for your learning module</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onCancel()
+                }}
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleSave()
+                }}
+                className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg transition flex items-center gap-2"
+              >
+                <Save className="w-4 h-4" />
+                Save Module
+              </button>
+            </div>
+          </div>
+
+          {/* Slide Navigation */}
+          <div className="flex items-center justify-between bg-slate-900/50 rounded-lg p-4">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                navigateSlide('prev')
+              }}
+              disabled={currentSlideIndex === 0}
+              className="p-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2">
+              {slides.map((slide, index) => (
+                <button
+                  key={slide.id}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setCurrentSlideIndex(index)
+                  }}
+                  className={`px-4 py-2 rounded-lg transition ${
+                    index === currentSlideIndex
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {index + 1}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  addSlide()
+                }}
+                className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition"
+                title="Add Slide"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                navigateSlide('next')
+              }}
+              disabled={currentSlideIndex === slides.length - 1}
+              className="p-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Slide Editor */}
+        <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <input
+              type="text"
+              value={currentSlide.title}
+              onChange={(e) => updateSlideTitle(e.target.value)}
+              className="text-2xl font-bold bg-transparent border-none outline-none text-white placeholder-slate-500 flex-1"
+              placeholder="Slide Title"
+            />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                deleteSlide()
+              }}
+              className="p-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition"
+              title="Delete Slide"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="mb-4">
+            <RichTextEditor
+              value={currentSlide.content}
+              onChange={updateSlideContent}
+              placeholder="Start writing your slide content... Use the toolbar for formatting, bullet points, and checkboxes."
+              height="400px"
+            />
+          </div>
+
+          {/* Slide Counter */}
+          <div className="flex items-center justify-between text-sm text-slate-400 mt-4">
+            <span>
+              Slide {currentSlideIndex + 1} of {slides.length}
+            </span>
+            <span>
+              Total slides: {slides.length}
+            </span>
+          </div>
+        </div>
+
+        {/* Formatting Tips */}
+        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 mt-4">
+          <h3 className="text-white font-semibold mb-2">Formatting Tips:</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-slate-400">
+            <div>• <strong className="text-white">Bold</strong> text for emphasis</div>
+            <div>• <em className="text-white">Italic</em> for definitions</div>
+            <div>• Bullet points for lists</div>
+            <div>• Checkboxes for tasks</div>
+            <div>• Numbered lists for steps</div>
+            <div>• Code blocks for syntax</div>
+            <div>• Images for visuals</div>
+            <div>• Links for resources</div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+  )
+}
