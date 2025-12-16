@@ -1,22 +1,12 @@
 {
-    "version": 2,
-    "builds": [
+    "rewrites": [
         {
-            "src": "frontend/package.json",
-            "use": "@vercel/static-build",
-            "config": {
-                "distDir": "dist"
-            }
-        }
-    ],
-    "routes": [
-        {
-            "src": "/api/(.*)",
-            "dest": "https://ccis-codehub.onrender.com/api/$1"
+            "source": "/api/:path*",
+            "destination": "https://ccis-codehub.onrender.com/api/:path*"
         },
         {
-            "src": "/(.*)",
-            "dest": "/frontend/$1"
+            "source": "/((?!assets|favicon|static).*)",
+            "destination": "/index.html"
         }
     ]
 }
