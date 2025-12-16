@@ -216,7 +216,8 @@ export default function Register() {
               const clientId = '1018587300192-m0n93uesm6v33bahs57tatg52v3lurah.apps.googleusercontent.com';
               const redirectUri = encodeURIComponent(window.location.origin + '/auth/callback');
               const scope = encodeURIComponent('openid email profile');
-              const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent`;
+              const state = btoa(JSON.stringify({ mode: 'signup' }));
+              const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=${state}`;
               window.location.href = authUrl;
             }}
             className="w-12 h-12 bg-white hover:bg-gray-50 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-200 hover:scale-105 active:scale-95"

@@ -532,8 +532,8 @@ export default function ProjectDetail() {
   const canManageTasks = project?.is_member || isOwnerOrAdmin
 
   const allMembers = project ? [
-    { id: project.owner, user: project.owner, name: project.owner_name, role: 'owner', user_picture: project.owner_picture },
-    ...(project.memberships?.map(m => ({ id: m.user, user: m.user, name: m.user_name, role: m.role, user_picture: m.user_picture })) || [])
+    { id: `owner-${project.owner}`, user: project.owner, name: project.owner_name, role: 'owner', user_picture: project.owner_picture },
+    ...(project.memberships?.filter(m => m.user !== project.owner).map(m => ({ id: `member-${m.id}`, user: m.user, name: m.user_name, role: m.role, user_picture: m.user_picture })) || [])
   ] : []
 
   const filteredTeam = allMembers.filter(m =>

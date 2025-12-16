@@ -217,10 +217,7 @@ export default function FloatingAIMentor() {
     return !publicRoutes.includes(location.pathname) && isAuthenticated()
   }
 
-  if (!shouldShow()) {
-    return null
-  }
-
+  // All hooks must be called before any early return!
   useEffect(() => {
     if (isOpen && sessions.length === 0) {
       loadConversations()
@@ -238,6 +235,11 @@ export default function FloatingAIMentor() {
       loadSessionMessages(sessionId)
     }
   }, [sessionId])
+
+  // Early return AFTER all hooks are called
+  if (!shouldShow()) {
+    return null
+  }
 
   const loadConversations = async () => {
     try {

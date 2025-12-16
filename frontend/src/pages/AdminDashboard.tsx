@@ -359,6 +359,50 @@ function AdminDashboard() {
     }
   }
 
+  // Feature flag for delete button
+  const isUserDeleteEnabled = import.meta.env.VITE_ENABLE_USER_DELETE === 'true'
+
+  // Delete user modal state
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; userId: string; username: string }>({
+    isOpen: false,
+    userId: '',
+    username: ''
+  })
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const openDeleteModal = (userId: string, username: string) => {
+    setDeleteModal({ isOpen: true, userId, username })
+  }
+
+  const closeDeleteModal = () => {
+    if (!isDeleting) {
+      setDeleteModal({ isOpen: false, userId: '', username: '' })
+    }
+  }
+
+  const handleDeleteUser = async () => {
+    if (!isUserDeleteEnabled || !deleteModal.userId) return
+
+    setIsDeleting(true)
+
+    try {
+      await api.delete(`/auth/users/${deleteModal.userId}/`)
+
+      // Remove from local lists
+      setUsers(users.filter(u => u.id !== deleteModal.userId))
+      setFilteredUsers(filteredUsers.filter(u => u.id !== deleteModal.userId))
+
+      toast.success(`User "${deleteModal.username}" has been deleted`)
+      fetchDashboardStats() // Refresh stats
+      setDeleteModal({ isOpen: false, userId: '', username: '' })
+    } catch (error: any) {
+      console.error('Failed to delete user:', error)
+      toast.error(error.response?.data?.error || 'Failed to delete user')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   const handleDeletePath = async (pathId: string) => {
     if (!confirm('Are you sure you want to delete this path? This action cannot be undone.')) return
 
@@ -1290,17 +1334,29 @@ function AdminDashboard() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          onClick={() => handleToggleUserStatus(user.id)}
-                          className={`p-1.5 rounded transition flex items-center gap-1 text-xs ${user.is_active
-                            ? 'bg-orange-600/20 text-orange-400 hover:bg-orange-600/30'
-                            : 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
-                            }`}
-                          title={user.is_active ? 'Deactivate User' : 'Activate User'}
-                        >
-                          <Power size={16} />
-                          <span className="hidden sm:inline">{user.is_active ? 'Deactivate' : 'Activate'}</span>
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleToggleUserStatus(user.id)}
+                            className={`p-1.5 rounded transition flex items-center gap-1 text-xs ${user.is_active
+                              ? 'bg-orange-600/20 text-orange-400 hover:bg-orange-600/30'
+                              : 'bg-green-600/20 text-green-400 hover:bg-green-600/30'
+                              }`}
+                            title={user.is_active ? 'Deactivate User' : 'Activate User'}
+                          >
+                            <Power size={16} />
+                            <span className="hidden sm:inline">{user.is_active ? 'Deactivate' : 'Activate'}</span>
+                          </button>
+                          {isUserDeleteEnabled && (
+                            <button
+                              onClick={() => openDeleteModal(user.id, user.username)}
+                              className="p-1.5 rounded transition flex items-center gap-1 text-xs bg-red-600/20 text-red-400 hover:bg-red-600/30"
+                              title="Delete User Permanently"
+                            >
+                              <Trash2 size={16} />
+                              <span className="hidden sm:inline">Delete</span>
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -2701,6 +2757,55 @@ function AdminDashboard() {
           </div>
         )}
       </div>
+
+      {/* Delete User Confirmation Modal - Minimal Design */}
+      {deleteModal.isOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={closeDeleteModal}
+        >
+          <div
+            className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Icon & Title - Centered */}
+            <div className="pt-8 pb-4 px-6 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-red-500/10 rounded-full flex items-center justify-center">
+                <Trash2 className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-1">Delete User?</h3>
+              <p className="text-slate-400 text-sm">
+                This will permanently remove <span className="text-white font-medium">{deleteModal.username}</span>
+              </p>
+            </div>
+
+            {/* Buttons */}
+            <div className="p-4 bg-slate-800/50 flex gap-3">
+              <button
+                onClick={closeDeleteModal}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-3 bg-slate-700/50 hover:bg-slate-700 disabled:opacity-50 text-slate-300 hover:text-white rounded-xl transition-all font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-500 disabled:bg-red-800 text-white rounded-xl transition-all font-medium flex items-center justify-center gap-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Delete</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -462,12 +462,14 @@ class PublicStatsView(APIView):
 class GoogleOAuthCallbackView(APIView):
     """
     Handle Google OAuth callback - direct Google OAuth
+    Supports mode='login' or mode='signup'
     """
     permission_classes = [AllowAny]
     
     def post(self, request):
         code = request.data.get('code')
         redirect_uri = request.data.get('redirect_uri')
+        mode = request.data.get('mode', 'login')  # 'login' or 'signup'
         
         if not code:
             return Response(
@@ -539,58 +541,58 @@ class GoogleOAuthCallbackView(APIView):
             # Check if user exists
             user = User.objects.filter(email=email).first()
             
-            if user:
-                # Existing user - allow login regardless of domain (for admins with @gmail.com)
-                refresh = RefreshToken.for_user(user)
-                return Response({
-                    'user': UserSerializer(user).data,
-                    'tokens': {
-                        'access': str(refresh.access_token),
-                        'refresh': str(refresh),
-                    },
-                    'needs_profile_completion': False,
-                })
+            # ========== LOGIN MODE ==========
+            if mode == 'login':
+                if user:
+                    # Existing user - log them in
+                    refresh = RefreshToken.for_user(user)
+                    return Response({
+                        'user': UserSerializer(user).data,
+                        'tokens': {
+                            'access': str(refresh.access_token),
+                            'refresh': str(refresh),
+                        },
+                        'is_existing_user': True,
+                    })
+                else:
+                    # New user trying to login - tell them to signup
+                    return Response({
+                        'error': 'No account found with this email. Please sign up first.',
+                        'is_new_user': True,
+                    }, status=status.HTTP_404_NOT_FOUND)
+            
+            # ========== SIGNUP MODE ==========
+            elif mode == 'signup':
+                if user:
+                    # Existing user trying to sign up - warn them
+                    return Response({
+                        'is_existing_user': True,
+                        'email': email,
+                        'message': 'An account with this email already exists. Please login instead.',
+                    })
+                else:
+                    # New user - check email domain
+                    if email_domain not in ALLOWED_DOMAINS:
+                        return Response({
+                            'error': f'Only institutional emails (@ssct.edu.ph, @snsu.edu.ph) are allowed to sign up.',
+                        }, status=status.HTTP_403_FORBIDDEN)
+                    
+                    # Return Google data for profile completion (don't create user yet)
+                    return Response({
+                        'is_new_user': True,
+                        'google_data': {
+                            'email': email,
+                            'first_name': google_user.get('given_name', ''),
+                            'last_name': google_user.get('family_name', ''),
+                            'google_id': google_user.get('id') or google_user.get('sub'),  # v2 API uses 'id', OIDC uses 'sub'
+                            'picture': google_user.get('picture', ''),
+                        }
+                    })
             else:
-                # New user - check email domain restriction
-                if email_domain not in ALLOWED_DOMAINS:
-                    return Response(
-                        {'error': f'Only institutional emails (@ssct.edu.ph, @snsu.edu.ph) are allowed to sign up. Please use your school email.'},
-                        status=status.HTTP_403_FORBIDDEN
-                    )
-                
-                # Create new user with Google data
-                username = email.split('@')[0]
-                base_username = username
-                counter = 1
-                while User.objects.filter(username=username).exists():
-                    username = f"{base_username}{counter}"
-                    counter += 1
-                
-                user = User.objects.create(
-                    email=email,
-                    username=username,
-                    first_name=google_user.get('given_name', ''),
-                    last_name=google_user.get('family_name', ''),
-                    is_active=True,
-                    google_id=google_user.get('sub'),
+                return Response(
+                    {'error': 'Invalid mode. Use "login" or "signup".'},
+                    status=status.HTTP_400_BAD_REQUEST
                 )
-                user.set_unusable_password()
-                user.save()
-                
-                # Create profile
-                UserProfile.objects.get_or_create(user=user)
-                
-                # Generate tokens
-                refresh = RefreshToken.for_user(user)
-                
-                return Response({
-                    'user': UserSerializer(user).data,
-                    'tokens': {
-                        'access': str(refresh.access_token),
-                        'refresh': str(refresh),
-                    },
-                    'needs_profile_completion': True,
-                })
                 
         except Exception as e:
             import traceback
@@ -601,61 +603,101 @@ class GoogleOAuthCallbackView(APIView):
             )
 
 
-class CompleteGoogleProfileView(APIView):
+class CreateGoogleAccountView(APIView):
     """
-    Complete profile for Google sign-up users
+    Create a new account after Google OAuth signup + profile completion wizard
+    Called after user fills out the profile form with program/year_level
     """
     permission_classes = [AllowAny]
     
     def post(self, request):
-        access_token = request.data.get('access_token')
-        first_name = request.data.get('first_name')
-        last_name = request.data.get('last_name')
-        username = request.data.get('username')
-        program = request.data.get('program')
-        year_level = request.data.get('year_level')
+        google_data = request.data.get('google_data', {})
+        profile_data = request.data.get('profile_data', {})
         
-        if not access_token:
+        # Debug logging
+        print(f"CreateGoogleAccountView - google_data: {google_data}")
+        print(f"CreateGoogleAccountView - profile_data: {profile_data}")
+        
+        email = google_data.get('email')
+        google_id = google_data.get('google_id')
+        
+        if not email:
             return Response(
-                {'error': 'Access token is required'},
+                {'error': 'Email is required in google_data'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Google ID is optional - if not provided, generate from email hash
+        # This handles stale OAuth data that may not have the ID
+        if not google_id:
+            import hashlib
+            google_id = f"google_{hashlib.md5(email.encode()).hexdigest()[:16]}"
+            print(f"Generated google_id from email hash: {google_id}")
+        
+        # Validate required profile fields
+        program = profile_data.get('program')
+        year_level = profile_data.get('year_level')
+        
+        if not program or not year_level:
+            return Response(
+                {'error': f'Program and year level are required. Received: program={program}, year_level={year_level}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         try:
-            from rest_framework_simplejwt.tokens import AccessToken
-            token = AccessToken(access_token)
-            user_id = token['user_id']
-            user = User.objects.get(id=user_id)
+            # Check if user already exists (race condition protection)
+            if User.objects.filter(email=email).exists():
+                return Response(
+                    {'error': 'An account with this email already exists'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             
-            # Update user fields
-            if first_name:
-                user.first_name = first_name
-            if last_name:
-                user.last_name = last_name
-            if username and username != user.username:
-                if not User.objects.filter(username=username).exclude(id=user.id).exists():
-                    user.username = username
-            if program:
-                user.program = program
-            if year_level:
-                user.year_level = year_level
+            # Generate unique username
+            username = profile_data.get('username') or email.split('@')[0]
+            base_username = username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}{counter}"
+                counter += 1
             
+            # Create user
+            user = User.objects.create(
+                email=email,
+                username=username,
+                first_name=google_data.get('first_name', ''),
+                last_name=google_data.get('last_name', ''),
+                is_active=True,
+                google_id=google_id,
+                program=program,
+                year_level=year_level,
+            )
+            user.set_unusable_password()
             user.save()
+            
+            # Create profile with additional data
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            profile.program = program
+            profile.year_level = year_level
+            profile.save()
+            
+            # Generate tokens
+            refresh = RefreshToken.for_user(user)
             
             return Response({
                 'user': UserSerializer(user).data,
-                'message': 'Profile completed successfully'
+                'tokens': {
+                    'access': str(refresh.access_token),
+                    'refresh': str(refresh),
+                },
+                'message': 'Account created successfully!'
             })
             
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return Response(
                 {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-
-# URL patterns
-urlpatterns = [
-    # These will be included in urls.py
-]
 

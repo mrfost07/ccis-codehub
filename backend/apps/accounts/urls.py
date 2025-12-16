@@ -6,7 +6,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     UserRegistrationView, UserLoginView, UserProfileView,
     UserViewSet, UserStatsAPIView, PublicUserProfileView, PublicStatsView,
-    GoogleOAuthCallbackView, CompleteGoogleProfileView
+    GoogleOAuthCallbackView, CreateGoogleAccountView
 )
 from .admin_views import AdminDashboardView, AdminUsersView, AdminContentView
 
@@ -35,8 +35,7 @@ urlpatterns = [
     
     # Google OAuth endpoints
     path('google/callback/', GoogleOAuthCallbackView.as_view(), name='google-oauth-callback'),
-    path('google/complete-profile/', CompleteGoogleProfileView.as_view(), name='complete-google-profile'),
+    path('google/create-account/', CreateGoogleAccountView.as_view(), name='create-google-account'),
     
     path('', include(router.urls)),
 ]
-
