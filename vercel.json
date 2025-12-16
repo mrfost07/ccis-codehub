@@ -12,7 +12,7 @@
     "routes": [
         {
             "src": "/api/(.*)",
-            "dest": "https://ccis-codehub-api.onrender.com/api/$1"
+            "dest": "https://ccis-codehub.onrender.com/api/$1"
         },
         {
             "src": "/(.*)",
@@ -20,7 +20,7 @@
         }
     ],
     "env": {
-        "VITE_API_URL": "https://ccis-codehub-api.onrender.com/api",
+        "VITE_API_URL": "https://ccis-codehub.onrender.com/api",
         "VITE_ENABLE_AI_MENTOR": "true",
         "VITE_GOOGLE_CLIENT_ID": "@google_client_id"
     }
