@@ -23,7 +23,7 @@ SECRET_KEY = env('DJANGO_SECRET_KEY', default='django-insecure-@s1pjlsytgh1y@y=@
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DJANGO_DEBUG', default=True)
 
-ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['localhost', '127.0.0.1', '.onrender.com', '.vercel.app'])
 
 # AI Configuration
 AI_MODEL_DEFAULT = env('AI_MODEL_DEFAULT', default='openrouter')  # Changed default to openrouter
@@ -216,10 +216,16 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:3000',
     'http://localhost:5173',
     'http://127.0.0.1:5173',
+    # Production domains
+    'https://ccis-codehub.vercel.app',
+    'https://ccis-codehub-api.onrender.com',
 ]
 
+# Add any additional origins from environment
+CORS_ALLOWED_ORIGINS += env.list('CORS_ALLOWED_ORIGINS', default=[])
+
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = False  # Set to True for development if needed
+CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=False)
 
 # Allow all headers and methods for development
 CORS_ALLOW_HEADERS = [
