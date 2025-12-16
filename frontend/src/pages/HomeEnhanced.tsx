@@ -153,20 +153,12 @@ export default function HomeEnhanced() {
               <img src="/logo/ccis-logo.png" alt="CCIS" className="w-8 h-8" />
               <span className="text-xl font-semibold text-white">CCIS CodeHub</span>
             </Link>
-            <div className="flex items-center space-x-3">
-              <Link
-                to="/login"
-                className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
-              >
-                Login
-              </Link>
-              <Link
-                to="/register"
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-500 transition-colors"
-              >
-                Get Started
-              </Link>
-            </div>
+            <Link
+              to="/login"
+              className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+            >
+              Login
+            </Link>
           </div>
         </div>
       </nav>
@@ -263,10 +255,10 @@ export default function HomeEnhanced() {
             <div className="w-1 h-2 bg-slate-500 rounded-full" />
           </motion.div>
         </div>
-      </section>
+      </section >
 
       {/* Features Section */}
-      <section id="features" className="relative z-10 py-24 px-4">
+      < section id="features" className="relative z-10 py-24 px-4" >
         <div className="max-w-5xl mx-auto">
           {/* Section Header */}
           <div className="text-center mb-16">
@@ -321,7 +313,7 @@ export default function HomeEnhanced() {
             />
           </div>
         </div>
-      </section>
+      </section >
 
       {/* AI Automation Section */}
       < section id="ai-automation" className="relative z-10 py-32 px-4" >
