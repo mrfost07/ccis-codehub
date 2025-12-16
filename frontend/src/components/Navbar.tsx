@@ -29,7 +29,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/dashboard" className="flex items-center space-x-2 flex-shrink-0">
-            <img src="/logo/ccis-logo.svg" alt="CCIS" className="h-8 w-8" />
+            <img src="/logo/ccis-logo.png" alt="CCIS" className="h-8 w-8" />
             <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent hidden sm:inline">
               CCIS CodeHub
             </span>

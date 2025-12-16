@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { communityAPI } from '../services/api'
 import toast from 'react-hot-toast'
-import { 
-  Users, Plus, Search, Filter, Crown, Shield, UserPlus, 
-  Check, X, Clock, Lock, Globe, Building2 
+import {
+  Users, Plus, Search, Filter, Crown, Shield, UserPlus,
+  Check, X, Clock, Lock, Globe, Building2
 } from 'lucide-react'
 
 interface Organization {
@@ -111,7 +111,7 @@ export default function Organizations() {
 
   const filteredOrgs = organizations.filter(org => {
     const matchesSearch = org.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         org.description.toLowerCase().includes(searchQuery.toLowerCase())
+      org.description.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesFilter = filter === 'all' || org.org_type === filter
     return matchesSearch && matchesFilter
   })
@@ -246,7 +246,7 @@ export default function Organizations() {
             </h1>
             <p className="text-slate-400">Discover and join communities</p>
           </div>
-          {user?.is_staff && (
+          {(user as any)?.is_staff && (
             <Link
               to="/organizations/create"
               className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition"
@@ -261,22 +261,20 @@ export default function Organizations() {
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           <button
             onClick={() => setActiveTab('discover')}
-            className={`px-4 py-2 rounded-lg transition whitespace-nowrap ${
-              activeTab === 'discover' 
-                ? 'bg-purple-600 text-white' 
+            className={`px-4 py-2 rounded-lg transition whitespace-nowrap ${activeTab === 'discover'
+                ? 'bg-purple-600 text-white'
                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-            }`}
+              }`}
           >
             <Globe className="w-4 h-4 inline mr-2" />
             Discover
           </button>
           <button
             onClick={() => setActiveTab('my-orgs')}
-            className={`px-4 py-2 rounded-lg transition whitespace-nowrap ${
-              activeTab === 'my-orgs' 
-                ? 'bg-purple-600 text-white' 
+            className={`px-4 py-2 rounded-lg transition whitespace-nowrap ${activeTab === 'my-orgs'
+                ? 'bg-purple-600 text-white'
                 : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-            }`}
+              }`}
           >
             <Users className="w-4 h-4 inline mr-2" />
             My Organizations ({myOrgs.length})
@@ -284,11 +282,10 @@ export default function Organizations() {
           {invitations.length > 0 && (
             <button
               onClick={() => setActiveTab('invitations')}
-              className={`px-4 py-2 rounded-lg transition whitespace-nowrap ${
-                activeTab === 'invitations' 
-                  ? 'bg-purple-600 text-white' 
+              className={`px-4 py-2 rounded-lg transition whitespace-nowrap ${activeTab === 'invitations'
+                  ? 'bg-purple-600 text-white'
                   : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-              }`}
+                }`}
             >
               <UserPlus className="w-4 h-4 inline mr-2" />
               Invitations ({invitations.length})

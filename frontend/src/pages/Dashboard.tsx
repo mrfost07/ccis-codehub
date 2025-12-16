@@ -11,34 +11,43 @@ export default function Dashboard() {
     projects: 0
   })
   const [loading, setLoading] = useState(true)
+  const [roleChecking, setRoleChecking] = useState(true)
   const [userRole, setUserRole] = useState<string | null>(null)
   const navigate = useNavigate()
   const user = JSON.parse(localStorage.getItem('user') || '{}')
 
   useEffect(() => {
     checkUserRole()
-    loadDashboardData()
   }, [])
+
+  useEffect(() => {
+    // Only load dashboard data if we're not redirecting
+    if (!roleChecking && userRole && !['admin', 'instructor', 'student'].includes(userRole)) {
+      loadDashboardData()
+    }
+  }, [roleChecking, userRole])
 
   const checkUserRole = async () => {
     try {
       const response = await api.get('/auth/profile/')
       const role = response.data.role
       setUserRole(role)
-      
+
       // Redirect to role-specific dashboard
       if (role === 'admin') {
-        navigate('/admin')
-        return // Stop execution here
+        navigate('/admin', { replace: true })
+        return
       } else if (role === 'instructor') {
-        navigate('/instructor')
+        navigate('/instructor', { replace: true })
         return
       } else if (role === 'student') {
-        navigate('/student')  
+        navigate('/student', { replace: true })
         return
       }
     } catch (error) {
       console.error('Failed to fetch user role:', error)
+    } finally {
+      setRoleChecking(false)
     }
   }
 
@@ -48,7 +57,7 @@ export default function Dashboard() {
         learningAPI.getProgress().catch(() => ({ data: [] })),
         projectsAPI.getProjects().catch(() => ({ data: [] }))
       ])
-      
+
       setStats({
         points: user.points || 1250,
         level: user.level || 5,
@@ -60,6 +69,18 @@ export default function Dashboard() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show loading while checking role
+  if (roleChecking) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin text-4xl sm:text-6xl mb-4">⏳</div>
+          <p className="text-slate-400">Loading your dashboard...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

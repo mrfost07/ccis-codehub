@@ -145,30 +145,24 @@ export default function HomeEnhanced() {
         />
       </div>
 
-      {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-slate-900/80 backdrop-blur-xl border-b border-slate-800/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Navigation - Minimal */}
+      <nav className="fixed top-0 w-full z-50 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3 group cursor-pointer">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg blur opacity-75 group-hover:opacity-100 transition" />
-                <img src="/logo/ccis-logo.svg" alt="CCIS" className="relative w-8 h-8" />
-              </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                CCIS CodeHub
-              </span>
-            </div>
-            <div className="flex items-center space-x-4">
+            <Link to="/" className="flex items-center space-x-2">
+              <img src="/logo/ccis-logo.png" alt="CCIS" className="w-8 h-8" />
+              <span className="text-xl font-semibold text-white">CCIS CodeHub</span>
+            </Link>
+            <div className="flex items-center space-x-3">
               <Link
                 to="/login"
-                className="px-4 py-2 text-slate-300 hover:text-white transition-colors relative group"
+                className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
               >
-                <span className="relative z-10">Login</span>
-                <div className="absolute inset-0 bg-white/10 rounded-lg scale-0 group-hover:scale-100 transition-transform" />
+                Login
               </Link>
               <Link
                 to="/register"
-                className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg font-semibold hover:from-indigo-500 hover:to-purple-500 transition-all transform hover:scale-105 hover:shadow-lg hover:shadow-indigo-500/50"
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-500 transition-colors"
               >
                 Get Started
               </Link>
@@ -178,138 +172,156 @@ export default function HomeEnhanced() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative z-10 min-h-screen flex items-center justify-center px-4 pt-16">
-        <div className="max-w-7xl mx-auto text-center">
-          {/* Main Heading with Typewriter */}
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black mb-6 leading-tight">
-            <span className="block text-white mb-2">
-              Unleash Your
-            </span>
-            <TypewriterText />
-            <span className="block text-white mt-2 text-4xl sm:text-5xl md:text-6xl">
-              Potential
-            </span>
-          </h1>
+      <section className="relative z-10 min-h-screen flex items-center justify-center px-4 pt-20">
+        <div className="max-w-4xl mx-auto text-center">
+          {/* Minimal Badge */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mb-8"
+          >
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-sm text-slate-300">SNSU CCIS Learning Platform</span>
+          </motion.div>
 
-          <p className="text-xl sm:text-2xl text-slate-300 mb-12 max-w-3xl mx-auto leading-relaxed">
-            The ultimate learning platform for <span className="text-indigo-400 font-semibold">SNSU CCIS</span> students.
-            Master programming, build projects, and get <span className="text-purple-400 font-semibold">AI-powered mentoring</span>.
-          </p>
+          {/* Main Heading - Clean & Minimal */}
+          <motion.h1
+            className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight mb-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
+            <span className="block text-white">Learn. Build.</span>
+            <span className="block bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Grow.
+            </span>
+          </motion.h1>
 
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row justify-center gap-4 mb-16">
+          {/* Subtitle - Simple & Clean */}
+          <motion.p
+            className="text-lg sm:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            Master programming with structured courses, hands-on projects,
+            and AI-powered mentoring designed for CCIS students.
+          </motion.p>
+
+          {/* CTA Buttons - Minimal Style */}
+          <motion.div
+            className="flex flex-col sm:flex-row justify-center gap-4 mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
             <Link
               to="/register"
-              className="group relative px-8 py-4 text-lg font-bold text-white rounded-xl overflow-hidden transition-all transform hover:scale-105"
+              className="px-8 py-3.5 text-base font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-500 transition-colors"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600 group-hover:from-indigo-500 group-hover:to-purple-500 transition-all" />
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 to-purple-400 blur-xl" />
-              </div>
-              <span className="relative flex items-center justify-center space-x-2">
-                <span>Start Learning Free</span>
-                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </span>
+              Get Started — It's Free
             </Link>
 
             <Link
               to="/learning"
-              className="px-8 py-4 text-lg font-bold bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl hover:bg-white/10 transition-all transform hover:scale-105"
+              className="px-8 py-3.5 text-base font-medium text-slate-300 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
             >
-              Explore Courses
+              Browse Courses
             </Link>
-          </div>
+          </motion.div>
 
-          {/* Stats Counter - Real Data */}
+          {/* Stats - Clean Minimal Design */}
           <motion.div
-            className="grid grid-cols-3 gap-8 max-w-3xl mx-auto"
-            initial={{ opacity: 0, y: 30 }}
+            className="flex flex-wrap justify-center gap-12 sm:gap-16"
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
           >
-            <CounterStat end={stats.total_users} suffix="+" label="Students" />
-            <CounterStat end={stats.total_courses} suffix="+" label="Courses" />
-            <CounterStat end={100} suffix="%" label="AI-Powered" />
+            <div className="text-center">
+              <div className="text-3xl sm:text-4xl font-bold text-white">{stats.total_users}+</div>
+              <div className="text-sm text-slate-500 mt-1">Students</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl sm:text-4xl font-bold text-white">{stats.total_courses}+</div>
+              <div className="text-sm text-slate-500 mt-1">Courses</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl sm:text-4xl font-bold text-white">{stats.total_projects}+</div>
+              <div className="text-sm text-slate-500 mt-1">Projects</div>
+            </div>
           </motion.div>
         </div>
 
         {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-          <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-          </svg>
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
+          <motion.div
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+            className="w-6 h-10 rounded-full border-2 border-slate-700 flex justify-center pt-2"
+          >
+            <div className="w-1 h-2 bg-slate-500 rounded-full" />
+          </motion.div>
         </div>
-      </section >
+      </section>
 
-      {/* Features Section - Milestone Design */}
-      < section id="features" className="relative z-10 py-32 px-4" >
-        <div className="max-w-7xl mx-auto">
-          <ScrollAnimateWrapper>
-            <div className="text-center mb-20">
-              <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">
-                Everything You Need to
-                <span className="block bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                  Succeed
-                </span>
-              </h2>
-              <p className="text-xl text-slate-400">
-                Powerful features designed for CCIS students
-              </p>
-            </div>
-          </ScrollAnimateWrapper>
+      {/* Features Section */}
+      <section id="features" className="relative z-10 py-24 px-4">
+        <div className="max-w-5xl mx-auto">
+          {/* Section Header */}
+          <div className="text-center mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3">
+              Everything you need
+            </h2>
+            <p className="text-lg text-slate-400">
+              Tools and features designed for CCIS students
+            </p>
+          </div>
 
-          {/* Milestone Timeline */}
-          <div className="relative">
-            {/* Center Line */}
-            <div className="absolute left-1/2 transform -translate-x-1/2 h-full w-1 bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 hidden lg:block"></div>
+          {/* Features Grid */}
+          <div className="grid sm:grid-cols-2 gap-6">
+            <MilestoneCard
+              icon="📚"
+              title="Learning Paths"
+              description="Structured courses for BSIT, BSCS, and BSIS with real-world projects"
+              features={["40+ Courses", "Certificates", "Progress Tracking"]}
+              gradient="from-blue-500 to-indigo-500"
+              position="left"
+              index={0}
+            />
 
-            {/* Milestones */}
-            <div className="space-y-24">
-              <MilestoneCard
-                icon="📚"
-                title="Learning Paths"
-                description="Structured courses for BSIT, BSCS, and BSIS with real-world projects and hands-on learning"
-                features={["40+ Courses", "Real Projects", "Certificates", "Progress Tracking"]}
-                gradient="from-blue-500 to-indigo-500"
-                position="left"
-                index={0}
-              />
+            <MilestoneCard
+              icon="💻"
+              title="Live Projects"
+              description="Collaborate on real projects and build your portfolio"
+              features={["GitHub Integration", "Team Work", "Peer Review"]}
+              gradient="from-indigo-500 to-purple-500"
+              position="right"
+              index={1}
+            />
 
-              <MilestoneCard
-                icon="💻"
-                title="Live Projects"
-                description="Collaborate on real projects with classmates, build your portfolio, and gain practical experience"
-                features={["Team Collaboration", "GitHub Integration", "Project Showcase", "Peer Review"]}
-                gradient="from-indigo-500 to-purple-500"
-                position="right"
-                index={1}
-              />
+            <MilestoneCard
+              icon="🤖"
+              title="AI Mentor"
+              description="Get instant help with code and learn concepts faster"
+              features={["24/7 Available", "Code Analysis", "Smart Suggestions"]}
+              gradient="from-purple-500 to-pink-500"
+              position="left"
+              index={2}
+            />
 
-              <MilestoneCard
-                icon="🤖"
-                title="AI Mentor"
-                description="Get instant help with code, debug errors, and learn concepts faster with AI-powered assistance"
-                features={["24/7 Available", "Code Analysis", "Auto Enroll", "Smart Suggestions"]}
-                gradient="from-purple-500 to-pink-500"
-                position="left"
-                index={2}
-              />
-
-              <MilestoneCard
-                icon="👥"
-                title="Community"
-                description="Connect with fellow SNSU developers, share knowledge, and grow together"
-                features={["Discussion Forums", "Code Sharing", "Events & Meetups", "Mentorship"]}
-                gradient="from-pink-500 to-red-500"
-                position="right"
-                index={3}
-              />
-            </div>
+            <MilestoneCard
+              icon="👥"
+              title="Community"
+              description="Connect with fellow developers and grow together"
+              features={["Forums", "Code Sharing", "Mentorship"]}
+              gradient="from-pink-500 to-red-500"
+              position="right"
+              index={3}
+            />
           </div>
         </div>
-      </section >
+      </section>
 
       {/* AI Automation Section */}
       < section id="ai-automation" className="relative z-10 py-32 px-4" >
@@ -461,7 +473,7 @@ export default function HomeEnhanced() {
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
-                <img src="/logo/ccis-logo.svg" alt="CCIS" className="w-6 h-6" />
+                <img src="/logo/ccis-logo.png" alt="CCIS" className="w-6 h-6" />
                 <span className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
                   CCIS CodeHub
                 </span>
@@ -548,13 +560,13 @@ function CounterStat({ end, suffix, label }: { end: number; suffix?: string; lab
   )
 }
 
-function MilestoneCard({ icon, title, description, features, gradient, position, index }: {
+function MilestoneCard({ icon, title, description, features, index }: {
   icon: string;
   title: string;
   description: string;
   features: string[];
-  gradient: string;
-  position: 'left' | 'right';
+  gradient?: string;
+  position?: 'left' | 'right';
   index: number;
 }) {
   const [isVisible, setIsVisible] = useState(false)
@@ -564,12 +576,10 @@ function MilestoneCard({ icon, title, description, features, gradient, position,
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setTimeout(() => setIsVisible(true), index * 200)
-        } else {
-          setIsVisible(false)
+          setTimeout(() => setIsVisible(true), index * 100)
         }
       },
-      { threshold: 0.3 }
+      { threshold: 0.2 }
     )
 
     if (ref.current) observer.observe(ref.current)
@@ -579,66 +589,29 @@ function MilestoneCard({ icon, title, description, features, gradient, position,
   return (
     <div
       ref={ref}
-      className={`relative grid lg:grid-cols-2 gap-8 items-center transition-all duration-700 ${isVisible
-        ? 'opacity-100 translate-x-0'
-        : `opacity-0 ${position === 'left' ? '-translate-x-20' : 'translate-x-20'}`
+      className={`transition-all duration-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
         }`}
     >
-      {/* Content - Left Side */}
-      <div className={`${position === 'right' ? 'lg:order-2' : ''}`}>
-        <div className="group relative bg-slate-900/50 backdrop-blur-md border border-slate-700/50 rounded-2xl p-8 hover:border-slate-500/50 transition-all duration-300">
-
-          <div className="relative">
-            <div className="flex items-center space-x-4 mb-6">
-              <div className={`text-6xl transform group-hover:scale-110 transition-transform`}>
-                {icon}
-              </div>
-              <div className="h-16 w-1 bg-slate-700/50 rounded-full"></div>
-            </div>
-
-            <h3 className="text-3xl font-black text-white mb-4 group-hover:text-slate-200 transition-all">
-              {title}
-            </h3>
-
-            <p className="text-slate-300 leading-relaxed mb-6 text-lg">
-              {description}
-            </p>
-
-            <div className="grid grid-cols-2 gap-3">
-              {features.map((feature, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center space-x-2 text-sm text-slate-400 group-hover:text-indigo-400 transition-colors"
-                >
-                  <svg className="w-5 h-5 text-indigo-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span>{feature}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+      <div className="bg-slate-900/40 border border-slate-800/50 rounded-xl p-6 hover:border-slate-700/50 transition-colors">
+        {/* Icon & Title Row */}
+        <div className="flex items-center gap-4 mb-4">
+          <div className="text-4xl">{icon}</div>
+          <h3 className="text-xl font-semibold text-white">{title}</h3>
         </div>
-      </div>
 
-      {/* Timeline Dot - Center */}
-      <div className={`hidden lg:block absolute left-1/2 transform -translate-x-1/2 ${isVisible ? 'scale-100' : 'scale-0'
-        } transition-transform duration-500`}>
-        <div className="relative">
-          <div className={`w-8 h-8 bg-gradient-to-br ${gradient} rounded-full border-4 border-slate-950 shadow-lg`}></div>
-          <div className={`absolute inset-0 w-8 h-8 bg-gradient-to-br ${gradient} rounded-full animate-ping opacity-75`}></div>
-        </div>
-      </div>
+        {/* Description */}
+        <p className="text-slate-400 mb-5 leading-relaxed">{description}</p>
 
-      {/* Visual Element - Right Side */}
-      <div className={`${position === 'left' ? 'lg:order-2' : ''}`}>
-        <div className="relative h-64 lg:h-80">
-          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-md border border-slate-700/50 rounded-2xl p-8 flex items-center justify-center">
-            <div className={`text-9xl transform group-hover:scale-110 transition-transform ${isVisible ? 'scale-100 rotate-0' : 'scale-50 rotate-45'
-              } transition-all duration-700`}>
-              {icon}
-            </div>
-          </div>
+        {/* Features */}
+        <div className="flex flex-wrap gap-2">
+          {features.map((feature, idx) => (
+            <span
+              key={idx}
+              className="px-3 py-1 text-xs font-medium text-slate-300 bg-slate-800/50 rounded-full"
+            >
+              {feature}
+            </span>
+          ))}
         </div>
       </div>
     </div>

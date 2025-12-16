@@ -95,7 +95,7 @@ export default function Home() {
               <div className="relative group">
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl blur-lg opacity-60 group-hover:opacity-80 transition-opacity" />
                 <div className="relative w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-2xl transform group-hover:scale-105 transition-transform overflow-hidden">
-                  <img src="/logo/ccis-logo.svg" alt="CCIS" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
+                  <img src="/logo/ccis-logo.png" alt="CCIS" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
                 </div>
               </div>
               <div className="flex items-baseline gap-1">

@@ -3,8 +3,8 @@ import { useParams, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { communityAPI } from '../services/api'
 import toast from 'react-hot-toast'
-import { 
-  Users, ArrowLeft, Crown, Shield, UserPlus, Settings, 
+import {
+  Users, ArrowLeft, Crown, Shield, UserPlus, Settings,
   Lock, Clock, Check, X, MoreVertical, MessageSquare, Heart
 } from 'lucide-react'
 
@@ -184,13 +184,13 @@ export default function OrganizationDetail() {
             <img src={org.cover_image_url} alt="" className="w-full h-full object-cover" />
           )}
         </div>
-        
+
         <div className="max-w-5xl mx-auto px-4">
           <div className="relative -mt-16 flex flex-col sm:flex-row items-start sm:items-end gap-4">
             <div className="w-24 h-24 bg-slate-700 rounded-2xl flex items-center justify-center text-5xl border-4 border-slate-900">
               {org.icon}
             </div>
-            
+
             <div className="flex-1 pb-4">
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl font-bold text-white">{org.name}</h1>
@@ -254,32 +254,29 @@ export default function OrganizationDetail() {
           <div className="flex gap-4 overflow-x-auto">
             <button
               onClick={() => setActiveTab('posts')}
-              className={`px-4 py-3 border-b-2 transition whitespace-nowrap ${
-                activeTab === 'posts'
-                  ? 'border-purple-500 text-white'
-                  : 'border-transparent text-slate-400 hover:text-white'
-              }`}
+              className={`px-4 py-3 border-b-2 transition whitespace-nowrap ${activeTab === 'posts'
+                ? 'border-purple-500 text-white'
+                : 'border-transparent text-slate-400 hover:text-white'
+                }`}
             >
               Posts
             </button>
             <button
               onClick={() => setActiveTab('members')}
-              className={`px-4 py-3 border-b-2 transition whitespace-nowrap ${
-                activeTab === 'members'
-                  ? 'border-purple-500 text-white'
-                  : 'border-transparent text-slate-400 hover:text-white'
-              }`}
+              className={`px-4 py-3 border-b-2 transition whitespace-nowrap ${activeTab === 'members'
+                ? 'border-purple-500 text-white'
+                : 'border-transparent text-slate-400 hover:text-white'
+                }`}
             >
               Members ({members.length})
             </button>
             {isAdmin && pendingRequests.length > 0 && (
               <button
                 onClick={() => setActiveTab('pending')}
-                className={`px-4 py-3 border-b-2 transition whitespace-nowrap flex items-center gap-2 ${
-                  activeTab === 'pending'
-                    ? 'border-purple-500 text-white'
-                    : 'border-transparent text-slate-400 hover:text-white'
-                }`}
+                className={`px-4 py-3 border-b-2 transition whitespace-nowrap flex items-center gap-2 ${activeTab === 'pending'
+                  ? 'border-purple-500 text-white'
+                  : 'border-transparent text-slate-400 hover:text-white'
+                  }`}
               >
                 Pending
                 <span className="bg-yellow-500 text-black text-xs px-2 py-0.5 rounded-full">
@@ -367,8 +364,8 @@ export default function OrganizationDetail() {
                     <p className="text-slate-400 text-xs capitalize">{member.role}</p>
                   </div>
                 </div>
-                
-                {isAdmin && member.user.id !== user?.id && member.role !== 'owner' && (
+
+                {isAdmin && String(member.user.id) !== String(user?.id) && member.role !== 'owner' && (
                   <div className="relative group">
                     <button className="p-2 hover:bg-slate-700 rounded-lg transition">
                       <MoreVertical className="w-4 h-4 text-slate-400" />
@@ -376,20 +373,20 @@ export default function OrganizationDetail() {
                     <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition z-10 min-w-[150px]">
                       {org.user_role === 'owner' && (
                         <>
-                          <button 
-                            onClick={() => handleSetRole(member.user.id, 'admin')}
+                          <button
+                            onClick={() => handleSetRole(String(member.user.id), 'admin')}
                             className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700"
                           >
                             Make Admin
                           </button>
-                          <button 
-                            onClick={() => handleSetRole(member.user.id, 'moderator')}
+                          <button
+                            onClick={() => handleSetRole(String(member.user.id), 'moderator')}
                             className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700"
                           >
                             Make Moderator
                           </button>
-                          <button 
-                            onClick={() => handleSetRole(member.user.id, 'member')}
+                          <button
+                            onClick={() => handleSetRole(String(member.user.id), 'member')}
                             className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700"
                           >
                             Set as Member
@@ -429,13 +426,13 @@ export default function OrganizationDetail() {
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => handleApproveMember(member.user.id)}
+                      onClick={() => handleApproveMember(String(member.user.id))}
                       className="p-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition"
                     >
                       <Check className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleRejectMember(member.user.id)}
+                      onClick={() => handleRejectMember(String(member.user.id))}
                       className="p-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition"
                     >
                       <X className="w-4 h-4" />

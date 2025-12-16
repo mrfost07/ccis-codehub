@@ -60,12 +60,70 @@ dist-ssr/
 *~
 .DS_Store
 
-# Environment variables
+# ==========================================
+# SENSITIVE FILES - DO NOT COMMIT
+# ==========================================
+
+# Environment variables (ALL .env files)
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+!.env.template
+*.env
+backend/.env
+frontend/.env
+deploy/.env.production
+
+# API Keys and Secrets
+secrets/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Google OAuth / Cloud
+client_secret*.json
+credentials*.json
+google-credentials.json
+service-account*.json
+firebase-adminsdk*.json
+firebase-config.json
+*-firebase-adminsdk-*.json
+
+# AWS
+.aws/
+aws-credentials
+*.aws
+
+# Database credentials
+database.yml
+database_config.py
+db_credentials*
+
+# SSH Keys
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+*.ppk
+
+# Configuration with secrets
+config.json
+config.local.json
+settings.local.py
+production.py
+
+# Tokens and auth
+*.token
+auth.json
+tokens.json
+
+# ==========================================
+# END SENSITIVE FILES
+# ==========================================
 
 # Testing
 .coverage
@@ -100,16 +158,6 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 
-# Secrets
-secrets/
-*.pem
-*.key
-*.crt
-
-# Firebase
-firebase-adminsdk*.json
-firebase-config.json
-
 # AI/ML models
 *.pkl
 *.h5
@@ -117,10 +165,8 @@ firebase-config.json
 models/
 
 # Coverage reports
-.coverage
 coverage.xml
 *.cover
-.hypothesis/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -152,4 +198,3 @@ dmypy.json
 
 # Pyre
 .pyre/
-

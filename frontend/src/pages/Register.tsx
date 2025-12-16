@@ -84,7 +84,7 @@ export default function Register() {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950 flex items-center justify-center p-4">
       <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800 rounded-xl sm:rounded-2xl p-6 sm:p-8 w-full max-w-md">
         <div className="flex flex-col items-center justify-center mb-6 sm:mb-8">
-          <img src="/logo/ccis-logo.svg" alt="CCIS CodeHub" className="h-16 w-16 sm:h-20 sm:w-20 mb-3 sm:mb-4" />
+          <img src="/logo/ccis-logo.png" alt="CCIS CodeHub" className="h-16 w-16 sm:h-20 sm:w-20 mb-3 sm:mb-4" />
           <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-indigo-500 to-pink-500 bg-clip-text text-transparent">
             CCIS CodeHub
           </span>
