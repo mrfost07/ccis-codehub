@@ -67,7 +67,7 @@ export default function AdminPathManagement() {
       await api.post(`/admin/paths/${path.id}/publish/`, {
         is_active: !path.is_active
       })
-      setPaths(paths.map(p => 
+      setPaths(paths.map(p =>
         p.id === path.id ? { ...p, is_active: !p.is_active } : p
       ))
     } catch (error) {
@@ -87,9 +87,9 @@ export default function AdminPathManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-slate-950 overflow-x-hidden">
       <Navbar />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Header - Responsive */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
@@ -226,11 +226,10 @@ function PathCard({ path, onDelete, onTogglePublish }: any) {
             <span className="px-2 py-1 bg-purple-600/20 text-purple-400 rounded-full">
               {path.difficulty_level}
             </span>
-            <span className={`px-2 py-1 rounded-full ${
-              path.is_active 
-                ? 'bg-green-600/20 text-green-400' 
+            <span className={`px-2 py-1 rounded-full ${path.is_active
+                ? 'bg-green-600/20 text-green-400'
                 : 'bg-gray-600/20 text-gray-400'
-            }`}>
+              }`}>
               {path.is_active ? 'Published' : 'Draft'}
             </span>
           </div>

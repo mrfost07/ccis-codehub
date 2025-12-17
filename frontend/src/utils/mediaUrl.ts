@@ -25,9 +25,14 @@ export const getMediaUrl = (path: string | null | undefined): string | null => {
 
     // If already a full URL, return as-is
     if (path.startsWith('http://') || path.startsWith('https://')) {
-        // Replace localhost URLs with production URL in production
-        if (import.meta.env.PROD && path.includes('localhost:8000')) {
-            return path.replace('http://localhost:8000', getApiBaseUrl());
+        // Replace localhost/127.0.0.1 URLs with production URL in production
+        if (import.meta.env.PROD) {
+            if (path.includes('localhost:8000')) {
+                return path.replace('http://localhost:8000', getApiBaseUrl());
+            }
+            if (path.includes('127.0.0.1:8000')) {
+                return path.replace('http://127.0.0.1:8000', getApiBaseUrl());
+            }
         }
         return path;
     }
