@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import api, { communityAPI } from '../services/api'
 import { Heart, MessageCircle, Share2, Image, Send, X, Reply, ChevronDown, ChevronUp, ChevronRight, UserPlus, UserMinus, Bell, Users, Users2, Clock, Building2, Crown, Shield, Lock, Search, Check, ArrowLeft, Settings, Camera, Edit3, Trash2, Globe, MoreVertical } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { getMediaUrl } from '../utils/mediaUrl'
 
 interface Author {
   id: string
@@ -471,10 +472,7 @@ function GroupPostCard({
   }
 
   const getProfilePic = (author: any) => {
-    if (!author?.profile_picture) return null
-    return author.profile_picture.startsWith('http')
-      ? author.profile_picture
-      : `http://localhost:8000${author.profile_picture}`
+    return getMediaUrl(author?.profile_picture)
   }
 
   const profilePicUrl = getProfilePic(post.author)
@@ -571,7 +569,7 @@ function GroupPostCard({
 
       {post.image_url && (
         <img
-          src={post.image_url.startsWith('http') ? post.image_url : `http://localhost:8000${post.image_url}`}
+          src={getMediaUrl(post.image_url) || ''}
           alt=""
           className="rounded-lg max-h-96 w-full object-cover mb-3"
         />
@@ -1834,10 +1832,7 @@ export default function CommunityEnhanced() {
   }
 
   const getCommentProfilePic = (author: Author) => {
-    if (!author?.profile_picture) return null
-    return author.profile_picture.startsWith('http')
-      ? author.profile_picture
-      : `http://localhost:8000${author.profile_picture}`
+    return getMediaUrl(author?.profile_picture)
   }
 
   const toggleComments = async (postId: string) => {
@@ -2220,7 +2215,7 @@ export default function CommunityEnhanced() {
                         <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-full flex items-center justify-center">
                           {post.author.profile_picture ? (
                             <img
-                              src={`http://localhost:8000${post.author.profile_picture}`}
+                              src={getMediaUrl(post.author.profile_picture) || ''}
                               alt={post.author.username}
                               className="w-full h-full rounded-full object-cover"
                             />
@@ -2356,7 +2351,7 @@ export default function CommunityEnhanced() {
 
                     {(post.image_url || post.image) && (
                       <img
-                        src={post.image_url || `http://localhost:8000${post.image}`}
+                        src={getMediaUrl(post.image_url || post.image) || ''}
                         alt="Post"
                         className="w-full rounded-lg mb-4 max-h-96 object-cover"
                       />
@@ -2945,7 +2940,7 @@ export default function CommunityEnhanced() {
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center overflow-hidden">
                         {coder.profile_picture ? (
                           <img
-                            src={coder.profile_picture.startsWith('http') ? coder.profile_picture : `http://localhost:8000${coder.profile_picture}`}
+                            src={getMediaUrl(coder.profile_picture) || ''}
                             alt=""
                             className="w-full h-full object-cover"
                           />

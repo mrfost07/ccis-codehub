@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import api from '../services/api'
 import toast from 'react-hot-toast'
+import { getMediaUrl } from '../utils/mediaUrl'
 
 interface User {
     id: string
@@ -70,10 +71,7 @@ function InstructorStudentsSection({ onViewUser }: InstructorStudentsSectionProp
 
     // Helper to get proper profile picture URL
     const getProfilePicUrl = (profilePic: string | null | undefined): string | null => {
-        if (!profilePic) return null
-        return profilePic.startsWith('http')
-            ? profilePic
-            : `http://localhost:8000${profilePic}`
+        return getMediaUrl(profilePic)
     }
 
     // Avatar component with profile picture support

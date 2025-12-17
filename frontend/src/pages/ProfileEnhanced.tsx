@@ -993,9 +993,7 @@ export default function ProfileEnhanced() {
                       <div className="flex items-center gap-3">
                         {follow.follower.profile_picture ? (
                           <img
-                            src={follow.follower.profile_picture.startsWith('http')
-                              ? follow.follower.profile_picture
-                              : `http://localhost:8000${follow.follower.profile_picture}`}
+                            src={getMediaUrl(follow.follower.profile_picture) || ''}
                             alt={follow.follower.username}
                             className="w-10 h-10 rounded-full object-cover"
                           />
@@ -1063,9 +1061,7 @@ export default function ProfileEnhanced() {
                       <div className="flex items-center gap-3">
                         {follow.following.profile_picture ? (
                           <img
-                            src={follow.following.profile_picture.startsWith('http')
-                              ? follow.following.profile_picture
-                              : `http://localhost:8000${follow.following.profile_picture}`}
+                            src={getMediaUrl(follow.following.profile_picture) || ''}
                             alt={follow.following.username}
                             className="w-10 h-10 rounded-full object-cover"
                           />

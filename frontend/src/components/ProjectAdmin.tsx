@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import api from '../services/api'
 import toast from 'react-hot-toast'
+import { getMediaUrl } from '../utils/mediaUrl'
 
 // Interfaces matching exact backend serializer structure
 interface Project {
@@ -219,8 +220,7 @@ function ProjectAdmin() {
 
     // Helper to get profile picture URL
     const getProfilePicUrl = (pic: string | null | undefined): string | null => {
-        if (!pic) return null
-        return pic.startsWith('http') ? pic : `http://localhost:8000${pic}`
+        return getMediaUrl(pic)
     }
 
     // Navigate to user profile

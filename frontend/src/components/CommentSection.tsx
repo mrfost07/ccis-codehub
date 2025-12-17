@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Heart, MessageCircle, Send, ChevronDown, ChevronUp } from 'lucide-react'
 import { communityAPI } from '../services/api'
 import toast from 'react-hot-toast'
+import { getMediaUrl } from '../utils/mediaUrl'
 
 interface Author {
   username: string
@@ -26,11 +27,11 @@ interface CommentSectionProps {
   onCommentLiked: (commentId: string, liked: boolean, likeCount: number) => void
 }
 
-export default function CommentSection({ 
-  postId, 
-  comments, 
+export default function CommentSection({
+  postId,
+  comments,
   onCommentAdded,
-  onCommentLiked 
+  onCommentLiked
 }: CommentSectionProps) {
   const [commentText, setCommentText] = useState('')
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
@@ -48,7 +49,7 @@ export default function CommentSection({
         post: postId,
         content: commentText.trim()
       })
-      
+
       onCommentAdded(response.data)
       setCommentText('')
       toast.success('Comment posted!')
@@ -69,7 +70,7 @@ export default function CommentSection({
         content: replyText.trim(),
         parent: parentId
       })
-      
+
       onCommentAdded(response.data)
       setReplyText('')
       setReplyingTo(null)
@@ -110,8 +111,8 @@ export default function CommentSection({
           {/* Avatar */}
           <div className="flex-shrink-0">
             {comment.author.profile_picture ? (
-              <img 
-                src={`http://localhost:8000${comment.author.profile_picture}`}
+              <img
+                src={getMediaUrl(comment.author.profile_picture) || ''}
                 alt={comment.author.username}
                 className="w-8 h-8 rounded-full object-cover"
               />
@@ -142,9 +143,8 @@ export default function CommentSection({
             <div className="flex items-center gap-4 mt-2">
               <button
                 onClick={() => handleLikeComment(comment.id)}
-                className={`flex items-center gap-1 text-xs ${
-                  comment.is_liked ? 'text-pink-500' : 'text-slate-400 hover:text-pink-500'
-                } transition`}
+                className={`flex items-center gap-1 text-xs ${comment.is_liked ? 'text-pink-500' : 'text-slate-400 hover:text-pink-500'
+                  } transition`}
               >
                 <Heart className={`w-3 h-3 ${comment.is_liked ? 'fill-current' : ''}`} />
                 <span>{comment.like_count}</span>

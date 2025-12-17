@@ -12,6 +12,7 @@ import ModuleFormWithEditor from '../components/ModuleFormWithEditor'
 import QuizEditor from '../components/QuizEditor'
 import api from '../services/api'
 import toast from 'react-hot-toast'
+import { getMediaUrl } from '../utils/mediaUrl'
 
 interface CareerPath {
   id: string
@@ -1782,11 +1783,7 @@ function InstructorDashboard() {
                           <tbody className="divide-y divide-slate-700">
                             {filteredStudents.map((student) => {
                               // Build proper profile picture URL
-                              const profilePicUrl = student.profile_picture
-                                ? (student.profile_picture.startsWith('http')
-                                  ? student.profile_picture
-                                  : `http://localhost:8000${student.profile_picture}`)
-                                : null;
+                              const profilePicUrl = getMediaUrl(student.profile_picture);
 
                               return (
                                 <tr

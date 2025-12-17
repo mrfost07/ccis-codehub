@@ -7,6 +7,7 @@ import {
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
+import { getMediaUrl } from '../utils/mediaUrl'
 
 interface ChatRoom {
   id: string
@@ -82,9 +83,7 @@ export default function CommunityChat() {
 
   // Get current user's profile picture
   const getCurrentUserProfilePic = () => {
-    if (!user?.profile_picture) return null
-    if (user.profile_picture.startsWith('http')) return user.profile_picture
-    return `http://localhost:8000${user.profile_picture}`
+    return getMediaUrl(user?.profile_picture)
   }
 
   // Navigate to user profile
@@ -251,9 +250,7 @@ export default function CommunityChat() {
   }
 
   const getProfilePicUrl = (profilePic: string | null | undefined) => {
-    if (!profilePic) return null
-    if (profilePic.startsWith('http')) return profilePic
-    return `http://localhost:8000${profilePic}`
+    return getMediaUrl(profilePic)
   }
 
   if (!isOpen) {

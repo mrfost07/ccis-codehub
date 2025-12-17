@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { UserPlus, UserMinus, UserCheck, UserX, Clock, Users, Bell } from 'lucide-react'
 import { communityAPI } from '../services/api'
 import toast from 'react-hot-toast'
+import { getMediaUrl } from '../utils/mediaUrl'
 
 interface FollowUser {
   id: string
@@ -84,16 +85,14 @@ export default function FollowRequests({ isOpen, onClose }: FollowRequestsProps)
   }
 
   const getProfilePicUrl = (pic: string | null) => {
-    if (!pic) return null
-    if (pic.startsWith('http')) return pic
-    return `http://localhost:8000${pic}`
+    return getMediaUrl(pic)
   }
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
     const now = new Date()
     const diff = now.getTime() - date.getTime()
-    
+
     if (diff < 60000) return 'Just now'
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`
@@ -123,21 +122,19 @@ export default function FollowRequests({ isOpen, onClose }: FollowRequestsProps)
         <div className="flex border-b border-slate-700">
           <button
             onClick={() => setActiveTab('received')}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition ${
-              activeTab === 'received'
+            className={`flex-1 px-4 py-3 text-sm font-medium transition ${activeTab === 'received'
                 ? 'text-purple-400 border-b-2 border-purple-400'
                 : 'text-slate-400 hover:text-white'
-            }`}
+              }`}
           >
             Received ({pendingRequests.length})
           </button>
           <button
             onClick={() => setActiveTab('sent')}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition ${
-              activeTab === 'sent'
+            className={`flex-1 px-4 py-3 text-sm font-medium transition ${activeTab === 'sent'
                 ? 'text-purple-400 border-b-2 border-purple-400'
                 : 'text-slate-400 hover:text-white'
-            }`}
+              }`}
           >
             Sent ({sentRequests.length})
           </button>

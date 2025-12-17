@@ -3,6 +3,7 @@ import { User, Mail, Award, Calendar, Edit, Save, X, Settings, Sparkles, Palette
 import Navbar from '../components/Navbar'
 import { authAPI } from '../services/api'
 import toast from 'react-hot-toast'
+import { getMediaUrl } from '../utils/mediaUrl'
 import Hyperspeed from '../components/backgrounds/Hyperspeed'
 
 type BackgroundType = 'gradient' | 'hyperspeed' | 'aurora' | 'cyber'
@@ -166,8 +167,8 @@ export default function Profile() {
                       setShowBackgroundPicker(false)
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${selectedBackground === bg.id
-                        ? 'bg-purple-600/30 text-white'
-                        : 'hover:bg-slate-700/50 text-slate-300'
+                      ? 'bg-purple-600/30 text-white'
+                      : 'hover:bg-slate-700/50 text-slate-300'
                       }`}
                   >
                     <div className={`w-6 h-6 rounded bg-gradient-to-r ${bg.color} flex items-center justify-center text-xs`}>
@@ -191,7 +192,7 @@ export default function Profile() {
                 <div className="w-32 h-32 bg-slate-800 rounded-full border-4 border-slate-900 overflow-hidden">
                   {profile?.profile_picture ? (
                     <img
-                      src={`http://localhost:8000${profile.profile_picture}`}
+                      src={getMediaUrl(profile.profile_picture) || ''}
                       alt={profile.username}
                       className="w-full h-full object-cover"
                     />
