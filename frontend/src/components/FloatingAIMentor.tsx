@@ -236,6 +236,15 @@ export default function FloatingAIMentor() {
     }
   }, [sessionId])
 
+  // Cleanup interval on unmount - MUST be before early return!
+  useEffect(() => {
+    return () => {
+      if (streamingIntervalRef.current) {
+        clearInterval(streamingIntervalRef.current)
+      }
+    }
+  }, [])
+
   // Early return AFTER all hooks are called
   if (!shouldShow()) {
     return null
@@ -475,14 +484,6 @@ export default function FloatingAIMentor() {
       }
     }, speed)
   }
-
-  useEffect(() => {
-    return () => {
-      if (streamingIntervalRef.current) {
-        clearInterval(streamingIntervalRef.current)
-      }
-    }
-  }, [])
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -9,6 +9,7 @@ import Navbar from '../components/Navbar'
 import { communityAPI } from '../services/api'
 import toast from 'react-hot-toast'
 import Hyperspeed from '../components/backgrounds/Hyperspeed'
+import { getMediaUrl } from '../utils/mediaUrl'
 
 type BackgroundType = 'hyperspeed' | 'akira' | 'golden' | 'split' | 'highway' | 'gradient' | 'aurora' | 'cyber'
 
@@ -288,8 +289,7 @@ export default function UserProfileView() {
   }
 
   const getAvatarUrl = (picture: string | null | undefined) => {
-    if (!picture) return null
-    return picture.startsWith('http') ? picture : `http://localhost:8000${picture}`
+    return getMediaUrl(picture)
   }
 
   const handleFollow = async () => {
@@ -343,11 +343,7 @@ export default function UserProfileView() {
   }
 
   const getProfilePictureUrl = () => {
-    if (profile?.profile_picture) {
-      if (profile.profile_picture.startsWith('http')) return profile.profile_picture
-      return `http://localhost:8000${profile.profile_picture}`
-    }
-    return null
+    return getMediaUrl(profile?.profile_picture)
   }
 
   const getProgramDisplay = (code: string) => {
