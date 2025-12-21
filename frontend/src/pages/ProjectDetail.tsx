@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Users, GitBranch, GitPullRequest, Settings, Plus, CheckCircle2,
@@ -7,9 +7,10 @@ import {
   FolderOpen, ListTodo, Activity, RefreshCw, Save, Globe, Lock
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
-import { projectsAPI, communityAPI } from '../services/api'
+import { projectsAPI, communityAPI, teamsAPI } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
+import ProfileAvatar from '../components/ProfileAvatar'
 
 interface Task {
   id: string
@@ -99,6 +100,15 @@ interface Project {
   open_pr_count: number
   created_at: string
   updated_at: string
+  team?: string | null
+  team_name?: string | null
+  team_members?: Array<{
+    id: number
+    user: number
+    user_name: string
+    role: string
+    user_picture: string | null
+  }>
 }
 
 const TASK_STATUSES = [
@@ -146,6 +156,7 @@ export default function ProjectDetail() {
   const [teamSearch, setTeamSearch] = useState('')
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [inviteData, setInviteData] = useState({ invitee: '', role: 'developer', message: '' })
+  const [fetchedTeamMembers, setFetchedTeamMembers] = useState<Array<{ id: string, user: string, name: string, role: string }>>([])
 
   // Settings state
   const [projectSettings, setProjectSettings] = useState({
@@ -155,6 +166,11 @@ export default function ProjectDetail() {
 
   // Drag state for Kanban
   const [draggedTask, setDraggedTask] = useState<Task | null>(null)
+  const [touchDragActive, setTouchDragActive] = useState(false)
+  const touchLongPressRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const touchStartPosRef = useRef<{ x: number, y: number } | null>(null)
+  const touchGhostRef = useRef<HTMLDivElement | null>(null)
+  const touchDraggedElementRef = useRef<HTMLDivElement | null>(null)
 
   const fetchProject = useCallback(async () => {
     if (!slug) return
@@ -162,6 +178,17 @@ export default function ProjectDetail() {
       setLoading(true)
       const response = await projectsAPI.getProject(slug)
       const projectData = response.data
+
+      // Debug: log member data to understand what's available
+      console.log('Project data:', {
+        team: projectData.team,
+        team_name: projectData.team_name,
+        team_members: projectData.team_members,
+        memberships: projectData.memberships,
+        owner: projectData.owner,
+        owner_name: projectData.owner_name
+      })
+
       setProject(projectData)
       setTasks(projectData.tasks || [])
       setBranches(projectData.branches || [])
@@ -191,6 +218,43 @@ export default function ProjectDetail() {
   useEffect(() => {
     fetchProject()
   }, [fetchProject])
+
+  // Refetch project and team members when task modal opens
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      if (!project?.team || !project?.team_name) {
+        setFetchedTeamMembers([])
+        return
+      }
+
+      try {
+        // Derive team slug from team_name
+        const teamSlug = project.team_name.toLowerCase().replace(/\s+/g, '-')
+        const membersRes = await teamsAPI.getMembers(teamSlug)
+        const members = membersRes.data || []
+        console.log('Fetched team members:', members)
+
+        // Filter to only accepted members and map to our format
+        const assignable = members
+          .filter((m: any) => m.status === 'accepted' || m.is_leader)
+          .map((m: any) => ({
+            id: `team-${m.id}`,
+            user: String(m.user),
+            name: m.user_name,
+            role: m.is_leader ? 'leader' : m.role
+          }))
+        setFetchedTeamMembers(assignable)
+      } catch (error) {
+        console.error('Failed to fetch team members:', error)
+        setFetchedTeamMembers([])
+      }
+    }
+
+    if (showTaskModal) {
+      fetchProject()
+      fetchTeamMembers()
+    }
+  }, [showTaskModal, fetchProject, project?.team, project?.team_name])
 
   // Filter and sort tasks
   useEffect(() => {
@@ -292,15 +356,20 @@ export default function ProjectDetail() {
   }
 
   const updateTaskStatus = async (taskId: string, newStatus: string) => {
+    // Optimistic update - update UI immediately for faster feedback
+    const previousTasks = tasks
+    setTasks(prev => prev.map(t =>
+      t.id === taskId ? { ...t, status: newStatus as Task['status'] } : t
+    ))
+    if (selectedTask?.id === taskId) {
+      setSelectedTask(prev => prev ? { ...prev, status: newStatus as Task['status'] } : null)
+    }
+
     try {
       await projectsAPI.updateTask(taskId, { status: newStatus })
-      setTasks(prev => prev.map(t =>
-        t.id === taskId ? { ...t, status: newStatus as Task['status'] } : t
-      ))
-      if (selectedTask?.id === taskId) {
-        setSelectedTask(prev => prev ? { ...prev, status: newStatus as Task['status'] } : null)
-      }
     } catch (error) {
+      // Revert on error
+      setTasks(previousTasks)
       toast.error('Failed to update task')
     }
   }
@@ -366,10 +435,166 @@ export default function ProjectDetail() {
   const handleDrop = async (e: React.DragEvent, newStatus: string) => {
     e.preventDefault()
     if (draggedTask && draggedTask.status !== newStatus) {
-      await updateTaskStatus(draggedTask.id, newStatus)
+      // Optimistic update - update UI immediately
+      const taskId = draggedTask.id
+      setDraggedTask(null)
+      setTouchDragActive(false)
+      await updateTaskStatus(taskId, newStatus)
       toast.success(`Task moved to ${newStatus.replace('_', ' ')}`)
+    } else {
+      setDraggedTask(null)
+      setTouchDragActive(false)
     }
+  }
+
+  // Touch handlers for mobile long-press drag with visual ghost
+  const handleTouchStart = (e: React.TouchEvent, task: Task) => {
+    if (!task.can_drag && !task.can_edit) return
+
+    const touch = e.touches[0]
+    touchStartPosRef.current = { x: touch.clientX, y: touch.clientY }
+    touchDraggedElementRef.current = e.currentTarget as HTMLDivElement
+
+    // Start long press timer (300ms)
+    touchLongPressRef.current = setTimeout(() => {
+      setDraggedTask(task)
+      setTouchDragActive(true)
+
+      // Vibrate if supported for haptic feedback
+      if (navigator.vibrate) {
+        navigator.vibrate(50)
+      }
+
+      // Create visual ghost element that follows finger - clone the actual card
+      if (touchDraggedElementRef.current) {
+        const rect = touchDraggedElementRef.current.getBoundingClientRect()
+        const ghost = touchDraggedElementRef.current.cloneNode(true) as HTMLDivElement
+        ghost.style.cssText = `
+          position: fixed;
+          left: ${rect.left}px;
+          top: ${rect.top}px;
+          width: ${rect.width}px;
+          height: auto;
+          background: rgba(15, 23, 42, 0.98);
+          border: 2px solid #06b6d4;
+          border-radius: 0.5rem;
+          box-shadow: 0 10px 40px rgba(6, 182, 212, 0.5), 0 0 20px rgba(6, 182, 212, 0.3);
+          z-index: 9999;
+          pointer-events: none;
+          transform: scale(1.02) rotate(1deg);
+          transition: transform 0.1s ease;
+          overflow: hidden;
+        `
+        // Remove the mobile status buttons from the ghost if present
+        const mobileButtons = ghost.querySelector('.sm\\:hidden')
+        if (mobileButtons) {
+          mobileButtons.remove()
+        }
+        document.body.appendChild(ghost)
+        touchGhostRef.current = ghost
+      }
+    }, 300)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const touch = e.touches[0]
+
+    // Cancel long press if moved more than 10px before timer fires
+    if (touchStartPosRef.current && touchLongPressRef.current) {
+      const dx = Math.abs(touch.clientX - touchStartPosRef.current.x)
+      const dy = Math.abs(touch.clientY - touchStartPosRef.current.y)
+      if (dx > 10 || dy > 10) {
+        clearTimeout(touchLongPressRef.current)
+        touchLongPressRef.current = null
+      }
+    }
+
+    // Move ghost element if we're actively dragging
+    if (touchDragActive && touchGhostRef.current) {
+      // CSS touch-action:none handles scroll prevention
+      const ghost = touchGhostRef.current
+      const width = ghost.offsetWidth
+      const height = ghost.offsetHeight
+      ghost.style.left = `${touch.clientX - width / 2}px`
+      ghost.style.top = `${touch.clientY - height / 2}px`
+
+      // Auto-scroll when near edges of viewport
+      const edgeThreshold = 80 // pixels from edge to trigger scroll
+      const maxScrollSpeed = 15 // max pixels to scroll per frame
+      const viewportHeight = window.innerHeight
+
+      if (touch.clientY < edgeThreshold) {
+        // Near top - scroll up
+        const scrollSpeed = Math.max(5, maxScrollSpeed * (1 - touch.clientY / edgeThreshold))
+        window.scrollBy({ top: -scrollSpeed, behavior: 'auto' })
+      } else if (touch.clientY > viewportHeight - edgeThreshold) {
+        // Near bottom - scroll down
+        const distanceFromBottom = viewportHeight - touch.clientY
+        const scrollSpeed = Math.max(5, maxScrollSpeed * (1 - distanceFromBottom / edgeThreshold))
+        window.scrollBy({ top: scrollSpeed, behavior: 'auto' })
+      }
+
+      // Highlight drop target column
+      const dropElement = document.elementFromPoint(touch.clientX, touch.clientY)
+      const column = dropElement?.closest('[data-status]')
+
+      // Remove highlight from all columns
+      document.querySelectorAll('[data-status]').forEach(col => {
+        const el = col as HTMLElement
+        el.style.borderColor = ''
+        el.style.background = ''
+      })
+
+      // Add highlight to current column
+      if (column) {
+        const el = column as HTMLElement
+        el.style.borderColor = '#06b6d4'
+        el.style.background = 'rgba(6, 182, 212, 0.1)'
+      }
+    }
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    // Clear long press timer
+    if (touchLongPressRef.current) {
+      clearTimeout(touchLongPressRef.current)
+      touchLongPressRef.current = null
+    }
+
+    // Remove ghost element
+    if (touchGhostRef.current) {
+      touchGhostRef.current.remove()
+      touchGhostRef.current = null
+    }
+
+    // Reset column highlights
+    document.querySelectorAll('[data-status]').forEach(col => {
+      const el = col as HTMLElement
+      el.style.borderColor = ''
+      el.style.background = ''
+    })
+
+    // If we were dragging, find drop target
+    if (touchDragActive && draggedTask) {
+      const touch = e.changedTouches[0]
+      const dropElement = document.elementFromPoint(touch.clientX, touch.clientY)
+
+      // Find the status column by looking for data-status attribute
+      const column = dropElement?.closest('[data-status]')
+      if (column) {
+        const newStatus = column.getAttribute('data-status')
+        if (newStatus && newStatus !== draggedTask.status) {
+          updateTaskStatus(draggedTask.id, newStatus)
+          toast.success(`Task moved to ${newStatus.replace('_', ' ')}`)
+        }
+      }
+    }
+
+    // ALWAYS reset drag state - moved outside if block to ensure cleanup
     setDraggedTask(null)
+    setTouchDragActive(false)
+    touchStartPosRef.current = null
+    touchDraggedElementRef.current = null
   }
 
   // Branch functions
@@ -531,10 +756,32 @@ export default function ProjectDetail() {
 
   const canManageTasks = project?.is_member || isOwnerOrAdmin
 
-  const allMembers = project ? [
-    { id: `owner-${project.owner}`, user: project.owner, name: project.owner_name, role: 'owner', user_picture: project.owner_picture },
-    ...(project.memberships?.filter(m => m.user !== project.owner).map(m => ({ id: `member-${m.id}`, user: m.user, name: m.user_name, role: m.role, user_picture: m.user_picture })) || [])
-  ] : []
+  const allMembers = project ? (() => {
+    // Start with project owner
+    const members: Array<{ id: string, user: string, name: string, role: string, user_picture: string | null | undefined }> = [
+      { id: `owner-${project.owner}`, user: String(project.owner), name: project.owner_name, role: 'owner', user_picture: project.owner_picture }
+    ];
+
+    // Add project memberships (direct project members)
+    if (project.memberships) {
+      project.memberships.filter(m => m.user !== project.owner).forEach(m => {
+        members.push({ id: `member-${m.id}`, user: String(m.user), name: m.user_name, role: m.role, user_picture: m.user_picture });
+      });
+    }
+
+    // Add team members fetched from API (instead of relying on project.team_members from serializer)
+    if (fetchedTeamMembers.length > 0) {
+      const existingUserIds = new Set(members.map(m => m.user));
+      fetchedTeamMembers.forEach((tm) => {
+        if (!existingUserIds.has(tm.user)) {  // Avoid duplicates
+          members.push({ id: tm.id, user: tm.user, name: tm.name, role: tm.role, user_picture: undefined });
+          existingUserIds.add(tm.user);
+        }
+      });
+    }
+
+    return members;
+  })() : []
 
   const filteredTeam = allMembers.filter(m =>
     teamSearch === '' || m.name.toLowerCase().includes(teamSearch.toLowerCase())
@@ -813,15 +1060,13 @@ export default function ProjectDetail() {
                     <option value="oldest">Oldest First</option>
                     <option value="priority">By Priority</option>
                   </select>
-                  {canManageTasks && (
-                    <button
-                      onClick={() => { resetTaskForm(); setEditingTask(null); setShowTaskModal(true) }}
-                      className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span className="hidden sm:inline">Add Task</span>
-                    </button>
-                  )}
+                  <button
+                    onClick={() => { resetTaskForm(); setEditingTask(null); setShowTaskModal(true) }}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-lg hover:from-cyan-600 hover:to-purple-600 transition"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">Add Task</span>
+                  </button>
                 </div>
               </div>
 
@@ -830,10 +1075,11 @@ export default function ProjectDetail() {
                 {TASK_STATUSES.map(status => (
                   <div
                     key={status.id}
+                    data-status={status.id}
                     onDragOver={handleDragOver}
                     onDrop={e => handleDrop(e, status.id)}
-                    className={`bg-slate-800/50 rounded-xl p-4 border border-slate-700 min-h-[300px] ${draggedTask ? 'border-dashed border-slate-500' : ''
-                      }`}
+                    className={`bg-slate-800/50 rounded-xl p-4 border border-slate-700 min-h-[300px] ${draggedTask ? 'border-dashed border-cyan-500/50' : ''
+                      } ${touchDragActive ? 'border-cyan-500' : ''}`}
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
@@ -850,9 +1096,13 @@ export default function ProjectDetail() {
                           key={task.id}
                           draggable={task.can_drag ?? false}
                           onDragStart={() => handleDragStart(task)}
-                          onClick={() => openTaskDetail(task)}
-                          className={`bg-slate-900/70 rounded-lg p-3 border border-slate-700 cursor-pointer hover:border-slate-600 transition ${draggedTask?.id === task.id ? 'opacity-50' : ''
-                            } ${!task.can_drag ? 'cursor-default' : ''}`}
+                          onTouchStart={(e) => handleTouchStart(e, task)}
+                          onTouchMove={handleTouchMove}
+                          onTouchEnd={handleTouchEnd}
+                          onTouchCancel={handleTouchEnd}
+                          onClick={() => !touchDragActive && openTaskDetail(task)}
+                          className={`bg-slate-900/70 rounded-lg p-3 border border-slate-700 cursor-pointer hover:border-slate-600 transition select-none touch-none sm:touch-auto ${draggedTask?.id === task.id ? 'opacity-50' : ''
+                            } ${!task.can_drag && !task.can_edit ? 'cursor-default' : ''} ${touchDragActive && draggedTask?.id === task.id ? 'ring-2 ring-cyan-500' : ''}`}
                         >
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <h5 className="text-sm text-white font-medium line-clamp-2">{task.title}</h5>
@@ -884,6 +1134,36 @@ export default function ProjectDetail() {
                               <span className="text-xs text-slate-400">
                                 Assigned to: <span className="text-cyan-400">{task.assigned_to_name}</span>
                               </span>
+                            </div>
+                          )}
+
+                          {/* Mobile-friendly status change buttons - visible on small screens or when can't drag */}
+                          {(task.can_drag || task.can_edit) && (
+                            <div className="flex gap-1 mt-2 pt-2 border-t border-slate-700 sm:hidden">
+                              {(() => {
+                                const statusOrder = ['todo', 'in_progress', 'review', 'done']
+                                const currentIndex = statusOrder.indexOf(task.status)
+                                return (
+                                  <>
+                                    {currentIndex > 0 && (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); updateTaskStatus(task.id, statusOrder[currentIndex - 1]) }}
+                                        className="flex-1 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition flex items-center justify-center gap-1"
+                                      >
+                                        ← {statusOrder[currentIndex - 1].replace('_', ' ')}
+                                      </button>
+                                    )}
+                                    {currentIndex < statusOrder.length - 1 && (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); updateTaskStatus(task.id, statusOrder[currentIndex + 1]) }}
+                                        className="flex-1 py-1.5 text-xs bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 rounded transition flex items-center justify-center gap-1"
+                                      >
+                                        {statusOrder[currentIndex + 1].replace('_', ' ')} →
+                                      </button>
+                                    )}
+                                  </>
+                                )
+                              })()}
                             </div>
                           )}
                         </div>
@@ -1184,17 +1464,12 @@ export default function ProjectDetail() {
                       onClick={() => navigate(`/user/${member.user}`)}
                     >
                       <div className="flex items-center gap-3">
-                        {member.user_picture ? (
-                          <img
-                            src={member.user_picture}
-                            alt={member.name}
-                            className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-700 hover:ring-purple-500 transition-all"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center ring-2 ring-slate-700 hover:ring-purple-500 transition-all">
-                            <span className="text-white font-bold">{member.name?.charAt(0).toUpperCase()}</span>
-                          </div>
-                        )}
+                        <ProfileAvatar
+                          src={member.user_picture}
+                          alt={member.name}
+                          size="md"
+                          className="ring-2 ring-slate-700 hover:ring-purple-500 transition-all"
+                        />
                         <div>
                           <p className="text-white font-medium hover:text-purple-400 transition">{member.name}</p>
                           <p className="text-xs text-slate-400 capitalize">{member.role}</p>
@@ -1387,7 +1662,7 @@ export default function ProjectDetail() {
                 >
                   <option value="">Unassigned</option>
                   {allMembers.map(m => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
+                    <option key={m.id} value={m.user}>{m.name} ({m.role})</option>
                   ))}
                 </select>
               </div>
@@ -1723,14 +1998,14 @@ function Modal({
 }) {
   return (
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center z-50 p-4 pb-24 sm:pb-4 pt-4 sm:pt-4 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className={`bg-slate-800 rounded-xl border border-slate-700 shadow-2xl ${large ? 'w-full max-w-2xl' : 'w-full max-w-md'}`}
+        className={`bg-slate-800 rounded-xl border border-slate-700 shadow-2xl my-4 max-h-[calc(100vh-8rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col ${large ? 'w-full max-w-2xl' : 'w-full max-w-md'}`}
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b border-slate-700">
+        <div className="flex items-center justify-between p-4 border-b border-slate-700 shrink-0">
           <h3 className="text-lg font-semibold text-white">{title}</h3>
           <button
             onClick={onClose}
@@ -1739,7 +2014,7 @@ function Modal({
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-4 max-h-[70vh] overflow-y-auto">{children}</div>
+        <div className="p-4 pb-6 overflow-y-auto flex-1">{children}</div>
       </div>
     </div>
   )

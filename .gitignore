@@ -73,7 +73,7 @@ dist-ssr/
 backend/.env
 frontend/.env
 deploy/.env.production
-
+frontend/.env.production
 # API Keys and Secrets
 secrets/
 *.pem

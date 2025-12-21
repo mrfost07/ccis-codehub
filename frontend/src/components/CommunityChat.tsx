@@ -62,6 +62,7 @@ export default function CommunityChat() {
     const saved = localStorage.getItem('communityChatOpen')
     return saved === 'true'
   })
+  const [isIdle, setIsIdle] = useState(true) // Start in idle mode (minimized)
   const [rooms, setRooms] = useState<ChatRoom[]>([])
   const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -75,11 +76,55 @@ export default function CommunityChat() {
   const [loading, setLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Sync isOpen state with localStorage
   useEffect(() => {
     localStorage.setItem('communityChatOpen', isOpen.toString())
   }, [isOpen])
+
+  // Cleanup idle timer on unmount
+  useEffect(() => {
+    return () => {
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current)
+      }
+    }
+  }, [])
+
+  // Handle opening the chat
+  const handleOpen = () => {
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current)
+      idleTimerRef.current = null
+    }
+    setIsIdle(false)
+    setIsOpen(true)
+  }
+
+  // Handle closing the chat - start idle timer
+  const handleClose = () => {
+    setIsOpen(false)
+    // Start idle timer (5 seconds)
+    idleTimerRef.current = setTimeout(() => {
+      setIsIdle(true)
+    }, 5000)
+  }
+
+  // Handle clicking idle button to expand
+  const handleIdleClick = () => {
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current)
+      idleTimerRef.current = null
+    }
+    setIsIdle(false)
+    // Start new idle timer - if user doesn't open chat in 5 seconds, go back to idle
+    idleTimerRef.current = setTimeout(() => {
+      if (!isOpen) {
+        setIsIdle(true)
+      }
+    }, 5000)
+  }
 
   // Get current user's profile picture
   const getCurrentUserProfilePic = () => {
@@ -254,10 +299,24 @@ export default function CommunityChat() {
   }
 
   if (!isOpen) {
+    // Idle mode - minimized side dock
+    if (isIdle) {
+      return (
+        <button
+          onClick={handleIdleClick}
+          className="fixed right-0 bottom-[45%] w-10 h-16 bg-slate-900/60 backdrop-blur-sm border border-slate-700/30 border-r-0 rounded-l-xl shadow-lg hover:w-12 hover:bg-slate-800/80 transition-all duration-300 z-50 flex items-center justify-center group"
+          title="Community Chat"
+        >
+          <MessageCircle className="w-4 h-4 text-purple-400 opacity-60 group-hover:opacity-100 group-hover:w-5 group-hover:h-5 transition-all" />
+        </button>
+      )
+    }
+
+    // Active mode - full floating button
     return (
       <button
-        onClick={() => setIsOpen(true)}
-        className="fixed right-4 sm:right-6 bottom-[72px] sm:bottom-24 p-3 sm:p-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all z-40"
+        onClick={handleOpen}
+        className="fixed right-4 sm:right-6 bottom-36 sm:bottom-40 p-3 sm:p-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all z-50"
         title="Community Chat"
       >
         <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -266,7 +325,7 @@ export default function CommunityChat() {
   }
 
   return (
-    <div className="fixed right-2 sm:right-6 bottom-2 sm:bottom-24 w-[calc(100vw-16px)] sm:w-96 h-[85vh] sm:h-[550px] bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 flex flex-col z-40 overflow-hidden">
+    <div className="fixed right-2 sm:right-6 bottom-36 sm:bottom-40 w-[calc(100vw-16px)] sm:w-96 h-[calc(100vh-160px)] sm:h-[550px] bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 flex flex-col z-[60] overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-800">
         <div className="flex items-center gap-3">
@@ -284,7 +343,7 @@ export default function CommunityChat() {
             <Settings className="w-5 h-5 text-slate-400" />
           </button>
           <button
-            onClick={() => setIsOpen(false)}
+            onClick={handleClose}
             className="p-2 hover:bg-slate-700 rounded-lg transition"
           >
             <X className="w-5 h-5 text-slate-400" />

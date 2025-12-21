@@ -73,3 +73,68 @@ label {
 .dark-bg {
   background-color: #0f172a !important;
 }
+
+/* ===========================================
+   MOBILE BOTTOM NAVIGATION SAFE AREA
+   ===========================================
+   Strategy: Add padding ONLY to page-level content containers
+   Excludes: modals, fixed elements, floating buttons, navbars
+   =========================================== */
+
+@media (max-width: 767px) {
+
+  /* 
+   * TARGET: Page-level min-h-screen wrappers
+   * These are the main page containers that need bottom padding
+   * EXCLUDES: fixed positioned elements (modals, overlays, floating buttons)
+   */
+  .min-h-screen:not([class*="fixed"]):not([class*="absolute"]) {
+    padding-bottom: 5rem !important;
+  }
+
+  /* 
+   * Additional safety: Target direct children of #root that aren't fixed
+   * This catches pages that might use slightly different patterns
+   */
+  #root>div:not([class*="fixed"]):not([class*="absolute"]):not([class*="z-50"]):not([class*="z-60"]) {
+    padding-bottom: 5rem;
+  }
+
+  /* 
+   * Target main content areas
+   */
+  main:not([class*="fixed"]) {
+    padding-bottom: 5rem !important;
+  }
+
+  /* 
+   * Utility class for explicit usage
+   */
+  .pb-mobile-nav {
+    padding-bottom: 5rem !important;
+  }
+
+  /* 
+   * IMPORTANT: Reset padding for elements that should NOT have it
+   * This prevents the global styles from affecting modals and fixed elements
+   */
+  [class*="fixed"],
+  [class*="absolute"][class*="inset"],
+  .modal-content,
+  .floating-button,
+  nav[class*="fixed"],
+  [class*="z-50"][class*="fixed"],
+  [class*="z-60"][class*="fixed"] {
+    padding-bottom: 0 !important;
+  }
+}
+
+/* Hide scrollbar for horizontal scroll areas */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

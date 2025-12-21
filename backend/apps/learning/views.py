@@ -1154,8 +1154,8 @@ Return ONLY the JSON object, nothing else."""
                 # Final attempt: extract just the structure we need manually
                 try:
                     # Try to find and parse just the path object
-                    path_match = regex.search(r'"path"\s*:\s*(\{[^}]+\})', response)
-                    modules_match = regex.search(r'"modules"\s*:\s*(\[[^\]]*\])', response)
+                    path_match = re.search(r'"path"\s*:\s*(\{[^}]+\})', response)
+                    modules_match = re.search(r'"modules"\s*:\s*(\[[^\]]*\])', response)
                     
                     if path_match and modules_match:
                         content = {

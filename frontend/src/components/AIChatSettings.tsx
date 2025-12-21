@@ -1,69 +1,7 @@
 import { useState, useEffect } from 'react'
-import { X, Check, Plus, Trash2, TestTube, Sparkles } from 'lucide-react'
+import { X, CheckCircle2, Circle, Plus, Trash2, Sparkles } from 'lucide-react'
 import api from '../services/api'
 import toast from 'react-hot-toast'
-
-// Official Brand Icons as SVG components
-const GeminiIcon = () => (
-  <svg viewBox="0 0 65 65" className="w-7 h-7 sm:w-8 sm:h-8">
-    <defs>
-      <linearGradient id="geminiGrad" x1="18" y1="43" x2="52" y2="15" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#4893FC" />
-        <stop offset="0.5" stopColor="#7B8CFF" />
-        <stop offset="1" stopColor="#BD99FE" />
-      </linearGradient>
-    </defs>
-    <path fill="url(#geminiGrad)" d="M32.447 0c.68 0 1.273.465 1.439 1.125a38.904 38.904 0 001.999 5.905c2.152 5 5.105 9.376 8.854 13.125 3.751 3.75 8.126 6.703 13.125 8.855a38.98 38.98 0 005.906 1.999c.66.166 1.124.758 1.124 1.438 0 .68-.464 1.273-1.125 1.439a38.902 38.902 0 00-5.905 1.999c-5 2.152-9.375 5.105-13.125 8.854-3.749 3.751-6.702 8.126-8.854 13.125a38.973 38.973 0 00-2 5.906 1.485 1.485 0 01-1.438 1.124c-.68 0-1.272-.464-1.438-1.125a38.913 38.913 0 00-2-5.905c-2.151-5-5.103-9.375-8.854-13.125-3.75-3.749-8.125-6.702-13.125-8.854a38.973 38.973 0 00-5.905-2A1.485 1.485 0 010 32.448c0-.68.465-1.272 1.125-1.438a38.903 38.903 0 005.905-2c5-2.151 9.376-5.104 13.125-8.854 3.75-3.749 6.703-8.125 8.855-13.125a38.972 38.972 0 001.999-5.905A1.485 1.485 0 0132.447 0z" />
-  </svg>
-)
-
-// Official ChatGPT/OpenAI Logo - Green rounded square with hexagonal flower
-const OpenAIIcon = () => (
-  <svg viewBox="0 0 100 100" className="w-7 h-7 sm:w-8 sm:h-8">
-    <rect width="100" height="100" rx="22" fill="#10A37F" />
-    <g fill="none" stroke="#fff" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M50 20 L50 80" />
-      <path d="M24 35 L76 65" />
-      <path d="M24 65 L76 35" />
-      <circle cx="50" cy="20" r="6" fill="#fff" />
-      <circle cx="50" cy="80" r="6" fill="#fff" />
-      <circle cx="24" cy="35" r="6" fill="#fff" />
-      <circle cx="76" cy="65" r="6" fill="#fff" />
-      <circle cx="24" cy="65" r="6" fill="#fff" />
-      <circle cx="76" cy="35" r="6" fill="#fff" />
-    </g>
-  </svg>
-)
-
-// Official Claude/Anthropic Logo - Terracotta with stylized A
-const ClaudeIcon = () => (
-  <svg viewBox="0 0 100 100" className="w-7 h-7 sm:w-8 sm:h-8">
-    <rect width="100" height="100" rx="22" fill="#D97757" />
-    <path fill="#FDFAF7" d="M50 18 L28 78 H40 L44 68 H56 L60 78 H72 L50 18 Z M47 56 L50 48 L53 56 H47 Z" />
-  </svg>
-)
-
-// OpenRouter Icon - Gradient purple/blue neural network inspired
-const OpenRouterIcon = () => (
-  <svg viewBox="0 0 100 100" className="w-7 h-7 sm:w-8 sm:h-8">
-    <defs>
-      <linearGradient id="openrouterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#6366F1" />
-        <stop offset="50%" stopColor="#A855F7" />
-        <stop offset="100%" stopColor="#EC4899" />
-      </linearGradient>
-    </defs>
-    <rect width="100" height="100" rx="22" fill="url(#openrouterGrad)" />
-    <g fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round">
-      <circle cx="50" cy="35" r="10" fill="#fff" />
-      <circle cx="30" cy="65" r="8" fill="#fff" />
-      <circle cx="70" cy="65" r="8" fill="#fff" />
-      <line x1="50" y1="45" x2="35" y2="57" />
-      <line x1="50" y1="45" x2="65" y2="57" />
-      <line x1="38" y1="65" x2="62" y2="65" />
-    </g>
-  </svg>
-)
 
 
 interface AIModel {
@@ -443,24 +381,21 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
-      <div className="bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-2xl w-full max-w-2xl max-h-[95vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-700/50 shrink-0">
-          <div>
-            <h2 className="text-lg sm:text-xl font-semibold text-white">AI Settings</h2>
-            <p className="text-xs sm:text-sm text-slate-400 mt-0.5">Configure your AI assistant</p>
-          </div>
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-2 sm:p-4 pb-20 sm:pb-4">
+      <div className="bg-slate-950 border border-slate-800 rounded-xl w-full max-w-md max-h-[calc(100vh-100px)] sm:max-h-[85vh] flex flex-col shadow-2xl">
+        {/* Header - Minimal */}
+        <div className="flex items-center justify-between p-4 border-b border-slate-800 shrink-0">
+          <h2 className="text-base font-medium text-white">AI Settings</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-800 rounded-lg transition"
+            className="p-1.5 hover:bg-slate-800 rounded-lg transition"
           >
-            <X className="w-5 h-5 text-slate-400" />
+            <X className="w-4 h-4 text-slate-500" />
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-slate-700/50 px-2 sm:px-4 shrink-0 overflow-x-auto">
+        {/* Tabs - Minimal */}
+        <div className="flex border-b border-slate-800 shrink-0">
           {[
             { id: 'models', label: 'Models' },
             { id: 'custom', label: 'Custom' },
@@ -469,9 +404,9 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`px-3 sm:px-4 py-3 text-sm font-medium transition whitespace-nowrap ${activeTab === tab.id
-                ? 'text-purple-400 border-b-2 border-purple-400'
-                : 'text-slate-400 hover:text-white'
+              className={`flex-1 px-3 py-2.5 text-xs font-medium transition ${activeTab === tab.id
+                ? 'text-white border-b-2 border-purple-500 bg-slate-900'
+                : 'text-slate-500 hover:text-slate-300'
                 }`}
             >
               {tab.label}
@@ -479,76 +414,50 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
           ))}
         </div>
 
-        {/* Content */}
-        <div className="p-4 sm:p-5 overflow-y-auto flex-1 min-h-0">
+        {/* Content - Minimal */}
+        <div className="p-3 overflow-y-auto flex-1 min-h-0">
           {activeTab === 'models' && (
-            <div className="space-y-3">
+            <div className="space-y-1">
               {models.map(model => (
                 <div
                   key={model.id}
-                  className={`border rounded-xl p-3 sm:p-4 cursor-pointer transition ${selectedModel === model.id
-                    ? 'border-purple-500 bg-purple-500/10'
-                    : 'border-slate-700 hover:border-slate-600 bg-slate-800/30'
-                    } ${model.status === 'coming_soon' ? 'opacity-50' : ''}`}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition ${selectedModel === model.id
+                    ? 'bg-purple-500/15'
+                    : 'hover:bg-slate-800/50'
+                    } ${model.status === 'coming_soon' ? 'opacity-40' : ''}`}
                   onClick={() => {
                     if (model.status === 'active') {
-                      console.log('Model clicked:', model.id, model.display_name)
                       setSelectedModel(model.id)
                     }
                   }}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 min-w-0">
-                      <div className="shrink-0">
-                        {model.icon === 'openrouter' && <OpenRouterIcon />}
-                        {model.icon === 'gemini' && <GeminiIcon />}
-                        {model.icon === 'openai' && <OpenAIIcon />}
-                        {model.icon === 'anthropic' && <ClaudeIcon />}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-medium text-white text-sm sm:text-base">{model.display_name}</h3>
-                          {model.is_free && (
-                            <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-[10px] sm:text-xs rounded">
-                              FREE
-                            </span>
-                          )}
-                          {model.status === 'coming_soon' && (
-                            <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 text-[10px] sm:text-xs rounded">
-                              SOON
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs sm:text-sm text-slate-400 mt-1 truncate">{model.description}</p>
-                      </div>
-                    </div>
+                  {/* Selection Icon */}
+                  <div className="shrink-0">
+                    {selectedModel === model.id ? (
+                      <CheckCircle2 className="w-4 h-4 text-purple-400" />
+                    ) : (
+                      <Circle className="w-4 h-4 text-slate-600" />
+                    )}
+                  </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {model.status === 'active' && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            // Also select this model when testing
-                            console.log('Test button clicked, selecting model:', model.id)
-                            setSelectedModel(model.id)
-                            handleTestModel(model.id)
-                          }}
-                          disabled={testingModel === model.id}
-                          className="p-1.5 sm:p-2 bg-slate-700 rounded-lg hover:bg-slate-600 transition"
-                        >
-                          {testingModel === model.id ? (
-                            <div className="animate-spin w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-purple-400 border-t-transparent rounded-full" />
-                          ) : (
-                            <TestTube className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-300" />
-                          )}
-                        </button>
+                  {/* Model Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm truncate ${selectedModel === model.id ? 'text-white font-medium' : 'text-slate-300'}`}>
+                        {model.display_name}
+                      </span>
+                      {model.is_free && (
+                        <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 text-[10px] rounded font-medium">
+                          FREE
+                        </span>
                       )}
-                      {selectedModel === model.id && (
-                        <div className="p-1.5 sm:p-2 bg-purple-500/20 rounded-lg">
-                          <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
-                        </div>
+                      {model.status === 'coming_soon' && (
+                        <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 text-[10px] rounded">
+                          SOON
+                        </span>
                       )}
                     </div>
+                    <p className="text-[11px] text-slate-500 truncate mt-0.5">{model.description}</p>
                   </div>
                 </div>
               ))}
@@ -692,30 +601,22 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
           )}
         </div>
 
-        {/* Footer - Fixed at bottom, responsive */}
-        <div className="border-t border-slate-700/50 p-3 sm:p-4 shrink-0 bg-slate-900/80">
-          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
-            <button
-              onClick={onClose}
-              className="w-full sm:w-auto px-4 py-2.5 bg-slate-700 rounded-lg hover:bg-slate-600 transition text-sm font-medium text-slate-300"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSaveSettings}
-              disabled={loading}
-              className="w-full sm:w-auto px-4 py-2.5 bg-purple-600 rounded-lg hover:bg-purple-500 transition flex items-center justify-center gap-2 text-sm font-medium disabled:opacity-50"
-            >
-              {loading ? (
-                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  Save
-                </>
-              )}
-            </button>
-          </div>
+        {/* Footer - Minimal */}
+        <div className="border-t border-slate-800 p-3 shrink-0">
+          <button
+            onClick={handleSaveSettings}
+            disabled={loading}
+            className="w-full py-2.5 bg-purple-600 rounded-lg hover:bg-purple-500 transition flex items-center justify-center gap-2 text-sm font-medium disabled:opacity-50"
+          >
+            {loading ? (
+              <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                Save
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
  * OAuth Callback Page
  * Handles the redirect from Google OAuth with mode support
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
@@ -16,7 +16,14 @@ export default function AuthCallback() {
     const [error, setError] = useState('');
     const [existingEmail, setExistingEmail] = useState('');
 
+    // Ref to prevent double-execution in React StrictMode
+    const hasCalledRef = useRef(false);
+
     useEffect(() => {
+        // Prevent double-execution in React StrictMode (development)
+        if (hasCalledRef.current) return;
+        hasCalledRef.current = true;
+
         handleCallback();
     }, []);
 
@@ -88,7 +95,7 @@ export default function AuthCallback() {
                 setAuthData(data.tokens.access, data.user);
                 toast.success(`Welcome back, ${data.user.first_name || data.user.username}!`);
                 // Use window.location for OAuth to ensure fresh page load with auth tokens
-                window.location.href = '/dashboard';
+                window.location.href = '/learning';
                 return;
             }
 
@@ -104,7 +111,7 @@ export default function AuthCallback() {
                 setAuthData(data.tokens.access, data.user);
                 toast.success(`Welcome, ${data.user.first_name || data.user.username}!`);
                 // Use window.location for OAuth to ensure fresh page load with auth tokens
-                window.location.href = '/dashboard';
+                window.location.href = '/learning';
             }
 
         } catch (err: any) {

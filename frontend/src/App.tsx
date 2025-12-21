@@ -9,7 +9,7 @@ import HomeEnhanced from './pages/HomeEnhanced'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
-import AdminDashboard from './pages/AdminDashboard'
+import AdminDashboard from './pages/AdminDashboardNew'
 import InstructorDashboard from './pages/InstructorDashboard'
 import StudentDashboard from './pages/StudentDashboard'
 import StudentLearningDashboard from './pages/StudentLearningDashboard'
@@ -38,6 +38,10 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000,        // 5 minutes - data considered fresh
+      gcTime: 30 * 60 * 1000,          // 30 minutes - garbage collection
+      refetchOnMount: false,            // Don't refetch if data exists and fresh
+      refetchOnReconnect: false,
     },
   },
 })

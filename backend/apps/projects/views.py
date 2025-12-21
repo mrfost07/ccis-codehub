@@ -184,7 +184,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         
         # Calculate project progress
         total_tasks = project.tasks.count()
-        completed_tasks = project.tasks.filter(status='completed').count()
+        completed_tasks = project.tasks.filter(status='done').count()
         in_progress_tasks = project.tasks.filter(status='in_progress').count()
         todo_tasks = project.tasks.filter(status='todo').count()
         
@@ -203,7 +203,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 'user': member.user.username,
                 'role': member.role,
                 'total_tasks': assigned_tasks.count(),
-                'completed_tasks': assigned_tasks.filter(status='completed').count(),
+                'completed_tasks': assigned_tasks.filter(status='done').count(),
                 'in_progress_tasks': assigned_tasks.filter(status='in_progress').count(),
                 'contribution_score': member.contribution_points
             })
@@ -237,7 +237,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             'recent_activities': ProjectActivitySerializer(recent_activities, many=True).data,
             'milestones': {
                 'total': project.tasks.filter(is_milestone=True).count() if hasattr(ProjectTask, 'is_milestone') else 0,
-                'completed': project.tasks.filter(is_milestone=True, status='completed').count() if hasattr(ProjectTask, 'is_milestone') else 0
+                'completed': project.tasks.filter(is_milestone=True, status='done').count() if hasattr(ProjectTask, 'is_milestone') else 0
             }
         })
     
@@ -341,10 +341,21 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
+        user = self.request.user
         project_id = self.request.query_params.get('project')
         queryset = ProjectTask.objects.select_related('project', 'assigned_to')
+        
         if project_id:
+            # If project specified, filter by that project
             queryset = queryset.filter(project__id=project_id)
+        else:
+            # Filter by user's involvement: owned projects, member of projects, or assigned tasks
+            queryset = queryset.filter(
+                models.Q(project__owner=user) |
+                models.Q(project__memberships__user=user, project__memberships__is_active=True) |
+                models.Q(assigned_to=user)
+            ).distinct()
+        
         return queryset.order_by('order', 'priority')
     
     def perform_create(self, serializer):

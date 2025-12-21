@@ -723,6 +723,105 @@ class UserFollowViewSet(viewsets.ModelViewSet):
         ).select_related('following')
         serializer = self.get_serializer(following, many=True)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def suggested_users(self, request):
+        """
+        Get suggested users to follow, prioritized by mutual connections.
+        Algorithm:
+        1. Get users the current user follows (accepted)
+        2. Get users who follow the current user (accepted)
+        3. For each potential user, count mutual connections
+        4. Sort by mutual count, then by created_at
+        5. Exclude: current user, already following, pending requests
+        """
+        from django.contrib.auth import get_user_model
+        from django.db.models import Count, Q
+        
+        User = get_user_model()
+        
+        # Get IDs of users current user is following or has pending request
+        following_ids = set(UserFollow.objects.filter(
+            follower=request.user
+        ).values_list('following_id', flat=True))
+        
+        # Get IDs of users who follow current user (accepted)
+        my_followers_ids = set(UserFollow.objects.filter(
+            following=request.user,
+            status='accepted'
+        ).values_list('follower_id', flat=True))
+        
+        # Get IDs of users current user follows (accepted)
+        my_following_ids = set(UserFollow.objects.filter(
+            follower=request.user,
+            status='accepted'
+        ).values_list('following_id', flat=True))
+        
+        # Get all potential users (exclude self and already following/pending)
+        exclude_ids = following_ids | {request.user.id}
+        
+        potential_users = User.objects.exclude(
+            id__in=exclude_ids
+        ).filter(
+            is_active=True
+        ).select_related()[:100]  # Limit to 100 for performance
+        
+        # Calculate mutual scores
+        user_scores = []
+        for user in potential_users:
+            # Get this user's followers and following
+            user_followers = set(UserFollow.objects.filter(
+                following=user,
+                status='accepted'
+            ).values_list('follower_id', flat=True))
+            
+            user_following = set(UserFollow.objects.filter(
+                follower=user,
+                status='accepted'
+            ).values_list('following_id', flat=True))
+            
+            # Calculate mutual score
+            mutual_score = 0
+            
+            # Users that both follow (common following)
+            common_following = my_following_ids & user_following
+            mutual_score += len(common_following) * 2
+            
+            # Users that follow both (common followers)  
+            common_followers = my_followers_ids & user_followers
+            mutual_score += len(common_followers) * 1
+            
+            # Users I follow who also follow this user (friends who follow them)
+            friends_who_follow = my_following_ids & user_followers
+            mutual_score += len(friends_who_follow) * 3  # Strongest signal
+            
+            mutual_count = len(common_following) + len(common_followers) + len(friends_who_follow)
+            
+            user_scores.append({
+                'user': user,
+                'score': mutual_score,
+                'mutual_count': mutual_count
+            })
+        
+        # Sort by score descending
+        user_scores.sort(key=lambda x: x['score'], reverse=True)
+        
+        # Serialize results
+        result = []
+        for item in user_scores[:50]:  # Return top 50
+            user = item['user']
+            result.append({
+                'id': str(user.id),
+                'username': user.username,
+                'first_name': user.first_name or '',
+                'last_name': user.last_name or '',
+                'profile_picture': user.profile_picture.url if user.profile_picture else None,
+                'mutual_count': item['mutual_count'],
+                'program': getattr(user, 'program', None),
+                'role': getattr(user, 'role', 'student'),
+            })
+        
+        return Response(result)
 
 
 class BadgeViewSet(viewsets.ReadOnlyModelViewSet):

@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode, useCallback 
 import api, { authAPI } from '../services/api'
 
 interface User {
-  id: number
+  id: string
   username: string
   email: string
   first_name: string
@@ -104,6 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const response = await api.get('/auth/profile/')
         const updatedUser = response.data
         setUser(updatedUser)
+        sessionStorage.setItem('user', JSON.stringify(updatedUser))
         localStorage.setItem('user', JSON.stringify(updatedUser))
       } catch (error) {
         console.error('Failed to refresh user:', error)

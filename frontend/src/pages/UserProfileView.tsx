@@ -431,16 +431,16 @@ export default function UserProfileView() {
         </div>
 
         {/* Profile Info Card - Overlapping Glass Card */}
-        <div className="relative -mt-12 sm:-mt-16 mx-4 sm:mx-8">
-          <div className="bg-slate-900/50 backdrop-blur-md border border-slate-700/50 rounded-2xl p-4 sm:p-6">
-            <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6">
+        <div className="relative -mt-8 sm:-mt-12 mx-2 sm:mx-8">
+          <div className="bg-slate-900/80 backdrop-blur-md border border-slate-700/50 rounded-2xl p-3 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-center sm:items-end gap-3 sm:gap-6">
               {/* Avatar */}
-              <div className="relative -mt-16 sm:-mt-20">
-                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-slate-900 overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+              <div className="relative -mt-12 sm:-mt-16">
+                <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-slate-900 overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                   {getProfilePictureUrl() ? (
                     <img src={getProfilePictureUrl()!} alt={profile.username} className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-3xl sm:text-4xl font-bold text-white">
+                    <span className="text-2xl sm:text-3xl font-bold text-white">
                       {profile.first_name?.[0] || profile.username[0]?.toUpperCase()}
                     </span>
                   )}
@@ -496,36 +496,36 @@ export default function UserProfileView() {
               )}
             </div>
 
-            {/* Stats */}
-            <div className="flex justify-center sm:justify-start gap-6 mt-6 pt-4 border-t border-slate-800">
+            {/* Stats - Compact for mobile */}
+            <div className="flex justify-center sm:justify-start gap-4 sm:gap-6 mt-4 pt-3 border-t border-slate-800">
               <button
                 onClick={openFollowersModal}
-                className="text-center hover:bg-slate-800/50 px-3 py-2 rounded-lg transition"
+                className="text-center hover:bg-slate-800/50 px-2 py-1 sm:px-3 sm:py-2 rounded-lg transition"
               >
-                <p className="text-xl font-bold text-white">{profile.followers_count}</p>
-                <p className="text-sm text-slate-400">Followers</p>
+                <p className="text-lg sm:text-xl font-bold text-white">{profile.followers_count}</p>
+                <p className="text-xs sm:text-sm text-slate-400">Followers</p>
               </button>
               <button
                 onClick={openFollowingModal}
-                className="text-center hover:bg-slate-800/50 px-3 py-2 rounded-lg transition"
+                className="text-center hover:bg-slate-800/50 px-2 py-1 sm:px-3 sm:py-2 rounded-lg transition"
               >
-                <p className="text-xl font-bold text-white">{profile.following_count}</p>
-                <p className="text-sm text-slate-400">Following</p>
+                <p className="text-lg sm:text-xl font-bold text-white">{profile.following_count}</p>
+                <p className="text-xs sm:text-sm text-slate-400">Following</p>
               </button>
-              <div className="text-center px-3 py-2">
-                <p className="text-xl font-bold text-white">{profile.profile?.total_posts || 0}</p>
-                <p className="text-sm text-slate-400">Posts</p>
+              <div className="text-center px-2 py-1 sm:px-3 sm:py-2">
+                <p className="text-lg sm:text-xl font-bold text-white">{profile.profile?.total_posts || 0}</p>
+                <p className="text-xs sm:text-sm text-slate-400">Posts</p>
               </div>
-              <div className="text-center px-3 py-2">
-                <p className="text-xl font-bold text-white">{profile.profile?.contribution_points || 0}</p>
-                <p className="text-sm text-slate-400">Points</p>
+              <div className="text-center px-2 py-1 sm:px-3 sm:py-2">
+                <p className="text-lg sm:text-xl font-bold text-white">{profile.profile?.contribution_points || 0}</p>
+                <p className="text-xs sm:text-sm text-slate-400">Points</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* User Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        {/* User Info Cards - More spacing on mobile */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-8 sm:mt-6">
           {/* About */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
             <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">

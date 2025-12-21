@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
 import { useState, useEffect, useRef, memo, useMemo } from 'react'
 import { motion } from 'framer-motion'
+import { BookOpen, Code2, Bot, Users, Search, Rocket, Pencil } from 'lucide-react'
 import Hyperspeed from '../components/backgrounds/Hyperspeed'
-import api from '../services/api'
+import { usePublicStats } from '../hooks/useApiCache'
 
 // Memoized Hyperspeed to prevent re-renders from typewriter
 const MemoizedHyperspeed = memo(Hyperspeed)
@@ -64,22 +65,10 @@ interface PlatformStats {
 
 export default function HomeEnhanced() {
   const [isVisible, setIsVisible] = useState<Record<string, boolean>>({})
-  const [stats, setStats] = useState<PlatformStats>({ total_users: 0, total_courses: 0, total_projects: 0 })
 
-  // Fetch real stats from backend
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await api.get('/auth/public-stats/')
-        console.log('Stats from API:', response.data)
-        setStats(response.data)
-      } catch (error) {
-        console.error('Error fetching stats:', error)
-        // Don't set fallback values - will show 0 if API fails
-      }
-    }
-    fetchStats()
-  }, [])
+  // Use cached public stats
+  const { data: statsData } = usePublicStats()
+  const stats: PlatformStats = statsData || { total_users: 0, total_courses: 0, total_projects: 0 }
 
   // Intersection Observer for animations
   useEffect(() => {
@@ -273,7 +262,7 @@ export default function HomeEnhanced() {
           {/* Features Grid */}
           <div className="grid sm:grid-cols-2 gap-6">
             <MilestoneCard
-              icon="📚"
+              icon={<BookOpen className="w-8 h-8 text-indigo-400" />}
               title="Learning Paths"
               description="Structured courses for BSIT, BSCS, and BSIS with real-world projects"
               features={["40+ Courses", "Certificates", "Progress Tracking"]}
@@ -283,7 +272,7 @@ export default function HomeEnhanced() {
             />
 
             <MilestoneCard
-              icon="💻"
+              icon={<Code2 className="w-8 h-8 text-cyan-400" />}
               title="Live Projects"
               description="Collaborate on real projects and build your portfolio"
               features={["GitHub Integration", "Team Work", "Peer Review"]}
@@ -293,7 +282,7 @@ export default function HomeEnhanced() {
             />
 
             <MilestoneCard
-              icon="🤖"
+              icon={<Bot className="w-8 h-8 text-purple-400" />}
               title="AI Mentor"
               description="Get instant help with code and learn concepts faster"
               features={["24/7 Available", "Code Analysis", "Smart Suggestions"]}
@@ -303,7 +292,7 @@ export default function HomeEnhanced() {
             />
 
             <MilestoneCard
-              icon="👥"
+              icon={<Users className="w-8 h-8 text-pink-400" />}
               title="Community"
               description="Connect with fellow developers and grow together"
               features={["Forums", "Code Sharing", "Mentorship"]}
@@ -336,17 +325,17 @@ export default function HomeEnhanced() {
                 </p>
                 <div className="space-y-4">
                   <AIFeature
-                    icon="🔍"
+                    icon={<Search className="w-7 h-7 text-indigo-400" />}
                     title="Smart Search"
                     description="'Find React courses' → AI finds, displays, and enrolls you instantly"
                   />
                   <AIFeature
-                    icon="🚀"
+                    icon={<Rocket className="w-7 h-7 text-purple-400" />}
                     title="Auto Projects"
                     description="'Create a todo app' → AI generates and creates your project"
                   />
                   <AIFeature
-                    icon="✍️"
+                    icon={<Pencil className="w-7 h-7 text-pink-400" />}
                     title="Content Generation"
                     description="'Write a post' → AI writes and publishes for you"
                   />
@@ -553,7 +542,7 @@ function CounterStat({ end, suffix, label }: { end: number; suffix?: string; lab
 }
 
 function MilestoneCard({ icon, title, description, features, index }: {
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   description: string;
   features: string[];
@@ -587,7 +576,7 @@ function MilestoneCard({ icon, title, description, features, index }: {
       <div className="bg-slate-900/40 border border-slate-800/50 rounded-xl p-6 hover:border-slate-700/50 transition-colors">
         {/* Icon & Title Row */}
         <div className="flex items-center gap-4 mb-4">
-          <div className="text-4xl">{icon}</div>
+          <div className="p-2 bg-slate-800/50 rounded-lg">{icon}</div>
           <h3 className="text-xl font-semibold text-white">{title}</h3>
         </div>
 
@@ -610,10 +599,10 @@ function MilestoneCard({ icon, title, description, features, index }: {
   )
 }
 
-function AIFeature({ icon, title, description }: { icon: string; title: string; description: string }) {
+function AIFeature({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
     <div className="flex items-start space-x-4 p-4 bg-slate-900/50 backdrop-blur-md rounded-xl border border-slate-700/50 hover:border-slate-500/50 transition-colors">
-      <div className="text-3xl">{icon}</div>
+      <div className="p-2 bg-slate-800/50 rounded-lg shrink-0">{icon}</div>
       <div>
         <h4 className="font-semibold text-white mb-1">{title}</h4>
         <p className="text-sm text-slate-400">{description}</p>

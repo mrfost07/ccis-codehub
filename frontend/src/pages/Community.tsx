@@ -57,7 +57,7 @@ export default function Community() {
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newPost.trim()) return
-    
+
     try {
       const response = await communityAPI.createPost({
         content: newPost,
@@ -86,15 +86,15 @@ export default function Community() {
   const handleLike = async (postId: string) => {
     try {
       const response = await communityAPI.likePost(postId)
-      setPosts(posts.map(post => 
-        post.id === postId 
+      setPosts(posts.map(post =>
+        post.id === postId
           ? { ...post, like_count: response.data.like_count, is_liked: response.data.liked }
           : post
       ))
     } catch (error) {
       // Fallback to local update
-      setPosts(posts.map(post => 
-        post.id === postId 
+      setPosts(posts.map(post =>
+        post.id === postId
           ? { ...post, like_count: post.is_liked ? post.like_count - 1 : post.like_count + 1, is_liked: !post.is_liked }
           : post
       ))
@@ -110,7 +110,8 @@ export default function Community() {
   const contentStyle = {
     maxWidth: '1024px',
     margin: '0 auto',
-    padding: '2rem'
+    padding: '2rem',
+    paddingBottom: '8rem' // Extra padding for mobile nav (4rem) + AI mentor button clearance
   }
 
   const postStyle = {
@@ -124,7 +125,7 @@ export default function Community() {
   return (
     <div style={containerStyle}>
       <Navbar />
-      
+
       <div style={contentStyle}>
         <div style={{ marginBottom: '2rem' }}>
           <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
@@ -221,11 +222,11 @@ export default function Community() {
                     </div>
                   </div>
                 </div>
-                
+
                 <p style={{ marginBottom: '1rem', color: '#e2e8f0' }}>
                   {post.content}
                 </p>
-                
+
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',

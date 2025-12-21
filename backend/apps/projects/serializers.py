@@ -476,6 +476,8 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     open_pr_count = serializers.SerializerMethodField()
     is_member = serializers.SerializerMethodField()
     user_role = serializers.SerializerMethodField()
+    team_name = serializers.SerializerMethodField()
+    team_members = serializers.SerializerMethodField()
     
     class Meta:
         model = Project
@@ -485,7 +487,8 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             'project_type', 'programming_language', 'status', 'visibility',
             'github_repo', 'gitlab_repo', 'start_date', 'end_date', 'deadline',
             'created_at', 'updated_at', 'memberships', 'tasks', 'branches',
-            'member_count', 'task_count', 'open_pr_count', 'is_member', 'user_role'
+            'member_count', 'task_count', 'open_pr_count', 'is_member', 'user_role',
+            'team', 'team_name', 'team_members'
         ]
     
     def get_owner_picture(self, obj):
@@ -507,7 +510,15 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             if obj.owner == request.user:
                 return True
-            return obj.memberships.filter(user=request.user, is_active=True).exists()
+            # Check ProjectMembership
+            if obj.memberships.filter(user=request.user, is_active=True).exists():
+                return True
+            # Check TeamMembership if project belongs to a team
+            if obj.team:
+                if obj.team.leader == request.user:
+                    return True
+                if obj.team.memberships.filter(user=request.user, status='accepted').exists():
+                    return True
         return False
     
     def get_user_role(self, obj):
@@ -515,7 +526,49 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             if obj.owner == request.user:
                 return 'owner'
+            # Check ProjectMembership first
             membership = obj.memberships.filter(user=request.user, is_active=True).first()
             if membership:
                 return membership.role
+            # Check TeamMembership if project belongs to a team
+            if obj.team:
+                if obj.team.leader == request.user:
+                    return 'leader'
+                team_membership = obj.team.memberships.filter(user=request.user, status='accepted').first()
+                if team_membership:
+                    return team_membership.role
         return None
+    
+    def get_team_name(self, obj):
+        if obj.team:
+            return obj.team.name
+        return None
+    
+    def get_team_members(self, obj):
+        """Return team members if project belongs to a team"""
+        if not obj.team:
+            return []
+        
+        members = []
+        # Add team leader
+        leader = obj.team.leader
+        members.append({
+            'id': leader.id,
+            'user': leader.id,
+            'user_name': leader.username,
+            'role': 'leader',
+            'user_picture': leader.profile_picture.url if leader.profile_picture else None
+        })
+        
+        # Add team members
+        for tm in obj.team.memberships.filter(status='accepted'):
+            if tm.user.id != leader.id:  # Don't duplicate leader
+                members.append({
+                    'id': tm.id,
+                    'user': tm.user.id,
+                    'user_name': tm.user.username,
+                    'role': tm.role,
+                    'user_picture': tm.user.profile_picture.url if tm.user.profile_picture else None
+                })
+        
+        return members

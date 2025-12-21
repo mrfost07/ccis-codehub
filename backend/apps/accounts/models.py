@@ -82,9 +82,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     followers_count = models.IntegerField(default=0)
     following_count = models.IntegerField(default=0)
     
-    # Profile picture
-    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
-    
     # Status fields
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)

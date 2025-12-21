@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import toast from 'react-hot-toast'
-import { learningAPI } from '../services/api'
+import { useCareerPaths, useEnrollments } from '../hooks/useApiCache'
 import { ChevronRight, ArrowRight, Search, BookOpen, Video, Code, Trophy, Medal, Star, Clock } from 'lucide-react'
 
 interface CareerPath {
@@ -21,61 +21,35 @@ interface CareerPath {
 }
 
 export default function LearningEnhanced() {
-  const [loading, setLoading] = useState(false)
-  const [careerPaths, setCareerPaths] = useState<CareerPath[]>([])
-  const [enrolledPathIds, setEnrolledPathIds] = useState<Set<string>>(new Set())
-  const [enrollments, setEnrollments] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [difficultyFilter, setDifficultyFilter] = useState('')
   const [activeTab, setActiveTab] = useState<'courses' | 'videos' | 'hands-on'>('courses')
   const navigate = useNavigate()
+
+  // Use cached queries instead of manual useEffect
+  const { data: careerPathsData, isLoading: pathsLoading } = useCareerPaths({
+    difficulty: difficultyFilter || undefined,
+    search: searchQuery || undefined,
+  })
+  const { data: enrollmentsData, isLoading: enrollmentsLoading } = useEnrollments()
+
+  const careerPaths: CareerPath[] = careerPathsData || []
+  const enrollments: any[] = enrollmentsData || []
+  const loading = pathsLoading || enrollmentsLoading
+
+  // Compute enrolled path IDs from enrollments
+  const enrolledPathIds = useMemo(() => {
+    return new Set<string>(enrollments.map((e: any) => {
+      const pathId = e.career_path?.id || e.career_path || e.path_id
+      return String(pathId)
+    }))
+  }, [enrollments])
 
   const tabs = [
     { id: 'courses' as const, label: 'Learning Center', icon: BookOpen, active: true },
     { id: 'videos' as const, label: 'Video Courses', icon: Video, active: false },
     { id: 'hands-on' as const, label: 'Hands On', icon: Code, active: false }
   ]
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchData()
-    }, 100)
-    return () => clearTimeout(timer)
-  }, [])
-
-  const fetchData = async () => {
-    setLoading(true)
-    try {
-      const [pathsRes, enrollmentsRes] = await Promise.all([
-        learningAPI.getCareerPaths(),
-        learningAPI.getEnrollments().catch(() => ({ data: [] }))
-      ])
-
-      const paths = pathsRes.data.results || pathsRes.data
-      const userEnrollments = enrollmentsRes.data.results || enrollmentsRes.data || []
-
-      console.log('Career paths:', paths)
-      console.log('User enrollments:', userEnrollments)
-
-      setCareerPaths(Array.isArray(paths) ? paths : [])
-      setEnrollments(userEnrollments)
-
-      // Handle different enrollment data formats - could be object or string ID
-      const enrolledIds = new Set<string>(userEnrollments.map((e: any) => {
-        const pathId = e.career_path?.id || e.career_path || e.path_id
-        console.log('Enrollment career_path:', e.career_path, 'extracted ID:', pathId)
-        return String(pathId)
-      }))
-      console.log('Enrolled path IDs:', [...enrolledIds])
-      setEnrolledPathIds(enrolledIds)
-
-    } catch (error) {
-      console.error('Failed to fetch data:', error)
-      setCareerPaths([])
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleEnroll = async (pathId: string) => {
     toast.success('Opening learning path...')
@@ -422,9 +396,9 @@ export default function LearningEnhanced() {
                   {[1, 2, 3, 4, 5].map((rank) => (
                     <div key={rank} className="flex items-center gap-3 p-3 bg-slate-800/30 rounded-lg">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${rank === 1 ? 'bg-amber-500/20 text-amber-400' :
-                          rank === 2 ? 'bg-slate-400/20 text-slate-300' :
-                            rank === 3 ? 'bg-orange-500/20 text-orange-400' :
-                              'bg-slate-700/50 text-slate-400'
+                        rank === 2 ? 'bg-slate-400/20 text-slate-300' :
+                          rank === 3 ? 'bg-orange-500/20 text-orange-400' :
+                            'bg-slate-700/50 text-slate-400'
                         }`}>
                         {rank <= 3 ? (
                           rank === 1 ? <Trophy className="w-4 h-4" /> :

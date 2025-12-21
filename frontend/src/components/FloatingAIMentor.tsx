@@ -154,6 +154,7 @@ interface Session {
 
 export default function FloatingAIMentor() {
   const [isOpen, setIsOpen] = useState(false)
+  const [isIdle, setIsIdle] = useState(true) // Start in idle mode (minimized)
   const [showSettings, setShowSettings] = useState(false)
   const [showConversations, setShowConversations] = useState(false)
   const [selectedModelId, setSelectedModelId] = useState('gemini')
@@ -183,6 +184,7 @@ export default function FloatingAIMentor() {
   const streamingIntervalRef = useRef<number | null>(null)
   const actionHandlerRef = useRef<AIActionHandler | null>(null)
   const shouldStopRef = useRef(false)
+  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -225,6 +227,9 @@ export default function FloatingAIMentor() {
   }, [isOpen])
 
   // Persist sessionId to user-specific storage
+  // Note: Session messages are loaded via loadSessionMessagesRef to avoid temporal dead zone
+  const loadSessionMessagesRef = useRef<((sid: string) => Promise<void>) | null>(null)
+
   useEffect(() => {
     if (sessionId) {
       const userId = getCurrentUserId()
@@ -232,7 +237,10 @@ export default function FloatingAIMentor() {
         sessionStorage.setItem(`ai_mentor_session_id_${userId}`, sessionId)
         localStorage.setItem(`ai_mentor_session_id_${userId}`, sessionId)
       }
-      loadSessionMessages(sessionId)
+      // Call via ref to avoid temporal dead zone
+      if (loadSessionMessagesRef.current) {
+        loadSessionMessagesRef.current(sessionId)
+      }
     }
   }, [sessionId])
 
@@ -241,6 +249,15 @@ export default function FloatingAIMentor() {
     return () => {
       if (streamingIntervalRef.current) {
         clearInterval(streamingIntervalRef.current)
+      }
+    }
+  }, [])
+
+  // Cleanup idle timer on unmount - MUST be before early return!
+  useEffect(() => {
+    return () => {
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current)
       }
     }
   }, [])
@@ -326,6 +343,9 @@ export default function FloatingAIMentor() {
       setLoadingHistory(false)
     }
   }
+
+  // Assign function to ref after it's defined so useEffect can call it
+  loadSessionMessagesRef.current = loadSessionMessages
 
   const createNewConversation = async () => {
     try {
@@ -421,13 +441,44 @@ export default function FloatingAIMentor() {
   }
 
   const handleToggle = async () => {
+    // Clear any existing idle timer
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current)
+      idleTimerRef.current = null
+    }
+
+    const wasOpen = isOpen
     setIsOpen(!isOpen)
-    if (!isOpen) {
+    setIsIdle(false) // Always exit idle when interacting
+
+    if (!wasOpen) {
+      // Opening the chat
       await loadConversations()
       if (!sessionId) {
         await createNewConversation()
       }
+    } else {
+      // Closing the chat - start idle timer (5 seconds)
+      idleTimerRef.current = setTimeout(() => {
+        setIsIdle(true)
+      }, 5000)
     }
+  }
+
+  // Handle clicking the idle button to expand
+  const handleIdleClick = () => {
+    // Clear any pending idle timer
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current)
+      idleTimerRef.current = null
+    }
+    setIsIdle(false)
+    // Start new idle timer - if user doesn't open chat in 5 seconds, go back to idle
+    idleTimerRef.current = setTimeout(() => {
+      if (!isOpen) {
+        setIsIdle(true)
+      }
+    }, 5000)
   }
 
   const stopStreaming = () => {
@@ -579,11 +630,22 @@ export default function FloatingAIMentor() {
 
   return (
     <>
-      {/* Floating Button */}
-      {!isOpen && (
+      {/* Floating Button - Idle (Minimized Side Dock) or Active (Full Button) */}
+      {!isOpen && isIdle && (
+        <button
+          onClick={handleIdleClick}
+          className="fixed right-0 bottom-1/3 w-10 h-16 bg-slate-900/60 backdrop-blur-sm border border-slate-700/30 border-r-0 rounded-l-xl shadow-lg hover:w-12 hover:bg-slate-800/80 transition-all duration-300 z-50 flex items-center justify-center group"
+          title="Open AI Mentor"
+        >
+          <span className="text-lg group-hover:text-xl transition-all opacity-60 group-hover:opacity-100">🤖</span>
+        </button>
+      )}
+
+      {/* Floating Button - Active (Full floating button) */}
+      {!isOpen && !isIdle && (
         <button
           onClick={handleToggle}
-          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-full shadow-2xl hover:scale-110 transition-transform z-50 flex items-center justify-center"
+          className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-full shadow-2xl hover:scale-110 transition-all duration-300 z-[60] flex items-center justify-center animate-bounce-subtle"
         >
           <span className="text-2xl sm:text-3xl">🤖</span>
         </button>
@@ -591,7 +653,7 @@ export default function FloatingAIMentor() {
 
       {/* Chat Window - Dark Glass UI */}
       {isOpen && (
-        <div className="fixed inset-2 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[420px] sm:h-[550px] bg-slate-900/95 backdrop-blur-lg border border-slate-700/50 rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden">
+        <div className="fixed inset-2 bottom-20 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[420px] sm:h-[550px] bg-slate-900/95 backdrop-blur-lg border border-slate-700/50 rounded-2xl shadow-2xl z-[60] flex flex-col overflow-hidden">
           {/* Header - Dark Glass */}
           <div className="bg-slate-800/80 backdrop-blur-lg border-b border-slate-700/50 p-4 flex items-center justify-between">
             <div className="flex items-center space-x-2">

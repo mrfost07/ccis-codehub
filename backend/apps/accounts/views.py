@@ -676,9 +676,6 @@ class CreateGoogleAccountView(APIView):
             
             # Create profile with additional data
             profile, _ = UserProfile.objects.get_or_create(user=user)
-            profile.program = program
-            profile.year_level = year_level
-            profile.save()
             
             # Generate tokens
             refresh = RefreshToken.for_user(user)

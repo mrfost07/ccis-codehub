@@ -235,6 +235,7 @@ export const communityAPI = {
   checkFollowing: (userId: string) => api.get(`/community/follows/check/${userId}/`),
   getUserFollowers: (userId: string) => api.get(`/community/follows/user/${userId}/followers/`),
   getUserFollowing: (userId: string) => api.get(`/community/follows/user/${userId}/following/`),
+  getSuggestedUsers: () => api.get('/community/follows/suggested_users/'),
   // User profile
   getPublicUserProfile: (userId: string) => api.get(`/auth/user/${userId}/`),
   searchCoders: (query: string) => api.get('/auth/users/search/', { params: { q: query } }),

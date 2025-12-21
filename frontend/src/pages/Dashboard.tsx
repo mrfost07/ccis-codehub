@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { learningAPI, projectsAPI } from '../services/api'
-import api from '../services/api'
+import { useCurrentUser } from '../hooks/useApiCache'
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -11,45 +11,32 @@ export default function Dashboard() {
     projects: 0
   })
   const [loading, setLoading] = useState(true)
-  const [roleChecking, setRoleChecking] = useState(true)
-  const [userRole, setUserRole] = useState<string | null>(null)
   const navigate = useNavigate()
   const user = JSON.parse(localStorage.getItem('user') || '{}')
 
-  useEffect(() => {
-    checkUserRole()
-  }, [])
+  // Use cached user profile for role checking
+  const { data: profile, isLoading: profileLoading } = useCurrentUser()
+  const userRole = profile?.role
 
+  // Redirect based on role (once profile is loaded)
   useEffect(() => {
-    // Only load dashboard data if we're not redirecting
-    if (!roleChecking && userRole && !['admin', 'instructor', 'student'].includes(userRole)) {
+    if (!profileLoading && userRole) {
+      if (userRole === 'admin') {
+        navigate('/admin', { replace: true })
+      } else if (userRole === 'instructor') {
+        navigate('/instructor', { replace: true })
+      } else if (userRole === 'student') {
+        navigate('/student', { replace: true })
+      }
+    }
+  }, [userRole, profileLoading, navigate])
+
+  // Only load dashboard data if not redirecting to a role-specific dashboard
+  useEffect(() => {
+    if (!profileLoading && userRole && !['admin', 'instructor', 'student'].includes(userRole)) {
       loadDashboardData()
     }
-  }, [roleChecking, userRole])
-
-  const checkUserRole = async () => {
-    try {
-      const response = await api.get('/auth/profile/')
-      const role = response.data.role
-      setUserRole(role)
-
-      // Redirect to role-specific dashboard
-      if (role === 'admin') {
-        navigate('/admin', { replace: true })
-        return
-      } else if (role === 'instructor') {
-        navigate('/instructor', { replace: true })
-        return
-      } else if (role === 'student') {
-        navigate('/student', { replace: true })
-        return
-      }
-    } catch (error) {
-      console.error('Failed to fetch user role:', error)
-    } finally {
-      setRoleChecking(false)
-    }
-  }
+  }, [profileLoading, userRole])
 
   const loadDashboardData = async () => {
     try {
@@ -72,7 +59,7 @@ export default function Dashboard() {
   }
 
   // Show loading while checking role
-  if (roleChecking) {
+  if (profileLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center">

@@ -49,19 +49,19 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
 
     const parsedQuestions: Question[] = matches.map((match, index) => {
       const slideContent = match[2]
-      
+
       const titleMatch = slideContent.match(/Question \d+:\s*([^<]+)/)
       const title = titleMatch ? titleMatch[1].trim() : `Question ${index + 1}`
-      
+
       let type = 'multiple_choice'
       if (slideContent.includes('TRUE') && slideContent.includes('FALSE')) type = 'true_false'
       else if (slideContent.includes('SHORT ANSWER')) type = 'short_answer'
       else if (slideContent.includes('ESSAY')) type = 'essay'
       else if (slideContent.includes('ENUMERATION')) type = 'enumeration'
-      
+
       const pointsMatch = slideContent.match(/(\d+)\s*points?/i)
       const points = pointsMatch ? parseInt(pointsMatch[1]) : 1
-      
+
       let choices: Choice[] = []
       if (type === 'multiple_choice' || type === 'true_false') {
         const choiceRegex = /data-choice-id="([^"]*)"[^>]*data-correct="([^"]*)"[^>]*>[\s\S]*?([A-Z])\.\s*([^<]+)/g
@@ -71,7 +71,7 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
           text: cm[4].trim(),
           isCorrect: cm[2] === 'true'
         }))
-        
+
         if (choices.length === 0) {
           const simpleChoiceRegex = /<span[^>]*>([A-D])\.\s*([^<]+)<\/span>/g
           const simpleMatches = Array.from(slideContent.matchAll(simpleChoiceRegex))
@@ -82,7 +82,7 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
           }))
         }
       }
-      
+
       return { number: index + 1, title, type, points, choices }
     })
 
@@ -106,11 +106,11 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
   const calculateScore = () => {
     let earned = 0
     let total = 0
-    
+
     questions.forEach(question => {
       total += question.points
       const userAnswer = answers[question.number]
-      
+
       if (question.type === 'multiple_choice' && question.choices) {
         const correctChoices = question.choices.filter(c => c.isCorrect).map(c => c.id)
         const userChoices = (userAnswer as string[]) || []
@@ -125,7 +125,7 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
         earned += question.points
       }
     })
-    
+
     return { earned, total, percentage: total > 0 ? Math.round((earned / total) * 100) : 0 }
   }
 
@@ -133,7 +133,7 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
     const { earned, total, percentage } = calculateScore()
     const quizPassed = percentage >= passingScore
     const timeTaken = Math.floor((Date.now() - startTime) / 1000)
-    
+
     try {
       setSubmitting(true)
       const response = await api.post(`/learning/quizzes/${quizId}/submit_simple/`, {
@@ -142,14 +142,14 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
         total_points: total,
         time_taken_seconds: timeTaken
       })
-      
+
       setScore(percentage)
       setPointsEarned(earned)
       setTotalPoints(total)
       setAttemptsUsed(response.data.attempts_used || 1)
       setAttemptsRemaining(response.data.attempts_remaining || 0)
       setQuizState(quizPassed ? 'passed' : 'failed')
-      
+
       if (quizPassed) {
         toast.success(`🎉 Congratulations! You passed with ${percentage}%!`)
         onComplete(percentage, true)
@@ -199,114 +199,92 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
     )
   }
 
-  // PASSED SCREEN
+  // PASSED SCREEN - Compact for mobile
   if (quizState === 'passed') {
     return (
-      <div className="max-w-2xl mx-auto text-center py-8 sm:py-12">
-        <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-green-500/30">
-          <Trophy className="w-12 h-12 sm:w-16 sm:h-16 text-white" />
+      <div className="max-w-md mx-auto text-center py-4 sm:py-8">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/30">
+          <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
         </div>
-        
-        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+
+        <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">
           🎉 Congratulations!
         </h2>
-        <p className="text-lg text-green-400 mb-6">You passed the quiz!</p>
-        
-        <div className="bg-slate-800/50 rounded-xl p-6 mb-6 border border-green-500/30">
-          <div className="grid grid-cols-2 gap-4 text-center">
+        <p className="text-sm sm:text-base text-green-400 mb-4">You passed the quiz!</p>
+
+        <div className="bg-slate-800/50 rounded-xl p-4 mb-4 border border-green-500/30">
+          <div className="flex items-center justify-center gap-6">
             <div>
-              <p className="text-3xl font-bold text-green-400">{score}%</p>
-              <p className="text-sm text-slate-400">Your Score</p>
+              <p className="text-2xl sm:text-3xl font-bold text-green-400">{score}%</p>
+              <p className="text-xs text-slate-400">Score</p>
             </div>
+            <div className="w-px h-10 bg-slate-600"></div>
             <div>
-              <p className="text-3xl font-bold text-blue-400">{pointsEarned}/{totalPoints}</p>
-              <p className="text-sm text-slate-400">Points Earned</p>
+              <p className="text-2xl sm:text-3xl font-bold text-blue-400">{pointsEarned}/{totalPoints}</p>
+              <p className="text-xs text-slate-400">Points</p>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-slate-700">
-            <p className="text-slate-300">
-              Passing Score: <span className="text-green-400 font-medium">{passingScore}%</span>
-            </p>
-          </div>
+          <p className="text-xs text-slate-400 mt-3 pt-3 border-t border-slate-700">
+            Passing: {passingScore}% • Attempts: {attemptsUsed}/{maxAttempts}
+          </p>
         </div>
-        
-        <div className="bg-green-600/20 border border-green-500/30 rounded-xl p-4 mb-6">
-          <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
-          <p className="text-green-300 font-medium">Module Completed Successfully!</p>
-          <p className="text-sm text-green-400/70 mt-1">You can now proceed to the next module.</p>
+
+        <div className="bg-green-600/20 border border-green-500/30 rounded-lg p-3 flex items-center gap-2 justify-center">
+          <CheckCircle className="w-5 h-5 text-green-400" />
+          <p className="text-green-300 text-sm font-medium">Module Complete! Proceed to next.</p>
         </div>
-        
-        <p className="text-slate-500 text-sm">
-          Attempts used: {attemptsUsed} / {maxAttempts}
-        </p>
       </div>
     )
   }
 
-  // FAILED SCREEN
+  // FAILED SCREEN - Compact for mobile
   if (quizState === 'failed') {
     return (
-      <div className="max-w-2xl mx-auto text-center py-8 sm:py-12">
-        <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-red-500/30">
-          <XCircle className="w-12 h-12 sm:w-16 sm:h-16 text-white" />
+      <div className="max-w-md mx-auto text-center py-4 sm:py-8">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-500/30">
+          <XCircle className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
         </div>
-        
-        <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-          Quiz Not Passed
-        </h2>
-        <p className="text-lg text-red-400 mb-6">Don't give up! Review and try again.</p>
-        
-        <div className="bg-slate-800/50 rounded-xl p-6 mb-6 border border-red-500/30">
-          <div className="grid grid-cols-2 gap-4 text-center">
+
+        <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">Quiz Not Passed</h2>
+        <p className="text-sm text-red-400 mb-4">Review and try again.</p>
+
+        <div className="bg-slate-800/50 rounded-xl p-4 mb-4 border border-red-500/30">
+          <div className="flex items-center justify-center gap-6">
             <div>
-              <p className="text-3xl font-bold text-red-400">{score}%</p>
-              <p className="text-sm text-slate-400">Your Score</p>
+              <p className="text-2xl sm:text-3xl font-bold text-red-400">{score}%</p>
+              <p className="text-xs text-slate-400">Score</p>
             </div>
+            <div className="w-px h-10 bg-slate-600"></div>
             <div>
-              <p className="text-3xl font-bold text-blue-400">{pointsEarned}/{totalPoints}</p>
-              <p className="text-sm text-slate-400">Points Earned</p>
+              <p className="text-2xl sm:text-3xl font-bold text-blue-400">{pointsEarned}/{totalPoints}</p>
+              <p className="text-xs text-slate-400">Points</p>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-slate-700">
-            <p className="text-slate-300">
-              Required: <span className="text-yellow-400 font-medium">{passingScore}%</span> to pass
-            </p>
-          </div>
+          <p className="text-xs text-slate-400 mt-3 pt-3 border-t border-slate-700">
+            Need: {passingScore}% • Attempts: {attemptsUsed}/{maxAttempts}
+          </p>
         </div>
-        
+
         {attemptsRemaining > 0 ? (
-          <div className="space-y-4">
-            <div className="bg-yellow-600/20 border border-yellow-500/30 rounded-xl p-4">
-              <AlertTriangle className="w-6 h-6 text-yellow-400 mx-auto mb-2" />
-              <p className="text-yellow-300 font-medium">
-                {attemptsRemaining} attempt{attemptsRemaining !== 1 ? 's' : ''} remaining
-              </p>
-              <p className="text-sm text-yellow-400/70 mt-1">
-                Review the module content before retrying.
-              </p>
+          <div className="space-y-3">
+            <div className="bg-yellow-600/20 border border-yellow-500/30 rounded-lg p-3 flex items-center gap-2 justify-center">
+              <AlertTriangle className="w-4 h-4 text-yellow-400" />
+              <p className="text-yellow-300 text-sm">{attemptsRemaining} attempt{attemptsRemaining !== 1 ? 's' : ''} left</p>
             </div>
-            
             <button
               onClick={handleRetry}
-              className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl transition font-semibold text-lg flex items-center justify-center gap-3 mx-auto shadow-lg"
+              className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition font-medium flex items-center justify-center gap-2"
             >
-              <RotateCcw className="w-5 h-5" />
+              <RotateCcw className="w-4 h-4" />
               Retake Quiz
             </button>
           </div>
         ) : (
-          <div className="bg-red-600/20 border border-red-500/30 rounded-xl p-4">
-            <XCircle className="w-8 h-8 text-red-400 mx-auto mb-2" />
-            <p className="text-red-300 font-medium">No attempts remaining</p>
-            <p className="text-sm text-red-400/70 mt-1">
-              You have used all {maxAttempts} attempts for this quiz.
-            </p>
+          <div className="bg-red-600/20 border border-red-500/30 rounded-lg p-3 flex items-center gap-2 justify-center">
+            <XCircle className="w-4 h-4 text-red-400" />
+            <p className="text-red-300 text-sm">No attempts remaining</p>
           </div>
         )}
-        
-        <p className="text-slate-500 text-sm mt-6">
-          Attempts used: {attemptsUsed} / {maxAttempts}
-        </p>
       </div>
     )
   }
@@ -328,11 +306,10 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
             return (
               <label
                 key={choice.id}
-                className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                  isSelected
+                className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${isSelected
                     ? 'bg-blue-600/20 border-blue-500 text-white'
                     : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:border-slate-600'
-                }`}
+                  }`}
               >
                 <input
                   type="checkbox"
@@ -360,11 +337,10 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
             return (
               <label
                 key={option.id}
-                className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                  isSelected
+                className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${isSelected
                     ? 'bg-blue-600/20 border-blue-500 text-white'
                     : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:border-slate-600'
-                }`}
+                  }`}
               >
                 <input
                   type="checkbox"
@@ -463,13 +439,12 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
             <button
               key={q.number}
               onClick={() => goToQuestion(index)}
-              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-sm font-medium transition flex-shrink-0 ${
-                index === currentQuestionIndex
+              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-sm font-medium transition flex-shrink-0 ${index === currentQuestionIndex
                   ? 'bg-blue-600 text-white'
                   : isAnswered(q.number)
-                  ? 'bg-green-600/30 text-green-400 border border-green-600/50'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
+                    ? 'bg-green-600/30 text-green-400 border border-green-600/50'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                }`}
             >
               {q.number}
             </button>

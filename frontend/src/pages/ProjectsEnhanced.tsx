@@ -1,16 +1,18 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import toast from 'react-hot-toast'
 import { projectsAPI, teamsAPI, projectNotificationsAPI, communityAPI } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
+import { useProjects, useTeams, useAllTasks } from '../hooks/useApiCache'
 import {
   Plus, GitBranch, Users, Calendar, ExternalLink, Code, Star, X,
   CheckCircle2, Clock, AlertCircle, TrendingUp, BarChart3, Bell,
   FolderOpen, ListTodo, Activity, ChevronRight, Filter, Search,
-  MoreVertical, Edit, Trash2, Eye, UserPlus, GitPullRequest, 
+  MoreVertical, Edit, Trash2, Eye, UserPlus, GitPullRequest,
   UsersRound, Crown, Mail, Check
 } from 'lucide-react'
+import ProfileAvatar from '../components/ProfileAvatar'
 
 interface Task {
   id: string
@@ -104,6 +106,7 @@ interface Follower {
   id: string
   username: string
   email: string
+  profile_picture: string | null
 }
 
 interface ProjectStats {
@@ -119,13 +122,14 @@ interface ProjectStats {
 export default function ProjectsEnhanced() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  
+
   const [projects, setProjects] = useState<Project[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [allTasks, setAllTasks] = useState<Task[]>([])
   const [invitations, setInvitations] = useState<Invitation[]>([])
   const [teamInvitations, setTeamInvitations] = useState<TeamInvitation[]>([])
   const [followers, setFollowers] = useState<Follower[]>([])
+  const [followerDisplayLimit, setFollowerDisplayLimit] = useState(5)
   const [loading, setLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showCreateTeamModal, setShowCreateTeamModal] = useState(false)
@@ -146,13 +150,13 @@ export default function ProjectsEnhanced() {
     inProgressTasks: 0,
     totalMembers: 0
   })
-  
-  const [newTeam, setNewTeam] = useState({ name: '', description: '', selectedMembers: [] as {id: string, username: string, email: string}[] })
+
+  const [newTeam, setNewTeam] = useState({ name: '', description: '', selectedMembers: [] as { id: string, username: string, email: string }[] })
   const [inviteData, setInviteData] = useState({ user_id: '', role: 'member', message: '' })
   const [userSearchQuery, setUserSearchQuery] = useState('')
   const [userSearchResults, setUserSearchResults] = useState<Follower[]>([])
   const [searchingUsers, setSearchingUsers] = useState(false)
-  
+
   const [newProject, setNewProject] = useState({
     name: '',
     description: '',
@@ -168,7 +172,7 @@ export default function ProjectsEnhanced() {
   // Task creation state
   const [showCreateTaskModal, setShowCreateTaskModal] = useState(false)
   const [selectedProject, setSelectedProject] = useState<Project | null>(null)
-  const [projectMembers, setProjectMembers] = useState<{id: string, username: string}[]>([])
+  const [projectMembers, setProjectMembers] = useState<{ id: string, username: string }[]>([])
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -194,24 +198,45 @@ export default function ProjectsEnhanced() {
   // Invite mode state (followers or global search)
   const [inviteMode, setInviteMode] = useState<'followers' | 'search'>('followers')
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
+  // Use cached queries for core data
+  const { data: cachedProjects, isLoading: projectsLoading, refetch: refetchProjects } = useProjects()
+  const { data: cachedTeams, isLoading: teamsLoading, refetch: refetchTeams } = useTeams()
+  const { data: cachedTasks, isLoading: tasksLoading, refetch: refetchTasks } = useAllTasks()
+
+  // Sync cached data to local state (for mutations and other features)
+  useEffect(() => {
+    if (cachedProjects) {
+      setProjects(Array.isArray(cachedProjects) ? cachedProjects : [])
+    }
+  }, [cachedProjects])
+
+  useEffect(() => {
+    if (cachedTeams) {
+      setTeams(Array.isArray(cachedTeams) ? cachedTeams : [])
+    }
+  }, [cachedTeams])
+
+  useEffect(() => {
+    if (cachedTasks) {
+      setAllTasks(Array.isArray(cachedTasks) ? cachedTasks : [])
+    }
+  }, [cachedTasks])
+
+  // Loading state combines all cached loading states
+  useEffect(() => {
+    setLoading(projectsLoading || teamsLoading || tasksLoading)
+  }, [projectsLoading, teamsLoading, tasksLoading])
+
+  // Calculate stats when data changes
+  useEffect(() => {
+    if (projects.length > 0 || allTasks.length > 0) {
+      calculateStats(projects, allTasks)
+    }
+  }, [projects, allTasks])
+
+  // Fetch non-cached data (invitations, followers, notifications)
+  const fetchSecondaryData = useCallback(async () => {
     try {
-      // Fetch teams
-      const teamsRes = await teamsAPI.getTeams()
-      const teamsData = teamsRes.data.results || teamsRes.data || []
-      setTeams(Array.isArray(teamsData) ? teamsData : [])
-      
-      // Fetch projects
-      const projectsRes = await projectsAPI.getProjects()
-      const projectsData = projectsRes.data.results || projectsRes.data || []
-      setProjects(Array.isArray(projectsData) ? projectsData : [])
-      
-      // Fetch all tasks across projects
-      const tasksRes = await projectsAPI.getTasks()
-      const tasksData = tasksRes.data.results || tasksRes.data || []
-      setAllTasks(Array.isArray(tasksData) ? tasksData : [])
-      
       // Fetch project invitations
       try {
         const invRes = await projectsAPI.getMyInvitations()
@@ -219,7 +244,7 @@ export default function ProjectsEnhanced() {
       } catch {
         setInvitations([])
       }
-      
+
       // Fetch team invitations
       try {
         const teamInvRes = await teamsAPI.getMyTeamInvitations()
@@ -227,11 +252,19 @@ export default function ProjectsEnhanced() {
       } catch {
         setTeamInvitations([])
       }
-      
+
       // Fetch followers for inviting to teams
       try {
         const followersRes = await communityAPI.getFollowers()
-        setFollowers(followersRes.data || [])
+        // Transform nested data: API returns {follower: {id, username, profile_picture...}} but UI expects flat structure
+        const rawData = followersRes.data || []
+        const transformedFollowers = rawData.map((item: any) => ({
+          id: String(item.follower?.id || item.id),
+          username: item.follower?.username || item.username || '',
+          email: item.follower?.email || item.email || `@${item.follower?.username || item.username || ''}`,
+          profile_picture: item.follower?.profile_picture || item.profile_picture || null
+        }))
+        setFollowers(transformedFollowers)
       } catch {
         setFollowers([])
       }
@@ -246,27 +279,26 @@ export default function ProjectsEnhanced() {
         setNotifications([])
         setUnreadCount(0)
       }
-      
-      // Calculate stats
-      calculateStats(projectsData, tasksData)
     } catch (error) {
-      console.error('Failed to fetch data:', error)
-      toast.error('Failed to load data')
-      setProjects([])
-      setTeams([])
-      setAllTasks([])
-    } finally {
-      setLoading(false)
+      console.error('Failed to fetch secondary data:', error)
     }
   }, [])
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    fetchSecondaryData()
+  }, [fetchSecondaryData])
+
+  // Refetch all data (for after mutations)
+  const fetchData = useCallback(async () => {
+    refetchProjects()
+    refetchTeams()
+    refetchTasks()
+    fetchSecondaryData()
+  }, [refetchProjects, refetchTeams, refetchTasks, fetchSecondaryData])
 
   const calculateStats = (projectsData: Project[], tasksData: Task[]) => {
     const totalMembers = projectsData.reduce((acc, p) => acc + (p.member_count || 1), 0)
-    
+
     setStats({
       totalProjects: projectsData.length,
       activeProjects: projectsData.filter(p => p.status === 'active' || p.status === 'in_progress').length,
@@ -285,22 +317,22 @@ export default function ProjectsEnhanced() {
       toast.error('Team name is required')
       return
     }
-    
+
     try {
       // Create the team first
-      const response = await teamsAPI.createTeam({ 
-        name: newTeam.name, 
-        description: newTeam.description 
+      const response = await teamsAPI.createTeam({
+        name: newTeam.name,
+        description: newTeam.description
       })
       const createdTeam = response.data
-      
+
       // Invite selected members (they will be pending)
       if (newTeam.selectedMembers.length > 0) {
-        const invitePromises = newTeam.selectedMembers.map(member => 
-          teamsAPI.inviteMember(createdTeam.slug, { 
-            user_id: member.id, 
-            role: 'member', 
-            message: `You've been invited to join ${createdTeam.name}` 
+        const invitePromises = newTeam.selectedMembers.map(member =>
+          teamsAPI.inviteMember(createdTeam.slug, {
+            user_id: member.id,
+            role: 'member',
+            message: `You've been invited to join ${createdTeam.name}`
           }).catch((err) => {
             console.error(`Failed to invite ${member.username}:`, err)
             return null
@@ -311,7 +343,7 @@ export default function ProjectsEnhanced() {
       } else {
         toast.success('Team created! You can invite members anytime.')
       }
-      
+
       setTeams(prev => [createdTeam, ...prev])
       setShowCreateTeamModal(false)
       setNewTeam({ name: '', description: '', selectedMembers: [] })
@@ -323,7 +355,7 @@ export default function ProjectsEnhanced() {
     }
   }
 
-  const toggleMemberSelection = (user: {id: string, username: string, email: string}) => {
+  const toggleMemberSelection = (user: { id: string, username: string, email: string }) => {
     setNewTeam(prev => ({
       ...prev,
       selectedMembers: prev.selectedMembers.find(m => m.id === user.id)
@@ -345,14 +377,14 @@ export default function ProjectsEnhanced() {
       setUserSearchResults([])
       return
     }
-    
+
     setSearchingUsers(true)
     try {
       const response = await communityAPI.searchCoders(query)
       const results = response.data?.results || response.data || []
       // Filter out already selected members and current user
-      const filtered = results.filter((u: any) => 
-        u.id !== user?.id && 
+      const filtered = results.filter((u: any) =>
+        u.id !== user?.id &&
         !newTeam.selectedMembers.find(m => m.id === String(u.id))
       )
       setUserSearchResults(filtered.map((u: any) => ({
@@ -374,16 +406,16 @@ export default function ProjectsEnhanced() {
       toast.error('Failed to open team details')
       return
     }
-    
+
     console.log('Opening team detail for:', team.name, team.slug)
     toast.success(`Opening ${team.name}...`)
-    
+
     // Set state first to show modal immediately
     setSelectedTeam(team)
     setShowTeamDetail(true)
     setTeamMembers([])
     setTeamProjects([])
-    
+
     try {
       // Fetch team members and projects
       const [membersRes, projectsRes] = await Promise.all([
@@ -418,7 +450,7 @@ export default function ProjectsEnhanced() {
       toast.error('Please select a follower to invite')
       return
     }
-    
+
     try {
       await teamsAPI.inviteMember(selectedTeam.slug, inviteData)
       setShowInviteModal(false)
@@ -460,7 +492,7 @@ export default function ProjectsEnhanced() {
   const openCreateTaskModal = async (project: Project) => {
     setSelectedProject(project)
     setShowCreateTaskModal(true)
-    
+
     // Fetch team members who can be assigned tasks
     try {
       if (project.team && project.team_slug) {
@@ -515,7 +547,7 @@ export default function ProjectsEnhanced() {
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedProject) return
-    
+
     if (!newTask.title.trim()) {
       toast.error('Task title is required')
       return
@@ -524,7 +556,7 @@ export default function ProjectsEnhanced() {
       toast.error('Task must be assigned to a team member')
       return
     }
-    
+
     try {
       const taskData = {
         project: selectedProject.id,
@@ -535,7 +567,7 @@ export default function ProjectsEnhanced() {
         start_date: newTask.start_date || null,
         due_date: newTask.due_date || null
       }
-      
+
       await projectsAPI.createTask(taskData)
       toast.success('Task created and assigned!')
       closeCreateTaskModal()
@@ -557,7 +589,7 @@ export default function ProjectsEnhanced() {
 
   const handleDeleteTask = async (taskId: string) => {
     if (!confirm('Are you sure you want to delete this task?')) return
-    
+
     try {
       await projectsAPI.deleteTask(taskId)
       setAllTasks(prev => prev.filter(t => t.id !== taskId))
@@ -571,7 +603,7 @@ export default function ProjectsEnhanced() {
   const handleEditTeam = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingTeam) return
-    
+
     try {
       const response = await teamsAPI.updateTeam(editingTeam.slug, {
         name: editingTeam.name,
@@ -589,7 +621,7 @@ export default function ProjectsEnhanced() {
 
   const handleDeleteTeam = async (team: Team) => {
     if (!confirm(`Are you sure you want to delete "${team.name}"? This will remove all projects and tasks.`)) return
-    
+
     try {
       await teamsAPI.deleteTeam(team.slug)
       setTeams(prev => prev.filter(t => t.id !== team.id))
@@ -605,7 +637,7 @@ export default function ProjectsEnhanced() {
   const handleEditProject = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingProject) return
-    
+
     try {
       const response = await projectsAPI.updateProject(editingProject.slug, {
         name: editingProject.name,
@@ -627,7 +659,7 @@ export default function ProjectsEnhanced() {
 
   const handleDeleteProject = async (project: Project) => {
     if (!confirm(`Are you sure you want to delete "${project.name}"?`)) return
-    
+
     try {
       await projectsAPI.deleteProject(project.slug)
       setProjects(prev => prev.filter(p => p.id !== project.id))
@@ -671,11 +703,11 @@ export default function ProjectsEnhanced() {
 
   const handleDrop = async (newStatus: string) => {
     if (!draggedTask || !draggedTask.can_drag) return
-    
+
     if (draggedTask.status !== newStatus) {
       try {
         await projectsAPI.updateTask(draggedTask.id, { status: newStatus })
-        setAllTasks(prev => prev.map(t => 
+        setAllTasks(prev => prev.map(t =>
           t.id === draggedTask.id ? { ...t, status: newStatus as Task['status'] } : t
         ))
         toast.success(`Task moved to ${newStatus.replace('_', ' ')}`)
@@ -692,7 +724,7 @@ export default function ProjectsEnhanced() {
       toast.error('Project name is required')
       return
     }
-    
+
     try {
       // Prepare data - only include team if selected
       const projectData: any = {
@@ -706,7 +738,7 @@ export default function ProjectsEnhanced() {
       if (newProject.team) {
         projectData.team = newProject.team
       }
-      
+
       const response = await projectsAPI.createProject(projectData)
       setProjects(prev => [response.data, ...prev])
       setShowCreateModal(false)
@@ -723,6 +755,9 @@ export default function ProjectsEnhanced() {
       })
       toast.success('Project created successfully!')
       calculateStats([response.data, ...projects], allTasks)
+      // Refresh all cached data to ensure consistency
+      refetchProjects()
+      refetchTasks()
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Failed to create project')
     }
@@ -751,8 +786,8 @@ export default function ProjectsEnhanced() {
 
   const filteredProjects = projects
     .filter(p => filter === 'all' || p.status === filter)
-    .filter(p => 
-      searchTerm === '' || 
+    .filter(p =>
+      searchTerm === '' ||
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.description?.toLowerCase().includes(searchTerm.toLowerCase())
     )
@@ -786,35 +821,35 @@ export default function ProjectsEnhanced() {
     }
   }
 
-  const taskCompletionRate = stats.totalTasks > 0 
-    ? Math.round((stats.completedTasks / stats.totalTasks) * 100) 
+  const taskCompletionRate = stats.totalTasks > 0
+    ? Math.round((stats.completedTasks / stats.totalTasks) * 100)
     : 0
 
   // TaskCard Component for Kanban with Drag and Drop
-  const TaskCard = ({ task, onStatusChange, onDelete }: { 
-    task: Task, 
-    onStatusChange: (id: string, status: string) => void,
-    onDelete: (id: string) => void 
+  const TaskCard = ({ task, onStatusChange, onDelete, readOnly = false }: {
+    task: Task,
+    onStatusChange?: (id: string, status: string) => void,
+    onDelete?: (id: string) => void,
+    readOnly?: boolean
   }) => {
-    const canDrag = task.can_drag
-    const canEdit = task.can_edit
+    const canDrag = !readOnly && task.can_drag
+    const canEdit = !readOnly && task.can_edit
     const isAssignedToMe = task.assigned_to === Number(user?.id)
-    
+
     const statusOptions = ['todo', 'in_progress', 'review', 'done']
     const currentIndex = statusOptions.indexOf(task.status)
-    
+
     return (
-      <div 
+      <div
         draggable={canDrag}
-        onDragStart={() => handleDragStart(task)}
+        onDragStart={() => canDrag && handleDragStart(task)}
         onDragEnd={() => setDraggedTask(null)}
-        className={`bg-slate-900/70 rounded-lg p-3 border transition-all ${
-          isAssignedToMe ? 'border-cyan-500/50' : 'border-slate-700'
-        } ${canDrag ? 'hover:border-cyan-500/30 cursor-grab active:cursor-grabbing' : 'opacity-75 cursor-not-allowed'}
+        className={`bg-slate-900/70 rounded-lg p-3 border transition-all ${isAssignedToMe ? 'border-cyan-500/50' : 'border-slate-700'
+          } ${canDrag ? 'hover:border-cyan-500/30 cursor-grab active:cursor-grabbing' : readOnly ? 'cursor-default' : 'opacity-75 cursor-not-allowed'}
         ${draggedTask?.id === task.id ? 'opacity-50 scale-95' : ''}`}>
         <div className="flex items-start justify-between gap-2 mb-2">
           <h5 className="text-sm font-medium text-white line-clamp-2">{task.title}</h5>
-          {canEdit && (
+          {canEdit && onDelete && (
             <button
               onClick={() => onDelete(task.id)}
               className="p-1 text-slate-500 hover:text-red-400 transition"
@@ -823,7 +858,7 @@ export default function ProjectsEnhanced() {
             </button>
           )}
         </div>
-        
+
         <div className="flex items-center gap-2 mb-2">
           <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${getPriorityColor(task.priority)}`}>
             {task.priority}
@@ -832,7 +867,7 @@ export default function ProjectsEnhanced() {
             <span className="text-xs text-slate-500 truncate">{task.project_name}</span>
           )}
         </div>
-        
+
         <div className="text-xs text-slate-400 space-y-1">
           {task.assigned_to_name && (
             <p className="flex items-center gap-1">
@@ -850,9 +885,9 @@ export default function ProjectsEnhanced() {
             </p>
           )}
         </div>
-        
-        {/* Quick status change buttons (only if can drag) */}
-        {canDrag && (
+
+        {/* Quick status change buttons (only if can drag and has handler) */}
+        {canDrag && onStatusChange && (
           <div className="flex gap-1 mt-2 pt-2 border-t border-slate-700/50">
             {currentIndex > 0 && (
               <button
@@ -879,7 +914,7 @@ export default function ProjectsEnhanced() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <Navbar />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header with Stats Overview */}
         <div className="mb-8">
@@ -892,7 +927,7 @@ export default function ProjectsEnhanced() {
                 Manage your projects, tasks, and team collaborations
               </p>
             </div>
-            
+
             <div className="flex items-center gap-3">
               {(invitations.length > 0 || teamInvitations.length > 0) && (
                 <button
@@ -977,7 +1012,7 @@ export default function ProjectsEnhanced() {
               <span className="text-sm font-medium text-white">{taskCompletionRate}%</span>
             </div>
             <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-gradient-to-r from-cyan-500 to-purple-500 transition-all duration-500"
                 style={{ width: `${taskCompletionRate}%` }}
               />
@@ -1003,11 +1038,10 @@ export default function ProjectsEnhanced() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
-                activeTab === tab.id
-                  ? 'text-cyan-400 border-b-2 border-cyan-400'
-                  : 'text-slate-400 hover:text-white'
-              }`}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id
+                ? 'text-cyan-400 border-b-2 border-cyan-400'
+                : 'text-slate-400 hover:text-white'
+                }`}
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
@@ -1045,7 +1079,7 @@ export default function ProjectsEnhanced() {
                       Create Team
                     </button>
                   </div>
-                  
+
                   {teams.filter(t => String(t.leader) === String(user?.id)).length === 0 ? (
                     <div className="text-center py-10 bg-slate-800/30 rounded-xl border border-slate-700">
                       <UsersRound className="w-12 h-12 text-slate-600 mx-auto mb-3" />
@@ -1063,7 +1097,7 @@ export default function ProjectsEnhanced() {
                   ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       {teams.filter(t => String(t.leader) === String(user?.id)).map(team => (
-                        <div 
+                        <div
                           key={team.id}
                           onClick={() => openTeamDetail(team)}
                           className="bg-slate-800/50 backdrop-blur rounded-xl p-5 border border-yellow-500/30 hover:border-yellow-500/50 hover:bg-slate-800/70 transition-all cursor-pointer group"
@@ -1080,11 +1114,11 @@ export default function ProjectsEnhanced() {
                             </div>
                             <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-yellow-400 transition" />
                           </div>
-                          
+
                           <p className="text-sm text-slate-400 line-clamp-2 mb-4">
                             {team.description || 'No description'}
                           </p>
-                          
+
                           {/* Stacked Member Avatars */}
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex -space-x-2">
@@ -1112,7 +1146,7 @@ export default function ProjectsEnhanced() {
                               )}
                             </div>
                           </div>
-                          
+
                           <div className="flex gap-2" onClick={e => e.stopPropagation()}>
                             <button
                               onClick={() => {
@@ -1150,7 +1184,7 @@ export default function ProjectsEnhanced() {
                     </h3>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       {teams.filter(t => String(t.leader) !== String(user?.id)).map(team => (
-                        <div 
+                        <div
                           key={team.id}
                           onClick={() => openTeamDetail(team)}
                           className="bg-slate-800/50 backdrop-blur rounded-xl p-5 border border-slate-700 hover:border-cyan-500/50 hover:bg-slate-800/70 transition-all cursor-pointer group"
@@ -1167,17 +1201,17 @@ export default function ProjectsEnhanced() {
                             </div>
                             <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-cyan-400 transition" />
                           </div>
-                          
+
                           <p className="text-sm text-slate-400 line-clamp-2 mb-4">
                             {team.description || 'No description'}
                           </p>
-                          
+
                           {/* Stacked Member Avatars */}
                           <div className="flex items-center justify-between">
                             <div className="flex -space-x-2">
                               {/* Leader avatar */}
-                              <div 
-                                className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 border-2 border-slate-800 flex items-center justify-center z-10 relative cursor-pointer hover:scale-110 transition" 
+                              <div
+                                className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 border-2 border-slate-800 flex items-center justify-center z-10 relative cursor-pointer hover:scale-110 transition"
                                 title={team.leader_name}
                                 onClick={(e) => { e.stopPropagation(); navigate(`/user/${team.leader}`); }}
                               >
@@ -1237,11 +1271,10 @@ export default function ProjectsEnhanced() {
                       <button
                         key={status}
                         onClick={() => setFilter(status)}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
-                          filter === status
-                            ? 'bg-cyan-500 text-white'
-                            : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                        }`}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${filter === status
+                          ? 'bg-cyan-500 text-white'
+                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                          }`}
                       >
                         {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
                       </button>
@@ -1267,9 +1300,9 @@ export default function ProjectsEnhanced() {
                 ) : (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {filteredProjects.map(project => (
-                      <ProjectCard 
-                        key={project.id} 
-                        project={project} 
+                      <ProjectCard
+                        key={project.id}
+                        project={project}
                         onView={() => navigate(`/projects/${project.slug}`)}
                         onEdit={() => {
                           setEditingProject(project)
@@ -1289,49 +1322,61 @@ export default function ProjectsEnhanced() {
             {/* Tasks Tab */}
             {activeTab === 'tasks' && (
               <div className="space-y-6">
-                {/* Kanban Board Header */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">Task Board</h3>
-                    <p className="text-sm text-slate-400">{allTasks.length} total tasks</p>
+                {/* Task Filters Header */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {/* Search */}
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search tasks..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+                    />
                   </div>
-                  {/* Add Task - Select Project First */}
-                  {projects.filter(p => p.is_team_leader).length > 0 && (
-                    <div className="relative group">
-                      <button className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-lg hover:from-cyan-600 hover:to-purple-600 transition flex items-center gap-2">
-                        <Plus className="w-4 h-4" />
-                        Add Task
-                      </button>
-                      <div className="absolute right-0 mt-2 w-64 bg-slate-800 rounded-lg border border-slate-700 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-                        <div className="p-2 border-b border-slate-700">
-                          <p className="text-xs text-slate-400 px-2">Select a project:</p>
-                        </div>
-                        <div className="max-h-48 overflow-y-auto p-1">
-                          {projects.filter(p => p.is_team_leader).map(project => (
-                            <button
-                              key={project.id}
-                              onClick={() => openCreateTaskModal(project)}
-                              className="w-full text-left px-3 py-2 text-sm text-white hover:bg-slate-700 rounded-lg transition"
-                            >
-                              {project.name}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  {/* Project Filter */}
+                  <select
+                    value={filter}
+                    onChange={(e) => setFilter(e.target.value)}
+                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value="all">All Projects</option>
+                    {projects.map(project => (
+                      <option key={project.id} value={project.id}>{project.name}</option>
+                    ))}
+                  </select>
+                  {/* Status Filter */}
+                  <select
+                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
+                    onChange={(e) => {
+                      // Filter tasks by status - can be enhanced with state
+                    }}
+                    defaultValue="all"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="todo">To Do</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="review">Review</option>
+                    <option value="done">Done</option>
+                  </select>
                 </div>
 
-                {/* Kanban Columns with Drag and Drop */}
+                {/* Info Bar */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">Task Overview</h3>
+                    <p className="text-sm text-slate-400">{allTasks.length} total tasks from all projects (read-only)</p>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    🔒 To update task status, open the project's Kanban board
+                  </p>
+                </div>
+
+                {/* Kanban Columns - Read Only View */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* To Do Column */}
-                  <div 
-                    className={`bg-slate-800/50 rounded-xl border overflow-hidden transition-all ${
-                      draggedTask && draggedTask.status !== 'todo' ? 'border-slate-500 bg-slate-800/70' : 'border-slate-700'
-                    }`}
-                    onDragOver={handleDragOver}
-                    onDrop={() => handleDrop('todo')}
-                  >
+                  <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
                     <div className="p-3 border-b border-slate-700 bg-slate-700/30">
                       <h4 className="text-sm font-semibold text-white flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-slate-400"></div>
@@ -1343,24 +1388,18 @@ export default function ProjectsEnhanced() {
                     </div>
                     <div className="p-2 space-y-2 min-h-[200px]">
                       {allTasks.filter(t => t.status === 'todo').map(task => (
-                        <TaskCard key={task.id} task={task} onStatusChange={handleUpdateTaskStatus} onDelete={handleDeleteTask} />
+                        <TaskCard key={task.id} task={task} readOnly />
                       ))}
                       {allTasks.filter(t => t.status === 'todo').length === 0 && (
                         <div className="text-center py-8 text-slate-500 text-sm">
-                          Drop tasks here
+                          No tasks
                         </div>
                       )}
                     </div>
                   </div>
 
                   {/* In Progress Column */}
-                  <div 
-                    className={`bg-slate-800/50 rounded-xl border overflow-hidden transition-all ${
-                      draggedTask && draggedTask.status !== 'in_progress' ? 'border-blue-500/50 bg-blue-500/5' : 'border-slate-700'
-                    }`}
-                    onDragOver={handleDragOver}
-                    onDrop={() => handleDrop('in_progress')}
-                  >
+                  <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
                     <div className="p-3 border-b border-slate-700 bg-blue-500/10">
                       <h4 className="text-sm font-semibold text-white flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-blue-500"></div>
@@ -1372,24 +1411,18 @@ export default function ProjectsEnhanced() {
                     </div>
                     <div className="p-2 space-y-2 min-h-[200px]">
                       {allTasks.filter(t => t.status === 'in_progress').map(task => (
-                        <TaskCard key={task.id} task={task} onStatusChange={handleUpdateTaskStatus} onDelete={handleDeleteTask} />
+                        <TaskCard key={task.id} task={task} readOnly />
                       ))}
                       {allTasks.filter(t => t.status === 'in_progress').length === 0 && (
                         <div className="text-center py-8 text-slate-500 text-sm">
-                          Drop tasks here
+                          No tasks
                         </div>
                       )}
                     </div>
                   </div>
 
                   {/* Review Column */}
-                  <div 
-                    className={`bg-slate-800/50 rounded-xl border overflow-hidden transition-all ${
-                      draggedTask && draggedTask.status !== 'review' ? 'border-yellow-500/50 bg-yellow-500/5' : 'border-slate-700'
-                    }`}
-                    onDragOver={handleDragOver}
-                    onDrop={() => handleDrop('review')}
-                  >
+                  <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
                     <div className="p-3 border-b border-slate-700 bg-yellow-500/10">
                       <h4 className="text-sm font-semibold text-white flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
@@ -1401,24 +1434,18 @@ export default function ProjectsEnhanced() {
                     </div>
                     <div className="p-2 space-y-2 min-h-[200px]">
                       {allTasks.filter(t => t.status === 'review').map(task => (
-                        <TaskCard key={task.id} task={task} onStatusChange={handleUpdateTaskStatus} onDelete={handleDeleteTask} />
+                        <TaskCard key={task.id} task={task} readOnly />
                       ))}
                       {allTasks.filter(t => t.status === 'review').length === 0 && (
                         <div className="text-center py-8 text-slate-500 text-sm">
-                          Drop tasks here
+                          No tasks
                         </div>
                       )}
                     </div>
                   </div>
 
                   {/* Done Column */}
-                  <div 
-                    className={`bg-slate-800/50 rounded-xl border overflow-hidden transition-all ${
-                      draggedTask && draggedTask.status !== 'done' ? 'border-green-500/50 bg-green-500/5' : 'border-slate-700'
-                    }`}
-                    onDragOver={handleDragOver}
-                    onDrop={() => handleDrop('done')}
-                  >
+                  <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
                     <div className="p-3 border-b border-slate-700 bg-green-500/10">
                       <h4 className="text-sm font-semibold text-white flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-green-500"></div>
@@ -1430,11 +1457,11 @@ export default function ProjectsEnhanced() {
                     </div>
                     <div className="p-2 space-y-2 min-h-[200px]">
                       {allTasks.filter(t => t.status === 'done').map(task => (
-                        <TaskCard key={task.id} task={task} onStatusChange={handleUpdateTaskStatus} onDelete={handleDeleteTask} />
+                        <TaskCard key={task.id} task={task} readOnly />
                       ))}
                       {allTasks.filter(t => t.status === 'done').length === 0 && (
                         <div className="text-center py-8 text-slate-500 text-sm">
-                          Drop tasks here
+                          No tasks
                         </div>
                       )}
                     </div>
@@ -1465,7 +1492,7 @@ export default function ProjectsEnhanced() {
                           <span className="text-white font-medium">{item.count}</span>
                         </div>
                         <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
-                          <div 
+                          <div
                             className={`h-full ${item.color} transition-all`}
                             style={{ width: `${stats.totalProjects > 0 ? (item.count / stats.totalProjects) * 100 : 0}%` }}
                           />
@@ -1690,23 +1717,21 @@ export default function ProjectsEnhanced() {
                 ) : (
                   <div className="space-y-2">
                     {notifications.map(notif => (
-                      <div 
+                      <div
                         key={notif.id}
                         onClick={() => !notif.is_read && handleMarkNotificationRead(notif.id)}
-                        className={`p-4 rounded-xl border transition-all cursor-pointer ${
-                          notif.is_read 
-                            ? 'bg-slate-800/30 border-slate-700' 
-                            : 'bg-slate-800/70 border-cyan-500/30 hover:border-cyan-500/50'
-                        }`}
+                        className={`p-4 rounded-xl border transition-all cursor-pointer ${notif.is_read
+                          ? 'bg-slate-800/30 border-slate-700'
+                          : 'bg-slate-800/70 border-cyan-500/30 hover:border-cyan-500/50'
+                          }`}
                       >
                         <div className="flex items-start gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            notif.notification_type === 'task_assigned' ? 'bg-cyan-500/20' :
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${notif.notification_type === 'task_assigned' ? 'bg-cyan-500/20' :
                             notif.notification_type === 'task_status_changed' ? 'bg-blue-500/20' :
-                            notif.notification_type === 'task_completed' ? 'bg-green-500/20' :
-                            notif.notification_type === 'team_invite' ? 'bg-purple-500/20' :
-                            'bg-slate-700'
-                          }`}>
+                              notif.notification_type === 'task_completed' ? 'bg-green-500/20' :
+                                notif.notification_type === 'team_invite' ? 'bg-purple-500/20' :
+                                  'bg-slate-700'
+                            }`}>
                             {notif.notification_type === 'task_assigned' && <ListTodo className="w-5 h-5 text-cyan-400" />}
                             {notif.notification_type === 'task_status_changed' && <Activity className="w-5 h-5 text-blue-400" />}
                             {notif.notification_type === 'task_completed' && <CheckCircle2 className="w-5 h-5 text-green-400" />}
@@ -1741,54 +1766,54 @@ export default function ProjectsEnhanced() {
 
       {/* Create Project Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-lg border border-slate-700 shadow-2xl">
-            <div className="flex items-center justify-between p-4 border-b border-slate-700">
-              <h3 className="text-xl font-semibold text-white">Create New Project</h3>
-              <button 
-                onClick={() => setShowCreateModal(false)} 
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 pb-24 sm:pb-4">
+          <div className="bg-slate-800 rounded-xl w-full max-w-lg border border-slate-700 shadow-2xl max-h-[calc(100vh-120px)] sm:max-h-[85vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-3 sm:p-4 border-b border-slate-700 shrink-0">
+              <h3 className="text-lg sm:text-xl font-semibold text-white">Create New Project</h3>
+              <button
+                onClick={() => setShowCreateModal(false)}
                 className="p-1 text-slate-400 hover:text-white transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleCreateProject} className="p-4 space-y-4">
+            <form onSubmit={handleCreateProject} className="p-3 sm:p-4 space-y-3 overflow-y-auto flex-1">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Project Name *</label>
+                <label className="block text-xs sm:text-sm text-slate-400 mb-1">Project Name *</label>
                 <input
                   type="text"
                   value={newProject.name}
                   onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
                   placeholder="My Awesome Project"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Description</label>
+                <label className="block text-xs sm:text-sm text-slate-400 mb-1">Description</label>
                 <textarea
                   value={newProject.description}
                   onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white resize-none focus:outline-none focus:border-cyan-500"
-                  rows={3}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm resize-none focus:outline-none focus:border-cyan-500"
+                  rows={2}
                   placeholder="What is this project about?"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Team (optional)</label>
+                <label className="block text-xs sm:text-sm text-slate-400 mb-1">Team (optional)</label>
                 <select
                   value={newProject.team}
                   onChange={(e) => setNewProject({ ...newProject, team: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
                 >
                   <option value="">No Team (Personal Project)</option>
                   {teams.filter(t => String(t.leader) === String(user?.id)).map(team => (
                     <option key={team.id} value={team.id}>{team.name} (You are leader)</option>
                   ))}
                 </select>
-                <p className="text-xs text-slate-500 mt-1">
-                  {teams.filter(t => String(t.leader) === String(user?.id)).length === 0 
-                    ? 'Create a team first to add team projects' 
+                <p className="text-[10px] sm:text-xs text-slate-500 mt-1">
+                  {teams.filter(t => String(t.leader) === String(user?.id)).length === 0
+                    ? 'Create a team first to add team projects'
                     : 'You can only create team projects for teams you lead'}
                 </p>
               </div>
@@ -1879,13 +1904,13 @@ export default function ProjectsEnhanced() {
                 <UsersRound className="w-5 h-5 text-cyan-400" />
                 Create New Team
               </h3>
-              <button 
+              <button
                 onClick={() => {
                   setShowCreateTeamModal(false)
                   setNewTeam({ name: '', description: '', selectedMembers: [] })
                   setUserSearchQuery('')
                   setUserSearchResults([])
-                }} 
+                }}
                 className="p-1 text-slate-400 hover:text-white transition"
               >
                 <X className="w-5 h-5" />
@@ -1913,18 +1938,18 @@ export default function ProjectsEnhanced() {
                   placeholder="What is this team about?"
                 />
               </div>
-              
+
               {/* Member Selection - Search Based */}
               <div>
                 <label className="block text-sm text-slate-400 mb-2">
                   Invite Members (Optional)
                 </label>
-                
+
                 {/* Selected Members */}
                 {newTeam.selectedMembers.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3">
                     {newTeam.selectedMembers.map(member => (
-                      <div 
+                      <div
                         key={member.id}
                         className="flex items-center gap-2 bg-cyan-500/20 border border-cyan-500/50 rounded-full px-3 py-1"
                       >
@@ -1940,7 +1965,7 @@ export default function ProjectsEnhanced() {
                     ))}
                   </div>
                 )}
-                
+
                 {/* Search Input */}
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -1957,7 +1982,7 @@ export default function ProjectsEnhanced() {
                     </div>
                   )}
                 </div>
-                
+
                 {/* Search Results */}
                 {userSearchQuery.length >= 2 && (
                   <div className="mt-2 bg-slate-900/50 rounded-lg max-h-40 overflow-y-auto">
@@ -1993,7 +2018,7 @@ export default function ProjectsEnhanced() {
                     )}
                   </div>
                 )}
-                
+
                 <p className="text-xs text-slate-500 mt-2">
                   Search and select users to invite. They will receive an invitation and must accept to join.
                 </p>
@@ -2005,7 +2030,7 @@ export default function ProjectsEnhanced() {
                   You will be the team leader
                 </p>
               </div>
-              
+
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
@@ -2023,8 +2048,8 @@ export default function ProjectsEnhanced() {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-lg hover:from-cyan-600 hover:to-purple-600 transition"
                 >
-                  {newTeam.selectedMembers.length > 0 
-                    ? `Create & Invite ${newTeam.selectedMembers.length}` 
+                  {newTeam.selectedMembers.length > 0
+                    ? `Create & Invite ${newTeam.selectedMembers.length}`
                     : 'Create Team'}
                 </button>
               </div>
@@ -2042,11 +2067,11 @@ export default function ProjectsEnhanced() {
                 <UserPlus className="w-5 h-5 text-cyan-400" />
                 Invite to {selectedTeam.name}
               </h3>
-              <button 
+              <button
                 onClick={() => {
                   setShowInviteModal(false)
                   setSelectedTeam(null)
-                }} 
+                }}
                 className="p-1 text-slate-400 hover:text-white transition"
               >
                 <X className="w-5 h-5" />
@@ -2121,24 +2146,23 @@ export default function ProjectsEnhanced() {
 
       {/* Team Detail Modal */}
       {showTeamDetail && selectedTeam && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget) closeTeamDetail()
           }}
         >
-          <div 
+          <div
             className="bg-slate-800 rounded-xl w-full max-w-2xl border border-slate-700 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-4 border-b border-slate-700">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  String(selectedTeam.leader) === String(user?.id)
-                    ? 'bg-gradient-to-r from-yellow-500 to-orange-500'
-                    : 'bg-gradient-to-r from-cyan-500 to-purple-500'
-                }`}>
-                  {String(selectedTeam.leader) === String(user?.id) 
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${String(selectedTeam.leader) === String(user?.id)
+                  ? 'bg-gradient-to-r from-yellow-500 to-orange-500'
+                  : 'bg-gradient-to-r from-cyan-500 to-purple-500'
+                  }`}>
+                  {String(selectedTeam.leader) === String(user?.id)
                     ? <Crown className="w-5 h-5 text-white" />
                     : <UsersRound className="w-5 h-5 text-white" />
                   }
@@ -2150,14 +2174,14 @@ export default function ProjectsEnhanced() {
                   </p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={closeTeamDetail}
                 className="p-1 text-slate-400 hover:text-white transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="p-4 overflow-y-auto flex-1 space-y-6">
               {/* Team Stats */}
               <div className="grid grid-cols-3 gap-3">
@@ -2188,7 +2212,7 @@ export default function ProjectsEnhanced() {
               {/* Members */}
               <div>
                 <h4 className="text-sm font-medium text-slate-400 mb-3">Team Members</h4>
-                
+
                 {/* Add Member - Only for Leaders */}
                 {String(selectedTeam.leader) === String(user?.id) && (
                   <div className="mb-4">
@@ -2200,22 +2224,20 @@ export default function ProjectsEnhanced() {
                           setUserSearchQuery('')
                           setUserSearchResults([])
                         }}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                          inviteMode === 'followers'
-                            ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50'
-                            : 'bg-slate-900 text-slate-400 border border-slate-700 hover:border-slate-600'
-                        }`}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${inviteMode === 'followers'
+                          ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50'
+                          : 'bg-slate-900 text-slate-400 border border-slate-700 hover:border-slate-600'
+                          }`}
                       >
                         <Users className="w-4 h-4 inline mr-2" />
                         My Followers
                       </button>
                       <button
                         onClick={() => setInviteMode('search')}
-                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
-                          inviteMode === 'search'
-                            ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
-                            : 'bg-slate-900 text-slate-400 border border-slate-700 hover:border-slate-600'
-                        }`}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${inviteMode === 'search'
+                          ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
+                          : 'bg-slate-900 text-slate-400 border border-slate-700 hover:border-slate-600'
+                          }`}
                       >
                         <Search className="w-4 h-4 inline mr-2" />
                         Search All Users
@@ -2224,7 +2246,7 @@ export default function ProjectsEnhanced() {
 
                     {/* Followers List */}
                     {inviteMode === 'followers' && (
-                      <div className="bg-slate-900 rounded-lg border border-slate-700 max-h-40 overflow-y-auto">
+                      <div className="bg-slate-900 rounded-lg border border-slate-700 max-h-48 overflow-y-auto">
                         {followers.length === 0 ? (
                           <div className="p-3 text-center text-sm text-slate-400">
                             No followers yet
@@ -2233,40 +2255,53 @@ export default function ProjectsEnhanced() {
                           <div className="p-1 space-y-1">
                             {followers
                               .filter(f => !teamMembers.find(m => String(m.user) === String(f.id)))
+                              .slice(0, followerDisplayLimit)
                               .map(follower => (
-                              <div
-                                key={follower.id}
-                                onClick={async () => {
-                                  try {
-                                    await teamsAPI.inviteMember(selectedTeam.slug, {
-                                      user_id: follower.id,
-                                      role: 'member',
-                                      message: `You've been invited to join ${selectedTeam.name}`
-                                    })
-                                    toast.success(`Invitation sent to ${follower.username}`)
-                                    const membersRes = await teamsAPI.getMembers(selectedTeam.slug)
-                                    setTeamMembers(membersRes.data || [])
-                                  } catch (error: any) {
-                                    toast.error(error.response?.data?.error || 'Failed to invite')
-                                  }
-                                }}
-                                className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-slate-800 transition"
+                                <div
+                                  key={follower.id}
+                                  onClick={async () => {
+                                    try {
+                                      await teamsAPI.inviteMember(selectedTeam.slug, {
+                                        user_id: follower.id,
+                                        role: 'member',
+                                        message: `You've been invited to join ${selectedTeam.name}`
+                                      })
+                                      toast.success(`Invitation sent to ${follower.username}`)
+                                      const membersRes = await teamsAPI.getMembers(selectedTeam.slug)
+                                      setTeamMembers(membersRes.data || [])
+                                    } catch (error: any) {
+                                      toast.error(error.response?.data?.error || 'Failed to invite')
+                                    }
+                                  }}
+                                  className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-slate-800 transition"
+                                >
+                                  {/* Profile Picture with error fallback */}
+                                  <ProfileAvatar
+                                    src={follower.profile_picture}
+                                    alt={follower.username}
+                                    fallbackText={follower.username}
+                                    size="sm"
+                                    variant="cyan"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-white truncate">{follower.username || 'Unknown'}</p>
+                                    <p className="text-xs text-slate-400 truncate">@{follower.username}</p>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-cyan-400 text-xs">
+                                    <UserPlus className="w-4 h-4" />
+                                    Invite
+                                  </div>
+                                </div>
+                              ))}
+                            {/* Show More Button */}
+                            {followers.filter(f => !teamMembers.find(m => String(m.user) === String(f.id))).length > followerDisplayLimit && (
+                              <button
+                                onClick={() => setFollowerDisplayLimit(prev => prev + 5)}
+                                className="w-full py-2 text-center text-xs text-purple-400 hover:text-purple-300 hover:bg-slate-800 rounded-lg transition"
                               >
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center">
-                                  <span className="text-xs font-medium text-white">
-                                    {follower.username?.charAt(0)?.toUpperCase() || '?'}
-                                  </span>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-white truncate">{follower.username || 'Unknown'}</p>
-                                  <p className="text-xs text-slate-400 truncate">{follower.email || ''}</p>
-                                </div>
-                                <div className="flex items-center gap-1 text-cyan-400 text-xs">
-                                  <UserPlus className="w-4 h-4" />
-                                  Invite
-                                </div>
-                              </div>
-                            ))}
+                                Show More ({followers.filter(f => !teamMembers.find(m => String(m.user) === String(f.id))).length - followerDisplayLimit} remaining)
+                              </button>
+                            )}
                             {followers.filter(f => !teamMembers.find(m => String(m.user) === String(f.id))).length === 0 && (
                               <div className="p-3 text-center text-sm text-slate-400">
                                 All followers already invited
@@ -2295,7 +2330,7 @@ export default function ProjectsEnhanced() {
                             </div>
                           )}
                         </div>
-                        
+
                         {/* Search Results */}
                         {userSearchQuery.length >= 2 && (
                           <div className="mt-2 bg-slate-900 rounded-lg border border-slate-700 max-h-40 overflow-y-auto">
@@ -2308,41 +2343,41 @@ export default function ProjectsEnhanced() {
                                 {userSearchResults
                                   .filter(u => !teamMembers.find(m => String(m.user) === String(u.id)))
                                   .map(searchUser => (
-                                  <div
-                                    key={searchUser.id}
-                                    onClick={async () => {
-                                      try {
-                                        await teamsAPI.inviteMember(selectedTeam.slug, {
-                                          user_id: searchUser.id,
-                                          role: 'member',
-                                          message: `You've been invited to join ${selectedTeam.name}`
-                                        })
-                                        toast.success(`Invitation sent to ${searchUser.username}`)
-                                        setUserSearchQuery('')
-                                        setUserSearchResults([])
-                                        const membersRes = await teamsAPI.getMembers(selectedTeam.slug)
-                                        setTeamMembers(membersRes.data || [])
-                                      } catch (error: any) {
-                                        toast.error(error.response?.data?.error || 'Failed to invite')
-                                      }
-                                    }}
-                                    className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-slate-800 transition"
-                                  >
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                                      <span className="text-xs font-medium text-white">
-                                        {searchUser.username?.charAt(0)?.toUpperCase() || '?'}
-                                      </span>
+                                    <div
+                                      key={searchUser.id}
+                                      onClick={async () => {
+                                        try {
+                                          await teamsAPI.inviteMember(selectedTeam.slug, {
+                                            user_id: searchUser.id,
+                                            role: 'member',
+                                            message: `You've been invited to join ${selectedTeam.name}`
+                                          })
+                                          toast.success(`Invitation sent to ${searchUser.username}`)
+                                          setUserSearchQuery('')
+                                          setUserSearchResults([])
+                                          const membersRes = await teamsAPI.getMembers(selectedTeam.slug)
+                                          setTeamMembers(membersRes.data || [])
+                                        } catch (error: any) {
+                                          toast.error(error.response?.data?.error || 'Failed to invite')
+                                        }
+                                      }}
+                                      className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-slate-800 transition"
+                                    >
+                                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                                        <span className="text-xs font-medium text-white">
+                                          {searchUser.username?.charAt(0)?.toUpperCase() || '?'}
+                                        </span>
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-white truncate">{searchUser.username || 'Unknown'}</p>
+                                        <p className="text-xs text-slate-400 truncate">{searchUser.email || ''}</p>
+                                      </div>
+                                      <div className="flex items-center gap-1 text-purple-400 text-xs">
+                                        <UserPlus className="w-4 h-4" />
+                                        Invite
+                                      </div>
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium text-white truncate">{searchUser.username || 'Unknown'}</p>
-                                      <p className="text-xs text-slate-400 truncate">{searchUser.email || ''}</p>
-                                    </div>
-                                    <div className="flex items-center gap-1 text-purple-400 text-xs">
-                                      <UserPlus className="w-4 h-4" />
-                                      Invite
-                                    </div>
-                                  </div>
-                                ))}
+                                  ))}
                                 {userSearchResults.filter(u => !teamMembers.find(m => String(m.user) === String(u.id))).length === 0 && (
                                   <div className="p-3 text-center text-sm text-slate-400">
                                     All found users already invited
@@ -2363,11 +2398,11 @@ export default function ProjectsEnhanced() {
                 {/* Member List */}
                 <div className="space-y-2">
                   {teamMembers && teamMembers.length > 0 ? teamMembers.map((member, index) => (
-                    <div 
+                    <div
                       key={member?.id || `member-${index}`}
                       className="flex items-center justify-between p-2 bg-slate-900/50 rounded-lg hover:bg-slate-800/50 transition group"
                     >
-                      <div 
+                      <div
                         className="flex items-center gap-3 cursor-pointer flex-1"
                         onClick={(e) => {
                           e.stopPropagation()
@@ -2376,17 +2411,16 @@ export default function ProjectsEnhanced() {
                       >
                         <div className="relative">
                           {member.avatar ? (
-                            <img 
-                              src={member.avatar} 
-                              alt={member.user_name} 
+                            <img
+                              src={member.avatar}
+                              alt={member.user_name}
                               className="w-10 h-10 rounded-full object-cover border-2 border-slate-600 group-hover:border-cyan-500 transition"
                             />
                           ) : (
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition ${
-                              member.is_leader 
-                                ? 'bg-gradient-to-br from-yellow-500 to-orange-500 border-yellow-400' 
-                                : 'bg-gradient-to-br from-slate-600 to-slate-700 border-slate-500 group-hover:border-cyan-500'
-                            }`}>
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition ${member.is_leader
+                              ? 'bg-gradient-to-br from-yellow-500 to-orange-500 border-yellow-400'
+                              : 'bg-gradient-to-br from-slate-600 to-slate-700 border-slate-500 group-hover:border-cyan-500'
+                              }`}>
                               <span className="text-sm font-bold text-white">
                                 {member.user_name?.charAt(0)?.toUpperCase() || '?'}
                               </span>
@@ -2405,13 +2439,12 @@ export default function ProjectsEnhanced() {
                           <p className="text-xs text-slate-400">{member.user_email || member.role}</p>
                         </div>
                       </div>
-                      <span className={`text-xs px-2 py-0.5 rounded ${
-                        member.status === 'accepted' 
-                          ? 'bg-green-500/20 text-green-400'
-                          : member.status === 'pending'
+                      <span className={`text-xs px-2 py-0.5 rounded ${member.status === 'accepted'
+                        ? 'bg-green-500/20 text-green-400'
+                        : member.status === 'pending'
                           ? 'bg-yellow-500/20 text-yellow-400'
                           : 'bg-slate-500/20 text-slate-400'
-                      }`}>
+                        }`}>
                         {member.is_leader ? 'Leader' : member.status}
                       </span>
                     </div>
@@ -2448,7 +2481,7 @@ export default function ProjectsEnhanced() {
                 ) : (
                   <div className="space-y-2">
                     {teamProjects.map(project => (
-                      <div 
+                      <div
                         key={project.id}
                         onClick={() => {
                           closeTeamDetail()
@@ -2513,7 +2546,7 @@ export default function ProjectsEnhanced() {
                 <Edit className="w-5 h-5 text-cyan-400" />
                 Edit Team
               </h3>
-              <button 
+              <button
                 onClick={() => { setShowEditTeamModal(false); setEditingTeam(null); }}
                 className="p-1 text-slate-400 hover:text-white transition"
               >
@@ -2569,7 +2602,7 @@ export default function ProjectsEnhanced() {
                 <Edit className="w-5 h-5 text-cyan-400" />
                 Edit Project
               </h3>
-              <button 
+              <button
                 onClick={() => { setShowEditProjectModal(false); setEditingProject(null); }}
                 className="p-1 text-slate-400 hover:text-white transition"
               >
@@ -2656,24 +2689,24 @@ export default function ProjectsEnhanced() {
 
       {/* Create Task Modal */}
       {showCreateTaskModal && selectedProject && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-lg border border-slate-700 shadow-2xl">
-            <div className="flex items-center justify-between p-4 border-b border-slate-700">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center z-50 p-4 pt-8 sm:pt-4 overflow-y-auto">
+          <div className="bg-slate-800 rounded-xl w-full max-w-lg border border-slate-700 shadow-2xl my-auto max-h-[calc(100vh-6rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-slate-700 shrink-0">
               <div>
-                <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+                <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
                   <ListTodo className="w-5 h-5 text-cyan-400" />
                   Add Task
                 </h3>
-                <p className="text-sm text-slate-400">Project: {selectedProject.name}</p>
+                <p className="text-xs sm:text-sm text-slate-400">Project: {selectedProject.name}</p>
               </div>
-              <button 
+              <button
                 onClick={closeCreateTaskModal}
                 className="p-1 text-slate-400 hover:text-white transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleCreateTask} className="p-4 space-y-4">
+            <form onSubmit={handleCreateTask} className="p-4 space-y-4 overflow-y-auto flex-1 pb-8">
               <div>
                 <label className="block text-sm text-slate-400 mb-1">Task Title *</label>
                 <input
@@ -2685,7 +2718,7 @@ export default function ProjectsEnhanced() {
                   required
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm text-slate-400 mb-1">Description</label>
                 <textarea
@@ -2696,7 +2729,7 @@ export default function ProjectsEnhanced() {
                   placeholder="Task description (optional)"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm text-slate-400 mb-1">Assign To *</label>
                 <select
@@ -2711,7 +2744,7 @@ export default function ProjectsEnhanced() {
                   ))}
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm text-slate-400 mb-1">Priority</label>
                 <select
@@ -2725,7 +2758,7 @@ export default function ProjectsEnhanced() {
                   <option value="urgent">Urgent</option>
                 </select>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-slate-400 mb-1">Start Date</label>
@@ -2746,14 +2779,14 @@ export default function ProjectsEnhanced() {
                   />
                 </div>
               </div>
-              
+
               <div className="bg-slate-900/50 rounded-lg p-3 text-sm text-slate-400">
                 <p className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-green-400" />
                   Task will be added to "To Do" column
                 </p>
               </div>
-              
+
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
@@ -2778,15 +2811,15 @@ export default function ProjectsEnhanced() {
 }
 
 // Project Card Component
-function ProjectCard({ 
-  project, 
-  onView, 
+function ProjectCard({
+  project,
+  onView,
   onEdit,
   onDelete,
   onAddTask,
   isLeader,
-  getStatusColor 
-}: { 
+  getStatusColor
+}: {
   project: Project
   onView: () => void
   onEdit?: () => void
@@ -2813,7 +2846,7 @@ function ProjectCard({
 
   return (
     <div className="bg-slate-800/50 backdrop-blur rounded-xl p-5 border border-slate-700 hover:border-cyan-500/50 transition-all group">
-      <div 
+      <div
         onClick={onView}
         className="cursor-pointer"
       >
@@ -2834,10 +2867,10 @@ function ProjectCard({
           </div>
           <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-cyan-400 transition" />
         </div>
-        
+
         <p className="text-sm text-slate-400 line-clamp-2 mb-4">{project.description || 'No description'}</p>
       </div>
-      
+
       <div className="flex items-center justify-between text-sm">
         <div className="flex items-center gap-4 text-slate-400">
           <span className="flex items-center gap-1">
@@ -2854,7 +2887,7 @@ function ProjectCard({
           <GitBranch className="w-4 h-4 text-slate-500" />
         )}
       </div>
-      
+
       {/* Action buttons for leaders */}
       {isLeader && (
         <div className="flex gap-2 mt-4 pt-3 border-t border-slate-700/50">

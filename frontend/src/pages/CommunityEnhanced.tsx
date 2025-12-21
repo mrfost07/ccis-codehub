@@ -2383,10 +2383,6 @@ export default function CommunityEnhanced() {
                         <Share2 className="w-5 h-5" />
                         <span className="text-sm">Share</span>
                       </button>
-
-                      <span className="ml-auto text-sm text-slate-400">
-                        {post.view_count} views
-                      </span>
                     </div>
 
                     {/* Comments Section */}
