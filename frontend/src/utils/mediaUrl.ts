@@ -2,13 +2,9 @@
  * Utility to get the correct media URL based on environment
  */
 
-// Get the API base URL from environment or fallback
-const getApiBaseUrl = (): string => {
-    // Use VITE_API_URL if available, otherwise fallback
-    if (import.meta.env.VITE_API_URL) {
-        return import.meta.env.VITE_API_URL;
-    }
-    // In production, use the current origin
+// Get the BASE URL (without /api) for media files
+const getBaseUrl = (): string => {
+    // In production, use the origin (without /api path)
     if (import.meta.env.PROD) {
         return window.location.origin;
     }
@@ -28,17 +24,17 @@ export const getMediaUrl = (path: string | null | undefined): string | null => {
         // Replace localhost/127.0.0.1 URLs with production URL in production
         if (import.meta.env.PROD) {
             if (path.includes('localhost:8000')) {
-                return path.replace('http://localhost:8000', getApiBaseUrl());
+                return path.replace('http://localhost:8000', getBaseUrl());
             }
             if (path.includes('127.0.0.1:8000')) {
-                return path.replace('http://127.0.0.1:8000', getApiBaseUrl());
+                return path.replace('http://127.0.0.1:8000', getBaseUrl());
             }
         }
         return path;
     }
 
-    // Relative path - prepend the API base URL
-    return `${getApiBaseUrl()}${path.startsWith('/') ? '' : '/'}${path}`;
+    // Relative path - prepend the BASE URL (not API URL!)
+    return `${getBaseUrl()}${path.startsWith('/') ? '' : '/'}${path}`;
 };
 
 /**
