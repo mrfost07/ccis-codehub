@@ -135,6 +135,23 @@ class ProjectMentorSessionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Input validation - message length limit
+        if len(message_text) > 5000:
+            return Response(
+                {'error': 'Message is too long. Please keep it under 5000 characters.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Sanitize input - strip HTML tags for security
+        from django.utils.html import strip_tags
+        message_text = strip_tags(message_text).strip()
+        
+        if not message_text:
+            return Response(
+                {'error': 'Message cannot be empty after sanitization'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         # Save user message
         user_message = AIMessage.objects.create(
             session=session,
@@ -934,7 +951,7 @@ Encourage them to create their first project or join existing ones. Offer to hel
             elif 'project' in message_lower:
                 navigate_to = '/projects'
                 page_name = 'Projects'
-            elif 'community' in message_lower or 'social' in message_lower:
+            elif 'community' in message_lower or 'social' in message_lower or 'feed' in message_lower:
                 navigate_to = '/community'
                 page_name = 'Community'
             elif 'profile' in message_lower and ('my' in message_lower or 'me' in message_lower):
@@ -943,12 +960,21 @@ Encourage them to create their first project or join existing ones. Offer to hel
             elif 'dashboard' in message_lower or 'home' in message_lower:
                 navigate_to = '/dashboard'
                 page_name = 'Dashboard'
-            elif 'leaderboard' in message_lower or 'ranking' in message_lower:
+            elif 'leaderboard' in message_lower or 'ranking' in message_lower or 'scores' in message_lower:
                 navigate_to = '/leaderboard'
                 page_name = 'Leaderboard'
             elif 'chat' in message_lower or 'message' in message_lower:
                 navigate_to = '/community'
                 page_name = 'Community Chat'
+            elif 'setting' in message_lower or 'preference' in message_lower:
+                navigate_to = '/settings'
+                page_name = 'Settings'
+            elif 'notification' in message_lower or 'alert' in message_lower:
+                navigate_to = '/notifications'
+                page_name = 'Notifications'
+            elif 'admin' in message_lower and ('panel' in message_lower or 'dashboard' in message_lower):
+                navigate_to = '/admin-dashboard'
+                page_name = 'Admin Dashboard'
             
             if navigate_to:
                 ai_response_text = f"Taking you to {page_name}..."

@@ -22,22 +22,31 @@ class DataContextService:
         self.user = user
     
     def get_system_stats(self) -> Dict[str, Any]:
-        """Get overall system statistics"""
+        """Get overall system statistics with caching"""
+        from django.core.cache import cache
         from apps.learning.models import CareerPath, LearningModule, Enrollment
         from apps.projects.models import Project, Team
         from apps.community.models import Post
         
-        return {
-            'total_users': User.objects.filter(is_active=True).count(),
-            'total_students': User.objects.filter(role='student', is_active=True).count(),
-            'total_instructors': User.objects.filter(role='instructor', is_active=True).count(),
-            'total_courses': CareerPath.objects.filter(is_active=True).count(),
-            'total_modules': LearningModule.objects.count(),  # LearningModule doesn't have is_active
-            'total_projects': Project.objects.count(),
-            'active_projects': Project.objects.filter(status='in_progress').count(),
-            'total_posts': Post.objects.count(),
-            'total_enrollments': Enrollment.objects.count(),
-        }
+        # Try cache first (5 minute TTL)
+        cache_key = 'ai_mentor_platform_stats'
+        stats = cache.get(cache_key)
+        
+        if stats is None:
+            stats = {
+                'total_users': User.objects.filter(is_active=True).count(),
+                'total_students': User.objects.filter(role='student', is_active=True).count(),
+                'total_instructors': User.objects.filter(role='instructor', is_active=True).count(),
+                'total_courses': CareerPath.objects.filter(is_active=True).count(),
+                'total_modules': LearningModule.objects.count(),  # LearningModule doesn't have is_active
+                'total_projects': Project.objects.count(),
+                'active_projects': Project.objects.filter(status='in_progress').count(),
+                'total_posts': Post.objects.count(),
+                'total_enrollments': Enrollment.objects.count(),
+            }
+            cache.set(cache_key, stats, 300)  # Cache for 5 minutes
+        
+        return stats
     
     def get_all_courses(self) -> List[Dict[str, Any]]:
         """Get all available career paths/courses with details"""

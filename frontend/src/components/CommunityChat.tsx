@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   MessageCircle, X, Send, Settings, Reply, ArrowUp, Trash2,
-  MoreVertical, Smile, Users, Edit2, Check, ChevronDown
+  MoreVertical, Smile, Users, Edit2, Check, ChevronDown, Globe, Building2
 } from 'lucide-react'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -329,7 +329,13 @@ export default function CommunityChat() {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-800">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">{activeRoom?.icon || '💬'}</span>
+          {/* Use Lucide icons instead of emoji */}
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+            {activeRoom?.room_type === 'global' || activeRoom?.name?.toLowerCase().includes('global')
+              ? <Globe className="w-5 h-5 text-white" />
+              : <Building2 className="w-5 h-5 text-white" />
+            }
+          </div>
           <div>
             <h3 className="font-bold text-white">{activeRoom?.name || 'Community Chat'}</h3>
             <p className="text-xs text-slate-400">{activeRoom?.member_count || 0} members</p>
@@ -388,19 +394,29 @@ export default function CommunityChat() {
           <div>
             <label className="text-xs text-slate-400 block mb-1">Chat Room</label>
             <div className="grid grid-cols-2 gap-2">
-              {rooms.map((room) => (
-                <button
-                  key={room.id}
-                  onClick={() => setActiveRoom(room)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition ${activeRoom?.id === room.id
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
-                >
-                  <span>{room.icon}</span>
-                  <span className="truncate">{room.name}</span>
-                </button>
-              ))}
+              {rooms.map((room) => {
+                // Map room type to Lucide icon (no emojis)
+                const getRoomIcon = () => {
+                  if (room.room_type === 'global' || room.name.toLowerCase().includes('global')) {
+                    return <Globe className="w-4 h-4" />
+                  }
+                  return <Building2 className="w-4 h-4" />
+                }
+
+                return (
+                  <button
+                    key={room.id}
+                    onClick={() => setActiveRoom(room)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition ${activeRoom?.id === room.id
+                      ? 'bg-purple-600 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                  >
+                    {getRoomIcon()}
+                    <span className="truncate">{room.name}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>

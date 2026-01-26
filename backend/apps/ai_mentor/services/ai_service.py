@@ -327,6 +327,134 @@ class LocalAIService(BaseAIService):
         }
 
 
+class MistralService(BaseAIService):
+    """Mistral AI Service - Direct API access"""
+    
+    def __init__(self):
+        self.api_key = os.getenv('MISTRAL_API_KEY')
+        self.model_name = "mistral-small-latest"
+        self.base_url = "https://api.mistral.ai/v1"
+        
+        if not self.api_key:
+            logger.warning("Mistral API key not configured")
+    
+    def generate_response(self, prompt: str, context: Optional[List[Dict]] = None, user_role: str = 'student') -> str:
+        """Generate response using Mistral API"""
+        if not self.api_key:
+            return "Please configure your MISTRAL_API_KEY in the .env file. Get your key at: https://admin.mistral.ai/"
+        
+        try:
+            import requests
+            
+            # Build messages with smarter system prompt
+            messages = [
+                {"role": "system", "content": """You are a helpful AI mentor for CCIS-CodeHub.
+
+CRITICAL RULES:
+1. For greetings like "hi", "hello" - respond briefly and warmly. Do NOT list courses/projects/stats.
+2. ONLY provide user data when EXPLICITLY asked.
+3. Keep responses concise. No walls of text.
+4. Ask clarifying questions instead of dumping information.
+5. Respond directly to what was asked.
+
+Tone: Friendly, concise, helpful.
+Format: Short paragraphs. Bullet points for lists. Code blocks for code."""}
+            ]
+            
+            if context:
+                for msg in context:
+                    role = "user" if msg.get('sender') == 'user' else "assistant"
+                    messages.append({
+                        "role": role,
+                        "content": msg.get('message', '')
+                    })
+            
+            messages.append({"role": "user", "content": prompt})
+            
+            # Make request to Mistral API
+            logger.info(f"Mistral API request: model={self.model_name}")
+            response = requests.post(
+                f"{self.base_url}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": self.model_name,
+                    "messages": messages,
+                    "max_tokens": 4096,
+                    "temperature": 0.7
+                },
+                timeout=60
+            )
+            
+            logger.info(f"Mistral response status: {response.status_code}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                content = data['choices'][0]['message']['content']
+                logger.info(f"Mistral success, length: {len(content)}")
+                return content
+            else:
+                error_msg = response.text
+                logger.error(f"Mistral API error {response.status_code}: {error_msg}")
+                return f"Mistral API error: {error_msg}"
+                
+        except requests.exceptions.Timeout:
+            return "Mistral API request timed out. Please try again."
+        except Exception as e:
+            logger.error(f"Mistral API error: {str(e)}")
+            return f"Error generating response: {str(e)}"
+    
+    def analyze_code(self, code: str, language: str = "python") -> Dict[str, Any]:
+        """Analyze code using Mistral"""
+        if not self.api_key:
+            return {
+                "error": "API key not configured",
+                "suggestions": ["Configure MISTRAL_API_KEY"],
+                "complexity_score": 0
+            }
+        
+        prompt = f"""
+        Analyze this {language} code and provide JSON response with:
+        - quality_assessment
+        - potential_issues
+        - optimization_suggestions
+        - security_concerns
+        - complexity_score (1-10)
+        
+        Code: {code}
+        """
+        
+        try:
+            response = self.generate_response(prompt)
+            try:
+                return json.loads(response)
+            except:
+                return {
+                    "analysis": response,
+                    "complexity_score": 5
+                }
+        except Exception as e:
+            return {
+                "error": str(e),
+                "complexity_score": 0
+            }
+    
+    def get_model_info(self) -> Dict[str, Any]:
+        """Get Mistral model info"""
+        return {
+            "provider": "Mistral",
+            "model": self.model_name,
+            "name": "Mistral Small (Recommended)",
+            "description": "Mistral's efficient small language model - Fast & Reliable",
+            "max_tokens": 4096,
+            "free_tier": False,
+            "configured": bool(self.api_key),
+            "recommended": True
+        }
+
+
 class OpenRouterService(BaseAIService):
     """OpenRouter AI Service - Access multiple models via OpenRouter API"""
     
@@ -355,48 +483,49 @@ class OpenRouterService(BaseAIService):
         
         base_context = "You are an AI assistant for CCIS-CodeHub, an educational platform for computer science students."
         
+        # CRITICAL RULES for all roles
+        critical_rules = """
+
+CRITICAL RESPONSE RULES:
+1. For greetings like "hi", "hello", "hey" - respond briefly and warmly. Do NOT list courses/projects/stats.
+2. ONLY provide user data (courses, projects, progress) when EXPLICITLY asked about it.
+3. Keep responses concise and actionable. Avoid walls of text.
+4. If unsure what the user wants, ask a clarifying question instead of dumping information.
+5. Never start responses with the user's full name or profile details unless asked.
+6. Respond directly to what was asked - no unsolicited advice or information.
+"""
+        
         role_prompts = {
             'student': f"""{base_context}
 
-You are a friendly and encouraging AI mentor for students. Your role is to:
-- Help students understand programming concepts with clear explanations
-- Provide step-by-step guidance when solving coding problems
-- Encourage learning and celebrate progress
-- Suggest resources and practice exercises
-- Be patient and supportive, especially with beginners
-- Use code examples to illustrate concepts
-- Answer questions about courses, projects, and the learning path
-
-Tone: Supportive, educational, encouraging. Use emojis occasionally to be friendly 😊
-Format: Use bullet points for lists, code blocks for code, and keep explanations concise.""",
+You are a friendly AI mentor for students. Your role is to:
+- Answer questions concisely and accurately
+- Help with coding problems when asked
+- Suggest resources only when relevant
+- Be encouraging but not overly verbose
+{critical_rules}
+Tone: Friendly, concise, helpful. Occasional emoji is fine 😊
+Format: Short paragraphs. Bullet points for lists. Code blocks for code.""",
 
             'instructor': f"""{base_context}
 
-You are a professional teaching assistant for instructors. Your role is to:
-- Help with course content creation and curriculum planning
-- Suggest assessment strategies and quiz questions
-- Provide insights on student engagement and learning analytics
-- Assist with grading rubrics and feedback templates
-- Offer pedagogical best practices for CS education
-- Help manage course modules and learning paths
-- Support with administrative teaching tasks
-
-Tone: Professional, collaborative, efficient. Focus on actionable insights.
-Format: Use structured lists, tables when appropriate, and be concise.""",
+You are a professional assistant for instructors. Your role is to:
+- Help with course content when asked
+- Provide teaching insights on request
+- Assist with specific tasks mentioned
+{critical_rules}
+Tone: Professional, efficient, direct.
+Format: Structured, actionable responses.""",
 
             'admin': f"""{base_context}
 
-You are an administrative assistant for platform administrators. Your role is to:
-- Help with platform management and user administration
-- Provide analytics insights and reporting suggestions
-- Assist with content moderation and quality assurance
-- Offer guidance on platform policies and best practices
-- Help troubleshoot common issues and user concerns
-- Support with system configuration recommendations
-- Provide overview of platform health and metrics
-
-Tone: Professional, authoritative, solution-oriented.
-Format: Be direct, provide actionable recommendations, use bullet points.""",
+You are an administrative assistant for platform admins. Your role is to:
+- Provide platform information when requested
+- Help with admin tasks on demand
+- Give insights only when asked
+{critical_rules}
+Tone: Professional, authoritative, concise.
+Format: Direct answers, bullet points for clarity.""",
         }
         
         return role_prompts.get(user_role, role_prompts['student'])
@@ -603,7 +732,6 @@ class AIServiceFactory:
         'openrouter_gemini': 'google/gemini-2.0-flash-exp:free',
         'openrouter_amazon_nova': 'amazon/nova-2-lite-v1:free',
         'openrouter_deepseek': 'nex-agi/deepseek-v3.1-nex-n1:free',
-        'openrouter_mistral': 'mistralai/devstral-2512:free',
         'openrouter': 'google/gemini-2.0-flash-exp:free',  # Legacy
         # New OpenRouter models
         'openrouter_deepseek_r1t2': 'tngtech/deepseek-r1t2-chimera:free',
@@ -617,6 +745,7 @@ class AIServiceFactory:
     }
     
     _services = {
+        'mistral_direct': MistralService,  # Direct Mistral API - RECOMMENDED
         'google_gemini': GeminiService,
         'gemini_direct': GeminiService,
         'openai_gpt4': OpenAIService,
@@ -624,7 +753,6 @@ class AIServiceFactory:
         'openrouter_gemini': OpenRouterService,
         'openrouter_amazon_nova': OpenRouterService,
         'openrouter_deepseek': OpenRouterService,
-        'openrouter_mistral': OpenRouterService,
         # New OpenRouter models
         'openrouter_deepseek_r1t2': OpenRouterService,
         'openrouter_katcoder': OpenRouterService,
@@ -644,9 +772,11 @@ class AIServiceFactory:
     @classmethod
     def get_service(cls, model_type: str = None) -> BaseAIService:
         """Get AI service instance"""
+        # If no model specified, use env default
         if not model_type:
-            # No model specified - raise helpful error
-            raise ValueError("No AI model selected. Please select a model in AI Settings.")
+            default_model = os.getenv('AI_MODEL_DEFAULT', 'openrouter_gemini')
+            logger.info(f"AIServiceFactory: No model specified, using default: {default_model}")
+            model_type = default_model
         
         logger.info(f"AIServiceFactory: Requested model: {model_type}")
         
@@ -735,38 +865,65 @@ def get_ai_response_with_context(
         include_user=include_user
     )
     
-    # Get query-specific context
-    query_context = data_service.get_context_for_query(prompt)
+    # Determine user role
+    user_role = 'student'
+    if user:
+        if hasattr(user, 'role'):
+            user_role = user.role
+        elif hasattr(user, 'is_superuser') and user.is_superuser:
+            user_role = 'admin'
+        elif hasattr(user, 'is_staff') and user.is_staff:
+            user_role = 'instructor'
+    
+    # Role-specific quick action context
+    role_actions = {
+        'admin': """
+ADMIN QUICK ACTIONS (when user clicks these buttons, respond accordingly):
+- "Show platform statistics" → Give stats: total users, courses, projects, enrollments from PLATFORM DATA
+- "Show user overview" → Summarize user counts by role, recent signups, activity trends
+- "List all courses" → List ALL available courses from the platform with enrollment counts
+- "Show recent platform activity" → Recent posts, enrollments, project activity""",
+        'instructor': """
+INSTRUCTOR QUICK ACTIONS (when user clicks these buttons, respond accordingly):
+- "Show courses I teach" → List courses where user is instructor
+- "Show my students' progress" → Summarize student performance in their courses
+- "Help me create a new module" → Guide them to Learning section or offer content generation help
+- "Show course analytics" → Give engagement stats for their courses""",
+        'student': """
+STUDENT QUICK ACTIONS (when user clicks these buttons, respond accordingly):
+- "What courses am I enrolled in?" → List their enrolled courses from CURRENT USER data
+- "Show my learning progress" → Progress details, completed modules, streaks
+- "Recommend a course for me" → Suggest courses based on their interests
+- "Show my projects" → List their owned and joined projects"""
+    }
+    
+    role_context = role_actions.get(user_role, role_actions['student'])
     
     # Build enhanced prompt with context
-    enhanced_prompt = f"""You are a professional AI mentor for CCIS CodeHub, a learning platform for computer science students.
-You have access to real-time platform data. Use this information to give accurate, specific answers.
+    enhanced_prompt = f"""You are an AI mentor for CCIS CodeHub, a learning platform for computer science students.
 
+PLATFORM DATA (use when answering questions about the platform):
 {db_context}
 
-QUERY CONTEXT TYPE: {query_context['type']}
-{_format_query_context(query_context)}
+USER ROLE: {user_role.upper()}
+{role_context}
 
-USER QUERY: {prompt}
+USER'S QUESTION: "{prompt}"
 
-CRITICAL FORMATTING RULES - FOLLOW EXACTLY:
-1. DO NOT use asterisks (*) anywhere in your response - they look unprofessional
-2. For emphasis, just use CAPS or quotation marks like "this"
-3. Use bullet points with the dash character (-) for lists
-4. Use numbered lists (1. 2. 3.) for steps or sequences  
-5. Keep responses concise, clear, and well-structured
-6. Use short paragraphs separated by blank lines
-7. Be formal, professional, and helpful
-8. Start responses with a direct answer, not greetings
+CRITICAL INSTRUCTIONS:
+1. If the question matches a QUICK ACTION above, respond with the ACTUAL DATA from PLATFORM DATA
+2. For "Show platform statistics" → extract and present real numbers from PLATFORM STATISTICS
+3. For "List all courses" → list the actual courses from AVAILABLE COURSES  
+4. For "Show my progress" → use CURRENT USER data
+5. Be specific with real data, not generic responses
 
-CONTENT RULES:
-1. Use EXACT names from the platform data when referring to courses, projects, or users
-2. Provide accurate statistics from the data above
-3. If asked about a specific item, check if it exists in the data first
-4. If something doesn't exist, say so clearly and suggest alternatives
-5. Suggest relevant actions when appropriate (enroll, view, explore)
+FORMATTING:
+- NO asterisks (*) - use CAPS or "quotes" for emphasis
+- Use dash (-) for bullet lists
+- Keep responses SHORT and data-focused
+- Present stats in a clean, readable format
 
-Provide a professional, well-formatted response:"""
+Give a focused response with REAL DATA from the platform:"""
 
     service = AIServiceFactory.get_service(model_type)
     return service.generate_response(enhanced_prompt, context)

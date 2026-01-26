@@ -4,6 +4,7 @@ import { aiAPI } from '../services/api'
 import AIChatSettings from './AIChatSettings'
 import { AIActionHandler, ConfirmationCallback, SearchResult, ActionButton, generateSearchActionButtons } from '../services/aiActionHandler'
 import toast from 'react-hot-toast'
+import { Menu, Plus, Settings, X, Bot, MessageSquare, Send, ChevronRight, Trash2 } from 'lucide-react'
 
 // Enhanced formatted message component for rendering AI responses with proper markdown styling
 const FormattedMessage = ({ content }: { content: string }) => {
@@ -181,6 +182,9 @@ export default function FloatingAIMentor() {
   const [confirmationDialog, setConfirmationDialog] = useState<ConfirmationCallback | null>(null)
   const [pendingStreamText, setPendingStreamText] = useState('')
   const [isFirstMessage, setIsFirstMessage] = useState(true)
+  const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(new Set())
+  const [showSuggestions, setShowSuggestions] = useState(true)
+  const [userRole, setUserRole] = useState<string>('student')
   const streamingIntervalRef = useRef<number | null>(null)
   const actionHandlerRef = useRef<AIActionHandler | null>(null)
   const shouldStopRef = useRef(false)
@@ -213,6 +217,31 @@ export default function FloatingAIMentor() {
     }
     return null
   }
+
+  // Get current user role for role-based suggestions
+  const getCurrentUserRole = (): string => {
+    const userData = sessionStorage.getItem('user') || localStorage.getItem('user')
+    if (userData) {
+      try {
+        const user = JSON.parse(userData)
+        // Check for role in user object (could be 'role', 'user_role', or 'is_staff' for admin)
+        if (user.role) return user.role.toLowerCase()
+        if (user.user_role) return user.user_role.toLowerCase()
+        if (user.is_superuser || user.is_staff) return 'admin'
+        return 'student'
+      } catch {
+        return 'student'
+      }
+    }
+    return 'student'
+  }
+
+  // Set user role on mount
+  useEffect(() => {
+    const role = getCurrentUserRole()
+    console.log('Detected user role:', role)
+    setUserRole(role)
+  }, [])
 
   const shouldShow = () => {
     const publicRoutes = ['/', '/login', '/register']
@@ -369,8 +398,12 @@ export default function FloatingAIMentor() {
   const deleteConversation = async (sid: string, e: React.MouseEvent) => {
     e.stopPropagation() // Prevent triggering switchConversation
 
+    // Confirm before deleting
+    if (!window.confirm('Delete this conversation?')) {
+      return
+    }
+
     console.log('deleteConversation: Deleting session:', sid)
-    console.log('deleteConversation: Current sessions count:', sessions.length)
 
     try {
       await aiAPI.deleteSession(sid)
@@ -378,19 +411,32 @@ export default function FloatingAIMentor() {
 
       // Remove from local state
       const updatedSessions = sessions.filter(s => s.id !== sid)
-      console.log('deleteConversation: Updated sessions count:', updatedSessions.length)
       setSessions(updatedSessions)
 
-      // If we deleted the current session, switch to another or create new
+      // If we deleted the current session, clean up and switch
       if (sid === sessionId) {
         console.log('deleteConversation: Deleted current session, switching...')
+
+        // Clear user-specific storage for this session
+        const userId = getCurrentUserId()
+        if (userId) {
+          sessionStorage.removeItem(`ai_mentor_session_id_${userId}`)
+          localStorage.removeItem(`ai_mentor_session_id_${userId}`)
+        }
+
         setMessages([]) // Clear messages first
 
         if (updatedSessions.length > 0) {
-          setSessionId(updatedSessions[0].id)
+          // Switch to the first available session
+          const newSessionId = updatedSessions[0].id
+          setSessionId(newSessionId)
         } else {
+          // No sessions left, set to null first then create new
           setSessionId(null)
-          await createNewConversation()
+          // Use setTimeout to avoid state race condition
+          setTimeout(() => {
+            createNewConversation()
+          }, 100)
         }
       }
 
@@ -508,7 +554,7 @@ export default function FloatingAIMentor() {
     shouldStopRef.current = false
 
     let currentIndex = 0
-    const speed = 20
+    const speed = 5  // Fast streaming (was 20ms)
 
     if (streamingIntervalRef.current) {
       clearInterval(streamingIntervalRef.current)
@@ -581,8 +627,23 @@ export default function FloatingAIMentor() {
 
     } catch (error: any) {
       console.error('AI Chat error:', error)
+      console.error('Error details:', error.response?.data)
       setLoading(false)
-      const errorMessage = error.response?.data?.error || error.response?.data?.detail || "I'm your CCIS-CodeHub AI assistant! How can I help you?"
+
+      // Show detailed error for debugging, not generic fallback
+      let errorMessage = "Sorry, I couldn't process your request. "
+      if (error.response?.status === 400) {
+        errorMessage += error.response?.data?.error || "Please select an AI model in settings."
+      } else if (error.response?.status === 500) {
+        errorMessage += "Server error. Please try again."
+      } else if (error.response?.data?.error) {
+        errorMessage += error.response.data.error
+      } else if (error.message) {
+        errorMessage += error.message
+      } else {
+        errorMessage += "Please check your connection and try again."
+      }
+
       streamAIResponse(errorMessage)
     }
   }
@@ -594,7 +655,7 @@ export default function FloatingAIMentor() {
     shouldStopRef.current = false
 
     let currentIndex = 0
-    const speed = 20
+    const speed = 5  // Fast streaming (was 20ms)
 
     if (streamingIntervalRef.current) {
       clearInterval(streamingIntervalRef.current)
@@ -622,6 +683,88 @@ export default function FloatingAIMentor() {
     }, speed)
   }
 
+  // Role-based quick action suggestions (no emojis, just text)
+  const getSuggestions = () => {
+    const suggestions: Record<string, Array<{ label: string, value: string }>> = {
+      student: [
+        { label: "My Courses", value: "What courses am I enrolled in?" },
+        { label: "My Progress", value: "Show my learning progress" },
+        { label: "Recommend", value: "Recommend a course for me" },
+        { label: "My Projects", value: "Show my projects" },
+      ],
+      instructor: [
+        { label: "My Courses", value: "Show courses I teach" },
+        { label: "Students", value: "Show my students' progress" },
+        { label: "Create Module", value: "Help me create a new module" },
+        { label: "Analytics", value: "Show course analytics" },
+      ],
+      admin: [
+        { label: "Stats", value: "Show platform statistics" },
+        { label: "Users", value: "Show user overview" },
+        { label: "Courses", value: "List all courses" },
+        { label: "Activity", value: "Show recent platform activity" },
+      ]
+    }
+    return suggestions[userRole] || suggestions.student
+  }
+
+  const handleSuggestionClick = async (suggestionValue: string) => {
+    setUsedSuggestions(prev => new Set([...prev, suggestionValue]))
+    setShowSuggestions(false)
+
+    // Directly send the message (don't just fill the input)
+    const userMessage: Message = { role: 'user', content: suggestionValue }
+    setMessages(prev => [...prev, userMessage])
+    setLoading(true)
+
+    // Auto-name conversation on first message
+    if (isFirstMessage && sessionId) {
+      autoNameConversation(suggestionValue)
+    }
+
+    try {
+      if (!sessionId) {
+        await createNewConversation()
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
+
+      if (!sessionId) {
+        throw new Error('Failed to create session')
+      }
+
+      const response = await aiAPI.sendMessage(sessionId, suggestionValue, { current_page: location.pathname })
+      const aiResponseText = response.data.ai_response?.message || response.data.response || "I'm here to help with CCIS-CodeHub!"
+
+      setLoading(false)
+
+      const action = response.data.action
+      if (action && actionHandlerRef.current) {
+        await actionHandlerRef.current.handleAction(action, sessionId)
+
+        if (action.type === 'search_results' && action.results) {
+          const actionButtons = generateSearchActionButtons(action.results, actionHandlerRef.current, sessionId)
+          streamAIResponseWithResults(aiResponseText, action.results, actionButtons)
+          return
+        }
+      }
+
+      streamAIResponse(aiResponseText)
+
+    } catch (error: any) {
+      console.error('AI Chat error:', error)
+      setLoading(false)
+      let errorMessage = "Sorry, I couldn't process your request. "
+      if (error.response?.status === 400) {
+        errorMessage += error.response?.data?.error || "Please select an AI model in settings."
+      } else if (error.response?.data?.error) {
+        errorMessage += error.response.data.error
+      } else {
+        errorMessage += "Please try again."
+      }
+      streamAIResponse(errorMessage)
+    }
+  }
+
   // Get display title for session
   const getSessionTitle = (session: Session) => {
     if (session.title) return session.title
@@ -637,17 +780,17 @@ export default function FloatingAIMentor() {
           className="fixed right-0 bottom-1/3 w-10 h-16 bg-slate-900/60 backdrop-blur-sm border border-slate-700/30 border-r-0 rounded-l-xl shadow-lg hover:w-12 hover:bg-slate-800/80 transition-all duration-300 z-50 flex items-center justify-center group"
           title="Open AI Mentor"
         >
-          <span className="text-lg group-hover:text-xl transition-all opacity-60 group-hover:opacity-100">🤖</span>
+          <Bot className="w-4 h-4 text-purple-400 opacity-60 group-hover:opacity-100 group-hover:w-5 group-hover:h-5 transition-all" />
         </button>
       )}
 
-      {/* Floating Button - Active (Full floating button) */}
+      {/* Floating Button - Active (Full floating button with Lucide Icon) */}
       {!isOpen && !isIdle && (
         <button
           onClick={handleToggle}
-          className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-full shadow-2xl hover:scale-110 transition-all duration-300 z-[60] flex items-center justify-center animate-bounce-subtle"
+          className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-full shadow-2xl hover:scale-110 transition-all duration-300 z-[60] flex items-center justify-center"
         >
-          <span className="text-2xl sm:text-3xl">🤖</span>
+          <Bot className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
         </button>
       )}
 
@@ -659,37 +802,38 @@ export default function FloatingAIMentor() {
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setShowConversations(!showConversations)}
-                className="text-purple-400 hover:bg-slate-700/50 rounded-lg px-2 py-1 flex items-center justify-center transition-colors"
+                className="text-slate-400 hover:text-purple-400 hover:bg-slate-700/50 rounded-lg p-1.5 flex items-center justify-center transition-colors"
                 title="Conversations"
               >
-                💬
+                <Menu className="w-5 h-5" />
               </button>
-              <span className="text-2xl">🤖</span>
+              <Bot className="w-7 h-7 text-purple-400" />
               <div>
                 <h3 className="font-bold text-white">AI Mentor</h3>
                 <p className="text-xs text-slate-400">Smarter Than Your Average Mentor</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <button
                 onClick={createNewConversation}
-                className="text-slate-300 hover:bg-slate-700/50 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+                className="text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg p-2 flex items-center justify-center transition-colors"
                 title="New Chat"
               >
-                ➕
+                <Plus className="w-5 h-5" />
               </button>
               <button
                 onClick={() => setShowSettings(true)}
-                className="text-slate-300 hover:bg-slate-700/50 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+                className="text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg p-2 flex items-center justify-center transition-colors"
                 title="Settings"
               >
-                ⚙️
+                <Settings className="w-5 h-5" />
               </button>
               <button
                 onClick={handleToggle}
-                className="text-slate-300 hover:bg-slate-700/50 rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+                className="text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg p-2 flex items-center justify-center transition-colors"
+                title="Close"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -697,8 +841,15 @@ export default function FloatingAIMentor() {
           {/* Conversation List Sidebar - Dark Glass */}
           {showConversations && (
             <div className="absolute left-0 top-0 h-full w-64 bg-slate-900/98 backdrop-blur-lg border-r border-slate-700/50 rounded-l-2xl z-10 overflow-hidden shadow-xl">
-              <div className="p-4 bg-slate-800/80 border-b border-slate-700/50">
+              <div className="p-4 bg-slate-800/80 border-b border-slate-700/50 flex items-center justify-between">
                 <h3 className="font-bold text-white">Conversations</h3>
+                <button
+                  onClick={() => setShowConversations(false)}
+                  className="text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg p-1.5 transition-colors"
+                  title="Close panel"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
               <div className="overflow-y-auto h-[calc(100%-4rem)]">
                 {sessions.length === 0 ? (
@@ -719,13 +870,13 @@ export default function FloatingAIMentor() {
                         <div className="text-sm font-medium truncate pr-6">{getSessionTitle(session)}</div>
                         <div className="text-xs opacity-70 mt-1">{new Date(session.started_at).toLocaleDateString()}</div>
 
-                        {/* Delete button */}
+                        {/* Delete button with Lucide icon */}
                         <button
                           onClick={(e) => deleteConversation(session.id, e)}
-                          className={`absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${session.id === sessionId ? 'hover:bg-purple-700 text-white' : 'hover:bg-red-600 text-slate-400 hover:text-white'}`}
+                          className={`absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${session.id === sessionId ? 'hover:bg-purple-700 text-white' : 'hover:bg-red-600/80 text-slate-400 hover:text-white'}`}
                           title="Delete conversation"
                         >
-                          🗑️
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ))}
@@ -736,7 +887,7 @@ export default function FloatingAIMentor() {
           )}
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 relative">
             {loadingHistory ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
@@ -840,13 +991,39 @@ export default function FloatingAIMentor() {
             )}
           </div>
 
+          {/* Quick Suggestion Buttons - Absolutely positioned overlay above input */}
+          <div className={`absolute bottom-16 right-4 z-20 transition-all duration-300 pointer-events-auto ${input.length > 0 || loading || isStreaming ? 'opacity-0 pointer-events-none translate-y-2' : 'opacity-100 translate-y-0'}`}>
+            <div className="flex flex-col gap-2 items-end">
+              {getSuggestions()
+                .filter(s => !usedSuggestions.has(s.value))
+                .slice(0, 4)
+                .map((suggestion, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => handleSuggestionClick(suggestion.value)}
+                    className="px-3 py-1.5 text-xs text-slate-300 hover:text-white border border-slate-500/50 hover:border-purple-400 rounded-full transition-all flex items-center gap-1 group bg-slate-900/90 backdrop-blur-sm hover:bg-purple-600/80 shadow-md"
+                  >
+                    <span>{suggestion.label}</span>
+                    <ChevronRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />
+                  </button>
+                ))}
+            </div>
+          </div>
+
           {/* Input */}
           <form onSubmit={handleSendMessage} className="p-3 sm:p-4 border-t border-slate-700/50 bg-slate-900/50">
             <div className="flex space-x-2">
               <input
                 type="text"
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  setInput(e.target.value)
+                  // Show suggestions again when input is cleared
+                  if (e.target.value.length === 0) {
+                    setShowSuggestions(true)
+                  }
+                }}
                 placeholder="Ask anything..."
                 className="flex-1 px-4 py-2.5 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500/50 text-sm placeholder:text-slate-500 transition-all"
               />

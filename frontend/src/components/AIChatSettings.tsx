@@ -67,6 +67,17 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
     if (isOpen) {
       setModels([
         {
+          id: 'mistral_direct',
+          name: 'mistral-small-latest',
+          display_name: 'Mistral Small (Recommended)',
+          provider: 'mistral',
+          model_id: 'mistral-small-latest',
+          description: 'Fast & Reliable - Direct Mistral API',
+          is_free: false,
+          status: 'active',
+          icon: 'mistral'
+        },
+        {
           id: 'openrouter_gemini',
           name: 'gemini-2.0-flash-free',
           display_name: 'Gemini 2.0 Flash (OpenRouter)',
@@ -95,17 +106,6 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
           provider: 'openrouter',
           model_id: 'nex-agi/deepseek-v3.1-nex-n1:free',
           description: 'DeepSeek V3.1 by NEX AGI - Advanced reasoning',
-          is_free: true,
-          status: 'active',
-          icon: 'openrouter'
-        },
-        {
-          id: 'openrouter_mistral',
-          name: 'mistral-devstral',
-          display_name: 'Mistral Devstral',
-          provider: 'openrouter',
-          model_id: 'mistralai/devstral-2512:free',
-          description: 'Mistral Devstral - Optimized for code',
           is_free: true,
           status: 'active',
           icon: 'openrouter'
@@ -243,9 +243,11 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
   // Note: gemini_direct is NOT migrated - it uses direct Gemini API with user's key
   const migrateModelId = (oldId: string): string => {
     const migrationMap: Record<string, string> = {
-      'google_gemini': 'openrouter_gemini',
-      'gemini': 'openrouter_gemini',
-      'openrouter': 'openrouter_gemini',
+      'google_gemini': 'mistral_direct',
+      'gemini': 'mistral_direct',
+      'openrouter': 'mistral_direct',
+      'openrouter_gemini': 'mistral_direct',
+      'openrouter_mistral': 'mistral_direct',
     }
     const newId = migrationMap[oldId] || oldId
     if (newId !== oldId) {
@@ -259,7 +261,7 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
       const response = await api.get('/ai/settings/')
       setSettings(response.data)
       // Read preferred model from AIMentorProfile (synced by backend)
-      let modelId = response.data.preferred_ai_model || response.data.selected_model?.id || 'openrouter_gemini'
+      let modelId = response.data.preferred_ai_model || response.data.selected_model?.id || 'mistral_direct'
 
       // Migrate legacy model IDs to new ones
       modelId = migrateModelId(modelId)
@@ -268,8 +270,8 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
       setSelectedModel(modelId)
     } catch (error) {
       // Settings endpoint may not exist, use defaults
-      console.log('Using default settings, setting selectedModel to openrouter_gemini')
-      setSelectedModel('openrouter_gemini')
+      console.log('Using default settings, setting selectedModel to mistral_direct')
+      setSelectedModel('mistral_direct')
     }
   }
 
