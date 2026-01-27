@@ -380,7 +380,7 @@ def admin_tasks(request):
     return Response(task_list)
 
 
-@api_view(['GET'])
+@api_view(['GET', 'PUT'])
 @permission_classes([AllowAny])
 def get_app_settings(request):
     """
