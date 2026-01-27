@@ -379,3 +379,68 @@ def admin_tasks(request):
     
     return Response(task_list)
 
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_app_settings(request):
+    """
+    Return runtime app settings based on user role
+    Feature flags that can be toggled without rebuilding frontend
+    
+    Response:
+    {
+        "success": true,
+        "features": {
+            "ai_mentor": true,
+            "code_editor": true,
+            "user_delete": false,  # admin only
+            ...
+        }
+    }
+    """
+    # Default features for non-authenticated users
+    features = {
+        'ai_mentor': True,
+        'code_editor': True,
+        'competitions': True,
+        'projects': True,
+        'community': True,
+        'learning_paths': True,
+        'analytics': False,
+        'user_delete': False,
+    }
+    
+    # For authenticated users, get from database settings
+    if request.user.is_authenticated:
+        try:
+            # Import here to avoid circular imports
+            from apps.accounts.models import AppSettings
+            
+            settings_obj = AppSettings.get_settings()
+            features = {
+                'ai_mentor': settings_obj.enable_ai_mentor,
+                'code_editor': settings_obj.enable_code_editor,
+                'competitions': settings_obj.enable_competitions,
+                'projects': settings_obj.enable_projects,
+                'community': settings_obj.enable_community,
+                'learning_paths': settings_obj.enable_learning_paths,
+            }
+            
+            # Admin-only features
+            if request.user.is_staff or request.user.role == 'admin':
+                features['analytics'] = settings_obj.enable_analytics
+                features['user_delete'] = settings_obj.enable_user_delete
+            else:
+                features['analytics'] = False
+                features['user_delete'] = False
+        except Exception as e:
+            # Fallback to defaults if something goes wrong
+            print(f"Error fetching app settings: {e}")
+            pass
+    
+    return Response({
+        'success': True,
+        'features': features
+    })
+
+
