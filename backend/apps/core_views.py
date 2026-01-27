@@ -388,16 +388,58 @@ def get_app_settings(request):
     Feature flags that can be toggled without rebuilding frontend
     
     Response:
-    {
-        "success": true,
-        "features": {
-            "ai_mentor": true,
-            "code_editor": true,
-            "user_delete": false,  # admin only
-            ...
-        }
-    }
+    Get or update app settings
+    GET: Retrieve current feature flags
+    PUT: Update feature flags (admin only)
     """
+    # Handle PUT requests for updates
+    if request.method == 'PUT':
+        if not (request.user.is_authenticated and (request.user.is_staff or request.user.role == 'admin')):
+            return Response(
+                {'error': 'Admin access required'},
+                status=403
+            )
+        
+        try:
+            from apps.accounts.models import AppSettings
+            settings = AppSettings.get_settings()
+            
+            # Update feature flags
+            # Only allow updating fields that are explicitly passed in request.data
+            if 'enable_user_delete' in request.data:
+                settings.enable_user_delete = request.data['enable_user_delete']
+            if 'enable_analytics' in request.data:
+                settings.enable_analytics = request.data['enable_analytics']
+            if 'enable_ai_mentor' in request.data:
+                settings.enable_ai_mentor = request.data['enable_ai_mentor']
+            if 'enable_code_editor' in request.data:
+                settings.enable_code_editor = request.data['enable_code_editor']
+            if 'enable_competitions' in request.data:
+                settings.enable_competitions = request.data['enable_competitions']
+            if 'enable_projects' in request.data:
+                settings.enable_projects = request.data['enable_projects']
+            if 'enable_community' in request.data:
+                settings.enable_community = request.data['enable_community']
+            if 'enable_learning_paths' in request.data:
+                settings.enable_learning_paths = request.data['enable_learning_paths']
+            
+            settings.updated_by = request.user
+            settings.save()
+            
+            # Assuming AppSettings model has a get_features_dict method
+            return Response({
+                'success': True,
+                'features': settings.get_features_dict(request.user),
+                'updated_at': settings.updated_at.isoformat(),
+                'updated_by': request.user.username
+            })
+        except Exception as e:
+            return Response(
+                {'success': False, 'error': str(e)},
+                status=500
+            )
+    
+    # Handle GET requests (existing logic)
     # Default features for non-authenticated users
     features = {
         'ai_mentor': True,

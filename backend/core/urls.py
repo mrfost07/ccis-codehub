@@ -11,12 +11,15 @@ from drf_spectacular.views import (
     SpectacularSwaggerView,
 )
 from apps.core_views import root_view, api_root, health_check, admin_analytics, admin_projects, admin_tasks, get_app_settings
+from apps.core.views_system import verify_admin_password, update_app_settings, system_health
 
 urlpatterns = [
     path('', root_view, name='root'),
     path('api/', api_root, name='api-root'),
     path('api/health/', health_check, name='health-check'),
     path('api/settings/', get_app_settings, name='app-settings'),
+    path('api/auth/admin/verify-password/', verify_admin_password, name='verify-admin-password'),
+    path('api/system/health/', system_health, name='system-health'),
     path('api/admin/analytics/', admin_analytics, name='admin-analytics'),
     path('api/admin/projects/', admin_projects, name='admin-projects'),
     path('api/admin/tasks/', admin_tasks, name='admin-tasks'),

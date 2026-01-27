@@ -1,104 +1,80 @@
-// Frontend: Settings Service
-// src/services/settingsService.ts
+/**
+ * Settings Service
+ *  
+ * Adds cache clearing method to support feature flag updates
+ */
+import api from './api'
 
-import api from './api';
-
-interface AppFeatures {
-    ai_mentor: boolean;
-    code_editor: boolean;
-    competitions: boolean;
-    projects: boolean;
-    community: boolean;
-    learning_paths: boolean;
-    analytics: boolean;
-    user_delete: boolean;
-}
-
-interface SettingsResponse {
-    success: boolean;
-    features: AppFeatures;
+interface AppSettings {
+    success: boolean
+    features: {
+        user_delete?: boolean
+        analytics?: boolean
+        ai_mentor?: boolean
+        code_editor?: boolean
+        competitions?: boolean
+        projects?: boolean
+        community?: boolean
+        learning_paths?: boolean
+    }
 }
 
 class SettingsService {
-    private static instance: SettingsService;
-    private features: AppFeatures | null = null;
-    private fetchPromise: Promise<AppFeatures> | null = null;
-
-    private constructor() { }
-
-    static getInstance(): SettingsService {
-        if (!SettingsService.instance) {
-            SettingsService.instance = new SettingsService();
-        }
-        return SettingsService.instance;
-    }
+    private cache: AppSettings | null = null
 
     /**
-     * Fetch app settings from backend
-     * Only fetches once per session (cached)
+     * Fetch app settings from API
      */
-    async getFeatures(): Promise<AppFeatures> {
-        // Return cached if available
-        if (this.features) {
-            return this.features;
+    async fetchSettings(): Promise<AppSettings> {
+        // Check session storage first
+        const cachedSettings = sessionStorage.getItem('appSettings')
+        if (cachedSettings) {
+            this.cache = JSON.parse(cachedSettings)
+            return this.cache
         }
 
-        // Return existing promise if already fetching
-        if (this.fetchPromise) {
-            return this.fetchPromise;
-        }
+        // Fetch from API
+        const response = await api.get('/settings/')
+        const settings: AppSettings = response.data
 
-        // Fetch from backend
-        this.fetchPromise = api
-            .get<SettingsResponse>('/api/settings/')
-            .then((response) => {
-                this.features = response.data.features;
-                this.fetchPromise = null;
-                return this.features;
-            })
-            .catch((error) => {
-                console.error('Failed to fetch app settings:', error);
-                this.fetchPromise = null;
-                // Return safe defaults on error
-                return {
-                    ai_mentor: true,
-                    code_editor: true,
-                    competitions: true,
-                    projects: true,
-                    community: true,
-                    learning_paths: true,
-                    analytics: false,
-                    user_delete: false,
-                };
-            });
+        // Cache in session storage
+        sessionStorage.setItem('appSettings', JSON.stringify(settings))
+        this.cache = settings
 
-        return this.fetchPromise;
+        return settings
     }
 
     /**
-     * Check if a specific feature is enabled
+     * Check if a feature is enabled
      */
-    async isFeatureEnabled(featureName: keyof AppFeatures): Promise<boolean> {
-        const features = await this.getFeatures();
-        return features[featureName] ?? false;
+    async isFeatureEnabled(feature: string, defaultValue: boolean = false): Promise<boolean> {
+        try {
+            const settings = await this.fetchSettings()
+            return settings.features && settings.features.hasOwnProperty(feature)
+                ? settings.features[feature as keyof typeof settings.features] || false
+                : defaultValue
+        } catch (error) {
+            console.error('Failed to fetch app settings:', error)
+            return defaultValue
+        }
     }
 
     /**
-     * Clear cached settings (call after login/logout)
+     * Clear settings cache
+     * Call this after updating settings to force a refresh
      */
     clearCache(): void {
-        this.features = null;
-        this.fetchPromise = null;
+        sessionStorage.removeItem('appSettings')
+        this.cache = null
     }
 
     /**
-     * Refresh settings from backend
+     * Get all features
      */
-    async refresh(): Promise<AppFeatures> {
-        this.clearCache();
-        return this.getFeatures();
+    async getAllFeatures() {
+        const settings = await this.fetchSettings()
+        return settings.features || {}
     }
 }
 
-export default SettingsService.getInstance();
-export type { AppFeatures };
+export default new SettingsService()
