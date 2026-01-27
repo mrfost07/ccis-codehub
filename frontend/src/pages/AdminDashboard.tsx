@@ -14,6 +14,7 @@ import LearningAnalytics from '../components/LearningAnalytics'
 import ProjectAdmin from '../components/ProjectAdmin'
 import ContentModeration from '../components/ContentModeration'
 import api from '../services/api'
+import settingsService from '../services/settingsService'
 import toast from 'react-hot-toast'
 
 interface DashboardStats {
@@ -58,6 +59,7 @@ function AdminDashboard() {
   const [filteredUsers, setFilteredUsers] = useState<any[]>([])
   const [selectedPathId, setSelectedPathId] = useState('')
   const [quizzes, setQuizzes] = useState<any[]>([])
+  const [isUserDeleteEnabled, setIsUserDeleteEnabled] = useState(false)
 
   // Learning Admin specific states
   const [learningView, setLearningView] = useState('overview') // overview, paths, modules, quizzes, analytics
@@ -114,6 +116,8 @@ function AdminDashboard() {
   useEffect(() => {
     fetchDashboardStats()
     checkAdminAccess()
+    // Fetch runtime feature flags
+    settingsService.isFeatureEnabled('user_delete').then(setIsUserDeleteEnabled)
   }, [])
 
   useEffect(() => {
@@ -359,10 +363,8 @@ function AdminDashboard() {
     }
   }
 
-  // Feature flag for delete button
-  const isUserDeleteEnabled = import.meta.env.VITE_ENABLE_USER_DELETE === 'true'
-
   // Delete user modal state
+  // isUserDeleteEnabled is now fetched from runtime API (see useState and useEffect above)
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; userId: string; username: string }>({
     isOpen: false,
     userId: '',

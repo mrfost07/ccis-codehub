@@ -39,6 +39,7 @@ import {
 
 // API
 import api from '../services/api'
+import settingsService from '../services/settingsService'
 
 export default function AdminDashboard() {
     const navigate = useNavigate()
@@ -96,14 +97,14 @@ export default function AdminDashboard() {
     const [showQuizEditor, setShowQuizEditor] = useState(false)
     const [creatingQuiz, setCreatingQuiz] = useState(false)
     const [updatingQuiz, setUpdatingQuiz] = useState(false)
-
-    // Feature flag
-    const isUserDeleteEnabled = import.meta.env.VITE_ENABLE_USER_DELETE === 'true'
+    const [isUserDeleteEnabled, setIsUserDeleteEnabled] = useState(false)
 
     // Initial data fetch
     useEffect(() => {
         fetchDashboardStats()
         checkAdminAccess()
+        // Fetch runtime feature flags
+        settingsService.isFeatureEnabled('user_delete').then(setIsUserDeleteEnabled)
     }, [])
 
     // Tab-based data fetch
