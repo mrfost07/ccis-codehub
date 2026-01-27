@@ -1,14 +1,14 @@
 /**
  * Feature Flags Panel Component
  * 
- * Toggle feature flags with minimal, clean design
+ * Toggle feature flags with minimal, clean design and confirmation dialogs
  */
 
 import { useState, useEffect } from 'react'
 import {
     ToggleLeft, ToggleRight,
     Users, BarChart, Bot, Code, Trophy,
-    FolderGit, MessageSquare, BookOpen, Clock
+    FolderGit, MessageSquare, BookOpen, Clock, AlertCircle
 } from 'lucide-react'
 import api from '../../../services/api'
 import settingsService from '../../../services/settingsService'
@@ -27,6 +27,7 @@ export default function FeatureFlagsPanel() {
     const [loading, setLoading] = useState(true)
     const [updating, setUpdating] = useState<string | null>(null)
     const [lastUpdated, setLastUpdated] = useState<{ by: string; at: string } | null>(null)
+    const [confirmFlag, setConfirmFlag] = useState<FeatureFlag | null>(null)
 
     useEffect(() => {
         loadFlags()
@@ -104,9 +105,17 @@ export default function FeatureFlagsPanel() {
         }
     }
 
-    const toggleFlag = async (flag: FeatureFlag) => {
+    const handleToggleClick = (flag: FeatureFlag) => {
+        setConfirmFlag(flag)
+    }
+
+    const confirmToggle = async () => {
+        if (!confirmFlag) return
+
+        const flag = confirmFlag
         const previousValue = flag.enabled
         setUpdating(flag.key)
+        setConfirmFlag(null)
 
         // Optimistic update
         setFlags(prev => prev.map(f =>
@@ -174,7 +183,7 @@ export default function FeatureFlagsPanel() {
                 {flags.map((flag) => (
                     <button
                         key={flag.key}
-                        onClick={() => toggleFlag(flag)}
+                        onClick={() => handleToggleClick(flag)}
                         disabled={updating === flag.key}
                         className="group relative flex items-start gap-4 p-4 bg-slate-900/30 hover:bg-slate-900/50 border border-slate-700/50 rounded-xl transition-all text-left disabled:opacity-50"
                     >
@@ -211,6 +220,49 @@ export default function FeatureFlagsPanel() {
                     </button>
                 ))}
             </div>
+
+            {/* Confirmation Modal */}
+            {confirmFlag && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-slate-800 border border-slate-700 rounded-xl max-w-md w-full shadow-2xl">
+                        <div className="p-6 space-y-4">
+                            <div className="flex items-center gap-3">
+                                <div className={`p-2.5 rounded-lg ${confirmFlag.enabled
+                                        ? 'bg-red-500/10 text-red-400'
+                                        : 'bg-green-500/10 text-green-400'
+                                    }`}>
+                                    <AlertCircle className="w-5 h-5" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-white">
+                                    {confirmFlag.enabled ? 'Disable' : 'Enable'} {confirmFlag.label}?
+                                </h3>
+                            </div>
+
+                            <p className="text-slate-300 text-sm">
+                                {confirmFlag.description}. This will take effect immediately for all users.
+                            </p>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    onClick={() => setConfirmFlag(null)}
+                                    className="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors font-medium"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmToggle}
+                                    className={`flex-1 px-4 py-2.5 rounded-lg transition-colors font-medium ${confirmFlag.enabled
+                                            ? 'bg-red-600 hover:bg-red-500 text-white'
+                                            : 'bg-green-600 hover:bg-green-500 text-white'
+                                        }`}
+                                >
+                                    {confirmFlag.enabled ? 'Disable' : 'Enable'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
