@@ -50,7 +50,7 @@ class ActionService:
             path = CareerPath.objects.get(id=path_id)
             
             # Check if already enrolled
-            existing = UserProgress.objects.filter(user=self.user, path=path).first()
+            existing = UserProgress.objects.filter(user=self.user, career_path=path).first()
             if existing:
                 return {
                     'success': False,
@@ -61,7 +61,7 @@ class ActionService:
             # Create enrollment
             progress = UserProgress.objects.create(
                 user=self.user,
-                path=path,
+                career_path=path,
                 status='in_progress',
                 completed_modules=0
             )
@@ -242,7 +242,7 @@ class ActionService:
         """Serialize user progress"""
         return {
             'id': progress.id,
-            'path_name': progress.path.name,
+            'path_name': progress.career_path.name,
             'status': progress.status,
             'completed_modules': progress.completed_modules
         }
@@ -285,15 +285,15 @@ class ActionService:
         """Get user's enrolled courses and progress"""
         from apps.learning.models import UserProgress
         
-        progress = UserProgress.objects.filter(user=self.user).select_related('path')
+        progress = UserProgress.objects.filter(user=self.user).select_related('career_path')
         
         return {
             'success': True,
             'enrolled_courses': [
                 {
-                    'id': p.path.id,
-                    'name': p.path.name,
-                    'description': p.path.description,
+                    'id': p.career_path.id,
+                    'name': p.career_path.name,
+                    'description': p.career_path.description,
                     'progress': p.progress if hasattr(p, 'progress') else 0,
                     'completed_modules': p.completed_modules,
                     'status': p.status,
@@ -332,7 +332,7 @@ class ActionService:
         
         try:
             path = CareerPath.objects.get(id=path_id)
-            progress = UserProgress.objects.filter(user=self.user, path=path).first()
+            progress = UserProgress.objects.filter(user=self.user, career_path=path).first()
             
             if not progress:
                 return {
