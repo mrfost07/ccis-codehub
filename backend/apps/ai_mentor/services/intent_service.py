@@ -68,15 +68,18 @@ Available intents:
    
 2. enroll - User wants to enroll in a course/path
    Examples: "enroll me", "I want to join", "sign me up for this course"
+   NOT: "tell me about courses", "what courses are available"
    
 3. unenroll - User wants to leave/unenroll from a course
    Examples: "unenroll me", "leave this course", "drop this class"
    
 4. create_project - User wants to create a new project
-   Examples: "create a project", "make a todo app", "start a new project"
+   Examples: "create a project", "make a todo app", "start a new project", "build a calculator"
+   NOT: "help", "what can I do", "show me around", "need assistance", "tell me about projects"
    
 5. create_post - User wants to create a community post
    Examples: "write a post", "share my progress", "create post about"
+   NOT: "show me posts", "what's new in community"
    
 6. join_project - User wants to join/contribute to existing project
    Examples: "join this project", "I want to contribute", "find projects to join"
@@ -109,7 +112,15 @@ Available intents:
     Examples: "like this post", "give a like", "heart this"
    
 16. general_question - Just asking a question or having conversation
-    Examples: "what is React?", "how does this work?", "explain hooks"
+    Examples: "what is React?", "how does this work?", "explain hooks", "help", "what can you do"
+
+IMPORTANT CLASSIFICATION RULES:
+- Only classify as CREATE_PROJECT if user EXPLICITLY mentions creating, making, or building something specific
+- Only classify as ENROLL if user EXPLICITLY wants to join/enroll in a course
+- If message is vague ("help", "what can I do", "tell me"), use GENERAL_QUESTION
+- When in doubt, default to GENERAL_QUESTION
+- Require HIGH confidence (>0.85) for action intents (enroll, create_project, create_post)
+- Never invent project ideas if user didn't mention creating anything
 
 IMPORTANT: Return ONLY valid JSON, no additional text.
 
@@ -185,6 +196,25 @@ Return JSON format:
                 IntentType.CREATE_POST,
                 IntentType.JOIN_PROJECT
             ]
+        
+        # FIX #3: Confidence threshold for action intents
+        # Require minimum confidence for action intents to avoid false positives
+        if intent_data['intent'] in [IntentType.CREATE_PROJECT, IntentType.ENROLL, IntentType.CREATE_POST, IntentType.JOIN_PROJECT]:
+            if intent_data['confidence'] < 0.80:
+                # Low confidence - default to general question
+                intent_data['intent'] = IntentType.GENERAL_QUESTION
+                intent_data['requires_confirmation'] = False
+        
+        # FIX #4: Keyword-based safety filter for vague messages
+        vague_keywords = ['help', 'what', 'how', 'show me', 'tell me', 'explain', 'can you', 'could you']
+        message_lower = message.lower()
+        
+        if (intent_data['intent'] == IntentType.CREATE_PROJECT and 
+            any(keyword in message_lower for keyword in vague_keywords) and
+            not any(word in message_lower for word in ['create', 'make', 'build', 'start', 'develop'])):
+            # Vague message misclassified as project creation
+            intent_data['intent'] = IntentType.GENERAL_QUESTION
+            intent_data['requires_confirmation'] = False
         
         return intent_data
         
