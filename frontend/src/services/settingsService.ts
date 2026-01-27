@@ -28,9 +28,13 @@ class SettingsService {
     async fetchSettings(): Promise<AppSettings> {
         // Check session storage first
         const cachedSettings = sessionStorage.getItem('appSettings')
+        if (cachedSettings && this.cache) {
+            return this.cache
+        }
+
         if (cachedSettings) {
             this.cache = JSON.parse(cachedSettings)
-            return this.cache
+            return this.cache as AppSettings
         }
 
         // Fetch from API
