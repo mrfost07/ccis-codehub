@@ -3,6 +3,15 @@ Serializers for accounts app
 """
 from rest_framework import serializers
 from .models import User, UserProfile
+import html
+
+
+def sanitize_string(value):
+    """Sanitize string input to prevent XSS attacks"""
+    if value is None:
+        return value
+    # Escape HTML special characters
+    return html.escape(str(value).strip())
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -58,8 +67,52 @@ class UserProfileSerializer(serializers.ModelSerializer):
             return 0
 
 
+class PublicUserProfileSerializer(serializers.ModelSerializer):
+    """Limited profile data for public viewing - no sensitive info"""
+    total_projects = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = UserProfile
+        fields = [
+            'location', 'total_courses_completed', 'total_modules_completed',
+            'total_projects', 'total_posts', 'contribution_points',
+            'current_streak', 'certificates_earned'
+        ]
+    
+    def get_total_projects(self, obj):
+        try:
+            from apps.projects.models import Project, ProjectMembership
+            user = obj.user
+            owned = Project.objects.filter(owner=user).count()
+            member = ProjectMembership.objects.filter(user=user, is_active=True).count()
+            return owned + member
+        except:
+            return 0
+
+
+class PublicUserSerializer(serializers.ModelSerializer):
+    """
+    Public user serializer with LIMITED fields for viewing other users.
+    Does NOT expose: email, is_active, career_interests, or sensitive profile data.
+    Used for: search results, user lists, viewing other profiles.
+    """
+    profile = PublicUserProfileSerializer(read_only=True)
+    
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'first_name', 'last_name', 'role',
+            'program', 'year_level', 'profile_picture', 'bio', 'skills',
+            'followers_count', 'following_count', 'profile'
+        ]
+        read_only_fields = fields  # All fields read-only for public view
+
+
 class UserSerializer(serializers.ModelSerializer):
-    """Serializer for User model"""
+    """
+    Full User serializer - for viewing OWN profile or admin access only.
+    Includes sensitive fields like email.
+    """
     profile = UserProfileSerializer(read_only=True)
     
     class Meta:
@@ -71,6 +124,18 @@ class UserSerializer(serializers.ModelSerializer):
             'is_active', 'created_at', 'updated_at', 'profile'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'followers_count', 'following_count']
+    
+    def validate_first_name(self, value):
+        return sanitize_string(value)
+    
+    def validate_last_name(self, value):
+        return sanitize_string(value)
+    
+    def validate_bio(self, value):
+        return sanitize_string(value)
+    
+    def validate_location(self, value):
+        return sanitize_string(value)
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):

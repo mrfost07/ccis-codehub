@@ -221,10 +221,46 @@ class PublicUserProfileView(APIView):
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    """ViewSet for user management"""
+    """
+    ViewSet for user management.
+    
+    Security: Uses PublicUserSerializer for list/retrieve to prevent IDOR.
+    Full data (including email) only visible to owner or admin.
+    """
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get_serializer_class(self):
+        """
+        Return appropriate serializer based on action and user permissions.
+        - list: PublicUserSerializer (limited fields, no email) for regular users
+                UserSerializer (full fields) for admin
+        - retrieve: PublicUserSerializer if viewing OTHER user
+                   UserSerializer if viewing SELF or admin
+        """
+        from .serializers import PublicUserSerializer
+        
+        # Admin gets full access to all data
+        if self.request.user.is_staff:
+            return UserSerializer
+        
+        # For list action, regular users get limited public data
+        if self.action == 'list':
+            return PublicUserSerializer
+        
+        # For retrieve action, check if viewing own profile
+        if self.action == 'retrieve':
+            # Get the user being viewed
+            try:
+                obj = self.get_object()
+                if obj.id == self.request.user.id:
+                    return UserSerializer  # Own profile - full data
+            except:
+                pass
+            return PublicUserSerializer  # Other user - limited data
+        
+        return UserSerializer
     
     def get_permissions(self):
         """Allow different permissions for different actions"""
