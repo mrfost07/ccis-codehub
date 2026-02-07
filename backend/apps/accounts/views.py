@@ -172,12 +172,20 @@ class UserProfileView(APIView):
 
 
 class PublicUserProfileView(APIView):
-    """View another user's public profile"""
+    """
+    View another user's public profile.
+    
+    Security: Uses PublicUserSerializer (no email) when viewing OTHER users.
+    UserSerializer (with email) only used when viewing OWN profile.
+    """
     permission_classes = [IsAuthenticated]
     
     def get(self, request, user_id):
+        from .serializers import PublicUserSerializer
+        
         try:
             user = User.objects.get(id=user_id)
+            is_own_profile = str(user.id) == str(request.user.id)
             
             # Get follow status
             from apps.community.models import UserFollow
@@ -205,7 +213,13 @@ class PublicUserProfileView(APIView):
             followers_count = UserFollow.objects.filter(following=user, status='accepted').count()
             following_count = UserFollow.objects.filter(follower=user, status='accepted').count()
             
-            serializer = UserSerializer(user)
+            # Use appropriate serializer based on whether viewing own profile
+            # Security: Only expose email/sensitive data for own profile or admin
+            if is_own_profile or request.user.is_staff:
+                serializer = UserSerializer(user)
+            else:
+                serializer = PublicUserSerializer(user)
+            
             data = serializer.data
             data['is_following'] = is_following
             data['is_pending'] = is_pending
@@ -213,7 +227,7 @@ class PublicUserProfileView(APIView):
             data['follow_status'] = follow_status
             data['followers_count'] = followers_count
             data['following_count'] = following_count
-            data['is_own_profile'] = str(user.id) == str(request.user.id)
+            data['is_own_profile'] = is_own_profile
             
             return Response(data)
         except User.DoesNotExist:
