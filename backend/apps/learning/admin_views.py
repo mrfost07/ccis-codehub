@@ -502,7 +502,7 @@ class AdminCareerPathViewSet(viewsets.ModelViewSet):
             'active_paths': CareerPath.objects.filter(is_active=True).count(),
             'total_modules': LearningModule.objects.count(),
             'total_quizzes': Quiz.objects.count(),
-            'total_enrollments': Enrollment.objects.filter(status='active').count(),
+            'total_enrollments': Enrollment.objects.filter(status__in=['active', 'completed']).count(),
             'completed_enrollments': Enrollment.objects.filter(status='completed').count(),
             'total_students': UserProgress.objects.values('user').distinct().count(),
             'by_program': {}
@@ -516,7 +516,7 @@ class AdminCareerPathViewSet(viewsets.ModelViewSet):
                 'modules': LearningModule.objects.filter(career_path__program_type=program).count(),
                 'enrollments': Enrollment.objects.filter(
                     career_path__program_type=program, 
-                    status='active'
+                    status__in=['active', 'completed']
                 ).count()
             }
         
@@ -707,7 +707,7 @@ class AdminCareerPathViewSet(viewsets.ModelViewSet):
         
         # Get all career paths with enrollment counts
         paths = CareerPath.objects.annotate(
-            enrolled_count=Count('enrollments', filter=models.Q(enrollments__status='active')),
+            enrolled_count=Count('enrollments', filter=models.Q(enrollments__status__in=['active', 'completed'])),
             completed_count=Count('enrollments', filter=models.Q(enrollments__status='completed'))
         ).order_by('-is_featured', 'name')
         
@@ -748,7 +748,7 @@ class AdminCareerPathViewSet(viewsets.ModelViewSet):
             'active_paths': CareerPath.objects.filter(is_active=True).count(),
             'total_modules': LearningModule.objects.count(),
             'total_quizzes': Quiz.objects.count(),
-            'total_enrollments': Enrollment.objects.filter(status='active').count(),
+            'total_enrollments': Enrollment.objects.filter(status__in=['active', 'completed']).count(),
             'completed_enrollments': Enrollment.objects.filter(status='completed').count(),
             'total_certificates': Certificate.objects.count(),
             'avg_completion_rate': Enrollment.objects.filter(

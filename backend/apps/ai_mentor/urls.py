@@ -6,7 +6,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     AIMentorProfileViewSet, ProjectMentorSessionViewSet,
     CodeAnalysisViewSet, LearningRecommendationViewSet,
-    AIModelConfigView
+    AIModelConfigView, GenerateQuizFromPDFView
 )
 from .views_settings import (
     AIModelConfigViewSet,
@@ -25,5 +25,6 @@ router.register(r'custom-models', CustomAIModelViewSet, basename='ai-custom-mode
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('quiz/generate-from-pdf/', GenerateQuizFromPDFView.as_view(), name='quiz-generate-pdf'),
 ]
 

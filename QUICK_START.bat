@@ -38,7 +38,7 @@ taskkill /F /IM node.exe /FI "WINDOWTITLE eq *CCIS*" >nul 2>&1
 REM Start Backend (Django)
 echo [1/2] Starting Backend...
 cd backend
-start "CCIS Backend" cmd /c "color 0B && title CCIS Backend && python manage.py runserver"
+start "CCIS Backend" cmd /c "color 0B && title CCIS Backend && call venv\Scripts\activate && python manage.py runserver"
 cd ..
 
 REM Wait for backend

@@ -1233,10 +1233,66 @@ class LearningRecommendationViewSet(viewsets.ModelViewSet):
                 difficulty_level=level
             )
             
+
             return Response(LearningRecommendationSerializer(recommendation).data)
             
         except Exception as e:
             return Response(
                 {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class GenerateQuizFromPDFView(APIView):
+    """View to generate quiz questions from uploaded PDF"""
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        if 'file' not in request.FILES:
+            return Response(
+                {'error': 'No file uploaded'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        pdf_file = request.FILES['file']
+        
+        # Check file type
+        if not pdf_file.name.lower().endswith('.pdf'):
+            return Response(
+                {'error': 'File must be a PDF'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # 1. Extract text from PDF
+        from .services.pdf_service import PDFService
+        context_text = PDFService.extract_text(pdf_file)
+        
+        if not context_text:
+            return Response(
+                {'error': 'Could not extract text from PDF'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # 2. Generate questions using AI
+        # Get user's preferred model
+        profile, _ = AIMentorProfile.objects.get_or_create(user=request.user)
+        model_type = profile.preferred_ai_model
+        
+        content_generator = ContentGenerator(request.user, model_type=model_type)
+        
+        num_questions = int(request.data.get('num_questions', 5))
+        difficulty = request.data.get('difficulty', 'intermediate')
+        
+        result = content_generator.generate_quiz_questions(
+            context_text, 
+            num_questions=num_questions,
+            difficulty=difficulty
+        )
+        
+        if result['success']:
+            return Response(result)
+        else:
+            return Response(
+                {'error': result.get('error', 'Failed to generate questions')},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

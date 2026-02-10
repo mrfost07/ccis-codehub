@@ -217,28 +217,6 @@ export default function DashboardLayout({
                         {/* Header Actions */}
                         <div className="flex items-center gap-2">
                             {headerActions}
-
-                            {/* Quick Links - Desktop Only */}
-                            <div className="hidden lg:flex items-center gap-1 border-l border-slate-700/50 pl-3 ml-2">
-                                <Link
-                                    to="/learning"
-                                    className="px-3 py-1.5 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/50 transition"
-                                >
-                                    📚 Learning
-                                </Link>
-                                <Link
-                                    to="/projects"
-                                    className="px-3 py-1.5 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/50 transition"
-                                >
-                                    💻 Projects
-                                </Link>
-                                <Link
-                                    to="/community"
-                                    className="px-3 py-1.5 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/50 transition"
-                                >
-                                    👥 Community
-                                </Link>
-                            </div>
                         </div>
                     </div>
                 </header>

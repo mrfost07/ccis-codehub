@@ -32,6 +32,10 @@ import ProfileEnhanced from './pages/ProfileEnhanced'
 import UserProfileView from './pages/UserProfileView'
 import AuthCallback from './pages/AuthCallback'
 import CompleteProfile from './pages/CompleteProfile'
+import JoinQuiz from './pages/JoinQuiz'
+import QuizLobby from './pages/QuizLobby'
+import LiveQuizSession from './pages/LiveQuizSession'
+import QuizResults from './pages/QuizResults'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -213,6 +217,46 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Leaderboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/join"
+                element={
+                  <ProtectedRoute>
+                    <JoinQuiz />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/join-quiz/:code"
+                element={
+                  <ProtectedRoute>
+                    <JoinQuiz />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quiz/lobby/:joinCode"
+                element={
+                  <ProtectedRoute>
+                    <QuizLobby />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quiz/live/:joinCode"
+                element={
+                  <ProtectedRoute>
+                    <LiveQuizSession />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quiz/results"
+                element={
+                  <ProtectedRoute>
+                    <QuizResults />
                   </ProtectedRoute>
                 }
               />

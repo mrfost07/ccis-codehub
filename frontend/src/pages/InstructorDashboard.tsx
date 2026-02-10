@@ -4,13 +4,15 @@ import {
   Users, BookOpen, ClipboardCheck, Award, TrendingUp,
   Calendar, FileText, Video, MessageCircle, Settings,
   PlusCircle, BarChart2, Clock, CheckCircle, GraduationCap, Wand2,
-  Eye, ChevronRight, RefreshCw, Edit, Trash2, Play, X, Save, Upload, Home
+  Eye, ChevronRight, RefreshCw, Edit, Trash2, Play, X, Save, Upload, Home, Radio, Filter, Loader2, Copy, Link
 } from 'lucide-react'
 import DashboardLayout, { SidenavItem } from '../components/layout/DashboardLayout'
 import PDFContentExtractor from '../components/PDFContentExtractor'
 import ModuleFormWithEditor from '../components/ModuleFormWithEditor'
 import QuizEditor from '../components/QuizEditor'
+import LiveQuizQuestionEditor from '../components/LiveQuizQuestionEditor'
 import api from '../services/api'
+import liveQuizService, { LiveQuiz, CreateLiveQuizData } from '../services/liveQuizService'
 import { useCurrentUser } from '../hooks/useApiCache'
 import toast from 'react-hot-toast'
 import { getMediaUrl } from '../utils/mediaUrl'
@@ -99,6 +101,7 @@ function InstructorDashboard() {
   const [showCreatePath, setShowCreatePath] = useState(false)
   const [showCreateModule, setShowCreateModule] = useState(false)
   const [showCreateQuiz, setShowCreateQuiz] = useState(false)
+  const [showCreateLiveQuiz, setShowCreateLiveQuiz] = useState(false)
   const [showQuizEditor, setShowQuizEditor] = useState(false)
   const [showEditPath, setShowEditPath] = useState(false)
   const [showEditModule, setShowEditModule] = useState(false)
@@ -165,6 +168,39 @@ function InstructorDashboard() {
   const [quizSearch, setQuizSearch] = useState('')
   const [quizModuleFilter, setQuizModuleFilter] = useState<string>('all')
   const [quizPathFilter, setQuizPathFilter] = useState<string>('all')
+
+  // Live Quiz pagination
+  const [liveQuizPage, setLiveQuizPage] = useState(1)
+  const liveQuizzesPerPage = 9 // 3x3 grid on desktop, responsive on mobile
+
+  // Live Quiz states
+  const [liveQuizzes, setLiveQuizzes] = useState<LiveQuiz[]>([])
+  const [selectedLiveQuiz, setSelectedLiveQuiz] = useState<LiveQuiz | null>(null)
+  const [showQuizTransition, setShowQuizTransition] = useState(false)
+  const [showQuestionEditor, setShowQuestionEditor] = useState(false)
+  // Student Management - Path Search (reusing existing pathSearch, pathProgramFilter, pathStatusFilter)
+  const [pathSearchQuery, setPathSearchQuery] = useState('')
+
+  // Student Management - Recent Enrollments Filters
+  const [enrollmentSearchQuery, setEnrollmentSearchQuery] = useState('')
+  const [enrollmentPathFilter, setEnrollmentPathFilter] = useState('all')
+
+  const [liveQuizForm, setLiveQuizForm] = useState<CreateLiveQuizData>({
+    title: '',
+    description: '',
+    max_participants: 100,
+    default_question_time: 30,
+    show_leaderboard: true,
+    show_correct_answers: true,
+    require_fullscreen: true,
+    allow_late_join: false,
+    shuffle_questions: false,
+    shuffle_answers: false,
+    auto_pause_on_exit: true,
+    max_violations: 3,
+    violation_penalty_points: 5
+  })
+  const [creatingLiveQuiz, setCreatingLiveQuiz] = useState(false)
 
   useEffect(() => {
     checkInstructorAccess()
@@ -553,6 +589,82 @@ function InstructorDashboard() {
       randomize_questions: true
     })
     setQuizQuestions([])
+  }
+
+  // Live Quiz Functions
+  const fetchLiveQuizzes = async () => {
+    try {
+      const data = await liveQuizService.getQuizzes()
+      setLiveQuizzes(data)
+    } catch (error: any) {
+      console.error('Failed to fetch live quizzes:', error)
+      toast.error('Failed to load live quizzes')
+    }
+  }
+
+  const createLiveQuiz = async () => {
+    if (creatingLiveQuiz) return
+
+    if (!liveQuizForm.title) {
+      toast.error('Please enter a quiz title')
+      return
+    }
+
+    try {
+      setCreatingLiveQuiz(true)
+      const quiz = await liveQuizService.createQuiz(liveQuizForm)
+      setShowCreateLiveQuiz(false)
+      resetLiveQuizForm()
+
+      // Show transition loading before opening detail view
+      setShowQuizTransition(true)
+      await fetchLiveQuizzes()
+
+      // Brief delay for smooth transition
+      await new Promise(resolve => setTimeout(resolve, 600))
+      setShowQuizTransition(false)
+
+      // Open detail view to add questions
+      setSelectedLiveQuiz(quiz)
+      toast.success('Quiz created successfully')
+    } catch (error: any) {
+      console.error('Failed to create live quiz:', error)
+      toast.error(error.response?.data?.error || 'Failed to create live quiz')
+    } finally {
+      setCreatingLiveQuiz(false)
+      setShowQuizTransition(false)
+    }
+  }
+
+  const deleteLiveQuiz = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this live quiz?')) return
+
+    try {
+      await liveQuizService.deleteQuiz(id)
+      toast.success('Live quiz deleted')
+      await fetchLiveQuizzes()
+    } catch (error: any) {
+      console.error('Failed to delete live quiz:', error)
+      toast.error('Failed to delete live quiz')
+    }
+  }
+
+  const resetLiveQuizForm = () => {
+    setLiveQuizForm({
+      title: '',
+      description: '',
+      max_participants: 100,
+      default_question_time: 30,
+      show_leaderboard: true,
+      show_correct_answers: true,
+      require_fullscreen: true,
+      allow_late_join: false,
+      shuffle_questions: false,
+      shuffle_answers: false,
+      auto_pause_on_exit: true,
+      max_violations: 3,
+      violation_penalty_points: 5
+    })
   }
 
   const handleQuizQuestionsChange = (questions: any[]) => {
@@ -1082,13 +1194,22 @@ function InstructorDashboard() {
                 </button>
               )}
               {learningView === 'quizzes' && (
-                <button
-                  onClick={() => setShowCreateQuiz(true)}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition flex items-center gap-2 text-sm"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  Create Quiz
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowCreateQuiz(true)}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition flex items-center gap-2 text-sm"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Create Quiz
+                  </button>
+                  <button
+                    onClick={() => setShowCreateLiveQuiz(true)}
+                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition flex items-center gap-2 text-sm"
+                  >
+                    <Radio className="w-4 h-4" />
+                    Quiz Online
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -1597,6 +1718,170 @@ function InstructorDashboard() {
         </div>
       )}
 
+      {/* Live Quizzes Section */}
+      {learningView === 'quizzes' && (
+        <div className="space-y-4">
+          {/* Search */}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search live quizzes..."
+              value={quizSearch}
+              onChange={(e) => {
+                setQuizSearch(e.target.value)
+                setLiveQuizPage(1) // Reset to page 1 on search
+              }}
+              className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-orange-500 text-sm"
+            />
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+
+          {/* Quiz Grid with Pagination */}
+          {(() => {
+            const filteredQuizzes = liveQuizzes.filter((quiz) =>
+              !quizSearch ||
+              quiz.title.toLowerCase().includes(quizSearch.toLowerCase()) ||
+              quiz.join_code.toLowerCase().includes(quizSearch.toLowerCase())
+            )
+
+            const totalPages = Math.ceil(filteredQuizzes.length / liveQuizzesPerPage)
+            const startIndex = (liveQuizPage - 1) * liveQuizzesPerPage
+            const endIndex = startIndex + liveQuizzesPerPage
+            const paginatedQuizzes = filteredQuizzes.slice(startIndex, endIndex)
+
+            if (filteredQuizzes.length === 0) {
+              return (
+                <div className="text-center py-12">
+                  <Radio className="w-12 h-12 mx-auto text-slate-600 mb-4" />
+                  <p className="text-slate-400 mb-4">
+                    {quizSearch ? 'No quizzes match your search' : 'No live quizzes yet'}
+                  </p>
+                  {!quizSearch && (
+                    <button
+                      onClick={() => setShowCreateLiveQuiz(true)}
+                      className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg"
+                    >
+                      Create First Live Quiz
+                    </button>
+                  )}
+                </div>
+              )
+            }
+
+            return (
+              <>
+                {/* Pagination Info */}
+                <div className="flex justify-between items-center text-sm text-slate-400">
+                  <span>
+                    Showing {startIndex + 1}-{Math.min(endIndex, filteredQuizzes.length)} of {filteredQuizzes.length} quiz{filteredQuizzes.length !== 1 ? 'zes' : ''}
+                  </span>
+                  {totalPages > 1 && (
+                    <span>Page {liveQuizPage} of {totalPages}</span>
+                  )}
+                </div>
+
+                {/* Quiz Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {paginatedQuizzes.map((quiz) => (
+                    <div
+                      key={quiz.id}
+                      onClick={() => setSelectedLiveQuiz(quiz)}
+                      className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4 shadow-lg hover:border-orange-500/50 transition-all cursor-pointer group"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <h3 className="text-lg font-semibold text-white group-hover:text-orange-400 transition truncate pr-2">{quiz.title}</h3>
+                        <span className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ${quiz.is_open ? 'bg-green-900/50 text-green-400' : 'bg-slate-600/50 text-slate-400'}`}>
+                          {quiz.status_text || (quiz.is_open ? 'Active' : 'Closed')}
+                        </span>
+                      </div>
+
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center gap-2">
+                          <code className="px-2 py-1 bg-slate-900 text-orange-400 rounded font-mono text-sm">{quiz.join_code}</code>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-400">Questions</span>
+                          <span className="text-white">{quiz.questions_count || 0}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-400">Participants</span>
+                          <span className="text-white">{quiz.max_participants}</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-700 flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedLiveQuiz(quiz)
+                          }}
+                          className="flex-1 px-3 py-1.5 bg-orange-600/20 hover:bg-orange-600 text-orange-400 hover:text-white rounded-lg transition text-sm"
+                        >
+                          View Details
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-4">
+                    <button
+                      onClick={() => setLiveQuizPage(Math.max(1, liveQuizPage - 1))}
+                      disabled={liveQuizPage === 1}
+                      className="w-full sm:w-auto px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition text-sm flex items-center justify-center gap-1"
+                    >
+                      <ChevronRight className="w-4 h-4 rotate-180" />
+                      Previous
+                    </button>
+
+                    <div className="flex gap-2">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(page => {
+                          // Show first page, last page, current page, and pages around current
+                          return page === 1 ||
+                            page === totalPages ||
+                            Math.abs(page - liveQuizPage) <= 1
+                        })
+                        .map((page, idx, arr) => {
+                          // Add ellipsis if there's a gap
+                          const showEllipsisBefore = idx > 0 && page - arr[idx - 1] > 1
+                          return (
+                            <div key={page} className="flex items-center gap-1">
+                              {showEllipsisBefore && <span className="text-slate-500 px-2">...</span>}
+                              <button
+                                onClick={() => setLiveQuizPage(page)}
+                                className={`w-10 h-10 rounded-lg transition text-sm ${page === liveQuizPage
+                                    ? 'bg-orange-600 text-white'
+                                    : 'bg-slate-800 hover:bg-slate-700 text-slate-400'
+                                  }`}
+                              >
+                                {page}
+                              </button>
+                            </div>
+                          )
+                        })}
+                    </div>
+
+                    <button
+                      onClick={() => setLiveQuizPage(Math.min(totalPages, liveQuizPage + 1))}
+                      disabled={liveQuizPage === totalPages}
+                      className="w-full sm:w-auto px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition text-sm flex items-center justify-center gap-1"
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </>
+            )
+          })()}
+        </div>
+      )}
+
       {/* Students Tab - Now with Path Selection */}
       {activeTab === 'students' && (
         <div className="space-y-6">
@@ -1633,7 +1918,17 @@ function InstructorDashboard() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-white font-medium">{path.name}</p>
-                          <p className="text-slate-400 text-sm">{path.enrolled_count} students enrolled</p>
+                          <p className="text-slate-400 text-sm">
+                            {path.enrolled_count > 0 || path.completed_count > 0 ? (
+                              <>
+                                {path.enrolled_count > 0 && <span className="text-blue-400">{path.enrolled_count} active</span>}
+                                {path.enrolled_count > 0 && path.completed_count > 0 && <span className="text-slate-500"> • </span>}
+                                {path.completed_count > 0 && <span className="text-green-400">{path.completed_count} completed</span>}
+                              </>
+                            ) : (
+                              <span>No students yet</span>
+                            )}
+                          </p>
                         </div>
                         <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-white transition" />
                       </div>
@@ -2567,7 +2862,375 @@ function InstructorDashboard() {
           </div>
         )
       }
-    </DashboardLayout >
+
+      {/* Create Live Quiz Modal */}
+      {showCreateLiveQuiz && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 rounded-xl border border-slate-700 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+                <Radio className="w-6 h-6 text-orange-400" />
+                Create Live Quiz
+              </h3>
+              <button
+                onClick={() => {
+                  setShowCreateLiveQuiz(false)
+                  resetLiveQuizForm()
+                }}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div>
+                <h4 className="text-lg font-semibold text-white mb-4">Basic Information</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      Quiz Title <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={liveQuizForm.title}
+                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, title: e.target.value })}
+                      placeholder="e.g., Python Basics Quiz"
+                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={liveQuizForm.description || ''}
+                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, description: e.target.value })}
+                      placeholder="Brief description of the quiz..."
+                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Quiz Settings */}
+              <div>
+                <h4 className="text-lg font-semibold text-white mb-4">Quiz Settings</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      Max Participants
+                    </label>
+                    <input
+                      type="number"
+                      value={liveQuizForm.max_participants}
+                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, max_participants: parseInt(e.target.value) })}
+                      min={1}
+                      max={500}
+                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      Question Time (seconds)
+                    </label>
+                    <input
+                      type="number"
+                      value={liveQuizForm.default_question_time}
+                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, default_question_time: parseInt(e.target.value) })}
+                      min={5}
+                      max={300}
+                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-orange-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={liveQuizForm.show_leaderboard}
+                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, show_leaderboard: e.target.checked })}
+                      className="w-4 h-4 text-orange-600 bg-slate-800 border-slate-700 rounded focus:ring-orange-500"
+                    />
+                    <span className="text-sm text-slate-300">Show leaderboard</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={liveQuizForm.require_fullscreen}
+                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, require_fullscreen: e.target.checked })}
+                      className="w-4 h-4 text-orange-600 bg-slate-800 border-slate-700 rounded focus:ring-orange-500"
+                    />
+                    <span className="text-sm text-slate-300">Require fullscreen mode</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={liveQuizForm.show_correct_answers}
+                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, show_correct_answers: e.target.checked })}
+                      className="w-4 h-4 text-orange-600 bg-slate-800 border-slate-700 rounded focus:ring-orange-500"
+                    />
+                    <span className="text-sm text-slate-300">Show correct answers after submission</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={liveQuizForm.allow_late_join}
+                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, allow_late_join: e.target.checked })}
+                      className="w-4 h-4 text-orange-600 bg-slate-800 border-slate-700 rounded focus:ring-orange-500"
+                    />
+                    <span className="text-sm text-slate-300">Allow late join</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={liveQuizForm.shuffle_questions}
+                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, shuffle_questions: e.target.checked })}
+                      className="w-4 h-4 text-orange-600 bg-slate-800 border-slate-700 rounded focus:ring-orange-500"
+                    />
+                    <span className="text-sm text-slate-300">Shuffle question order</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Info Notice */}
+              <div className="bg-blue-900/20 border border-blue-700/50 rounded-lg p-4">
+                <p className="text-sm text-blue-300">
+                  After creating the quiz, you'll be able to add questions manually, upload from PDF, or use AI to generate questions.
+                </p>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  onClick={() => {
+                    setShowCreateLiveQuiz(false)
+                    resetLiveQuizForm()
+                  }}
+                  disabled={creatingLiveQuiz}
+                  className="px-6 py-3 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={createLiveQuiz}
+                  disabled={creatingLiveQuiz || !liveQuizForm.title}
+                  className="px-6 py-3 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition flex items-center gap-2"
+                >
+                  {creatingLiveQuiz ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <PlusCircle className="w-5 h-5" />
+                      Create Live Quiz
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Live Quiz Detail Panel */}
+      {selectedLiveQuiz && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 pt-6 sm:pt-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg sm:max-w-3xl mb-16 sm:mb-0 overflow-hidden shadow-2xl">
+            {/* Header */}
+            <div className="flex items-start sm:items-center justify-between p-4 sm:p-6 border-b border-slate-700 bg-gradient-to-r from-orange-500/10 to-transparent gap-3">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg sm:text-xl font-bold text-white truncate">{selectedLiveQuiz.title}</h2>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1">
+                  <span className={`text-xs sm:text-sm px-2 py-0.5 rounded ${selectedLiveQuiz.is_open ? 'bg-green-500/20 text-green-400' : 'bg-slate-600/50 text-slate-400'}`}>
+                    {selectedLiveQuiz.status_text || (selectedLiveQuiz.is_open ? 'Active' : 'Closed')}
+                  </span>
+                  <span className="text-slate-400 text-xs sm:text-sm">{selectedLiveQuiz.questions_count} questions</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedLiveQuiz(null)}
+                className="p-2 hover:bg-slate-800 rounded-lg transition text-slate-400 hover:text-white flex-shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+              {/* Join Code Card */}
+              <div className="bg-slate-800/50 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs sm:text-sm text-slate-400">Join Code</p>
+                  <p className="text-2xl sm:text-3xl font-mono font-bold text-orange-400">{selectedLiveQuiz.join_code}</p>
+                </div>
+                <button
+                  onClick={() => navigator.clipboard.writeText(selectedLiveQuiz.join_code).then(() => toast.success('Code copied!'))}
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg transition flex items-center gap-2"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copy
+                </button>
+              </div>
+
+              {/* Shareable Link */}
+              <div className="bg-slate-800/50 rounded-xl p-3 sm:p-4">
+                <div className="flex items-start sm:items-center justify-between gap-3 flex-col sm:flex-row">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm text-slate-400 mb-1 flex items-center gap-1.5">
+                      <Link className="w-3.5 h-3.5" />
+                      Shareable Link
+                    </p>
+                    <p className="text-sm font-mono text-slate-300 break-all">
+                      {typeof window !== 'undefined' ? window.location.origin : ''}/join-quiz/{selectedLiveQuiz.join_code}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/join-quiz/${selectedLiveQuiz.join_code}`
+                      navigator.clipboard.writeText(shareUrl).then(() => toast.success('Link copied!'))
+                    }}
+                    className="w-full sm:w-auto px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition flex items-center justify-center gap-2"
+                  >
+                    <Copy className="w-4 h-4" />
+                    Copy Link
+                  </button>
+                </div>
+              </div>
+
+              {/* Scheduling Info */}
+              <div className="bg-slate-800/50 rounded-xl p-4">
+                <h4 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Scheduling
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <p className="text-slate-500">Opens At</p>
+                    <p className="text-white">{selectedLiveQuiz.scheduled_start ? new Date(selectedLiveQuiz.scheduled_start).toLocaleString() : 'Immediate'}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500">Deadline</p>
+                    <p className="text-white">{selectedLiveQuiz.deadline ? new Date(selectedLiveQuiz.deadline).toLocaleString() : 'No deadline'}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500">Max Retakes</p>
+                    <p className="text-white">{selectedLiveQuiz.max_retakes === 0 ? 'Unlimited' : selectedLiveQuiz.max_retakes}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500">Time Limit</p>
+                    <p className="text-white">{selectedLiveQuiz.time_limit_minutes ? `${selectedLiveQuiz.time_limit_minutes} min` : 'No limit'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Questions Section */}
+              <div className="bg-slate-800/50 rounded-xl p-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-4">
+                  <h4 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Questions
+                  </h4>
+                  <button
+                    onClick={() => {
+                      setShowQuestionEditor(true)
+                    }}
+                    className="w-full sm:w-auto px-3 py-1.5 bg-orange-600/20 hover:bg-orange-600 text-orange-400 hover:text-white rounded-lg transition text-sm flex items-center justify-center gap-1"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    {selectedLiveQuiz.questions_count > 0 ? 'Edit Questions' : 'Add Questions'}
+                  </button>
+                </div>
+                <div className="text-center py-8 text-slate-500">
+                  <FileText className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                  <p>No questions yet</p>
+                  <p className="text-xs mt-1">Add questions to start the quiz</p>
+                </div>
+              </div>
+
+              {/* Settings Summary */}
+              <div className="bg-slate-800/50 rounded-xl p-4">
+                <h4 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+                  <Settings className="w-4 h-4" />
+                  Quiz Settings
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {selectedLiveQuiz.show_leaderboard && <span className="px-2 py-1 bg-slate-700 text-slate-300 rounded text-xs">Leaderboard</span>}
+                  {selectedLiveQuiz.require_fullscreen && <span className="px-2 py-1 bg-slate-700 text-slate-300 rounded text-xs">Fullscreen</span>}
+                  {selectedLiveQuiz.show_correct_answers && <span className="px-2 py-1 bg-slate-700 text-slate-300 rounded text-xs">Show Answers</span>}
+                  {selectedLiveQuiz.allow_late_join && <span className="px-2 py-1 bg-slate-700 text-slate-300 rounded text-xs">Late Join</span>}
+                  {selectedLiveQuiz.shuffle_questions && <span className="px-2 py-1 bg-slate-700 text-slate-300 rounded text-xs">Shuffle Qs</span>}
+                  {selectedLiveQuiz.shuffle_answers && <span className="px-2 py-1 bg-slate-700 text-slate-300 rounded text-xs">Shuffle As</span>}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 sm:p-6 border-t border-slate-700 bg-slate-800/30">
+              <button
+                onClick={() => {
+                  deleteLiveQuiz(selectedLiveQuiz.id)
+                  setSelectedLiveQuiz(null)
+                }}
+                className="px-4 py-2.5 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete Quiz
+              </button>
+              <div className="flex gap-2 sm:gap-3">
+                <button
+                  onClick={() => setSelectedLiveQuiz(null)}
+                  className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition"
+                >
+                  Close
+                </button>
+                {selectedLiveQuiz.questions_count > 0 && (
+                  <button
+                    onClick={() => toast('Start quiz session coming soon!', { icon: '🚀' })}
+                    className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-xl transition flex items-center justify-center gap-2"
+                  >
+                    <Play className="w-4 h-4" />
+                    Start
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Live Quiz Question Editor */}
+      {showQuestionEditor && selectedLiveQuiz && (
+        <LiveQuizQuestionEditor
+          quizId={selectedLiveQuiz.id}
+          onClose={() => {
+            setShowQuestionEditor(false)
+            setSelectedLiveQuiz(null)
+          }}
+          onQuestionsChange={async () => {
+            await fetchLiveQuizzes()
+            toast.success('Questions updated successfully')
+          }}
+        />
+      )}
+
+      {/* Quiz Creation Transition Loading */}
+      {showQuizTransition && (
+        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
+            </div>
+            <p className="text-slate-400 text-sm font-medium">Opening quiz editor...</p>
+          </div>
+        </div>
+      )}
+    </DashboardLayout>
   )
 }
 
