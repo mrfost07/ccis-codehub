@@ -6,7 +6,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     UserRegistrationView, UserLoginView, UserProfileView,
     UserViewSet, UserStatsAPIView, PublicUserProfileView, PublicStatsView,
-    GoogleOAuthCallbackView, CreateGoogleAccountView
+    GoogleOAuthCallbackView, CreateGoogleAccountView,
+    CaptchaChallengeView
 )
 from .admin_views import AdminDashboardView, AdminUsersView, AdminContentView
 
@@ -19,6 +20,7 @@ admin_router.register(r'users', AdminUsersView, basename='admin-users')
 
 urlpatterns = [
     # Auth endpoints
+    path('captcha/', CaptchaChallengeView.as_view(), name='captcha-challenge'),
     path('register/', UserRegistrationView.as_view(), name='register'),
     path('login/', UserLoginView.as_view(), name='login'),
     path('profile/', UserProfileView.as_view(), name='profile'),

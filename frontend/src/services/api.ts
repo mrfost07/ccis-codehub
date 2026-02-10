@@ -67,8 +67,10 @@ export const publicAPI = {
 
 // Auth API - uses noAuthApi to avoid sending stale tokens
 export const authAPI = {
-  login: (email: string, password: string) =>
-    noAuthApi.post('/auth/login/', { email, password }),
+  getCaptchaChallenge: () =>
+    noAuthApi.get('/auth/captcha/'),
+  login: (email: string, password: string, captcha_token?: string, captcha_answer?: number | null) =>
+    noAuthApi.post('/auth/login/', { email, password, captcha_token, captcha_answer }),
   register: (data: {
     email: string;
     username: string;
@@ -79,6 +81,8 @@ export const authAPI = {
     program?: string;
     year_level?: string;
     role?: string;
+    captcha_token?: string;
+    captcha_answer?: number | null;
   }) =>
     noAuthApi.post('/auth/register/', data),
   getProfile: () => api.get('/auth/profile/'),

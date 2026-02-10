@@ -8,6 +8,7 @@ import {
   Sprout, Flower2, TreeDeciduous, GraduationCap,
   Code2, Server, LineChart, Loader2, Eye, EyeOff, ArrowLeft
 } from 'lucide-react'
+import CaptchaCheckbox from '../components/CaptchaCheckbox'
 
 const PROGRAMS = [
   { value: 'BSCS', label: 'BS Computer Science', icon: Code2, description: 'Software Development & Algorithms' },
@@ -37,8 +38,20 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState('')
+  const [captchaAnswer, setCaptchaAnswer] = useState<number | null>(null)
   const navigate = useNavigate()
   const { setAuthData } = useAuth()
+
+  const handleCaptchaVerified = (token: string, answer: number) => {
+    setCaptchaToken(token)
+    setCaptchaAnswer(answer)
+  }
+
+  const handleCaptchaExpired = () => {
+    setCaptchaToken('')
+    setCaptchaAnswer(null)
+  }
 
   const validateStep = () => {
     if (step === 1) {
@@ -80,6 +93,10 @@ export default function Register() {
         toast.error('Passwords do not match')
         return false
       }
+      if (!captchaToken || captchaAnswer === null) {
+        toast.error('Please complete the CAPTCHA verification')
+        return false
+      }
     }
     return true
   }
@@ -108,7 +125,9 @@ export default function Register() {
         confirm_password: formData.confirmPassword,
         program: formData.program,
         year_level: formData.year_level,
-        role: 'student'
+        role: 'student',
+        captcha_token: captchaToken,
+        captcha_answer: captchaAnswer,
       })
 
       if (response.data.tokens) {
@@ -372,6 +391,12 @@ export default function Register() {
                   )}
                 </div>
               )}
+
+              {/* CAPTCHA */}
+              <CaptchaCheckbox
+                onVerified={handleCaptchaVerified}
+                onExpired={handleCaptchaExpired}
+              />
             </div>
           )}
 
@@ -413,7 +438,7 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  disabled={loading}
+                  disabled={loading || !captchaToken}
                   className="flex-1 py-2.5 text-sm font-semibold bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25"
                 >
                   {loading ? (

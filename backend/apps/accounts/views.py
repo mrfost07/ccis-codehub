@@ -17,6 +17,16 @@ from .serializers import (
     UserSerializer, UserProfileSerializer,
     UserRegistrationSerializer, UserLoginSerializer
 )
+from .captcha import generate_captcha_challenge, verify_captcha_token
+
+
+class CaptchaChallengeView(APIView):
+    """Generate a CAPTCHA challenge for login/register forms"""
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        challenge = generate_captcha_challenge()
+        return Response(challenge)
 
 
 class UserRegistrationView(APIView):
@@ -24,6 +34,17 @@ class UserRegistrationView(APIView):
     permission_classes = [AllowAny]
     
     def post(self, request):
+        # Verify CAPTCHA first
+        captcha_token = request.data.get('captcha_token', '')
+        captcha_answer = request.data.get('captcha_answer', '')
+        
+        is_valid, error_msg = verify_captcha_token(captcha_token, captcha_answer)
+        if not is_valid:
+            return Response(
+                {'error': error_msg or 'CAPTCHA verification failed. Please try again.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         # Check email domain restriction
         email = request.data.get('email', '')
         ALLOWED_DOMAINS = ['ssct.edu.ph', 'snsu.edu.ph']
@@ -56,6 +77,17 @@ class UserLoginView(APIView):
     permission_classes = [AllowAny]
     
     def post(self, request):
+        # Verify CAPTCHA first
+        captcha_token = request.data.get('captcha_token', '')
+        captcha_answer = request.data.get('captcha_answer', '')
+        
+        is_valid, error_msg = verify_captcha_token(captcha_token, captcha_answer)
+        if not is_valid:
+            return Response(
+                {'error': error_msg or 'CAPTCHA verification failed. Please try again.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data['email']

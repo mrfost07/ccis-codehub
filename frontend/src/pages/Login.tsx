@@ -1,26 +1,53 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import { authAPI } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { Mail, Lock, ArrowLeft, Loader2 } from 'lucide-react'
+import CaptchaCheckbox from '../components/CaptchaCheckbox'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState('')
+  const [captchaAnswer, setCaptchaAnswer] = useState<number | null>(null)
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { setAuthData } = useAuth()
+
+  const handleCaptchaVerified = (token: string, answer: number) => {
+    setCaptchaToken(token)
+    setCaptchaAnswer(answer)
+  }
+
+  const handleCaptchaExpired = () => {
+    setCaptchaToken('')
+    setCaptchaAnswer(null)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!captchaToken || captchaAnswer === null) {
+      toast.error('Please complete the CAPTCHA verification')
+      return
+    }
+
     setLoading(true)
 
     try {
-      await login(email, password)
+      const response = await authAPI.login(email, password, captchaToken, captchaAnswer)
+      const { access, user: userData } = response.data.tokens
+        ? { access: response.data.tokens.access, user: response.data.user }
+        : { access: response.data.access, user: response.data.user }
+
+      setAuthData(access, userData)
       toast.success('Welcome back!')
       navigate('/learning')
     } catch (error: any) {
       console.error('Login error:', error.response?.data)
+      // Reset CAPTCHA on failure
+      handleCaptchaExpired()
       if (error.response?.data?.error) {
         toast.error(error.response.data.error)
       } else if (error.response?.data?.detail) {
@@ -98,10 +125,16 @@ export default function Login() {
               </div>
             </div>
 
+            {/* CAPTCHA */}
+            <CaptchaCheckbox
+              onVerified={handleCaptchaVerified}
+              onExpired={handleCaptchaExpired}
+            />
+
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !captchaToken}
               className="w-full py-2.5 text-sm font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/25"
             >
               {loading ? (
