@@ -88,14 +88,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     setToken(null)
     setUser(null)
-    // Clear both sessionStorage (per-tab) and localStorage
+
+    // Clear auth data from both storages
     sessionStorage.removeItem('token')
     sessionStorage.removeItem('user')
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     localStorage.removeItem('userRole')
-    // Force a small delay to ensure state updates before navigation
-    console.log('Auth state cleared')
+
+    // Clean up all app-related storage keys
+    const keysToClean = ['communityChatActiveRoom', 'communityChatOpen', 'appSettings']
+    keysToClean.forEach(key => {
+      localStorage.removeItem(key)
+      sessionStorage.removeItem(key)
+    })
+
+    // Remove AI mentor session keys (pattern: ai_mentor_session_id_*)
+    const removeByPrefix = (storage: Storage, prefix: string) => {
+      const keysToRemove: string[] = []
+      for (let i = 0; i < storage.length; i++) {
+        const key = storage.key(i)
+        if (key && key.startsWith(prefix)) keysToRemove.push(key)
+      }
+      keysToRemove.forEach(key => storage.removeItem(key))
+    }
+    removeByPrefix(localStorage, 'ai_mentor_session_id_')
+    removeByPrefix(sessionStorage, 'ai_mentor_session_id_')
+
+    console.log('Auth state and app storage cleared')
   }, [])
 
   const refreshUser = useCallback(async () => {
