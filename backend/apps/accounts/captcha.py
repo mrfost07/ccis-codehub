@@ -30,6 +30,12 @@ def _sign(data: str) -> str:
     ).hexdigest()
 
 
+def _hash_answer(answer: int, timestamp: int) -> str:
+    """Hash the answer with timestamp to prevent extraction from token."""
+    data = f"{answer}:{timestamp}:{settings.SECRET_KEY}"
+    return hashlib.sha256(data.encode('utf-8')).hexdigest()
+
+
 def generate_captcha_challenge() -> dict:
     """
     Generate a math-based CAPTCHA challenge.
@@ -51,9 +57,12 @@ def generate_captcha_challenge() -> dict:
     timestamp = int(time.time())
     expires_at = timestamp + CAPTCHA_TOKEN_TTL
     
-    # Token payload
+    # Hash the answer so it can't be extracted from the token
+    answer_hash = _hash_answer(answer, timestamp)
+    
+    # Token payload — answer is HASHED, not plaintext
     payload = {
-        'a': answer,       # correct answer
+        'h': answer_hash,  # hashed answer (cannot be reversed)
         't': timestamp,    # creation time
         'e': expires_at,   # expiry time
     }
@@ -108,14 +117,17 @@ def verify_captcha_token(token: str, answer) -> tuple:
         if current_time > payload.get('e', 0):
             return False, 'CAPTCHA has expired. Please refresh and try again.'
         
-        # Check answer
-        correct_answer = payload.get('a')
+        # Verify answer by comparing hashes
         try:
             user_answer = int(answer)
         except (ValueError, TypeError):
             return False, 'Invalid CAPTCHA answer'
         
-        if user_answer != correct_answer:
+        timestamp = payload.get('t', 0)
+        expected_hash = payload.get('h', '')
+        user_hash = _hash_answer(user_answer, timestamp)
+        
+        if not hmac.compare_digest(user_hash, expected_hash):
             return False, 'Incorrect CAPTCHA answer'
         
         return True, None
