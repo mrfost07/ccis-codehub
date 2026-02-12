@@ -289,6 +289,48 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
         avg_score = all_participants.aggregate(Avg('total_score'))['total_score__avg'] or 0
         avg_accuracy = all_participants.aggregate(Avg('total_correct'))['total_correct__avg'] or 0
         
+        # Per-question analytics
+        question_analytics = []
+        questions = quiz.live_questions.all().order_by('order')
+        for question in questions:
+            responses = LiveQuizResponse.objects.filter(
+                question=question,
+                participant__session__quiz=quiz
+            )
+            total_responses = responses.count()
+            correct_count = responses.filter(is_correct=True).count()
+            avg_time = responses.aggregate(Avg('response_time_seconds'))['response_time_seconds__avg'] or 0
+            
+            # Answer distribution for MCQ/True-False
+            answer_distribution = {}
+            if question.question_type in ('multiple_choice', 'true_false'):
+                for opt_key in ['A', 'B', 'C', 'D']:
+                    count = responses.filter(answer_text__iexact=opt_key).count()
+                    if count > 0:
+                        answer_distribution[opt_key] = count
+            
+            question_analytics.append({
+                'question_id': str(question.id),
+                'order': question.order,
+                'question_text': question.question_text[:100],
+                'question_type': question.question_type,
+                'correct_answer': question.correct_answer,
+                'points': question.points,
+                'total_responses': total_responses,
+                'correct_count': correct_count,
+                'correct_rate': round((correct_count / max(total_responses, 1)) * 100, 1),
+                'average_response_time': round(avg_time, 2),
+                'answer_distribution': answer_distribution
+            })
+        
+        # Find hardest and easiest questions
+        if question_analytics:
+            sorted_by_rate = sorted(question_analytics, key=lambda q: q['correct_rate'])
+            hardest = sorted_by_rate[0] if sorted_by_rate else None
+            easiest = sorted_by_rate[-1] if sorted_by_rate else None
+        else:
+            hardest = easiest = None
+        
         return Response({
             'quiz': {
                 'id': str(quiz.id),
@@ -307,9 +349,12 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
                 'average_accuracy': round((avg_accuracy / max(total_questions, 1)) * 100, 1),
                 'completion_rate': round((all_participants.filter(
                     total_attempted__gte=total_questions
-                ).count() / max(total_participants, 1)) * 100, 1)
+                ).count() / max(total_participants, 1)) * 100, 1),
+                'hardest_question': hardest['question_text'] if hardest else None,
+                'easiest_question': easiest['question_text'] if easiest else None
             },
-            'leaderboard': leaderboard
+            'leaderboard': leaderboard,
+            'question_analytics': question_analytics
         })
 
 

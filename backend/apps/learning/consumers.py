@@ -191,9 +191,71 @@ class LiveQuizConsumer(AsyncWebsocketConsumer):
                     'type': 'answer_submitted',
                     'data': result
                 }))
+
+            elif message_type == 'report_violation':
+                # Handle anti-cheating violation reports from frontend
+                participant_id = data.get('participant_id')
+                violation_type = data.get('violation_type', 'unknown')
+                
+                result = await self._record_violation(participant_id, violation_type)
+                
+                # Send violation acknowledgement back to student
+                await self.send(text_data=json.dumps({
+                    'type': 'violation_recorded',
+                    'data': result
+                }))
                 
         except json.JSONDecodeError:
             pass
+
+    @database_sync_to_async
+    def _record_violation(self, participant_id, violation_type):
+        """Record a violation on the participant's record"""
+        from .models import LiveQuizParticipant
+        
+        try:
+            participant = LiveQuizParticipant.objects.select_related(
+                'session__quiz'
+            ).get(id=participant_id)
+            
+            # Increment the appropriate counter
+            if violation_type == 'fullscreen_exit':
+                participant.fullscreen_violations += 1
+            elif violation_type == 'tab_switch':
+                participant.tab_switch_count += 1
+            elif violation_type == 'copy_paste':
+                participant.copy_paste_attempts += 1
+            
+            total_violations = (
+                participant.fullscreen_violations +
+                participant.tab_switch_count +
+                participant.copy_paste_attempts
+            )
+            
+            # Check max violations threshold
+            quiz = participant.session.quiz
+            max_violations = quiz.max_violations or 0
+            penalty = quiz.violation_penalty_points or 0
+            
+            # Apply penalty points per violation
+            if penalty > 0:
+                participant.total_score = max(0, participant.total_score - penalty)
+            
+            # Auto-flag if exceeded max
+            if max_violations > 0 and total_violations >= max_violations:
+                participant.is_flagged = True
+            
+            participant.save()
+            
+            return {
+                'success': True,
+                'total_violations': total_violations,
+                'is_flagged': participant.is_flagged,
+                'max_violations': max_violations,
+                'penalty_applied': penalty
+            }
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
 
     # --- Event Handlers ---
 

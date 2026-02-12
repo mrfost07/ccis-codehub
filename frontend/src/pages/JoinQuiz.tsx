@@ -3,12 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Hash, ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import liveQuizService from '../services/liveQuizService';
+import { useAuth } from '../contexts/AuthContext';
 
 const JoinQuiz = () => {
     const { code } = useParams<{ code?: string }>();
     const [joinCode, setJoinCode] = useState('');
     const [isJoining, setIsJoining] = useState(false);
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     // Auto-fill code from URL parameter if present
     useEffect(() => {
@@ -23,15 +25,29 @@ const JoinQuiz = () => {
 
         setIsJoining(true);
         try {
-            // Verify join code with backend API
+            // Use actual username from auth context
+            const nickname = user?.username || user?.first_name || 'Student';
+
             const result = await liveQuizService.joinByCode(
                 joinCode.toUpperCase(),
-                'Anonymous' // Will be replaced with actual username from auth context if needed
+                nickname
             );
 
-            toast.success(`Joined "${result.quiz_title || 'Quiz'}" successfully!`);
-            // Navigate to lobby
-            navigate(`/quiz/lobby/${joinCode.toUpperCase()}`);
+            toast.success(`Joined "${result.quiz_info?.title || 'Quiz'}" successfully!`);
+
+            // Navigate to lobby with join response data
+            navigate(`/quiz/lobby/${joinCode.toUpperCase()}`, {
+                state: {
+                    participantId: result.participant_id,
+                    sessionId: result.session_id,
+                    quizId: result.quiz_id,
+                    quizTitle: result.quiz_info?.title || 'Live Quiz',
+                    hostName: result.quiz_info?.instructor_name || 'Instructor',
+                    timeLimitMinutes: result.time_limit_minutes,
+                    attemptsMessage: result.attempts_message,
+                    nickname
+                }
+            });
         } catch (error: any) {
             const message = error.response?.data?.error || 'Invalid join code. Please try again.';
             toast.error(message);

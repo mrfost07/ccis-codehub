@@ -247,6 +247,12 @@ class LiveQuizService {
         const response = await api.post('/learning/live-quiz-responses/', data)
         return response.data
     }
+
+    // Analytics
+    async getFinalOverview(quizId: string): Promise<any> {
+        const response = await api.get(`${this.baseUrl}/${quizId}/final_overview/`)
+        return response.data
+    }
 }
 
 export default new LiveQuizService()

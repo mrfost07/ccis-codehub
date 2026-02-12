@@ -36,6 +36,7 @@ import JoinQuiz from './pages/JoinQuiz'
 import QuizLobby from './pages/QuizLobby'
 import LiveQuizSession from './pages/LiveQuizSession'
 import QuizResults from './pages/QuizResults'
+import QuizAnalytics from './pages/QuizAnalytics'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -257,6 +258,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <QuizResults />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quiz/analytics/:quizId"
+                element={
+                  <ProtectedRoute>
+                    <QuizAnalytics />
                   </ProtectedRoute>
                 }
               />

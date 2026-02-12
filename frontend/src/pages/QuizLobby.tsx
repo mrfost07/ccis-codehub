@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Users, Clock, Loader2, AlertCircle } from 'lucide-react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Users, Clock, Loader2, AlertCircle, Info } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 // Define message types
@@ -11,13 +11,27 @@ interface WebSocketMessage {
     data?: any;
 }
 
+interface LobbyState {
+    participantId?: string;
+    sessionId?: string;
+    quizId?: string;
+    quizTitle?: string;
+    hostName?: string;
+    timeLimitMinutes?: number;
+    attemptsMessage?: string;
+    nickname?: string;
+}
+
 const QuizLobby = () => {
     const { joinCode } = useParams<{ joinCode: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
+    const lobbyState = (location.state as LobbyState) || {};
+
     const [participants, setParticipants] = useState<string[]>([]);
     const [status, setStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
-    const [hostName, setHostName] = useState<string>('Instructor');
-    const [quizTitle, setQuizTitle] = useState<string>('Live Quiz Session');
+    const [hostName] = useState<string>(lobbyState.hostName || 'Instructor');
+    const [quizTitle] = useState<string>(lobbyState.quizTitle || 'Live Quiz Session');
 
     const wsRef = useRef<WebSocket | null>(null);
 
@@ -25,7 +39,6 @@ const QuizLobby = () => {
         if (!joinCode) return;
 
         // Connect to WebSocket using environment variable
-        // VITE_WS_URL from .env already includes /ws, e.g., ws://localhost:8000/ws
         const baseWsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
         const wsUrl = `${baseWsUrl}/quiz/${joinCode}/`;
 
@@ -37,10 +50,10 @@ const QuizLobby = () => {
         socket.onopen = () => {
             console.log('Connected to Quiz WebSocket');
             setStatus('connected');
-            // Send join message
+            // Send join message with actual nickname
             socket.send(JSON.stringify({
                 type: 'join',
-                message: 'Student joined lobby'
+                nickname: lobbyState.nickname || 'Student'
             }));
         };
 
@@ -51,9 +64,18 @@ const QuizLobby = () => {
 
                 if (data.type === 'quiz_started') {
                     toast.success('Quiz starting!');
-                    navigate(`/quiz/live/${joinCode}`);
+                    // Pass all data to live session
+                    navigate(`/quiz/live/${joinCode}`, {
+                        state: {
+                            participantId: lobbyState.participantId,
+                            sessionId: lobbyState.sessionId,
+                            quizId: lobbyState.quizId,
+                            quizTitle: lobbyState.quizTitle,
+                            timeLimitMinutes: lobbyState.timeLimitMinutes,
+                            nickname: lobbyState.nickname
+                        }
+                    });
                 } else if (data.type === 'participant_update') {
-                    // Handle participant list updates if broadcasted
                     if (data.data?.participants) {
                         setParticipants(data.data.participants);
                     }
@@ -71,7 +93,7 @@ const QuizLobby = () => {
         socket.onclose = () => {
             console.log('WebSocket disconnected');
             if (status !== 'error') {
-                setStatus('connecting'); // Try to reconnect behavior could be added here
+                setStatus('connecting');
             }
         };
 
@@ -106,7 +128,25 @@ const QuizLobby = () => {
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
 
                     <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{quizTitle}</h1>
-                    <p className="text-slate-400 text-lg mb-8">Hosted by <span className="text-white font-medium">{hostName}</span></p>
+                    <p className="text-slate-400 text-lg mb-4">Hosted by <span className="text-white font-medium">{hostName}</span></p>
+
+                    {/* Attempts & Time Limit Info */}
+                    {(lobbyState.attemptsMessage || lobbyState.timeLimitMinutes) && (
+                        <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
+                            {lobbyState.attemptsMessage && (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 text-blue-400 text-xs font-medium rounded-full border border-blue-500/20">
+                                    <Info className="w-3.5 h-3.5" />
+                                    {lobbyState.attemptsMessage}
+                                </span>
+                            )}
+                            {lobbyState.timeLimitMinutes && (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-400 text-xs font-medium rounded-full border border-amber-500/20">
+                                    <Clock className="w-3.5 h-3.5" />
+                                    {lobbyState.timeLimitMinutes} min time limit
+                                </span>
+                            )}
+                        </div>
+                    )}
 
                     <div className="flex flex-col items-center justify-center space-y-6">
                         <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center relative">
@@ -125,16 +165,16 @@ const QuizLobby = () => {
                     <div className="mt-10 pt-8 border-t border-slate-800/50">
                         <div className="flex items-center justify-center gap-2 text-slate-400">
                             <Users className="w-5 h-5" />
-                            <span>You and {Math.max(0, participants.length - 1)} others joined</span>
+                            <span>{participants.length > 0 ? `${participants.length} participant${participants.length > 1 ? 's' : ''} joined` : 'Waiting for participants...'}</span>
                         </div>
 
                         {participants.length > 0 && (
                             <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                                {participants.slice(0, 5).map((p, i) => (
-                                    <span key={i} className="px-2 py-1 bg-slate-800 rounded text-xs text-slate-300">{p}</span>
+                                {participants.slice(0, 8).map((p, i) => (
+                                    <span key={i} className="px-3 py-1.5 bg-slate-800 rounded-lg text-xs text-slate-300 font-medium">{p}</span>
                                 ))}
-                                {participants.length > 5 && (
-                                    <span className="px-2 py-1 bg-slate-800 rounded text-xs text-slate-300">+{participants.length - 5} more</span>
+                                {participants.length > 8 && (
+                                    <span className="px-3 py-1.5 bg-slate-800 rounded-lg text-xs text-slate-400">+{participants.length - 8} more</span>
                                 )}
                             </div>
                         )}

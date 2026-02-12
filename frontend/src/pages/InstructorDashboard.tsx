@@ -4,7 +4,7 @@ import {
   Users, BookOpen, ClipboardCheck, Award, TrendingUp,
   Calendar, FileText, Video, MessageCircle, Settings,
   PlusCircle, BarChart2, Clock, CheckCircle, GraduationCap, Wand2,
-  Eye, ChevronRight, RefreshCw, Edit, Trash2, Play, X, Save, Upload, Home, Radio, Filter, Loader2, Copy, Link
+  Eye, ChevronRight, RefreshCw, Edit, Trash2, Play, X, Save, Upload, Home, Radio, Filter, Loader2, Copy, Link, Download
 } from 'lucide-react'
 import DashboardLayout, { SidenavItem } from '../components/layout/DashboardLayout'
 import PDFContentExtractor from '../components/PDFContentExtractor'
@@ -178,6 +178,9 @@ function InstructorDashboard() {
   const [selectedLiveQuiz, setSelectedLiveQuiz] = useState<LiveQuiz | null>(null)
   const [showQuizTransition, setShowQuizTransition] = useState(false)
   const [showQuestionEditor, setShowQuestionEditor] = useState(false)
+  const [detailTab, setDetailTab] = useState<'overview' | 'scores'>('overview')
+  const [quizScores, setQuizScores] = useState<any[]>([])
+  const [loadingScores, setLoadingScores] = useState(false)
   // Student Management - Path Search (reusing existing pathSearch, pathProgramFilter, pathStatusFilter)
   const [pathSearchQuery, setPathSearchQuery] = useState('')
 
@@ -220,6 +223,7 @@ function InstructorDashboard() {
         fetchModules()
       } else if (learningView === 'quizzes') {
         fetchQuizzes()
+        fetchLiveQuizzes()
       }
     }
   }, [learningView, activeTab])
@@ -616,23 +620,15 @@ function InstructorDashboard() {
       setShowCreateLiveQuiz(false)
       resetLiveQuizForm()
 
-      // Show transition loading before opening detail view
-      setShowQuizTransition(true)
+      // Refresh the quiz list
       await fetchLiveQuizzes()
 
-      // Brief delay for smooth transition
-      await new Promise(resolve => setTimeout(resolve, 600))
-      setShowQuizTransition(false)
-
-      // Open detail view to add questions
-      setSelectedLiveQuiz(quiz)
-      toast.success('Quiz created successfully')
+      toast.success(`Quiz "${quiz.title}" created! Click it to add questions.`)
     } catch (error: any) {
       console.error('Failed to create live quiz:', error)
       toast.error(error.response?.data?.error || 'Failed to create live quiz')
     } finally {
       setCreatingLiveQuiz(false)
-      setShowQuizTransition(false)
     }
   }
 
@@ -1855,8 +1851,8 @@ function InstructorDashboard() {
                               <button
                                 onClick={() => setLiveQuizPage(page)}
                                 className={`w-10 h-10 rounded-lg transition text-sm ${page === liveQuizPage
-                                    ? 'bg-orange-600 text-white'
-                                    : 'bg-slate-800 hover:bg-slate-700 text-slate-400'
+                                  ? 'bg-orange-600 text-white'
+                                  : 'bg-slate-800 hover:bg-slate-700 text-slate-400'
                                   }`}
                               >
                                 {page}
@@ -3038,12 +3034,12 @@ function InstructorDashboard() {
         </div>
       )}
 
-      {/* Live Quiz Detail Panel */}
-      {selectedLiveQuiz && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 pt-6 sm:pt-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg sm:max-w-3xl mb-16 sm:mb-0 overflow-hidden shadow-2xl">
+      {/* Live Quiz Detail Panel - Landscape Layout */}
+      {selectedLiveQuiz && !showQuestionEditor && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
             {/* Header */}
-            <div className="flex items-start sm:items-center justify-between p-4 sm:p-6 border-b border-slate-700 bg-gradient-to-r from-orange-500/10 to-transparent gap-3">
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-700 bg-gradient-to-r from-slate-800 to-slate-900">
               <div className="flex-1 min-w-0">
                 <h2 className="text-lg sm:text-xl font-bold text-white truncate">{selectedLiveQuiz.title}</h2>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1">
@@ -3051,172 +3047,379 @@ function InstructorDashboard() {
                     {selectedLiveQuiz.status_text || (selectedLiveQuiz.is_open ? 'Active' : 'Closed')}
                   </span>
                   <span className="text-slate-400 text-xs sm:text-sm">{selectedLiveQuiz.questions_count} questions</span>
+                  <span className="text-slate-500 text-xs font-mono">Code: {selectedLiveQuiz.join_code}</span>
                 </div>
               </div>
               <button
-                onClick={() => setSelectedLiveQuiz(null)}
+                onClick={() => { setSelectedLiveQuiz(null); setDetailTab('overview'); setQuizScores([]); }}
                 className="p-2 hover:bg-slate-800 rounded-lg transition text-slate-400 hover:text-white flex-shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Content */}
-            <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-              {/* Join Code Card */}
-              <div className="bg-slate-800/50 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs sm:text-sm text-slate-400">Join Code</p>
-                  <p className="text-2xl sm:text-3xl font-mono font-bold text-orange-400">{selectedLiveQuiz.join_code}</p>
-                </div>
-                <button
-                  onClick={() => navigator.clipboard.writeText(selectedLiveQuiz.join_code).then(() => toast.success('Code copied!'))}
-                  className="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg transition flex items-center gap-2"
-                >
-                  <Copy className="w-4 h-4" />
-                  Copy
-                </button>
-              </div>
-
-              {/* Shareable Link */}
-              <div className="bg-slate-800/50 rounded-xl p-3 sm:p-4">
-                <div className="flex items-start sm:items-center justify-between gap-3 flex-col sm:flex-row">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm text-slate-400 mb-1 flex items-center gap-1.5">
-                      <Link className="w-3.5 h-3.5" />
-                      Shareable Link
-                    </p>
-                    <p className="text-sm font-mono text-slate-300 break-all">
-                      {typeof window !== 'undefined' ? window.location.origin : ''}/join-quiz/{selectedLiveQuiz.join_code}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/join-quiz/${selectedLiveQuiz.join_code}`
-                      navigator.clipboard.writeText(shareUrl).then(() => toast.success('Link copied!'))
-                    }}
-                    className="w-full sm:w-auto px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition flex items-center justify-center gap-2"
-                  >
-                    <Copy className="w-4 h-4" />
-                    Copy Link
-                  </button>
-                </div>
-              </div>
-
-              {/* Scheduling Info */}
-              <div className="bg-slate-800/50 rounded-xl p-4">
-                <h4 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  Scheduling
-                </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <p className="text-slate-500">Opens At</p>
-                    <p className="text-white">{selectedLiveQuiz.scheduled_start ? new Date(selectedLiveQuiz.scheduled_start).toLocaleString() : 'Immediate'}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500">Deadline</p>
-                    <p className="text-white">{selectedLiveQuiz.deadline ? new Date(selectedLiveQuiz.deadline).toLocaleString() : 'No deadline'}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500">Max Retakes</p>
-                    <p className="text-white">{selectedLiveQuiz.max_retakes === 0 ? 'Unlimited' : selectedLiveQuiz.max_retakes}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500">Time Limit</p>
-                    <p className="text-white">{selectedLiveQuiz.time_limit_minutes ? `${selectedLiveQuiz.time_limit_minutes} min` : 'No limit'}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Questions Section */}
-              <div className="bg-slate-800/50 rounded-xl p-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-4">
-                  <h4 className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    Questions
-                  </h4>
-                  <button
-                    onClick={() => {
-                      setShowQuestionEditor(true)
-                    }}
-                    className="w-full sm:w-auto px-3 py-1.5 bg-orange-600/20 hover:bg-orange-600 text-orange-400 hover:text-white rounded-lg transition text-sm flex items-center justify-center gap-1"
-                  >
-                    <PlusCircle className="w-4 h-4" />
-                    {selectedLiveQuiz.questions_count > 0 ? 'Edit Questions' : 'Add Questions'}
-                  </button>
-                </div>
-                <div className="text-center py-8 text-slate-500">
-                  <FileText className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                  <p>No questions yet</p>
-                  <p className="text-xs mt-1">Add questions to start the quiz</p>
-                </div>
-              </div>
-
-              {/* Settings Summary */}
-              <div className="bg-slate-800/50 rounded-xl p-4">
-                <h4 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
-                  <Settings className="w-4 h-4" />
-                  Quiz Settings
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {selectedLiveQuiz.show_leaderboard && <span className="px-2 py-1 bg-slate-700 text-slate-300 rounded text-xs">Leaderboard</span>}
-                  {selectedLiveQuiz.require_fullscreen && <span className="px-2 py-1 bg-slate-700 text-slate-300 rounded text-xs">Fullscreen</span>}
-                  {selectedLiveQuiz.show_correct_answers && <span className="px-2 py-1 bg-slate-700 text-slate-300 rounded text-xs">Show Answers</span>}
-                  {selectedLiveQuiz.allow_late_join && <span className="px-2 py-1 bg-slate-700 text-slate-300 rounded text-xs">Late Join</span>}
-                  {selectedLiveQuiz.shuffle_questions && <span className="px-2 py-1 bg-slate-700 text-slate-300 rounded text-xs">Shuffle Qs</span>}
-                  {selectedLiveQuiz.shuffle_answers && <span className="px-2 py-1 bg-slate-700 text-slate-300 rounded text-xs">Shuffle As</span>}
-                </div>
-              </div>
+            {/* Tab Navigation */}
+            <div className="flex border-b border-slate-700 bg-slate-800/50">
+              <button
+                onClick={() => setDetailTab('overview')}
+                className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition border-b-2 ${detailTab === 'overview' ? 'border-orange-500 text-orange-400' : 'border-transparent text-slate-400 hover:text-white'}`}
+              >
+                <Eye className="w-4 h-4" />
+                Overview
+              </button>
+              <button
+                onClick={async () => {
+                  setDetailTab('scores')
+                  if (quizScores.length === 0) {
+                    setLoadingScores(true)
+                    try {
+                      const data = await liveQuizService.getFinalOverview(selectedLiveQuiz.id)
+                      setQuizScores(data.leaderboard || [])
+                    } catch {
+                      setQuizScores([])
+                    } finally {
+                      setLoadingScores(false)
+                    }
+                  }
+                }}
+                className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition border-b-2 ${detailTab === 'scores' ? 'border-orange-500 text-orange-400' : 'border-transparent text-slate-400 hover:text-white'}`}
+              >
+                <Award className="w-4 h-4" />
+                Student Scores
+              </button>
             </div>
 
-            {/* Footer Actions */}
-            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 sm:p-6 border-t border-slate-700 bg-slate-800/30">
-              <button
-                onClick={() => {
-                  deleteLiveQuiz(selectedLiveQuiz.id)
-                  setSelectedLiveQuiz(null)
-                }}
-                className="px-4 py-2.5 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition flex items-center justify-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete Quiz
-              </button>
-              <div className="flex gap-2 sm:gap-3">
-                <button
-                  onClick={() => setSelectedLiveQuiz(null)}
-                  className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition"
-                >
-                  Close
-                </button>
-                {selectedLiveQuiz.questions_count > 0 && (
-                  <button
-                    onClick={() => toast('Start quiz session coming soon!', { icon: '🚀' })}
-                    className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-xl transition flex items-center justify-center gap-2"
-                  >
-                    <Play className="w-4 h-4" />
-                    Start
-                  </button>
-                )}
-              </div>
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              {detailTab === 'overview' ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                  {/* Left Column */}
+                  <div className="space-y-4">
+                    {/* Join Code & Share */}
+                    <div className="bg-slate-800/50 rounded-xl p-4">
+                      <h4 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+                        <Radio className="w-4 h-4 text-orange-400" />
+                        Join Information
+                      </h4>
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <p className="text-xs text-slate-500">Join Code</p>
+                          <p className="text-2xl font-mono font-bold text-orange-400">{selectedLiveQuiz.join_code}</p>
+                        </div>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(selectedLiveQuiz.join_code).then(() => toast.success('Code copied!'))}
+                          className="px-3 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg transition flex items-center gap-1.5 text-sm"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          Copy
+                        </button>
+                      </div>
+                      <div className="bg-slate-700/40 rounded-lg p-2.5 flex items-center justify-between gap-2">
+                        <p className="text-xs font-mono text-slate-400 truncate">
+                          {typeof window !== 'undefined' ? window.location.origin : ''}/join-quiz/{selectedLiveQuiz.join_code}
+                        </p>
+                        <button
+                          onClick={() => {
+                            const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/join-quiz/${selectedLiveQuiz.join_code}`
+                            navigator.clipboard.writeText(url).then(() => toast.success('Link copied!'))
+                          }}
+                          className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-white rounded text-xs flex items-center gap-1 flex-shrink-0"
+                        >
+                          <Link className="w-3 h-3" />
+                          Link
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Scheduling */}
+                    <div className="bg-slate-800/50 rounded-xl p-4">
+                      <h4 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        Scheduling
+                      </h4>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <p className="text-slate-500 text-xs">Opens At</p>
+                          <p className="text-white">{selectedLiveQuiz.scheduled_start ? new Date(selectedLiveQuiz.scheduled_start).toLocaleString() : 'Immediate'}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500 text-xs">Deadline</p>
+                          <p className="text-white">{selectedLiveQuiz.deadline ? new Date(selectedLiveQuiz.deadline).toLocaleString() : 'No deadline'}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500 text-xs">Max Retakes</p>
+                          <p className="text-white">{selectedLiveQuiz.max_retakes === 0 ? 'Unlimited' : selectedLiveQuiz.max_retakes}</p>
+                        </div>
+                        <div>
+                          <p className="text-slate-500 text-xs">Time Limit</p>
+                          <p className="text-white">{selectedLiveQuiz.time_limit_minutes ? `${selectedLiveQuiz.time_limit_minutes} min` : 'No limit'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Settings */}
+                    <div className="bg-slate-800/50 rounded-xl p-4">
+                      <h4 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+                        <Settings className="w-4 h-4" />
+                        Quiz Settings
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedLiveQuiz.show_leaderboard && <span className="px-2.5 py-1 bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg text-xs">Leaderboard</span>}
+                        {selectedLiveQuiz.require_fullscreen && <span className="px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg text-xs">Fullscreen</span>}
+                        {selectedLiveQuiz.show_correct_answers && <span className="px-2.5 py-1 bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-lg text-xs">Show Answers</span>}
+                        {selectedLiveQuiz.allow_late_join && <span className="px-2.5 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded-lg text-xs">Late Join</span>}
+                        {selectedLiveQuiz.shuffle_questions && <span className="px-2.5 py-1 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-lg text-xs">Shuffle Qs</span>}
+                        {selectedLiveQuiz.shuffle_answers && <span className="px-2.5 py-1 bg-pink-500/10 text-pink-400 border border-pink-500/20 rounded-lg text-xs">Shuffle As</span>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column */}
+                  <div className="space-y-4">
+                    {/* Questions */}
+                    <div className="bg-slate-800/50 rounded-xl p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-medium text-slate-300 flex items-center gap-2">
+                          <FileText className="w-4 h-4" />
+                          Questions
+                        </h4>
+                        <button
+                          onClick={() => setShowQuestionEditor(true)}
+                          className="px-3 py-1.5 bg-orange-600/20 hover:bg-orange-600 text-orange-400 hover:text-white rounded-lg transition text-sm flex items-center gap-1"
+                        >
+                          <PlusCircle className="w-3.5 h-3.5" />
+                          {selectedLiveQuiz.questions_count > 0 ? 'Edit' : 'Add'}
+                        </button>
+                      </div>
+                      {selectedLiveQuiz.questions_count > 0 ? (
+                        <div className="bg-gradient-to-br from-orange-500/10 to-purple-500/10 border border-orange-500/20 rounded-lg p-6 text-center">
+                          <p className="text-3xl font-bold text-white">{selectedLiveQuiz.questions_count}</p>
+                          <p className="text-sm text-slate-400 mt-1">questions ready</p>
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 text-slate-500">
+                          <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">No questions yet</p>
+                          <p className="text-xs mt-1">Click Add to get started</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Quick Stats */}
+                    <div className="bg-slate-800/50 rounded-xl p-4">
+                      <h4 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+                        <BarChart2 className="w-4 h-4" />
+                        Quick Stats
+                      </h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-slate-700/30 rounded-lg p-3 text-center">
+                          <p className="text-xs text-slate-500">Max Participants</p>
+                          <p className="text-lg font-bold text-white">{selectedLiveQuiz.max_participants}</p>
+                        </div>
+                        <div className="bg-slate-700/30 rounded-lg p-3 text-center">
+                          <p className="text-xs text-slate-500">Question Time</p>
+                          <p className="text-lg font-bold text-white">{selectedLiveQuiz.default_question_time}s</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="bg-slate-800/50 rounded-xl p-4 space-y-2">
+                      <h4 className="text-sm font-medium text-slate-300 mb-3 flex items-center gap-2">
+                        <Play className="w-4 h-4" />
+                        Actions
+                      </h4>
+                      {selectedLiveQuiz.questions_count > 0 && (
+                        <button
+                          onClick={() => toast('Start quiz session coming soon!', { icon: '\u{1F680}' })}
+                          className="w-full px-4 py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-lg transition flex items-center justify-center gap-2 font-medium"
+                        >
+                          <Play className="w-4 h-4" />
+                          Start Quiz Session
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          deleteLiveQuiz(selectedLiveQuiz.id)
+                          setSelectedLiveQuiz(null)
+                        }}
+                        className="w-full px-4 py-2 bg-red-600/10 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        Delete Quiz
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Student Scores Tab */
+                <div>
+                  {/* Header with CSV Export */}
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                      <Award className="w-4 h-4 text-orange-400" />
+                      Student Final Scores
+                    </h3>
+                    {quizScores.length > 0 && (
+                      <button
+                        onClick={() => {
+                          const headers = ['Rank', 'Student Name', 'Score', 'Correct Answers', 'Total Attempted', 'Accuracy (%)', 'Avg Response Time (s)', 'Violations', 'Status']
+                          const rows = quizScores.map((s: any, i: number) => [
+                            i + 1,
+                            '"' + (s.nickname || s.student_info?.username || 'Anonymous') + '"',
+                            s.total_score,
+                            s.total_correct,
+                            s.total_attempted,
+                            s.total_attempted > 0 ? ((s.total_correct / s.total_attempted) * 100).toFixed(1) : '0.0',
+                            s.average_response_time?.toFixed(1) || '0.0',
+                            (s.fullscreen_violations || 0) + (s.tab_switch_count || 0) + (s.copy_paste_attempts || 0),
+                            s.is_flagged ? 'Flagged' : 'Clean'
+                          ])
+                          const csv = [headers.join(','), ...rows.map((r: any[]) => r.join(','))].join('\n')
+                          const blob = new Blob([csv], { type: 'text/csv' })
+                          const url = URL.createObjectURL(blob)
+                          const a = document.createElement('a')
+                          a.href = url
+                          a.download = `${selectedLiveQuiz.title.replace(/[^a-zA-Z0-9]/g, '_')}_scores.csv`
+                          a.click()
+                          URL.revokeObjectURL(url)
+                          toast.success('CSV downloaded!')
+                        }}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition flex items-center gap-2 text-sm font-medium"
+                      >
+                        <Download className="w-4 h-4" />
+                        Export CSV
+                      </button>
+                    )}
+                  </div>
+
+                  {loadingScores ? (
+                    <div className="flex items-center justify-center py-16">
+                      <Loader2 className="w-6 h-6 text-orange-500 animate-spin" />
+                      <span className="ml-2 text-slate-400">Loading scores...</span>
+                    </div>
+                  ) : quizScores.length === 0 ? (
+                    <div className="text-center py-16 text-slate-500">
+                      <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                      <p className="text-lg font-medium">No student results yet</p>
+                      <p className="text-sm mt-1">Scores will appear here after students complete the quiz</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-slate-700">
+                            <th className="text-left py-3 px-3 text-slate-400 font-medium text-xs uppercase tracking-wider">Rank</th>
+                            <th className="text-left py-3 px-3 text-slate-400 font-medium text-xs uppercase tracking-wider">Student</th>
+                            <th className="text-center py-3 px-3 text-slate-400 font-medium text-xs uppercase tracking-wider">Score</th>
+                            <th className="text-center py-3 px-3 text-slate-400 font-medium text-xs uppercase tracking-wider">Correct</th>
+                            <th className="text-center py-3 px-3 text-slate-400 font-medium text-xs uppercase tracking-wider">Attempted</th>
+                            <th className="text-center py-3 px-3 text-slate-400 font-medium text-xs uppercase tracking-wider">Accuracy</th>
+                            <th className="text-center py-3 px-3 text-slate-400 font-medium text-xs uppercase tracking-wider">Avg Time</th>
+                            <th className="text-center py-3 px-3 text-slate-400 font-medium text-xs uppercase tracking-wider">Violations</th>
+                            <th className="text-center py-3 px-3 text-slate-400 font-medium text-xs uppercase tracking-wider">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {quizScores.map((student: any, index: number) => {
+                            const accuracy = student.total_attempted > 0 ? ((student.total_correct / student.total_attempted) * 100).toFixed(1) : '0.0'
+                            const violations = (student.fullscreen_violations || 0) + (student.tab_switch_count || 0) + (student.copy_paste_attempts || 0)
+                            return (
+                              <tr key={student.id || index} className="border-b border-slate-800 hover:bg-slate-800/50 transition">
+                                <td className="py-3 px-3">
+                                  <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
+                                    index === 0 ? 'bg-yellow-500/20 text-yellow-400 ring-1 ring-yellow-500/30' :
+                                    index === 1 ? 'bg-slate-400/20 text-slate-300 ring-1 ring-slate-400/30' :
+                                    index === 2 ? 'bg-orange-600/20 text-orange-400 ring-1 ring-orange-600/30' :
+                                    'bg-slate-700/50 text-slate-400'
+                                  }`}>
+                                    {index + 1}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-3">
+                                  <p className="text-white font-medium">{student.nickname || student.student_info?.username || 'Anonymous'}</p>
+                                  {student.student_info?.email && <p className="text-xs text-slate-500">{student.student_info.email}</p>}
+                                </td>
+                                <td className="py-3 px-3 text-center">
+                                  <span className="text-white font-bold text-base">{student.total_score}</span>
+                                </td>
+                                <td className="py-3 px-3 text-center text-green-400">{student.total_correct}</td>
+                                <td className="py-3 px-3 text-center text-slate-300">{student.total_attempted}</td>
+                                <td className="py-3 px-3 text-center">
+                                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                    parseFloat(accuracy) >= 80 ? 'bg-green-500/20 text-green-400' :
+                                    parseFloat(accuracy) >= 50 ? 'bg-yellow-500/20 text-yellow-400' :
+                                    'bg-red-500/20 text-red-400'
+                                  }`}>
+                                    {accuracy}%
+                                  </span>
+                                </td>
+                                <td className="py-3 px-3 text-center text-slate-400">{student.average_response_time?.toFixed(1) || '0.0'}s</td>
+                                <td className="py-3 px-3 text-center">
+                                  <span className={violations > 0 ? 'text-yellow-400' : 'text-slate-500'}>{violations}</span>
+                                </td>
+                                <td className="py-3 px-3 text-center">
+                                  {student.is_flagged ? (
+                                    <span className="px-2 py-0.5 bg-red-500/20 text-red-400 rounded text-xs font-medium">Flagged</span>
+                                  ) : (
+                                    <span className="px-2 py-0.5 bg-green-500/20 text-green-400 rounded text-xs font-medium">Clean</span>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                      {/* Summary Footer */}
+                      <div className="mt-4 pt-4 border-t border-slate-700 flex flex-wrap items-center gap-6 text-sm text-slate-400">
+                        <span><strong className="text-white">{quizScores.length}</strong> students</span>
+                        <span>Avg Score: <strong className="text-white">{(quizScores.reduce((a: number, s: any) => a + s.total_score, 0) / quizScores.length).toFixed(1)}</strong></span>
+                        <span>Highest: <strong className="text-green-400">{Math.max(...quizScores.map((s: any) => s.total_score))}</strong></span>
+                        <span>Lowest: <strong className="text-red-400">{Math.min(...quizScores.map((s: any) => s.total_score))}</strong></span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Live Quiz Question Editor */}
+      {/* Live Quiz Question Editor - Full screen modal */}
       {showQuestionEditor && selectedLiveQuiz && (
-        <LiveQuizQuestionEditor
-          quizId={selectedLiveQuiz.id}
-          onClose={() => {
-            setShowQuestionEditor(false)
-            setSelectedLiveQuiz(null)
-          }}
-          onQuestionsChange={async () => {
-            await fetchLiveQuizzes()
-            toast.success('Questions updated successfully')
-          }}
-        />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-white">{selectedLiveQuiz.title} — Questions</h3>
+              <button
+                onClick={() => {
+                  setShowQuestionEditor(false)
+                }}
+                className="p-2 hover:bg-slate-800 rounded-lg transition"
+              >
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+            <LiveQuizQuestionEditor
+              quizId={selectedLiveQuiz.id}
+              onClose={() => {
+                setShowQuestionEditor(false)
+                setSelectedLiveQuiz(null)
+              }}
+              onQuestionsChange={async () => {
+                await fetchLiveQuizzes()
+                // Refresh selectedLiveQuiz with updated data from the list
+                setLiveQuizzes(prev => {
+                  const updated = prev.find(q => q.id === selectedLiveQuiz.id)
+                  if (updated) setSelectedLiveQuiz(updated)
+                  return prev
+                })
+                toast.success('Questions updated successfully')
+              }}
+            />
+          </div>
+        </div>
       )}
 
       {/* Quiz Creation Transition Loading */}
