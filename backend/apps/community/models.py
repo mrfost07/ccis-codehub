@@ -13,6 +13,7 @@ class Post(models.Model):
     
     POST_TYPE_CHOICES = [
         ('text', 'Text'),
+        ('image', 'Image'),
         ('question', 'Question'),
         ('showcase', 'Showcase'),
         ('tutorial', 'Tutorial'),
