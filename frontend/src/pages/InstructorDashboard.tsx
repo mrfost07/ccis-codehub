@@ -2477,7 +2477,7 @@ function InstructorDashboard() {
                       e.stopPropagation()
                       setShowQuizEditor(!showQuizEditor)
                     }}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg transition flex items-center justify-center gap-2 font-semibold"
+                    className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg transition flex items-center justify-center gap-2 font-semibold"
                   >
                     {showQuizEditor ? '📝 Hide Question Editor' : '✨ Create Questions (Multiple Choice, T/F, Essay)'}
                   </button>
@@ -2808,7 +2808,7 @@ function InstructorDashboard() {
                       e.stopPropagation()
                       setShowQuizEditor(!showQuizEditor)
                     }}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg transition flex items-center justify-center gap-2 font-semibold"
+                    className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg transition flex items-center justify-center gap-2 font-semibold"
                   >
                     {showQuizEditor ? '📝 Hide Question Editor' : '✨ Edit Questions (Multiple Choice, T/F, Essay)'}
                   </button>

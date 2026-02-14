@@ -273,7 +273,7 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
             </div>
             <button
               onClick={handleRetry}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition font-medium flex items-center justify-center gap-2"
+              className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg transition font-medium flex items-center justify-center gap-2"
             >
               <RotateCcw className="w-4 h-4" />
               Retake Quiz
@@ -307,8 +307,8 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
               <label
                 key={choice.id}
                 className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${isSelected
-                    ? 'bg-blue-600/20 border-blue-500 text-white'
-                    : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:border-slate-600'
+                  ? 'bg-blue-600/20 border-blue-500 text-white'
+                  : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:border-slate-600'
                   }`}
               >
                 <input
@@ -338,8 +338,8 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
               <label
                 key={option.id}
                 className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${isSelected
-                    ? 'bg-blue-600/20 border-blue-500 text-white'
-                    : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:border-slate-600'
+                  ? 'bg-blue-600/20 border-blue-500 text-white'
+                  : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:border-slate-600'
                   }`}
               >
                 <input
@@ -399,7 +399,7 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
         </div>
         <div className="w-full bg-slate-700 rounded-full h-2">
           <div
-            className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 h-2 rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -440,10 +440,10 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
               key={q.number}
               onClick={() => goToQuestion(index)}
               className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-sm font-medium transition flex-shrink-0 ${index === currentQuestionIndex
-                  ? 'bg-blue-600 text-white'
-                  : isAnswered(q.number)
-                    ? 'bg-green-600/30 text-green-400 border border-green-600/50'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                ? 'bg-blue-600 text-white'
+                : isAnswered(q.number)
+                  ? 'bg-green-600/30 text-green-400 border border-green-600/50'
+                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                 }`}
             >
               {q.number}

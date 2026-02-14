@@ -322,7 +322,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
 
       return `
         <div class="module-slide" data-slide="${index + 1}">
-          <h2 style="color: #60a5fa; margin-bottom: 1rem; font-size: 1.5rem; font-weight: bold;">
+          <h2 style="color: #a78bfa; margin-bottom: 1rem; font-size: 1.5rem; font-weight: bold;">
             Question ${index + 1}: ${q.title}
           </h2>
           <div class="question-content" style="margin-bottom: 1.5rem;">
