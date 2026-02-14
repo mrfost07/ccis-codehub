@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './contexts/AuthContext'
@@ -32,6 +33,8 @@ import ProfileEnhanced from './pages/ProfileEnhanced'
 import UserProfileView from './pages/UserProfileView'
 import AuthCallback from './pages/AuthCallback'
 import CompleteProfile from './pages/CompleteProfile'
+import { Capacitor } from '@capacitor/core'
+import { App as CapApp } from '@capacitor/app'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,6 +55,7 @@ function App() {
       <AuthProvider>
         <Router>
           <div className="min-h-screen bg-slate-950 text-white">
+            <AppMobileHandler />
             <Toaster
               position="top-right"
               toastOptions={{
@@ -224,6 +228,31 @@ function App() {
       </AuthProvider>
     </QueryClientProvider>
   )
+}
+
+function AppMobileHandler() {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    // Handle Deep Links (for browser-based OAuth success)
+    CapApp.addListener('appUrlOpen', (data: { url: string }) => {
+      const slug = data.url.split('.space').pop()
+      if (slug) {
+        navigate(slug)
+      }
+    })
+
+    // Handle Mobile-Only Landing Page: Redirect home (/) to /login
+    if (Capacitor.isNativePlatform() && window.location.pathname === '/') {
+      navigate('/login', { replace: true })
+    }
+
+    return () => {
+      CapApp.removeAllListeners()
+    }
+  }, [navigate])
+
+  return null
 }
 
 export default App

@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core'
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
 import api, { authAPI } from '../services/api'
 
@@ -116,6 +117,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     removeByPrefix(sessionStorage, 'ai_mentor_session_id_')
 
     console.log('Auth state and app storage cleared')
+
+    // Redirect to login on mobile
+    if (Capacitor.isNativePlatform()) {
+      window.location.href = '/login';
+    } else {
+      window.location.href = '/';
+    }
   }, [])
 
   const refreshUser = useCallback(async () => {
