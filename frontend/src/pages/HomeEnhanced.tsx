@@ -431,17 +431,32 @@ export default function HomeEnhanced() {
                   </span>
                 </h2>
                 <p className="text-xl text-slate-300 mb-8">
-                  Join 1000+ SNSU CCIS students already learning smarter with AI
+                  Join {stats.total_users > 0 ? `${stats.total_users}+` : ''} SNSU CCIS students already learning smarter with AI
                 </p>
-                <Link
-                  to="/register"
-                  className="inline-flex items-center space-x-2 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl text-lg font-bold hover:from-indigo-500 hover:to-purple-500 transition-all transform hover:scale-105 hover:shadow-2xl hover:shadow-indigo-500/50"
-                >
-                  <span>Start Learning Now</span>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </Link>
+                <div className="flex flex-col sm:flex-row justify-center gap-4">
+                  <Link
+                    to="/register"
+                    className="inline-flex items-center justify-center space-x-2 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl text-lg font-bold hover:from-indigo-500 hover:to-purple-500 transition-all transform hover:scale-105 hover:shadow-2xl hover:shadow-indigo-500/50"
+                  >
+                    <span>Start Learning Now</span>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    </svg>
+                  </Link>
+                  <a
+                    href="/app/ccis-codehub.apk"
+                    download
+                    className="inline-flex items-center justify-center space-x-2 px-8 py-4 bg-white/5 border border-white/10 rounded-xl text-lg font-bold text-slate-300 hover:bg-white/10 hover:text-white transition-all transform hover:scale-105"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    <span>Get the App</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </a>
+                </div>
               </div>
             </div>
           </div>
