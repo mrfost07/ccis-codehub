@@ -10,7 +10,7 @@
         <!-- Video Splash Screen (Launcher) -->
         <activity
             android:name=".SplashActivity"
-            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:theme="@style/SplashTheme"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -35,7 +35,6 @@
                 <data android:scheme="https" android:host="ccis-codehub.space" android:pathPrefix="/auth/callback" />
             </intent-filter>
         </activity>
-
 
         <provider
             android:name="androidx.core.content.FileProvider"

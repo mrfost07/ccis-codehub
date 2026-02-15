@@ -1,19 +1,22 @@
 package com.snsu.cciscodehub;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.VideoView;
-import androidx.appcompat.app.AppCompatActivity;
 
-public class SplashActivity extends AppCompatActivity {
+public class SplashActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         // Fullscreen immersive
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(
             WindowManager.LayoutParams.FLAG_FULLSCREEN,
             WindowManager.LayoutParams.FLAG_FULLSCREEN
@@ -50,11 +53,10 @@ public class SplashActivity extends AppCompatActivity {
         startActivity(intent);
         finish();
         // No transition animation for a clean handoff
-        overridePendingTransition(0, 0);
-    }
-
-    @Override
-    public void onBackPressed() {
-        // Prevent back press during splash
+        if (Build.VERSION.SDK_INT >= 34) {
+            overrideActivityTransition(OVERRIDE_TRANSITION_OPEN, 0, 0);
+        } else {
+            overridePendingTransition(0, 0);
+        }
     }
 }
