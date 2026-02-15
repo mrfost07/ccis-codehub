@@ -2,25 +2,25 @@ package com.snsu.cciscodehub;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.SurfaceTexture;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
+import android.view.Surface;
+import android.view.TextureView;
 import android.view.Window;
 import android.view.WindowManager;
 
-public class SplashActivity extends Activity implements SurfaceHolder.Callback {
+public class SplashActivity extends Activity implements TextureView.SurfaceTextureListener {
 
     private MediaPlayer mediaPlayer;
-    private SurfaceView surfaceView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Fullscreen immersive before setting content
+        // Fullscreen before setting content
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(
             WindowManager.LayoutParams.FLAG_FULLSCREEN,
@@ -29,25 +29,22 @@ public class SplashActivity extends Activity implements SurfaceHolder.Callback {
 
         setContentView(R.layout.activity_splash);
 
-        surfaceView = findViewById(R.id.splashSurface);
-        surfaceView.getHolder().addCallback(this);
+        TextureView textureView = findViewById(R.id.splashVideo);
+        textureView.setSurfaceTextureListener(this);
     }
 
     @Override
-    public void surfaceCreated(SurfaceHolder holder) {
+    public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
         try {
             mediaPlayer = new MediaPlayer();
             Uri videoUri = Uri.parse("android.resource://" + getPackageName() + "/" + R.raw.splash_video);
             mediaPlayer.setDataSource(this, videoUri);
-            mediaPlayer.setDisplay(holder);
+            mediaPlayer.setSurface(new Surface(surfaceTexture));
             mediaPlayer.setOnPreparedListener(mp -> {
-                // Scale video to fill screen
                 mp.setVideoScalingMode(MediaPlayer.VIDEO_SCALING_MODE_SCALE_TO_FIT_WITH_CROPPING);
                 mp.start();
             });
-            mediaPlayer.setOnCompletionListener(mp -> {
-                startMainActivity();
-            });
+            mediaPlayer.setOnCompletionListener(mp -> startMainActivity());
             mediaPlayer.setOnErrorListener((mp, what, extra) -> {
                 startMainActivity();
                 return true;
@@ -59,11 +56,18 @@ public class SplashActivity extends Activity implements SurfaceHolder.Callback {
     }
 
     @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+    public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {}
+
+    @Override
+    public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+        releasePlayer();
+        return true;
     }
 
     @Override
-    public void surfaceDestroyed(SurfaceHolder holder) {
+    public void onSurfaceTextureUpdated(SurfaceTexture surface) {}
+
+    private void releasePlayer() {
         if (mediaPlayer != null) {
             mediaPlayer.release();
             mediaPlayer = null;
@@ -71,10 +75,7 @@ public class SplashActivity extends Activity implements SurfaceHolder.Callback {
     }
 
     private void startMainActivity() {
-        if (mediaPlayer != null) {
-            mediaPlayer.release();
-            mediaPlayer = null;
-        }
+        releasePlayer();
         Intent intent = new Intent(this, MainActivity.class);
         if (getIntent() != null && getIntent().getData() != null) {
             intent.setData(getIntent().getData());
@@ -91,9 +92,6 @@ public class SplashActivity extends Activity implements SurfaceHolder.Callback {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (mediaPlayer != null) {
-            mediaPlayer.release();
-            mediaPlayer = null;
-        }
+        releasePlayer();
     }
 }
