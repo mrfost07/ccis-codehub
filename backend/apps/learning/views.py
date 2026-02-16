@@ -603,6 +603,98 @@ class CertificateViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_queryset(self):
         return Certificate.objects.filter(user=self.request.user)
+    
+    @action(detail=True, methods=['get'])
+    def download(self, request, pk=None):
+        """Download certificate image as attachment"""
+        import os
+        from django.http import FileResponse, Http404
+        from django.conf import settings
+        
+        certificate = self.get_object()
+        
+        if not certificate.pdf_url:
+            return Response(
+                {'error': 'Certificate image not yet generated. Please claim it first.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Resolve the file path from the relative URL
+        # pdf_url is stored as '/media/certificates/issued/filename.png'
+        relative_path = certificate.pdf_url.lstrip('/')
+        if relative_path.startswith('media/'):
+            relative_path = relative_path[6:]  # Remove 'media/' prefix
+        
+        file_path = os.path.join(settings.MEDIA_ROOT, relative_path)
+        
+        if not os.path.exists(file_path):
+            # Try to regenerate
+            try:
+                from .utils.certificate_generator import generate_certificate_pdf
+                new_path = generate_certificate_pdf(
+                    certificate=certificate,
+                    career_path=certificate.career_path
+                )
+                if new_path:
+                    certificate.pdf_url = new_path
+                    certificate.save(update_fields=['pdf_url'])
+                    relative_path = new_path.lstrip('/')
+                    if relative_path.startswith('media/'):
+                        relative_path = relative_path[6:]
+                    file_path = os.path.join(settings.MEDIA_ROOT, relative_path)
+                else:
+                    raise Http404("Certificate file could not be generated")
+            except Exception as e:
+                return Response(
+                    {'error': f'Certificate file not found and regeneration failed: {str(e)}'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        
+        # Serve the file as a downloadable attachment
+        filename = f"Certificate_{certificate.career_path.name.replace(' ', '_')}_{certificate.certificate_id}.png"
+        response = FileResponse(
+            open(file_path, 'rb'),
+            content_type='image/png'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    
+    @action(detail=True, methods=['post'])
+    def claim(self, request, pk=None):
+        """Claim/regenerate a certificate image"""
+        certificate = self.get_object()
+        
+        try:
+            from .utils.certificate_generator import generate_certificate_pdf
+            pdf_path = generate_certificate_pdf(
+                certificate=certificate,
+                career_path=certificate.career_path
+            )
+            
+            if pdf_path:
+                certificate.pdf_url = pdf_path
+                certificate.save(update_fields=['pdf_url'])
+                
+                serializer = self.get_serializer(certificate)
+                return Response({
+                    'message': 'Certificate generated successfully!',
+                    'certificate': serializer.data
+                })
+            else:
+                return Response(
+                    {'error': 'Failed to generate certificate image'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        except ImportError:
+            return Response(
+                {'error': 'Certificate generator not available. Please install Pillow.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to generate certificate: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class EnrollmentViewSet(viewsets.ModelViewSet):

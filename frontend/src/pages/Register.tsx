@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Capacitor } from '@capacitor/core'
+import { Browser } from '@capacitor/browser'
 import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { authAPI } from '../services/api'
@@ -156,13 +158,18 @@ export default function Register() {
     }
   }
 
-  const handleGoogleSignup = () => {
+  const handleGoogleSignup = async () => {
     const clientId = '1018587300192-m0n93uesm6v33bahs57tatg52v3lurah.apps.googleusercontent.com'
-    const redirectUri = encodeURIComponent(window.location.origin + '/auth/callback')
+    const redirectUri = encodeURIComponent('https://ccis-codehub.space/auth/callback')
     const scope = encodeURIComponent('openid email profile')
     const state = btoa(JSON.stringify({ mode: 'signup' }))
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=${state}`
-    window.location.href = authUrl
+
+    if (Capacitor.isNativePlatform()) {
+      await Browser.open({ url: authUrl })
+    } else {
+      window.location.href = authUrl
+    }
   }
 
   return (

@@ -42,31 +42,31 @@ export default function Certificates() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-6 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8 sm:mb-12">
           <div className="inline-flex items-center gap-3 bg-blue-600/20 backdrop-blur-sm border border-blue-500/30 rounded-full px-6 py-3 mb-6">
             <Trophy className="w-6 h-6 text-yellow-400" />
             <span className="text-blue-100 font-semibold">Your Achievements</span>
           </div>
-          
-          <h1 className="text-5xl font-bold text-white mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+
+          <h1 className="text-3xl sm:text-5xl font-bold text-white mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
             My Certificates
           </h1>
-          
-          <p className="text-xl text-slate-300 max-w-2xl mx-auto">
+
+          <p className="text-base sm:text-xl text-slate-300 max-w-2xl mx-auto">
             Celebrate your learning journey with these verified certificates
           </p>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12">
           <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6 text-center">
             <Award className="w-12 h-12 text-blue-400 mx-auto mb-3" />
             <div className="text-3xl font-bold text-white mb-1">{certificates.length}</div>
             <div className="text-slate-300">Certificates Earned</div>
           </div>
-          
+
           <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6 text-center">
             <Trophy className="w-12 h-12 text-yellow-400 mx-auto mb-3" />
             <div className="text-3xl font-bold text-white mb-1">
@@ -74,7 +74,7 @@ export default function Certificates() {
             </div>
             <div className="text-slate-300">Programs Completed</div>
           </div>
-          
+
           <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl p-6 text-center">
             <Star className="w-12 h-12 text-purple-400 mx-auto mb-3" />
             <div className="text-3xl font-bold text-white mb-1">
@@ -91,9 +91,9 @@ export default function Certificates() {
             <p className="text-slate-300">Loading your certificates...</p>
           </div>
         ) : certificates.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {certificates.map((certificate) => (
-              <CertificateCard key={certificate.id} certificate={certificate} />
+              <CertificateCard key={certificate.id} certificate={certificate} onUpdate={fetchCertificates} />
             ))}
           </div>
         ) : (

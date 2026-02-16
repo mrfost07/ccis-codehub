@@ -5,6 +5,8 @@ import { authAPI } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import { Mail, Lock, ArrowLeft, Loader2 } from 'lucide-react'
 import CaptchaCheckbox from '../components/CaptchaCheckbox'
+import { Capacitor } from '@capacitor/core'
+import { Browser } from '@capacitor/browser'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -60,14 +62,22 @@ export default function Login() {
     }
   }
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
     const clientId = '1018587300192-m0n93uesm6v33bahs57tatg52v3lurah.apps.googleusercontent.com'
-    const redirectUri = encodeURIComponent(window.location.origin + '/auth/callback')
+    const redirectUri = encodeURIComponent('https://ccis-codehub.space/auth/callback')
     const scope = encodeURIComponent('openid email profile')
     const state = btoa(JSON.stringify({ mode: 'login' }))
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=${state}`
-    window.location.href = authUrl
+
+    if (Capacitor.isNativePlatform()) {
+      // Open in Chrome Custom Tab — the callback URL will trigger the intent filter
+      // which routes back to the app via the deep link
+      await Browser.open({ url: authUrl })
+    } else {
+      window.location.href = authUrl
+    }
   }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">

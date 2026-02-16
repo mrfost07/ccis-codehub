@@ -967,6 +967,7 @@ function GroupDetailView({
     try {
       const formData = new FormData()
       formData.append('content', newPost)
+      formData.append('post_type', postImage ? 'image' : 'text')
       formData.append('organization', org.id)
       if (postImage) {
         formData.append('image', postImage)
