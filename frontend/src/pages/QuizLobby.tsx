@@ -106,7 +106,7 @@ const QuizLobby = () => {
 
     return (
         <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-950 to-slate-950" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-950 to-slate-950" />
 
             <div className="relative w-full max-w-lg text-center">
                 {/* Connection Status Indicator */}
@@ -125,7 +125,7 @@ const QuizLobby = () => {
 
                 <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 md:p-12 shadow-2xl relative overflow-hidden">
                     {/* Decorative elements */}
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-500" />
 
                     <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">{quizTitle}</h1>
                     <p className="text-slate-400 text-lg mb-4">Hosted by <span className="text-white font-medium">{hostName}</span></p>
@@ -134,7 +134,7 @@ const QuizLobby = () => {
                     {(lobbyState.attemptsMessage || lobbyState.timeLimitMinutes) && (
                         <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
                             {lobbyState.attemptsMessage && (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 text-blue-400 text-xs font-medium rounded-full border border-blue-500/20">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-500/10 text-purple-400 text-xs font-medium rounded-full border border-purple-500/20">
                                     <Info className="w-3.5 h-3.5" />
                                     {lobbyState.attemptsMessage}
                                 </span>
@@ -150,8 +150,8 @@ const QuizLobby = () => {
 
                     <div className="flex flex-col items-center justify-center space-y-6">
                         <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center relative">
-                            <div className="absolute inset-0 rounded-full border-4 border-slate-700/50 border-t-blue-500 animate-spin" />
-                            <Clock className="w-10 h-10 text-blue-400" />
+                            <div className="absolute inset-0 rounded-full border-4 border-slate-700/50 border-t-purple-500 animate-spin" />
+                            <Clock className="w-10 h-10 text-purple-400" />
                         </div>
 
                         <div className="space-y-2">

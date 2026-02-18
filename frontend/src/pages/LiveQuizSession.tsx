@@ -379,7 +379,7 @@ const LiveQuizSession = () => {
         return (
             <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white">
                 <div className="text-center space-y-4">
-                    <Loader2 className="w-12 h-12 animate-spin mx-auto text-blue-500" />
+                    <Loader2 className="w-12 h-12 animate-spin mx-auto text-purple-500" />
                     <h2 className="text-2xl font-bold">Waiting for next question...</h2>
                     <p className="text-slate-400">The host will send the first question shortly</p>
                     {sessionState.quizTitle && (
@@ -388,7 +388,7 @@ const LiveQuizSession = () => {
                     {sessionState.requireFullscreen && !isFullscreen && (
                         <button
                             onClick={enterFullscreen}
-                            className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-sm font-medium transition flex items-center gap-2 mx-auto"
+                            className="mt-4 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-lg text-sm font-medium transition flex items-center gap-2 mx-auto"
                         >
                             <Maximize className="w-4 h-4" />
                             Enter Fullscreen
@@ -414,7 +414,7 @@ const LiveQuizSession = () => {
             <div className="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-10">
                 <div className="max-w-4xl mx-auto flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                        <span className="bg-blue-600 px-2 py-1 rounded text-xs font-bold text-white">LIVE</span>
+                        <span className="bg-gradient-to-r from-purple-600 to-indigo-600 px-2 py-1 rounded text-xs font-bold text-white">LIVE</span>
                         <span className="font-mono text-slate-400 text-sm">{joinCode}</span>
                         {gameState.questionNumber > 0 && (
                             <span className="text-slate-500 text-sm">
@@ -440,7 +440,7 @@ const LiveQuizSession = () => {
                 <div className="w-full bg-slate-800 h-2 rounded-full mb-8 overflow-hidden">
                     <div
                         className={`h-full transition-all duration-1000 ease-linear ${gameState.timeRemaining <= 5 ? 'bg-red-500' :
-                            gameState.timeRemaining <= 10 ? 'bg-amber-500' : 'bg-blue-500'
+                            gameState.timeRemaining <= 10 ? 'bg-amber-500' : 'bg-purple-500'
                             }`}
                         style={{ width: `${(gameState.timeRemaining / (gameState.currentQuestion.timeLimit || 30)) * 100}%` }}
                     />
@@ -454,7 +454,7 @@ const LiveQuizSession = () => {
                     <div className={`mt-6 flex justify-center items-center gap-2 font-mono text-xl ${gameState.timeRemaining <= 5 ? 'text-red-400' :
                         gameState.timeRemaining <= 10 ? 'text-amber-400' : 'text-slate-400'
                         }`}>
-                        <Timer className={`w-6 h-6 ${gameState.timeRemaining <= 5 ? 'text-red-400 animate-pulse' : 'text-blue-400'}`} />
+                        <Timer className={`w-6 h-6 ${gameState.timeRemaining <= 5 ? 'text-red-400 animate-pulse' : 'text-purple-400'}`} />
                         <span>{gameState.timeRemaining}s</span>
                     </div>
                 </div>
@@ -507,7 +507,7 @@ const LiveQuizSession = () => {
                             <button
                                 onClick={() => submitAnswer(codeAnswer)}
                                 disabled={isAnswerSubmitted}
-                                className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold flex items-center gap-2 transition disabled:opacity-50"
+                                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg font-bold flex items-center gap-2 transition disabled:opacity-50"
                             >
                                 {isAnswerSubmitted ? 'Submitted' : 'Submit Solution'}
                             </button>
@@ -521,7 +521,7 @@ const LiveQuizSession = () => {
                             const showResult = answerResult !== null;
 
                             let boxClass = "bg-slate-800 border-slate-700 hover:bg-slate-700";
-                            if (isSelected && !showResult) boxClass = "bg-blue-600 border-blue-500 text-white";
+                            if (isSelected && !showResult) boxClass = "bg-gradient-to-r from-purple-600 to-indigo-600 border-purple-500 text-white";
                             if (isAnswerSubmitted && !isSelected && !showResult) boxClass = "opacity-50 bg-slate-800 border-slate-700";
 
                             if (showResult) {

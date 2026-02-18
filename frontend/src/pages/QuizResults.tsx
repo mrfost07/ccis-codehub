@@ -25,7 +25,7 @@ const QuizResults = () => {
     const getEncouragement = (acc: number) => {
         if (acc >= 90) return { text: "Outstanding!", color: "text-yellow-400", icon: "🏆" };
         if (acc >= 70) return { text: "Great Job!", color: "text-green-400", icon: "🎉" };
-        if (acc >= 50) return { text: "Good Effort!", color: "text-blue-400", icon: "👏" };
+        if (acc >= 50) return { text: "Good Effort!", color: "text-indigo-400", icon: "👏" };
         return { text: "Keep Practicing!", color: "text-slate-400", icon: "💪" };
     };
 
@@ -33,14 +33,14 @@ const QuizResults = () => {
 
     return (
         <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-950 to-slate-950" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-950 to-slate-950" />
 
             <div className="relative w-full max-w-lg text-center space-y-6">
                 <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-3xl p-10 shadow-2xl">
                     {/* Trophy Icon */}
                     <div className="mb-6 flex justify-center">
                         <div className="relative">
-                            <div className="absolute inset-0 bg-blue-500 blur-2xl opacity-20 rounded-full" />
+                            <div className="absolute inset-0 bg-purple-500 blur-2xl opacity-20 rounded-full" />
                             <Trophy className={`w-24 h-24 ${color} drop-shadow-lg`} />
                         </div>
                     </div>
@@ -99,7 +99,7 @@ const QuizResults = () => {
                     <div className="mt-8 space-y-3">
                         <button
                             onClick={() => navigate('/dashboard')}
-                            className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold transition flex items-center justify-center gap-2 group"
+                            className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl font-semibold transition flex items-center justify-center gap-2 group"
                         >
                             <Home className="w-5 h-5" />
                             Back to Dashboard
@@ -109,7 +109,7 @@ const QuizResults = () => {
                             onClick={() => navigate('/join-quiz')}
                             className="w-full py-3.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-semibold transition flex items-center justify-center gap-2"
                         >
-                            <Target className="w-5 h-5 text-blue-400" />
+                            <Target className="w-5 h-5 text-purple-400" />
                             Join Another Quiz
                         </button>
                     </div>
