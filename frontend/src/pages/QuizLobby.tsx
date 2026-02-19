@@ -20,6 +20,14 @@ interface LobbyState {
     timeLimitMinutes?: number;
     attemptsMessage?: string;
     nickname?: string;
+    // Phase 2: Anti-cheat config
+    requireFullscreen?: boolean;
+    maxViolations?: number;
+    violationPenaltyPoints?: number;
+    fullscreenExitAction?: string;
+    altTabAction?: string;
+    enableAiProctor?: boolean;
+    enableCodeExecution?: boolean;
 }
 
 const QuizLobby = () => {
@@ -72,7 +80,15 @@ const QuizLobby = () => {
                             quizId: lobbyState.quizId,
                             quizTitle: lobbyState.quizTitle,
                             timeLimitMinutes: lobbyState.timeLimitMinutes,
-                            nickname: lobbyState.nickname
+                            nickname: lobbyState.nickname,
+                            // Anti-cheat config pass-through
+                            requireFullscreen: lobbyState.requireFullscreen,
+                            maxViolations: lobbyState.maxViolations,
+                            violationPenaltyPoints: lobbyState.violationPenaltyPoints,
+                            fullscreenExitAction: lobbyState.fullscreenExitAction,
+                            altTabAction: lobbyState.altTabAction,
+                            enableAiProctor: lobbyState.enableAiProctor,
+                            enableCodeExecution: lobbyState.enableCodeExecution,
                         }
                     });
                 } else if (data.type === 'participant_update') {

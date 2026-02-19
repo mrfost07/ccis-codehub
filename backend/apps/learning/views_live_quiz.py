@@ -131,6 +131,12 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
             'description': quiz.description,
             'instructor_name': quiz.instructor.get_full_name(),
             'require_fullscreen': quiz.require_fullscreen,
+            'fullscreen_exit_action': quiz.fullscreen_exit_action,
+            'alt_tab_action': quiz.alt_tab_action,
+            'enable_ai_proctor': quiz.enable_ai_proctor,
+            'enable_code_execution': quiz.enable_code_execution,
+            'max_violations': quiz.max_violations,
+            'violation_penalty_points': quiz.violation_penalty_points,
             'max_participants': quiz.max_participants,
             'questions_count': quiz.live_questions.count()
         })

@@ -80,6 +80,8 @@ class LiveQuizSerializer(serializers.ModelSerializer):
             'show_leaderboard', 'show_correct_answers', 'allow_late_join',
             'shuffle_questions', 'shuffle_answers', 'require_fullscreen',
             'auto_pause_on_exit', 'max_violations', 'violation_penalty_points',
+            'fullscreen_exit_action', 'alt_tab_action',
+            'enable_ai_proctor', 'enable_code_execution',
             'default_question_time', 'break_between_questions',
             # Scheduling fields
             'scheduled_start', 'deadline', 'max_retakes', 'time_limit_minutes',
@@ -127,6 +129,8 @@ class LiveQuizCreateSerializer(serializers.ModelSerializer):
             'show_leaderboard', 'show_correct_answers', 'allow_late_join',
             'shuffle_questions', 'shuffle_answers', 'require_fullscreen',
             'auto_pause_on_exit', 'max_violations', 'violation_penalty_points',
+            'fullscreen_exit_action', 'alt_tab_action',
+            'enable_ai_proctor', 'enable_code_execution',
             'default_question_time', 'break_between_questions',
             # Scheduling fields
             'scheduled_start', 'deadline', 'max_retakes', 'time_limit_minutes',

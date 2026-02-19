@@ -25,7 +25,6 @@ const JoinQuiz = () => {
 
         setIsJoining(true);
         try {
-            // Use actual username from auth context
             const nickname = user?.username || user?.first_name || 'Student';
 
             const result = await liveQuizService.joinByCode(
@@ -33,19 +32,34 @@ const JoinQuiz = () => {
                 nickname
             );
 
+            // Also pull quiz meta (anti-cheat config) from join_info endpoint
+            let quizMeta: Record<string, any> = {};
+            try {
+                quizMeta = await liveQuizService.getQuizInfo(joinCode.toUpperCase());
+            } catch (_) {
+                // Non-fatal — quiz info is informational
+            }
+
             toast.success(`Joined "${result.quiz_info?.title || 'Quiz'}" successfully!`);
 
-            // Navigate to lobby with join response data
             navigate(`/quiz/lobby/${joinCode.toUpperCase()}`, {
                 state: {
                     participantId: result.participant_id,
                     sessionId: result.session_id,
                     quizId: result.quiz_id,
-                    quizTitle: result.quiz_info?.title || 'Live Quiz',
-                    hostName: result.quiz_info?.instructor_name || 'Instructor',
+                    quizTitle: result.quiz_info?.title || quizMeta.title || 'Live Quiz',
+                    hostName: result.quiz_info?.instructor_name || quizMeta.instructor_name || 'Instructor',
                     timeLimitMinutes: result.time_limit_minutes,
                     attemptsMessage: result.attempts_message,
-                    nickname
+                    nickname,
+                    // Anti-cheat config
+                    requireFullscreen: quizMeta.require_fullscreen ?? true,
+                    maxViolations: quizMeta.max_violations ?? 0,
+                    violationPenaltyPoints: quizMeta.violation_penalty_points ?? 0,
+                    fullscreenExitAction: quizMeta.fullscreen_exit_action ?? 'warn',
+                    altTabAction: quizMeta.alt_tab_action ?? 'warn',
+                    enableAiProctor: quizMeta.enable_ai_proctor ?? false,
+                    enableCodeExecution: quizMeta.enable_code_execution ?? true,
                 }
             });
         } catch (error: any) {

@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     'apps.projects',
     'apps.competitions',
     'apps.ai_mentor',
+    'apps.ai_proctor',
 ]
 
 MIDDLEWARE = [

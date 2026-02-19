@@ -27,6 +27,11 @@ export interface LiveQuiz {
     auto_pause_on_exit: boolean
     max_violations: number
     violation_penalty_points: number
+    // Phase 2: Anti-cheat action configuration
+    fullscreen_exit_action: 'warn' | 'pause' | 'close'
+    alt_tab_action: 'warn' | 'shuffle' | 'close'
+    enable_ai_proctor: boolean
+    enable_code_execution: boolean
     default_question_time: number
     break_between_questions: number
     // Scheduling fields
@@ -192,6 +197,11 @@ class LiveQuizService {
             join_code: joinCode,
             nickname: nickname
         })
+        return response.data
+    }
+
+    async getQuizInfo(joinCode: string): Promise<any> {
+        const response = await api.get(`${this.baseUrl}/join_info/?join_code=${joinCode}`)
         return response.data
     }
 

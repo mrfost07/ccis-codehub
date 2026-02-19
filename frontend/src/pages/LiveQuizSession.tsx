@@ -1,9 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Timer, CheckCircle, XCircle, AlertCircle, Play, Terminal, Loader2, Maximize } from 'lucide-react';
+import {
+    Timer, CheckCircle, XCircle, AlertCircle, Play, Terminal,
+    Loader2, Maximize, Camera, CameraOff, ShieldAlert, Lock
+} from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Editor from '@monaco-editor/react';
 import ViolationWarningModal from '../components/ViolationWarningModal';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface Question {
     id: string;
@@ -11,9 +18,9 @@ interface Question {
     text: string;
     choices?: Array<{ id: string; text: string }>;
     timeLimit: number;
-    // Code specific
     codeTemplate?: string;
     language?: string;
+    points?: number;
 }
 
 interface QuizState {
@@ -37,7 +44,108 @@ interface SessionState {
     requireFullscreen?: boolean;
     maxViolations?: number;
     violationPenaltyPoints?: number;
+    // Phase 2: action configuration
+    fullscreenExitAction?: 'warn' | 'pause' | 'close';
+    altTabAction?: 'warn' | 'shuffle' | 'close';
+    enableAiProctor?: boolean;
+    enableCodeExecution?: boolean;
 }
+
+interface TestCaseResult {
+    test_case_index: number;
+    passed: boolean;
+    stdout: string;
+    stderr: string;
+    expected: string;
+    error: string | null;
+    is_hidden?: boolean;
+}
+
+interface CodeExecutionResult {
+    passed: number;
+    total: number;
+    all_passed: boolean;
+    status: string;
+    results: TestCaseResult[];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Proctor camera hook
+// ─────────────────────────────────────────────────────────────────────────────
+
+function useProctoringCamera(
+    enabled: boolean,
+    participantId: string | undefined,
+    joinCode: string | undefined,
+    nickname: string | undefined
+) {
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const procWsRef = useRef<WebSocket | null>(null);
+    const [cameraActive, setCameraActive] = useState(false);
+
+    useEffect(() => {
+        if (!enabled || !participantId) return;
+
+        let stream: MediaStream | null = null;
+        let frameInterval: ReturnType<typeof setInterval>;
+
+        const start = async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } });
+                if (videoRef.current) {
+                    videoRef.current.srcObject = stream;
+                    await videoRef.current.play();
+                }
+                setCameraActive(true);
+
+                // Connect proctor WebSocket
+                const wsBase = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
+                const procWs = new WebSocket(`${wsBase}/proctor/${participantId}/`);
+                procWsRef.current = procWs;
+
+                // Capture frame every 2 seconds and send to proctor
+                frameInterval = setInterval(() => {
+                    const canvas = canvasRef.current;
+                    const video = videoRef.current;
+                    if (!canvas || !video || procWs.readyState !== WebSocket.OPEN) return;
+
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) return;
+
+                    ctx.drawImage(video, 0, 0, 320, 240);
+                    const frame = canvas.toDataURL('image/jpeg', 0.5).split(',')[1]; // base64
+
+                    procWs.send(JSON.stringify({
+                        type: 'frame',
+                        frame,
+                        participant_id: participantId,
+                        join_code: joinCode,
+                        nickname,
+                    }));
+                }, 2000);
+            } catch (_) {
+                console.warn('AI Proctor: camera access denied or unavailable');
+                setCameraActive(false);
+            }
+        };
+
+        start();
+
+        return () => {
+            clearInterval(frameInterval);
+            stream?.getTracks().forEach(t => t.stop());
+            procWsRef.current?.close();
+            setCameraActive(false);
+        };
+    }, [enabled, participantId, joinCode, nickname]);
+
+    return { videoRef, canvasRef, cameraActive };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Component
+// ─────────────────────────────────────────────────────────────────────────────
 
 const LiveQuizSession = () => {
     const { joinCode } = useParams<{ joinCode: string }>();
@@ -47,6 +155,7 @@ const LiveQuizSession = () => {
     const wsRef = useRef<WebSocket | null>(null);
     const answerStartTime = useRef<number>(Date.now());
 
+    // ── Core quiz state ───────────────────────────────────────────────────────
     const [gameState, setGameState] = useState<QuizState>({
         status: 'waiting',
         timeRemaining: 30,
@@ -54,7 +163,7 @@ const LiveQuizSession = () => {
         totalQuestions: 0,
         score: 0,
         totalCorrect: 0,
-        totalAttempted: 0
+        totalAttempted: 0,
     });
 
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -62,39 +171,60 @@ const LiveQuizSession = () => {
     const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false);
     const [answerResult, setAnswerResult] = useState<'correct' | 'incorrect' | null>(null);
     const [pointsEarned, setPointsEarned] = useState(0);
-    const [consoleOutput, setConsoleOutput] = useState<string[]>([]);
+    const [codeExecResult, setCodeExecResult] = useState<CodeExecutionResult | null>(null);
+    const [isRunningCode, setIsRunningCode] = useState(false);
 
-    // Anti-cheating state
-    const [violationModal, setViolationModal] = useState<{
-        isOpen: boolean;
-        violationType: 'fullscreen_exit' | 'tab_switch' | 'copy_paste';
-        totalViolations: number;
-        maxViolations: number;
-        penaltyPoints: number;
-        isFlagged: boolean;
-    }>({
+    // ── Anti-cheat state ──────────────────────────────────────────────────────
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [isQuizPaused, setIsQuizPaused] = useState(false);
+    const [pauseReason, setPauseReason] = useState('');
+    const [isQuizClosed, setIsQuizClosed] = useState(false);
+    const [closeReason, setCloseReason] = useState('');
+
+    const [violationModal, setViolationModal] = useState({
         isOpen: false,
-        violationType: 'tab_switch',
+        violationType: 'tab_switch' as 'fullscreen_exit' | 'tab_switch' | 'copy_paste',
         totalViolations: 0,
         maxViolations: sessionState.maxViolations || 0,
         penaltyPoints: sessionState.violationPenaltyPoints || 0,
-        isFlagged: false
+        isFlagged: false,
     });
-    const [isFullscreen, setIsFullscreen] = useState(false);
 
-    // Report violation to backend
-    const reportViolation = useCallback((type: 'fullscreen_exit' | 'tab_switch' | 'copy_paste') => {
-        if (!sessionState.participantId) return;
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-            wsRef.current.send(JSON.stringify({
-                type: 'report_violation',
-                participant_id: sessionState.participantId,
-                violation_type: type
-            }));
-        }
-    }, [sessionState.participantId]);
+    // Resolved action config (from session state, set during JoinQuiz)
+    const fsAction = sessionState.fullscreenExitAction || 'warn';
+    const atAction = sessionState.altTabAction || 'warn';
+    const aiProctorEnabled = sessionState.enableAiProctor ?? false;
 
+    // ── AI Proctor camera ─────────────────────────────────────────────────────
+    const { videoRef, canvasRef, cameraActive } = useProctoringCamera(
+        aiProctorEnabled,
+        sessionState.participantId,
+        joinCode,
+        sessionState.nickname,
+    );
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Violation reporting
+    // ─────────────────────────────────────────────────────────────────────────
+
+    const reportViolation = useCallback(
+        (type: 'fullscreen_exit' | 'tab_switch' | 'copy_paste') => {
+            if (!sessionState.participantId) return;
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify({
+                    type: 'report_violation',
+                    participant_id: sessionState.participantId,
+                    violation_type: type,
+                }));
+            }
+        },
+        [sessionState.participantId]
+    );
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Fullscreen management
+    // ─────────────────────────────────────────────────────────────────────────
+
     const enterFullscreen = useCallback(() => {
         const elem = document.documentElement;
         if (elem.requestFullscreen) {
@@ -108,67 +238,101 @@ const LiveQuizSession = () => {
     useEffect(() => {
         if (!sessionState.requireFullscreen) return;
 
-        const handleFullscreenChange = () => {
+        const handleFsChange = () => {
             const isFull = !!document.fullscreenElement;
             setIsFullscreen(isFull);
+
             if (!isFull && gameState.status === 'in_progress') {
                 reportViolation('fullscreen_exit');
+                // Local enforcement (action confirmed/overridden by server response)
+                if (fsAction === 'pause') {
+                    setIsQuizPaused(true);
+                    setPauseReason('You exited fullscreen. Re-enter fullscreen to continue.');
+                } else if (fsAction === 'close') {
+                    setIsQuizClosed(true);
+                    setCloseReason('Quiz closed: fullscreen exit is not permitted.');
+                }
+                // 'warn' → ViolationWarningModal shown on server response
+            }
+
+            // Auto-resume if back in fullscreen and paused due to fullscreen exit
+            if (isFull && isQuizPaused && pauseReason.includes('fullscreen')) {
+                // Notify server of resume
+                if (wsRef.current?.readyState === WebSocket.OPEN) {
+                    wsRef.current.send(JSON.stringify({
+                        type: 'resume_from_fullscreen',
+                        participant_id: sessionState.participantId,
+                    }));
+                }
+                setIsQuizPaused(false);
+                setPauseReason('');
             }
         };
 
-        document.addEventListener('fullscreenchange', handleFullscreenChange);
-        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('fullscreenchange', handleFsChange);
+        document.addEventListener('webkitfullscreenchange', handleFsChange);
 
         return () => {
-            document.removeEventListener('fullscreenchange', handleFullscreenChange);
-            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('fullscreenchange', handleFsChange);
+            document.removeEventListener('webkitfullscreenchange', handleFsChange);
         };
-    }, [sessionState.requireFullscreen, gameState.status, reportViolation]);
+    }, [
+        sessionState.requireFullscreen, sessionState.participantId,
+        gameState.status, fsAction, isQuizPaused, pauseReason, reportViolation
+    ]);
 
-    // Tab visibility detection
+    // Tab / window visibility detection
     useEffect(() => {
-        const handleVisibilityChange = () => {
+        const handleVisChange = () => {
             if (document.hidden && gameState.status === 'in_progress') {
                 reportViolation('tab_switch');
+                if (atAction === 'close') {
+                    setIsQuizClosed(true);
+                    setCloseReason('Quiz closed: switching tabs or windows is not permitted.');
+                }
+                // 'shuffle' → handled by server's question_shuffle WS message
+                // 'warn'    → handled by violation_recorded WS message
             }
         };
 
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [gameState.status, reportViolation]);
+        document.addEventListener('visibilitychange', handleVisChange);
+        return () => document.removeEventListener('visibilitychange', handleVisChange);
+    }, [gameState.status, atAction, reportViolation]);
 
     // Copy-paste prevention
     useEffect(() => {
         if (gameState.status !== 'in_progress') return;
 
-        const handleCopyPaste = (e: ClipboardEvent) => {
+        const block = (e: ClipboardEvent) => {
             e.preventDefault();
             reportViolation('copy_paste');
+            toast.error('Copy/paste is not allowed during the quiz.', { duration: 2000 });
         };
 
-        document.addEventListener('copy', handleCopyPaste);
-        document.addEventListener('paste', handleCopyPaste);
-        document.addEventListener('cut', handleCopyPaste);
+        document.addEventListener('copy', block);
+        document.addEventListener('paste', block);
+        document.addEventListener('cut', block);
 
         return () => {
-            document.removeEventListener('copy', handleCopyPaste);
-            document.removeEventListener('paste', handleCopyPaste);
-            document.removeEventListener('cut', handleCopyPaste);
+            document.removeEventListener('copy', block);
+            document.removeEventListener('paste', block);
+            document.removeEventListener('cut', block);
         };
     }, [gameState.status, reportViolation]);
 
-    // Timer countdown
+    // ─────────────────────────────────────────────────────────────────────────
+    // Timer countdown (stops when paused or closed)
+    // ─────────────────────────────────────────────────────────────────────────
+
     useEffect(() => {
         if (gameState.status !== 'in_progress' || !gameState.currentQuestion) return;
+        if (isQuizPaused || isQuizClosed) return;
 
         const timer = setInterval(() => {
             setGameState(prev => {
                 if (prev.timeRemaining <= 0) {
                     clearInterval(timer);
-                    // Auto-submit if time runs out
-                    if (!isAnswerSubmitted) {
-                        submitAnswer('');
-                    }
+                    if (!isAnswerSubmitted) submitAnswer('');
                     return prev;
                 }
                 return { ...prev, timeRemaining: prev.timeRemaining - 1 };
@@ -176,99 +340,131 @@ const LiveQuizSession = () => {
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [gameState.status, gameState.currentQuestion?.id, isAnswerSubmitted]);
+    }, [gameState.status, gameState.currentQuestion?.id, isAnswerSubmitted, isQuizPaused, isQuizClosed]);
 
+    // ─────────────────────────────────────────────────────────────────────────
     // WebSocket connection
+    // ─────────────────────────────────────────────────────────────────────────
+
     useEffect(() => {
         if (!joinCode) return;
 
-        const baseWsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
-        const wsUrl = `${baseWsUrl}/quiz/${joinCode}/`;
-
-        const socket = new WebSocket(wsUrl);
+        const wsBase = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
+        const socket = new WebSocket(`${wsBase}/quiz/${joinCode}/`);
         wsRef.current = socket;
 
         socket.onopen = () => {
-            console.log('LiveQuizSession: Connected to WebSocket');
-            // Send join message
             socket.send(JSON.stringify({
                 type: 'join',
-                nickname: sessionState.nickname || 'Student'
+                nickname: sessionState.nickname || 'Student',
             }));
         };
 
         socket.onmessage = (event) => {
             try {
-                const data = JSON.parse(event.data);
-                handleWsMessage(data);
+                handleWsMessage(JSON.parse(event.data));
             } catch (e) {
-                console.error('Error parsing WS message', e);
+                console.error('WS parse error', e);
             }
         };
 
-        socket.onerror = (error) => {
-            console.error('WebSocket error:', error);
-            toast.error('Connection error. Please try rejoining.');
-        };
+        socket.onerror = () => toast.error('Connection error. Please try rejoining.');
+        socket.onclose = () => console.log('WS disconnected');
 
-        socket.onclose = () => {
-            console.log('WebSocket disconnected');
-        };
-
-        return () => {
-            socket.close();
-        };
+        return () => socket.close();
     }, [joinCode]);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // WebSocket message handler
+    // ─────────────────────────────────────────────────────────────────────────
+
+    const applyQuestion = (q: any): Question => ({
+        id: q.id,
+        type: q.question_type === 'coding' || q.type === 'code' ? 'code' : 'mcq',
+        text: q.question_text || q.text,
+        timeLimit: q.time_limit || q.timeLimit || 30,
+        choices: (q.question_type === 'multiple_choice' || q.question_type === 'true_false')
+            ? [
+                q.option_a && { id: 'A', text: q.option_a },
+                q.option_b && { id: 'B', text: q.option_b },
+                q.option_c && { id: 'C', text: q.option_c },
+                q.option_d && { id: 'D', text: q.option_d },
+            ].filter(Boolean) as Array<{ id: string; text: string }>
+            : q.choices,
+        codeTemplate: q.starter_code || q.codeTemplate || '',
+        language: q.programming_language || q.language || 'javascript',
+        points: q.points || 100,
+    });
 
     const handleWsMessage = (data: any) => {
         switch (data.type) {
-            case 'question_start': {
-                const q = data.question;
-                // Map backend question data to frontend format
-                const question: Question = {
-                    id: q.id,
-                    type: q.question_type === 'coding' ? 'code' : 'mcq',
-                    text: q.question_text || q.text,
-                    timeLimit: q.time_limit || data.timeLimit || 30,
-                    choices: q.question_type === 'multiple_choice' || q.question_type === 'true_false'
-                        ? [
-                            q.option_a && { id: 'A', text: q.option_a },
-                            q.option_b && { id: 'B', text: q.option_b },
-                            q.option_c && { id: 'C', text: q.option_c },
-                            q.option_d && { id: 'D', text: q.option_d },
-                        ].filter(Boolean) as Array<{ id: string; text: string }>
-                        : q.choices,
-                    codeTemplate: q.starter_code || q.codeTemplate || '',
-                    language: q.programming_language || q.language || 'javascript'
-                };
 
+            case 'question_start': {
+                const question = applyQuestion(data.question);
                 setGameState(prev => ({
                     ...prev,
                     currentQuestion: question,
                     timeRemaining: question.timeLimit,
                     status: 'in_progress',
                     questionNumber: prev.questionNumber + 1,
-                    totalQuestions: data.totalQuestions || prev.totalQuestions
+                    totalQuestions: data.totalQuestions || prev.totalQuestions,
                 }));
                 setSelectedAnswer(null);
                 setCodeAnswer(question.codeTemplate || '');
                 setIsAnswerSubmitted(false);
                 setAnswerResult(null);
                 setPointsEarned(0);
-                setConsoleOutput([]);
+                setCodeExecResult(null);
+                answerStartTime.current = Date.now();
+                // Unpause if paused (new question = fresh start)
+                setIsQuizPaused(false);
+                setPauseReason('');
+                break;
+            }
+
+            // ── Phase 2: Question shuffle on alt-tab (instructor's choice) ──
+            case 'question_shuffle': {
+                const question = applyQuestion(data.question);
+                toast('❗ Question shuffled due to focus loss.', { icon: '🔀', duration: 3000 });
+                setGameState(prev => ({
+                    ...prev,
+                    currentQuestion: question,
+                    timeRemaining: question.timeLimit,
+                    status: 'in_progress',
+                }));
+                setSelectedAnswer(null);
+                setCodeAnswer(question.codeTemplate || '');
+                setIsAnswerSubmitted(false);
+                setAnswerResult(null);
+                setCodeExecResult(null);
                 answerStartTime.current = Date.now();
                 break;
             }
 
+            // ── Phase 2: Quiz paused ──────────────────────────────────────
+            case 'quiz_paused':
+                setIsQuizPaused(true);
+                setPauseReason(data.reason || 'Quiz paused.');
+                break;
+
+            case 'quiz_resumed':
+                setIsQuizPaused(false);
+                setPauseReason('');
+                toast.success('Quiz resumed!');
+                break;
+
+            // ── Phase 2: Quiz closed by server ───────────────────────────
+            case 'quiz_closed':
+                setIsQuizClosed(true);
+                setCloseReason(data.reason || 'Your session was closed.');
+                if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
+                break;
+
             case 'time_tick':
-                setGameState(prev => ({
-                    ...prev,
-                    timeRemaining: data.seconds
-                }));
+                setGameState(prev => ({ ...prev, timeRemaining: data.seconds }));
                 break;
 
             case 'answer_submitted':
-                // Response from server after submitting answer
                 if (data.data?.success) {
                     const pts = data.data.points_earned || 0;
                     setAnswerResult(data.data.is_correct ? 'correct' : 'incorrect');
@@ -277,18 +473,33 @@ const LiveQuizSession = () => {
                         setGameState(prev => ({
                             ...prev,
                             score: prev.score + pts,
-                            totalCorrect: prev.totalCorrect + 1
+                            totalCorrect: prev.totalCorrect + 1,
                         }));
                     }
-                    setGameState(prev => ({
-                        ...prev,
-                        totalAttempted: prev.totalAttempted + 1
-                    }));
+                    setGameState(prev => ({ ...prev, totalAttempted: prev.totalAttempted + 1 }));
+                }
+                break;
+
+            // ── Phase 2: Code submission result with per-test details ────
+            case 'code_submitted':
+                if (data.data?.success) {
+                    const pts = data.data.points_earned || 0;
+                    setAnswerResult(data.data.is_correct ? 'correct' : 'incorrect');
+                    setPointsEarned(pts);
+                    setCodeExecResult(data.data.test_results);
+                    setIsRunningCode(false);
+                    if (pts > 0) {
+                        setGameState(prev => ({
+                            ...prev,
+                            score: prev.score + pts,
+                            totalCorrect: data.data.is_correct ? prev.totalCorrect + 1 : prev.totalCorrect,
+                            totalAttempted: prev.totalAttempted + 1,
+                        }));
+                    }
                 }
                 break;
 
             case 'violation_recorded':
-                // Response from server after reporting a violation
                 if (data.data?.success) {
                     setViolationModal({
                         isOpen: true,
@@ -296,20 +507,18 @@ const LiveQuizSession = () => {
                         totalViolations: data.data.total_violations || 0,
                         maxViolations: data.data.max_violations || 0,
                         penaltyPoints: data.data.penalty_applied || 0,
-                        isFlagged: data.data.is_flagged || false
+                        isFlagged: data.data.is_flagged || false,
                     });
-                    // Update score if penalty was applied
-                    if (data.data.penalty_applied > 0) {
+                    if ((data.data.penalty_applied || 0) > 0) {
                         setGameState(prev => ({
                             ...prev,
-                            score: Math.max(0, prev.score - data.data.penalty_applied)
+                            score: Math.max(0, prev.score - (data.data.penalty_applied || 0)),
                         }));
                     }
                 }
                 break;
 
             case 'question_end': {
-                // If we haven't gotten answer_submitted result, check locally
                 if (answerResult === null) {
                     const isCorrect = data.correctAnswer?.toUpperCase() === selectedAnswer?.toUpperCase();
                     setAnswerResult(isCorrect ? 'correct' : 'incorrect');
@@ -319,7 +528,7 @@ const LiveQuizSession = () => {
                         setGameState(prev => ({
                             ...prev,
                             score: prev.score + pts,
-                            totalCorrect: prev.totalCorrect + 1
+                            totalCorrect: prev.totalCorrect + 1,
                         }));
                     }
                 }
@@ -328,34 +537,32 @@ const LiveQuizSession = () => {
 
             case 'quiz_end':
                 setGameState(prev => ({ ...prev, status: 'results' }));
-                // Exit fullscreen before navigating
-                if (document.fullscreenElement) {
-                    document.exitFullscreen().catch(() => { });
-                }
-                // Navigate to results with full data
+                if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
                 navigate('/quiz/results', {
                     state: {
                         score: gameState.score,
                         totalCorrect: gameState.totalCorrect,
                         totalAttempted: gameState.totalAttempted,
                         totalQuestions: gameState.totalQuestions || gameState.questionNumber,
-                        quizTitle: sessionState.quizTitle
-                    }
+                        quizTitle: sessionState.quizTitle,
+                    },
                 });
                 break;
         }
     };
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Answer submission
+    // ─────────────────────────────────────────────────────────────────────────
+
     const submitAnswer = (answer: string) => {
         if (isAnswerSubmitted && answer !== '') return;
+        if (isQuizPaused || isQuizClosed) return;
 
         const responseTimeSecs = (Date.now() - answerStartTime.current) / 1000;
 
-        if (gameState.currentQuestion?.type === 'mcq') {
-            setSelectedAnswer(answer);
-        } else {
-            setCodeAnswer(answer);
-        }
+        if (gameState.currentQuestion?.type === 'mcq') setSelectedAnswer(answer);
+        else setCodeAnswer(answer);
 
         setIsAnswerSubmitted(true);
 
@@ -364,17 +571,97 @@ const LiveQuizSession = () => {
                 type: 'submit_answer',
                 participant_id: sessionState.participantId,
                 question_id: gameState.currentQuestion?.id,
-                answer: answer,
-                response_time: Math.round(responseTimeSecs)
+                answer,
+                response_time: Math.round(responseTimeSecs),
             }));
         }
     };
 
-    const runCode = () => {
-        setConsoleOutput(['Running tests...', '> Test 1: Passed', '> Test 2: Passed', 'Result: Success!']);
+    const submitCode = () => {
+        if (isAnswerSubmitted || isQuizPaused || isQuizClosed) return;
+        const responseTimeSecs = (Date.now() - answerStartTime.current) / 1000;
+        setIsAnswerSubmitted(true);
+        setIsRunningCode(true);
+
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.send(JSON.stringify({
+                type: 'submit_code',
+                participant_id: sessionState.participantId,
+                question_id: gameState.currentQuestion?.id,
+                code: codeAnswer,
+                language: gameState.currentQuestion?.language || 'python',
+                response_time: Math.round(responseTimeSecs),
+            }));
+        }
     };
 
-    // Waiting state
+    const runCodeLocally = () => {
+        // Quick run without submitting — show placeholder until execution result arrives
+        setIsRunningCode(true);
+        setCodeExecResult(null);
+        toast('Running tests...', { icon: '⚙️', duration: 1500 });
+        // In practice, wire to a /run endpoint or share the submit_code flow
+        setTimeout(() => setIsRunningCode(false), 3000);
+    };
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── QUIZ CLOSED STATE ────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    if (isQuizClosed) {
+        return (
+            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white p-6">
+                <div className="bg-slate-900 border border-red-800/50 rounded-2xl p-10 text-center max-w-md shadow-2xl">
+                    <ShieldAlert className="w-16 h-16 text-red-400 mx-auto mb-4" />
+                    <h2 className="text-2xl font-bold text-red-400 mb-3">Session Closed</h2>
+                    <p className="text-slate-400 mb-8">{closeReason}</p>
+                    <button
+                        onClick={() => navigate('/quiz/join')}
+                        className="px-6 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg font-medium transition"
+                    >
+                        Return to Home
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── QUIZ PAUSED STATE ────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
+    if (isQuizPaused) {
+        return (
+            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white p-6">
+                {/* Blurred quiz background overlay */}
+                <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-sm" />
+                <div className="relative z-10 bg-slate-900 border border-amber-600/50 rounded-2xl p-10 text-center max-w-md shadow-2xl">
+                    <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-5">
+                        <Lock className="w-10 h-10 text-amber-400" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-amber-400 mb-3">Quiz Paused</h2>
+                    <p className="text-slate-400 mb-8">{pauseReason}</p>
+                    {sessionState.requireFullscreen && (
+                        <button
+                            onClick={() => {
+                                enterFullscreen();
+                                // Server will send quiz_resumed; but optimistically clear pause on fs change event
+                            }}
+                            className="flex items-center gap-2 mx-auto px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl font-bold transition"
+                        >
+                            <Maximize className="w-5 h-5" />
+                            Re-enter Fullscreen to Continue
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── WAITING STATE ────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
     if (gameState.status === 'waiting' && !gameState.currentQuestion) {
         return (
             <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white">
@@ -408,21 +695,41 @@ const LiveQuizSession = () => {
         );
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // ── MAIN QUIZ UI ─────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+
     return (
         <div className="min-h-screen bg-slate-950 flex flex-col">
-            {/* Header */}
+
+            {/* ── Header ──────────────────────────────────────────────── */}
             <div className="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-10">
                 <div className="max-w-4xl mx-auto flex justify-between items-center">
                     <div className="flex items-center gap-3">
-                        <span className="bg-gradient-to-r from-purple-600 to-indigo-600 px-2 py-1 rounded text-xs font-bold text-white">LIVE</span>
+                        <span className="bg-gradient-to-r from-purple-600 to-indigo-600 px-2 py-1 rounded text-xs font-bold text-white">
+                            LIVE
+                        </span>
                         <span className="font-mono text-slate-400 text-sm">{joinCode}</span>
                         {gameState.questionNumber > 0 && (
                             <span className="text-slate-500 text-sm">
-                                Q{gameState.questionNumber}{gameState.totalQuestions > 0 && `/${gameState.totalQuestions}`}
+                                Q{gameState.questionNumber}
+                                {gameState.totalQuestions > 0 && `/${gameState.totalQuestions}`}
                             </span>
                         )}
                     </div>
                     <div className="flex items-center gap-4">
+                        {/* AI Proctor status */}
+                        {aiProctorEnabled && (
+                            <div className="flex items-center gap-1.5">
+                                {cameraActive
+                                    ? <Camera className="w-4 h-4 text-green-400" />
+                                    : <CameraOff className="w-4 h-4 text-red-400" />
+                                }
+                                <span className="text-xs text-slate-400">
+                                    {cameraActive ? 'Proctored' : 'Cam off'}
+                                </span>
+                            </div>
+                        )}
                         {answerResult && (
                             <span className={`text-sm font-medium ${answerResult === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
                                 {answerResult === 'correct' ? `+${pointsEarned}` : 'Wrong'}
@@ -433,7 +740,15 @@ const LiveQuizSession = () => {
                 </div>
             </div>
 
-            {/* Main Content */}
+            {/* Hidden video + canvas for proctor frames */}
+            {aiProctorEnabled && (
+                <>
+                    <video ref={videoRef} className="hidden" muted playsInline />
+                    <canvas ref={canvasRef} width={320} height={240} className="hidden" />
+                </>
+            )}
+
+            {/* ── Main Content ─────────────────────────────────────────── */}
             <div className="flex-1 flex flex-col max-w-4xl w-full mx-auto p-4 md:p-8">
 
                 {/* Timer Bar */}
@@ -442,7 +757,9 @@ const LiveQuizSession = () => {
                         className={`h-full transition-all duration-1000 ease-linear ${gameState.timeRemaining <= 5 ? 'bg-red-500' :
                             gameState.timeRemaining <= 10 ? 'bg-amber-500' : 'bg-purple-500'
                             }`}
-                        style={{ width: `${(gameState.timeRemaining / (gameState.currentQuestion.timeLimit || 30)) * 100}%` }}
+                        style={{
+                            width: `${(gameState.timeRemaining / (gameState.currentQuestion.timeLimit || 30)) * 100}%`,
+                        }}
                     />
                 </div>
 
@@ -459,9 +776,8 @@ const LiveQuizSession = () => {
                     </div>
                 </div>
 
-                {/* Question Content based on Type */}
-                {gameState.currentQuestion?.type === 'code' ? (
-                    /* CODE EDITOR UI */
+                {/* ── Coding Question ───────────────────────────────────── */}
+                {gameState.currentQuestion.type === 'code' ? (
                     <div className="flex-1 flex flex-col gap-4">
                         <div className="flex-1 min-h-[400px] border border-slate-700 rounded-xl overflow-hidden shadow-2xl">
                             <Editor
@@ -481,16 +797,42 @@ const LiveQuizSession = () => {
                             />
                         </div>
 
-                        {/* Console Output */}
-                        {consoleOutput.length > 0 && (
-                            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 font-mono text-sm max-h-40 overflow-y-auto">
-                                <div className="flex items-center gap-2 text-slate-400 mb-2 border-b border-slate-800 pb-2">
+                        {/* ── Per-test-case results (Phase 2) ── */}
+                        {(codeExecResult || isRunningCode) && (
+                            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 font-mono text-sm max-h-56 overflow-y-auto">
+                                <div className="flex items-center gap-2 text-slate-400 mb-3 border-b border-slate-800 pb-2">
                                     <Terminal className="w-4 h-4" />
-                                    <span>Console Output</span>
+                                    <span>Test Results</span>
+                                    {codeExecResult && (
+                                        <span className="ml-auto text-xs">
+                                            {codeExecResult.passed}/{codeExecResult.total} passed
+                                        </span>
+                                    )}
                                 </div>
-                                {consoleOutput.map((line, i) => (
-                                    <div key={i} className={line.includes('Success') ? 'text-green-400' : 'text-slate-300'}>
-                                        {line}
+                                {isRunningCode && !codeExecResult && (
+                                    <div className="flex items-center gap-2 text-slate-400">
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Running test cases...
+                                    </div>
+                                )}
+                                {codeExecResult?.results?.map((r, i) => (
+                                    <div key={i} className={`flex items-start gap-2 py-1 ${r.is_hidden ? 'opacity-60' : ''}`}>
+                                        {r.passed
+                                            ? <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
+                                            : <XCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                                        }
+                                        <div>
+                                            <span className={r.passed ? 'text-green-400' : 'text-red-400'}>
+                                                Test {i + 1}{r.is_hidden ? ' (hidden)' : ''}:
+                                                {r.passed ? ' Passed' : ` Failed`}
+                                            </span>
+                                            {!r.passed && !r.is_hidden && r.error !== 'timeout' && r.stderr && (
+                                                <div className="text-slate-500 text-xs mt-0.5">{r.stderr.slice(0, 120)}</div>
+                                            )}
+                                            {!r.passed && r.error === 'timeout' && (
+                                                <div className="text-amber-400 text-xs mt-0.5">⏱ Timed out</div>
+                                            )}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -498,36 +840,40 @@ const LiveQuizSession = () => {
 
                         <div className="flex justify-end gap-3">
                             <button
-                                onClick={runCode}
-                                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg flex items-center gap-2 font-medium transition"
+                                onClick={runCodeLocally}
+                                disabled={isAnswerSubmitted || isRunningCode}
+                                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white rounded-lg flex items-center gap-2 font-medium transition"
                             >
-                                <Play className="w-4 h-4" />
+                                {isRunningCode
+                                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                                    : <Play className="w-4 h-4" />
+                                }
                                 Run Code
                             </button>
                             <button
-                                onClick={() => submitAnswer(codeAnswer)}
+                                onClick={submitCode}
                                 disabled={isAnswerSubmitted}
                                 className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg font-bold flex items-center gap-2 transition disabled:opacity-50"
                             >
-                                {isAnswerSubmitted ? 'Submitted' : 'Submit Solution'}
+                                {isAnswerSubmitted ? 'Submitted ✓' : 'Submit Solution'}
                             </button>
                         </div>
                     </div>
                 ) : (
-                    /* MCQ GRID UI */
+                    /* ── MCQ Grid ─────────────────────────────────────────── */
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 content-start">
-                        {gameState.currentQuestion?.choices?.map((choice) => {
+                        {gameState.currentQuestion.choices?.map((choice) => {
                             const isSelected = selectedAnswer === choice.id;
                             const showResult = answerResult !== null;
 
-                            let boxClass = "bg-slate-800 border-slate-700 hover:bg-slate-700";
-                            if (isSelected && !showResult) boxClass = "bg-gradient-to-r from-purple-600 to-indigo-600 border-purple-500 text-white";
-                            if (isAnswerSubmitted && !isSelected && !showResult) boxClass = "opacity-50 bg-slate-800 border-slate-700";
+                            let boxClass = 'bg-slate-800 border-slate-700 hover:bg-slate-700';
+                            if (isSelected && !showResult) boxClass = 'bg-gradient-to-r from-purple-600 to-indigo-600 border-purple-500 text-white';
+                            if (isAnswerSubmitted && !isSelected && !showResult) boxClass = 'opacity-50 bg-slate-800 border-slate-700';
 
                             if (showResult) {
-                                if (isSelected && answerResult === 'correct') boxClass = "bg-green-600 border-green-500 ring-4 ring-green-900";
-                                if (isSelected && answerResult === 'incorrect') boxClass = "bg-red-600 border-red-500 ring-4 ring-red-900";
-                                if (!isSelected) boxClass = "opacity-40 bg-slate-800 border-slate-700";
+                                if (isSelected && answerResult === 'correct') boxClass = 'bg-green-600 border-green-500 ring-4 ring-green-900';
+                                if (isSelected && answerResult === 'incorrect') boxClass = 'bg-red-600 border-red-500 ring-4 ring-red-900';
+                                if (!isSelected) boxClass = 'opacity-40 bg-slate-800 border-slate-700';
                             }
 
                             return (
@@ -535,22 +881,16 @@ const LiveQuizSession = () => {
                                     key={choice.id}
                                     onClick={() => submitAnswer(choice.id)}
                                     disabled={isAnswerSubmitted}
-                                    className={`
-                                        p-6 rounded-xl border-2 text-left transition-all transform active:scale-[0.98]
-                                        flex items-center justify-between group
-                                        ${boxClass}
-                                    `}
+                                    className={`p-6 rounded-xl border-2 text-left transition-all transform active:scale-[0.98] flex items-center justify-between group ${boxClass}`}
                                 >
                                     <div className="flex items-center gap-3">
-                                        <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-700 text-slate-400'
-                                            }`}>
+                                        <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-700 text-slate-400'}`}>
                                             {choice.id}
                                         </span>
                                         <span className={`text-lg font-medium ${isSelected ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>
                                             {choice.text}
                                         </span>
                                     </div>
-
                                     {isSelected && answerResult === 'correct' && <CheckCircle className="text-white w-6 h-6" />}
                                     {isSelected && answerResult === 'incorrect' && <XCircle className="text-white w-6 h-6" />}
                                 </button>
@@ -565,8 +905,7 @@ const LiveQuizSession = () => {
                 isOpen={violationModal.isOpen}
                 onClose={() => {
                     setViolationModal(prev => ({ ...prev, isOpen: false }));
-                    // Re-enter fullscreen if required
-                    if (sessionState.requireFullscreen) {
+                    if (sessionState.requireFullscreen && fsAction === 'warn') {
                         enterFullscreen();
                     }
                 }}

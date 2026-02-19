@@ -348,8 +348,30 @@ class LiveQuiz(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(10)]
     )
     violation_penalty_points = models.IntegerField(default=0, validators=[MinValueValidator(0)])
-    
-    # Timing configuration (seconds)
+
+    # Anti-cheat action configuration (what to DO when a violation occurs)
+    FULLSCREEN_EXIT_ACTIONS = [
+        ('warn', 'Warn Only'),
+        ('pause', 'Pause Quiz'),
+        ('close', 'Close Session'),
+    ]
+    ALT_TAB_ACTIONS = [
+        ('warn', 'Warn Only'),
+        ('shuffle', 'Shuffle Question'),
+        ('close', 'Close Session'),
+    ]
+    fullscreen_exit_action = models.CharField(
+        max_length=10, choices=FULLSCREEN_EXIT_ACTIONS, default='warn'
+    )
+    alt_tab_action = models.CharField(
+        max_length=10, choices=ALT_TAB_ACTIONS, default='warn'
+    )
+
+    # Feature toggles
+    enable_ai_proctor = models.BooleanField(default=False)
+    enable_code_execution = models.BooleanField(default=True)
+
+
     default_question_time = models.IntegerField(
         default=30,
         validators=[MinValueValidator(5), MaxValueValidator(300)]

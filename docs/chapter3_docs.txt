@@ -1,0 +1,294 @@
+CHAPTER I
+ INTRODUCTION
+
+1.1 Project Overview
+
+CCIS-CodeHub is a comprehensive learning management system designed specifically for Computer Science and Information Technology students at the College of Computer and Information Sciences (CCIS). The system provides an integrated platform that combines dynamic learning modules with AI-powered mentoring, automated content generation, real-time gamified assessments, community collaboration, project management, and real-time progress tracking. The primary target users include CCIS students (BSIT, BSCS, BSIS programs), instructors, and administrators who require a modern, interactive educational environment that bridges theoretical learning with practical application through AI assistance and peer collaboration.
+
+1.2 Background of the Study
+
+At Surigao del Norte State University (SNSU), students enrolled in the College of Computing and Information Sciences (CCIS) programs—Bachelor of Science in Information Technology (BSIT), Bachelor of Science in Computer Science (BSCS), and Bachelor of Science in Information Systems (BSIS)—face challenges common to computing education worldwide. Traditional learning management systems in educational institutions often lack the integration of modern AI technologies for automated content delivery and fail to provide personalized learning experiences that adapt to individual student needs (Holmes et al., 2019; Zawacki-Richter et al., 2019). CCIS students frequently struggle with complex programming concepts, algorithms, database design, and other technical subjects without immediate access to personalized guidance beyond regular class hours, leading to decreased engagement and academic performance (Robins et al., 2003; Watson & Li, 2014). Moreover, existing systems typically operate in silos, separating theoretical learning content from collaborative project work and community interaction, which limits CCIS students' development of essential teamwork and communication skills required in the technology industry (Dillenbourg, 1999; Stahl et al., 2006).
+
+The motivation for developing CCIS-CodeHub stems from the specific needs of SNSU CCIS students who require a unified platform that leverages artificial intelligence to provide 24/7 mentoring support tailored to Information Technology, Computer Science, and Information Systems curricula (Luckin et al., 2016). The system integrates collaborative learning through community features that enable CCIS students to share knowledge, help peers, and build professional networks within their academic programs (Kreijns et al., 2003), while combining theoretical learning with practical project management experience relevant to their chosen fields (Kolb, 2014). This system specifically addresses the gap between traditional educational delivery methods at SNSU and the dynamic, interactive learning environment that CCIS students in BSIT, BSCS, and BSIS programs require to succeed in their academic pursuits and future careers in the rapidly evolving technology industry (Siemens, 2005; Vygotsky, 1978).
+
+1.3 Objectives of the System
+General Objective
+
+
+To develop an intelligent, comprehensive learning management system that enhances the educational experience of CCIS students through AI-powered mentoring, collaborative learning environments, and integrated project management capabilities.
+
+Specific Objectives
+
+• Develop a comprehensive learning interface that enables students to access modular content, track career path progress, earn certificates, and participate in gamified quizzes and assessments to reinforce learning concepts.
+• Create a vibrant community platform that allows users to create rich content posts, engage via threaded comments, follow peers, and showcase technical stacks to simulate a professional developer network.
+• Integrate a project management system that enables students to form teams, assign tasks, and collaborate on software engineering projects within the platform.
+• Design specialized dashboards for Admins, Students, and Instructors, specifically equipping Instructors with automated content generation from PDF materials and customizable prompt engineering tools for streamlined teaching efficiency.
+• Evaluate the system's performance, usability, and functionality by ensuring secure and optimized performance to meet the academic requirements of the College.
+• Implement an AI-powered mentor utilizing OpenRouter to provide personalized, context-aware assistance and code analysis throughout the student's learning journey.
+
+1.4 Scope and Limitations
+Scope
+
+The CCIS-CodeHub system encompasses robust user authentication and authorization with security hardening (Role-Based Access Control and Input Sanitization). It features comprehensive learning module management, including automated PDF content extraction for quiz generation and a Real-time Gamified Quiz System. The platform integrates AI-powered mentoring capabilities using OpenRouter (supporting Gemini 2.0 and Mistral), community interaction features, project management tools, certificate generation, and administrative dashboards. The system supports multiple user roles (admin, instructor, student) with role-specific functionalities, implements real-time communication through WebSocket technology for instant messaging and live collaboration, and provides detailed progress tracking and analytics. 
+
+Limitation
+
+The system is specifically designed for CCIS programs (BSIT, BSCS, BSIS) and may require customization for other academic disciplines. AI mentoring capabilities are dependent on external API providers and their respective limitations and costs. The system requires internet connectivity for optimal functionality, particularly for AI features and real-time collaboration. Video conferencing and live streaming capabilities are not included in the current scope. Integration with existing institutional systems (such as student information systems or grade management systems) is not included. Advanced plagiarism detection and automated code assessment features are beyond the current implementation scope.
+
+
+
+CHAPTER II
+REQUIREMENTS SPECIFICATION
+
+2.1 Functional Requirements
+User Authentication and Authorization
+• FR-01: The system shall allow users to register with email and password authentication
+• FR-02: The system shall support Firebase OAuth integration for Google authentication
+• FR-03: The system shall implement role-based access control for admin, instructor, and student roles
+• FR-04: The system shall provide secure password reset functionality
+• FR-05: The system shall maintain user sessions using JWT tokens
+
+Learning Management
+• FR-06: The system shall allow administrators to create and manage career paths
+• FR-07: The system shall enable the creation of learning modules with rich text content
+• FR-08: The system shall support file upload for PDF and multimedia learning materials
+• FR-09: The system shall implement quiz creation with multiple question types
+• FR-10: The system shall track student progress through modules and career paths
+• FR-11: The system shall generate completion certificates in PDF format
+• FR-12: The system shall provide slide-based content presentation with navigation controls
+
+AI Mentor System
+• FR-13: The system shall integrate with OpenRouter to provide access to multiple AI models (Gemini, Mistral, Llama) for intelligent tutoring
+• FR-14: The system shall support automatic fallback mechanisms to ensure AI service reliability
+• FR-15: The system shall maintain conversation history for each user
+• FR-16: The system shall provide context-aware responses based on user learning progress
+• FR-17: The system shall implement AI settings customization and instructor prompt configuration for different models
+• FR-18: The system shall support real-time chat interface with the AI mentor
+
+User Profile Features
+• FR-19: The system shall allow users to create and manage personalized user profiles with bio, skills, and achievements
+• FR-20: The system shall enable users to upload and update profile pictures
+• FR-21: The system shall allow users to showcase their technical skills and programming language
+• FR-22: The system shall display user achievements, badges, and certificates earned
+• FR-23: The system shall provide user activity timeline showing recent posts, projects, and contributions
+• FR-24: The system shall allow users to set profile visibility (public, CCIS only, private)
+• FR-25: The system shall enable users to link social media and GitHub profiles
+
+Community Features
+• FR-26: The system shall enable users to create and share posts with rich content including text, code snippets, and images
+• FR-27: The system shall implement a commenting system for posts with threading support
+• FR-28: The system shall provide user following functionality to subscribe to other users' activities
+• FR-29: The system shall allow users to unfollow other users and manage their following list
+• FR-30: The system shall support image uploads for posts and profile pictures
+• FR-31: The system shall implement a notification system for community interactions including follows, comments, and mentions
+• FR-32: The system shall provide real-time private chat between users using WebSocket technology
+• FR-33: The system shall enable creation and management of study groups for collaborative learning
+• FR-34: The system shall provide global chat rooms for program-specific discussions (BSIT, BSCS, BSIS)
+• FR-35: The system shall support group messaging and file sharing within study groups
+
+Project Management
+• FR-36: The system shall enable project creation with team member assignment
+• FR-37: The system shall provide task management with status tracking
+• FR-38: The system shall support file sharing within project teams
+• FR-39: The system shall implement project timeline and milestone tracking
+• FR-40: The system shall provide project activity logs and notifications
+• FR-41: The system shall support project branching and version control concepts
+
+Administrative Functions
+• FR-42: The system shall provide comprehensive admin dashboard with system analytics
+• FR-43: The system shall allow user management and role assignment by administrators
+• FR-44: The system shall enable content moderation and post management
+• FR-45: The system shall provide system health monitoring and error logging
+• FR-46: The system shall support bulk data import and export functionality
+• FR-47: The system shall allow administrators to manage study groups and global chat rooms
+• FR-48: The system shall provide user activity reports and engagement metrics
+
+2.2 Non-Functional Requirements
+Performance Requirements
+
+The system shall support concurrent access by up to 500 users with response times not exceeding 3 seconds for standard operations. Database queries shall be optimized to handle large datasets efficiently, and the AI mentor system shall respond within 10 seconds for complex queries. File uploads shall support files up to 50MB in size with progress indicators for user feedback.
+
+Security Requirements
+
+All user passwords shall be encrypted using industry-standard hashing algorithms. API endpoints shall implement rate limiting to prevent abuse. User data shall be transmitted over HTTPS encryption. The system shall implement proper input validation and sanitization to prevent SQL injection and XSS attacks. JWT tokens shall have appropriate expiration times and refresh mechanisms.
+
+Usability Requirements
+
+The system shall provide an intuitive user interface with responsive design for desktop and mobile devices. Navigation shall be consistent across all modules with clear breadcrumb trails. Error messages shall be user-friendly and provide actionable guidance. The system shall support accessibility standards for users with disabilities.
+
+Reliability Requirements
+
+The system shall maintain 99% uptime during operational hours. Automated backup systems shall ensure data integrity and recovery capabilities. Error handling shall be implemented throughout the system with graceful degradation of non-critical features. The system shall include comprehensive logging for debugging and monitoring purposes.
+
+
+
+Maintainability Requirements
+
+The codebase shall follow established coding standards and best practices for both Django and React frameworks. The system shall include comprehensive documentation for API endpoints and component libraries. Database migrations shall be version-controlled and reversible. The architecture shall support modular updates and feature additions without system-wide impacts.
+
+CHAPTER III
+FEASIBILITY STUDY
+3.1 Technical Feasibility
+The CCIS-CodeHub system utilizes a modern and proven technology stack that ensures technical viability and long-term sustainability. The backend is built on Django 4.2.7, a mature and well-documented Python web framework known for its robust ORM, security features, and scalability. The frontend leverages React 18 with TypeScript, providing a type-safe, component-based architecture that facilitates maintainable user interfaces. The system architecture follows industry best practices with clear separation of concerns between presentation, business logic, and data layers.
+
+Technical risks are minimal due to the selection of established technologies with strong community support and extensive documentation. The integration of AI services through well-documented APIs (OpenRouter API access to Gemini, Mistral, etc.) provides reliable artificial intelligence capabilities without the complexity of developing custom machine learning models. PostgreSQL serves as the primary database, offering enterprise-grade reliability and performance, while Redis provides efficient caching and real-time communication support through WebSocket technology. The development team has demonstrated competency with these technologies through the current implementation, and the modular architecture allows for incremental development and testing.
+
+
+
+
+3.2 Organizational Feasibility
+
+This project is developed as a Software Engineering course requirement at SNSU CCIS by a dedicated two-member student development team. The lead programmer brings strong full-stack development capabilities, demonstrating proficiency in the chosen technology stack including Django, React, TypeScript, and modern web development practices. The team structure, while compact, is appropriate for an academic capstone project and allows for focused development with clear role assignments and efficient communication. Both team members possess the technical foundation required for implementing the system's core functionalities, supported by faculty guidance and access to comprehensive learning resources.
+
+The project's organizational feasibility is strengthened by its alignment with SNSU CCIS educational objectives and curriculum requirements. As a Software Engineering project, CCIS-CodeHub serves dual purposes: fulfilling academic requirements while addressing genuine educational needs within the institution. Faculty advisors provide technical oversight and domain expertise, ensuring the project maintains academic rigor and practical relevance. The scope has been carefully designed to be achievable within the academic timeline by a two-member team, focusing on core features while utilizing established frameworks and APIs to minimize development complexity. The project demonstrates organizational viability through its clear documentation, structured development approach, and potential for future enhancement by subsequent student cohorts as part of ongoing academic initiatives.
+
+
+
+
+
+
+
+
+
+
+
+
+3.3 Economic Feasibility
+3.3.1 Cost–Benefit Analysis Table
+Cost Category	Year 1	Year 2	Year 3	Total 3-Year
+Development Costs				
+Student Developer Stipends (4 students)	₱471,968	₱235,984	₱117,992	₱825,944
+Faculty Supervision (20% time)	₱707,952	₱353,976	₱176,988	₱1,238,916
+Infrastructure Costs				
+Cloud Hosting (AWS/Digital Ocean)	₱141,590	₱141,590	₱141,590	₱424,771
+AI API Costs (OpenAI/Gemini)	₱70,795	₱88,494	₱117,992	₱277,281
+Domain and SSL Certificates	₱11,799	₱11,799	₱11,799	₱35,398
+Operational Costs				
+System Maintenance	₱176,988	₱235,984	₱294,980	₱707,952
+Training and Documentation	₱117,992	₱58,996	₱29,498	₱206,486
+Total Costs	₱1,699,085	₱1,126,824	₱890,840	₱3,716,748
+				
+Benefits				
+Direct Benefits				
+LMS License Cost Savings	₱884,940	₱884,940	₱884,940	₱2,654,820
+Reduced IT Support Hours	₱471,968	₱589,960	₱707,952	₱1,769,880
+Indirect Benefits				
+Enhanced Student Outcomes	₱1,179,920	₱1,474,900	₱1,769,880	₱4,424,700
+Faculty Time Savings	₱589,960	₱707,952	₱884,940	₱2,182,852
+Increased Student Satisfaction	₱294,980	₱471,968	₱589,960	₱1,356,908
+Research and Innovation Value	₱884,940	₱1,179,920	₱1,474,900	₱3,539,760
+Total Benefits	₱4,306,708	₱5,309,640	₱6,312,572	₱15,928,920
+				
+Net Benefit	₱2,607,623	₱4,182,816	₱5,421,732	₱12,212,172
+ROI (Annual)	153%	371%	608%	329%
+Cumulative ROI	153%	234%	329%	329%
+Table 1. Economic Analysis of the Proposed System
+
+
+
+
+3.3.2 Discussion of Economic Feasibility
+The economic analysis demonstrates strong financial viability for the CCIS–CodeHub system with a positive return on investment beginning in the first year. The total three-year investment of ₱3,716,748 generates benefits worth ₱15,928,920, resulting in a net benefit of ₱12,212,172 and an overall ROI of 329%. The payback period is approximately six months, indicating rapid cost recovery through immediate savings and improved operational efficiency.
+The most significant cost drivers are personnel expenses for development and supervision, which are partially offset by the educational value and hands-on experience provided to the student developers. Infrastructure costs remain reasonable due to the use of cloud services and low-cost/freemium AI APIs. The benefits calculation includes both tangible cost savings from avoiding commercial LMS licensing fees and quantifiable improvements in educational outcomes. In addition, the system’s ability to generate research projects and enhance institutional reputation provides strategic value beyond the direct financial metrics, making the project economically attractive for the institution.
+3.3.3 Cost Analysis Chart
+
+
+
+
+
+
+
+
+
+
+
+The cost breakdown chart shows that the largest expenses occur in Year 1 due to development and initial infrastructure setup, followed by decreasing development costs and relatively stable operational expenses in Years 2 and 3, indicating that most investments are front loaded during the build phase. The cost–benefit comparison chart demonstrates that, despite these upfront costs, total benefits significantly exceed total costs in every year, with net benefits and ROI increasing over time as the system delivers ongoing savings from LMS license avoidance, reduced IT support hours, and improved academic outcomes. This visual evidence supports the conclusion that CCIS CodeHub is economically feasible, achieving a rapid payback period of about six months and a three year cumulative ROI of approximately 329%, making it a financially attractive project for the institution.
+
+
+CHAPTER IV
+RESEARCH METHODOLOGY
+
+This chapter presents the research design, environment, instruments, implementation phases, deployment, and evaluation methods used in the development of CCIS-CodeHub.
+
+4.1 Research Design
+
+The study utilizes a **Descriptive-Developmental Research Design**.
+*   **Descriptive:** It describes the current status of collaborative learning tools and the specific needs of the CCIS department.
+*   **Developmental:** It involves the systematic design and creation of the "CCIS-CodeHub" platform using the Agile Software Development Life Cycle (SDLC) to address the identified needs.
+
+4.2 Research Environment
+
+The development and testing of the system were conducted in the following environment:
+*   **Hardware Specifications:**
+    *   Development Machine: Intel Core i5/i7 or equivalent, 16GB RAM, 512GB SSD.
+    *   Server Environment (Simulated): Docker containers running on Linux-based architecture.
+*   **Software Environment:**
+    *   Operating System: Windows 10/11 for development, Ubuntu Linux for deployment.
+    *   Browser: Google Chrome and Mozilla Firefox for frontend testing.
+
+4.3 Research Instruments and Tools
+
+The following tools and technologies were utilized to facilitate the development process:
+*   **Design & Modeling:**
+    *   *Figma:* For UI/UX prototyping and wireframing.
+    *   *Lucidchart / Draw.io:* For creating UML diagrams (Use Case, Class, Sequence, Activity) and Entity-Relationship Diagrams (ERD).
+*   **Development Tools:**
+    *   *Visual Studio Code:* Primary Integrated Development Environment (IDE).
+    *   *Git & GitHub:* For version control and source code management.
+    *   *Postman:* For API testing and documentation.
+*   **Technology Stack:**
+    *   *Frontend:* React.js, TypeScript, TailwindCSS, Monaco Editor.
+    *   *Backend:* Django (Python), Django REST Framework.
+    *   *Database:* PostgreSQL (Relational Data), Redis (Caching).
+    *   *AI Services:* OpenRouter integration (supporting Google Gemini 2.0, Mistral, and Llama) for the AI Mentor.
+    *   *Infrastructure:* Docker, Docker Compose for containerization.
+*   **Evaluation Instrument:**
+    *   *ISO/IEC 25010 Survey Questionnaire:* Used to assess the system's Functional Suitability, Performance Efficiency, Compatibility, Usability, Reliability, Security, Maintainability, and Portability.
+
+4.4 Research Implementation (Agile SDLC)
+
+The development followed the Agile Scrum methodology, divided into five key phases:
+
+1.  **Planning Phase:**
+    *   Conducted requirement gathering from potential users (students/instructors).
+    *   Defined the product backlog and user stories (e.g., "As a student, I want to join interactive quizzes").
+    *   Created the comprehensive "Development Roadmap" and "Product Vision".
+
+2.  **Analysis Phase:**
+    *   Analyzed feasibility (Technical, Operational, Economic).
+    *   Defined the database schema (Users, Courses, Projects, LiveQuizzes).
+    *   Established the technical architecture (Client-Server model).
+
+3.  **Design Phase:**
+    *   Designed the User Interface (UI) for the Dashboard, IDE, and Quiz modules.
+    *   modeled system behavior using Sequence and State diagrams.
+    *   Designed the REST API endpoints and WebSocket events structure.
+
+4.  **Development Phase:**
+    *   *Sprint 1 (Foundation):* Setup Django project, React app, and Authentication (Firebase + JWT).
+    *   *Sprint 2 (Learning):* Implemented Course/Lesson models and file extractors.
+    *   *Sprint 3 (Collaboration):* Built the Project Workspace, Kanban board, and real-time Chat.
+    *   *Sprint 4 (Live Quiz):* Developed the real-time quiz system with WebSockets and Instructor controls.
+    *   *Sprint 5 (AI Integration):* Integrated the AI Mentor, PDF content extraction, and instructor prompt engineering for automated question generation.
+
+5.  **Testing Phase:**
+    *   *Unit Testing:* Testing individual components (serializers, utility functions).
+    *   *Integration Testing:* Verifying API endpoints and frontend-backend communication.
+    *   *System Testing:* End-to-end testing of user flows (e.g., Taking a quiz, Committing code).
+
+4.5 Research Deployment
+
+The system was deployed using a containerized approach for scalability and consistency:
+1.  **Dockerization:** Created `Dockerfile` for both Backend (Python/Django) and Frontend (Node/React).
+2.  **Orchestration:** Configured `docker-compose.yml` to manage services (Backend, Frontend, PostgreSQL, Redis, Celery).
+3.  **Cloud Setup:** (Hypothetical/Actual) Prepared for deployment on cloud infrastructure (e.g., AWS EC2 or DigitalOcean VPS) using Nginx as a reverse proxy and Gunicorn as the application server.
+
+4.6 Research Evaluation
+
+To validate the system, an evaluation will be conducted using the ISO/IEC 25010 Software Quality Standards.
+*   **Respondents:** A purposive sample of Computer Science students and IT instructors.
+*   **Procedure:**
+    1.  Respondents will be given access to the CCIS-CodeHub platform.
+    2.  They will perform specific tasks (Register, Join Course, Take Quiz, Use AI Mentor).
+    3.  They will answer the ISO/IEC 25010 questionnaire rating the system on a Likert Scale (1-5).
+    4.  Results will be analyzed using statistical methods (Weighted Mean) to determine the system's acceptability.
