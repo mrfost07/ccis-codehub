@@ -11,6 +11,7 @@ import PDFContentExtractor from '../components/PDFContentExtractor'
 import ModuleFormWithEditor from '../components/ModuleFormWithEditor'
 import QuizEditor from '../components/QuizEditor'
 import LiveQuizQuestionEditor from '../components/LiveQuizQuestionEditor'
+import InstructorMonitorPanel from '../components/InstructorMonitorPanel'
 import api from '../services/api'
 import liveQuizService, { LiveQuiz, CreateLiveQuizData } from '../services/liveQuizService'
 import { useCurrentUser } from '../hooks/useApiCache'
@@ -204,6 +205,7 @@ function InstructorDashboard() {
     violation_penalty_points: 5
   })
   const [creatingLiveQuiz, setCreatingLiveQuiz] = useState(false)
+  const [showMonitorPanel, setShowMonitorPanel] = useState(false)
 
   useEffect(() => {
     checkInstructorAccess()
@@ -659,7 +661,12 @@ function InstructorDashboard() {
       shuffle_answers: false,
       auto_pause_on_exit: true,
       max_violations: 3,
-      violation_penalty_points: 5
+      violation_penalty_points: 5,
+      // Phase 2: Anti-cheat action configuration
+      fullscreen_exit_action: 'pause',
+      alt_tab_action: 'warn',
+      enable_ai_proctor: false,
+      enable_code_execution: true,
     })
   }
 
@@ -2992,6 +2999,71 @@ function InstructorDashboard() {
                 </div>
               </div>
 
+              {/* Phase 2: Security & Anti-Cheat Settings */}
+              <div>
+                <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <span>🛡️</span> Security &amp; Anti-Cheat
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      Fullscreen Exit Action
+                    </label>
+                    <select
+                      value={(liveQuizForm as any).fullscreen_exit_action || 'pause'}
+                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, fullscreen_exit_action: e.target.value } as any)}
+                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-orange-500"
+                    >
+                      <option value="warn">⚠️ Warn only</option>
+                      <option value="pause">⏸ Pause quiz</option>
+                      <option value="close">🚫 Close session</option>
+                    </select>
+                    <p className="text-xs text-slate-500 mt-1">Action when student exits fullscreen</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      Tab Switch / Alt-Tab Action
+                    </label>
+                    <select
+                      value={(liveQuizForm as any).alt_tab_action || 'warn'}
+                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, alt_tab_action: e.target.value } as any)}
+                      className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-orange-500"
+                    >
+                      <option value="warn">⚠️ Warn only</option>
+                      <option value="shuffle">🔀 Shuffle question</option>
+                      <option value="close">🚫 Close session</option>
+                    </select>
+                    <p className="text-xs text-slate-500 mt-1">Action when student switches tabs/windows</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={(liveQuizForm as any).enable_ai_proctor ?? false}
+                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, enable_ai_proctor: e.target.checked } as any)}
+                      className="w-4 h-4 text-orange-600 bg-slate-800 border-slate-700 rounded focus:ring-orange-500"
+                    />
+                    <div>
+                      <span className="text-sm text-slate-300">Enable AI Proctoring (webcam)</span>
+                      <p className="text-xs text-slate-500">Uses AI to detect suspicious behaviour via webcam</p>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={(liveQuizForm as any).enable_code_execution ?? true}
+                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, enable_code_execution: e.target.checked } as any)}
+                      className="w-4 h-4 text-orange-600 bg-slate-800 border-slate-700 rounded focus:ring-orange-500"
+                    />
+                    <div>
+                      <span className="text-sm text-slate-300">Enable Code Execution</span>
+                      <p className="text-xs text-slate-500">Allow code questions to be compiled and run against test cases</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               {/* Info Notice */}
               <div className="bg-blue-900/20 border border-blue-700/50 rounded-lg p-4">
                 <p className="text-sm text-blue-300">
@@ -3050,12 +3122,24 @@ function InstructorDashboard() {
                   <span className="text-slate-500 text-xs font-mono">Code: {selectedLiveQuiz.join_code}</span>
                 </div>
               </div>
-              <button
-                onClick={() => { setSelectedLiveQuiz(null); setDetailTab('overview'); setQuizScores([]); }}
-                className="p-2 hover:bg-slate-800 rounded-lg transition text-slate-400 hover:text-white flex-shrink-0"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Monitor button — only when quiz is open/active */}
+                {selectedLiveQuiz.is_open && (
+                  <button
+                    onClick={() => setShowMonitorPanel(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition text-xs font-medium"
+                    title="Live anti-cheat monitoring"
+                  >
+                    🛡️ Monitor
+                  </button>
+                )}
+                <button
+                  onClick={() => { setSelectedLiveQuiz(null); setDetailTab('overview'); setQuizScores([]); }}
+                  className="p-2 hover:bg-slate-800 rounded-lg transition text-slate-400 hover:text-white flex-shrink-0"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Tab Navigation */}
@@ -3170,6 +3254,23 @@ function InstructorDashboard() {
                         {selectedLiveQuiz.allow_late_join && <span className="px-2.5 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded-lg text-xs">Late Join</span>}
                         {selectedLiveQuiz.shuffle_questions && <span className="px-2.5 py-1 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-lg text-xs">Shuffle Qs</span>}
                         {selectedLiveQuiz.shuffle_answers && <span className="px-2.5 py-1 bg-pink-500/10 text-pink-400 border border-pink-500/20 rounded-lg text-xs">Shuffle As</span>}
+                        {/* Phase 2: anti-cheat badges */}
+                        {selectedLiveQuiz.fullscreen_exit_action && selectedLiveQuiz.fullscreen_exit_action !== 'warn' && (
+                          <span className="px-2.5 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-xs">
+                            FS Exit: {selectedLiveQuiz.fullscreen_exit_action}
+                          </span>
+                        )}
+                        {selectedLiveQuiz.alt_tab_action && selectedLiveQuiz.alt_tab_action !== 'warn' && (
+                          <span className="px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-lg text-xs">
+                            Tab: {selectedLiveQuiz.alt_tab_action}
+                          </span>
+                        )}
+                        {selectedLiveQuiz.enable_ai_proctor && (
+                          <span className="px-2.5 py-1 bg-violet-500/10 text-violet-400 border border-violet-500/20 rounded-lg text-xs">AI Proctor 🎥</span>
+                        )}
+                        {selectedLiveQuiz.enable_code_execution && (
+                          <span className="px-2.5 py-1 bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-lg text-xs">Code Exec ⚙️</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -3327,12 +3428,11 @@ function InstructorDashboard() {
                             return (
                               <tr key={student.id || index} className="border-b border-slate-800 hover:bg-slate-800/50 transition">
                                 <td className="py-3 px-3">
-                                  <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
-                                    index === 0 ? 'bg-yellow-500/20 text-yellow-400 ring-1 ring-yellow-500/30' :
+                                  <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${index === 0 ? 'bg-yellow-500/20 text-yellow-400 ring-1 ring-yellow-500/30' :
                                     index === 1 ? 'bg-slate-400/20 text-slate-300 ring-1 ring-slate-400/30' :
-                                    index === 2 ? 'bg-orange-600/20 text-orange-400 ring-1 ring-orange-600/30' :
-                                    'bg-slate-700/50 text-slate-400'
-                                  }`}>
+                                      index === 2 ? 'bg-orange-600/20 text-orange-400 ring-1 ring-orange-600/30' :
+                                        'bg-slate-700/50 text-slate-400'
+                                    }`}>
                                     {index + 1}
                                   </span>
                                 </td>
@@ -3346,11 +3446,10 @@ function InstructorDashboard() {
                                 <td className="py-3 px-3 text-center text-green-400">{student.total_correct}</td>
                                 <td className="py-3 px-3 text-center text-slate-300">{student.total_attempted}</td>
                                 <td className="py-3 px-3 text-center">
-                                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                    parseFloat(accuracy) >= 80 ? 'bg-green-500/20 text-green-400' :
+                                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${parseFloat(accuracy) >= 80 ? 'bg-green-500/20 text-green-400' :
                                     parseFloat(accuracy) >= 50 ? 'bg-yellow-500/20 text-yellow-400' :
-                                    'bg-red-500/20 text-red-400'
-                                  }`}>
+                                      'bg-red-500/20 text-red-400'
+                                    }`}>
                                     {accuracy}%
                                   </span>
                                 </td>
@@ -3432,6 +3531,14 @@ function InstructorDashboard() {
             <p className="text-slate-400 text-sm font-medium">Opening quiz editor...</p>
           </div>
         </div>
+      )}
+      {/* InstructorMonitorPanel — real-time anti-cheat monitoring */}
+      {showMonitorPanel && selectedLiveQuiz && (
+        <InstructorMonitorPanel
+          joinCode={selectedLiveQuiz.join_code}
+          quizTitle={selectedLiveQuiz.title}
+          onClose={() => setShowMonitorPanel(false)}
+        />
       )}
     </DashboardLayout>
   )

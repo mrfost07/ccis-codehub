@@ -127,6 +127,11 @@ export interface CreateLiveQuizData {
     auto_pause_on_exit?: boolean
     max_violations?: number
     violation_penalty_points?: number
+    // Phase 2: Anti-cheat action configuration
+    fullscreen_exit_action?: 'warn' | 'pause' | 'close'
+    alt_tab_action?: 'warn' | 'shuffle' | 'close'
+    enable_ai_proctor?: boolean
+    enable_code_execution?: boolean
     // Scheduling fields
     scheduled_start?: string   // ISO datetime string
     deadline?: string          // ISO datetime string
