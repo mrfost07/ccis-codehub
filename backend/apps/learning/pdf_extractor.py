@@ -325,7 +325,7 @@ Extract and return a JSON object with the following structure:
                 {{
                     "question_text": "The question",
                     "question_type": "multiple_choice" or "true_false",
-                    "choices": ["Option A", "Option B", "Option C", "Option D"],
+                    "choices": ["Actual answer option from content", "Another real answer option", "A third real option", "A fourth real option"],
                     "correct_answer": "The correct option text or index",
                     "explanation": "Why this is correct",
                     "points": 1
@@ -343,6 +343,7 @@ IMPORTANT RULES:
 5. Ensure questions test understanding, not just memorization
 6. If content doesn't have clear sections, create logical divisions
 7. Return ONLY valid JSON, no other text
+8. CRITICAL: Quiz choices MUST contain ACTUAL answer text from the document. NEVER use generic placeholders like "Option A", "Option B", etc.
 
 Return the JSON:"""
 
@@ -389,10 +390,10 @@ Generate quiz questions and return a JSON object with this EXACT structure:
             "content": "Full question text with any context or code examples in HTML format",
             "type": "multiple_choice",
             "choices": [
-                {{"id": "1", "text": "Option A", "isCorrect": false}},
-                {{"id": "2", "text": "Option B", "isCorrect": true}},
-                {{"id": "3", "text": "Option C", "isCorrect": false}},
-                {{"id": "4", "text": "Option D", "isCorrect": false}}
+                {{"id": "1", "text": "The actual first answer option extracted from content", "isCorrect": false}},
+                {{"id": "2", "text": "The actual second answer option extracted from content", "isCorrect": true}},
+                {{"id": "3", "text": "The actual third answer option extracted from content", "isCorrect": false}},
+                {{"id": "4", "text": "The actual fourth answer option extracted from content", "isCorrect": false}}
             ],
             "correctAnswer": null,
             "points": 1
@@ -432,7 +433,8 @@ RULES:
 4. Mix question types appropriately based on content
 5. Assign points: 1 for simple, 2 for medium, 3 for complex questions
 6. Each id must be unique (use numbers as strings: "1", "2", etc.)
-7. Return ONLY valid JSON, no other text"""
+7. Return ONLY valid JSON, no other text
+8. CRITICAL: Each choice "text" MUST contain the ACTUAL answer text from the document content. NEVER use generic placeholders like "Option A", "Option B", "Option C", "Option D". Every choice must be a real, meaningful answer option."""
 
 
 def process_pdf_for_learning(pdf_file, extraction_type: str = 'full', model_type: str = None) -> Dict[str, Any]:

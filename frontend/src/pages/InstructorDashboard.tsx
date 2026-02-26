@@ -780,10 +780,10 @@ function InstructorDashboard() {
 
       if (choices.length === 0 && type === 'multiple_choice') {
         choices.push(
-          { id: 'A', text: 'Option A', isCorrect: true },
-          { id: 'B', text: 'Option B', isCorrect: false },
-          { id: 'C', text: 'Option C', isCorrect: false },
-          { id: 'D', text: 'Option D', isCorrect: false }
+          { id: 'A', text: '', isCorrect: true },
+          { id: 'B', text: '', isCorrect: false },
+          { id: 'C', text: '', isCorrect: false },
+          { id: 'D', text: '', isCorrect: false }
         )
       }
 
@@ -803,10 +803,10 @@ function InstructorDashboard() {
       content: '',
       type: 'multiple_choice',
       choices: [
-        { id: 'A', text: 'Option A', isCorrect: true },
-        { id: 'B', text: 'Option B', isCorrect: false },
-        { id: 'C', text: 'Option C', isCorrect: false },
-        { id: 'D', text: 'Option D', isCorrect: false }
+        { id: 'A', text: '', isCorrect: true },
+        { id: 'B', text: '', isCorrect: false },
+        { id: 'C', text: '', isCorrect: false },
+        { id: 'D', text: '', isCorrect: false }
       ],
       points: 1
     }]
