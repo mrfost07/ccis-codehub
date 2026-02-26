@@ -4,7 +4,8 @@ import {
   Users, BookOpen, ClipboardCheck, Award, TrendingUp,
   Calendar, FileText, Video, MessageCircle, Settings,
   PlusCircle, BarChart2, Clock, CheckCircle, GraduationCap, Wand2,
-  Eye, ChevronRight, RefreshCw, Edit, Trash2, Play, X, Save, Upload, Home, Radio, Filter, Loader2, Copy, Link, Download
+  Eye, ChevronRight, RefreshCw, Edit, Trash2, Play, X, Save, Upload, Home, Radio, Filter, Loader2, Copy, Link, Download,
+  Camera, Code2, ShieldCheck
 } from 'lucide-react'
 import DashboardLayout, { SidenavItem } from '../components/layout/DashboardLayout'
 import PDFContentExtractor from '../components/PDFContentExtractor'
@@ -192,6 +193,7 @@ function InstructorDashboard() {
   const [liveQuizForm, setLiveQuizForm] = useState<CreateLiveQuizData>({
     title: '',
     description: '',
+    quiz_mode: 'live',
     max_participants: 100,
     default_question_time: 30,
     show_leaderboard: true,
@@ -206,6 +208,7 @@ function InstructorDashboard() {
   })
   const [creatingLiveQuiz, setCreatingLiveQuiz] = useState(false)
   const [showMonitorPanel, setShowMonitorPanel] = useState(false)
+  const [isStartingQuiz, setIsStartingQuiz] = useState(false)
 
   useEffect(() => {
     checkInstructorAccess()
@@ -735,7 +738,7 @@ function InstructorDashboard() {
           </div>
           <div class="question-info" style="display: flex; gap: 1rem; margin-bottom: 1rem; font-size: 0.875rem; color: #94a3b8;">
             <span>📝 ${q.type.replace('_', ' ').toUpperCase()}</span>
-            <span>⭐ ${q.points} ${q.points === 1 ? 'point' : 'points'}</span>
+            <span>${q.points} ${q.points === 1 ? 'point' : 'points'}</span>
           </div>
           ${choicesHtml}
         </div>
@@ -895,10 +898,10 @@ function InstructorDashboard() {
 
       if (choices.length === 0 && type === 'multiple_choice') {
         choices.push(
-          { id: 'A', text: 'Option A', isCorrect: true },
-          { id: 'B', text: 'Option B', isCorrect: false },
-          { id: 'C', text: 'Option C', isCorrect: false },
-          { id: 'D', text: 'Option D', isCorrect: false }
+          { id: 'A', text: '', isCorrect: true },
+          { id: 'B', text: '', isCorrect: false },
+          { id: 'C', text: '', isCorrect: false },
+          { id: 'D', text: '', isCorrect: false }
         )
       }
 
@@ -918,10 +921,10 @@ function InstructorDashboard() {
       content: '',
       type: 'multiple_choice',
       choices: [
-        { id: 'A', text: 'Option A', isCorrect: true },
-        { id: 'B', text: 'Option B', isCorrect: false },
-        { id: 'C', text: 'Option C', isCorrect: false },
-        { id: 'D', text: 'Option D', isCorrect: false }
+        { id: 'A', text: '', isCorrect: true },
+        { id: 'B', text: '', isCorrect: false },
+        { id: 'C', text: '', isCorrect: false },
+        { id: 'D', text: '', isCorrect: false }
       ],
       points: 1
     }]
@@ -2486,7 +2489,7 @@ function InstructorDashboard() {
                     }}
                     className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg transition flex items-center justify-center gap-2 font-semibold"
                   >
-                    {showQuizEditor ? '📝 Hide Question Editor' : '✨ Create Questions (Multiple Choice, T/F, Essay)'}
+                    {showQuizEditor ? 'Hide Question Editor' : 'Create Questions (Multiple Choice, T/F, Essay)'}
                   </button>
                 </div>
 
@@ -2817,7 +2820,7 @@ function InstructorDashboard() {
                     }}
                     className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg transition flex items-center justify-center gap-2 font-semibold"
                   >
-                    {showQuizEditor ? '📝 Hide Question Editor' : '✨ Edit Questions (Multiple Choice, T/F, Essay)'}
+                    {showQuizEditor ? 'Hide Question Editor' : 'Edit Questions (Multiple Choice, T/F, Essay)'}
                   </button>
                 </div>
 
@@ -2903,6 +2906,68 @@ function InstructorDashboard() {
                       className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-orange-500"
                     />
                   </div>
+
+                  {/* Quiz Mode Selector */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      Quiz Mode
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setLiveQuizForm({ ...liveQuizForm, quiz_mode: 'live' })}
+                        className={`p-3 rounded-lg border text-left transition-all ${liveQuizForm.quiz_mode === 'live'
+                          ? 'border-orange-500 bg-orange-500/10 ring-2 ring-orange-500/30'
+                          : 'border-slate-700 bg-slate-800 hover:border-slate-600'
+                          }`}
+                      >
+                        <div className="text-sm font-semibold text-white flex items-center gap-2"><Radio className="w-4 h-4 text-red-400" /> Live (Host Required)</div>
+                        <div className="text-xs text-slate-400 mt-1">Real-time, instructor-paced via WebSocket</div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLiveQuizForm({ ...liveQuizForm, quiz_mode: 'self_paced' })}
+                        className={`p-3 rounded-lg border text-left transition-all ${liveQuizForm.quiz_mode === 'self_paced'
+                          ? 'border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30'
+                          : 'border-slate-700 bg-slate-800 hover:border-slate-600'
+                          }`}
+                      >
+                        <div className="text-sm font-semibold text-white flex items-center gap-2"><Clock className="w-4 h-4 text-blue-400" /> Self-Paced (Deadline)</div>
+                        <div className="text-xs text-slate-400 mt-1">Students take anytime before deadline</div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Self-paced extra fields */}
+                  {liveQuizForm.quiz_mode === 'self_paced' && (
+                    <div className="space-y-4 p-4 rounded-lg border border-blue-800/30 bg-blue-950/10">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                          Deadline
+                        </label>
+                        <input
+                          type="datetime-local"
+                          value={liveQuizForm.deadline || ''}
+                          onChange={(e) => setLiveQuizForm({ ...liveQuizForm, deadline: e.target.value || undefined })}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                          Time Limit (minutes) — leave empty for no limit
+                        </label>
+                        <input
+                          type="number"
+                          value={liveQuizForm.time_limit_minutes || ''}
+                          onChange={(e) => setLiveQuizForm({ ...liveQuizForm, time_limit_minutes: e.target.value ? parseInt(e.target.value) : undefined })}
+                          placeholder="e.g., 30"
+                          min={1}
+                          max={480}
+                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">
                       Description
@@ -3002,7 +3067,7 @@ function InstructorDashboard() {
               {/* Phase 2: Security & Anti-Cheat Settings */}
               <div>
                 <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <span>🛡️</span> Security &amp; Anti-Cheat
+                  <ShieldCheck className="w-5 h-5 text-orange-400" /> Security & Anti-Cheat
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                   <div>
@@ -3014,9 +3079,9 @@ function InstructorDashboard() {
                       onChange={(e) => setLiveQuizForm({ ...liveQuizForm, fullscreen_exit_action: e.target.value } as any)}
                       className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-orange-500"
                     >
-                      <option value="warn">⚠️ Warn only</option>
-                      <option value="pause">⏸ Pause quiz</option>
-                      <option value="close">🚫 Close session</option>
+                      <option value="warn">Warn only</option>
+                      <option value="pause">Pause quiz</option>
+                      <option value="close">Close session</option>
                     </select>
                     <p className="text-xs text-slate-500 mt-1">Action when student exits fullscreen</p>
                   </div>
@@ -3029,9 +3094,9 @@ function InstructorDashboard() {
                       onChange={(e) => setLiveQuizForm({ ...liveQuizForm, alt_tab_action: e.target.value } as any)}
                       className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-orange-500"
                     >
-                      <option value="warn">⚠️ Warn only</option>
-                      <option value="shuffle">🔀 Shuffle question</option>
-                      <option value="close">🚫 Close session</option>
+                      <option value="warn">Warn only</option>
+                      <option value="shuffle">Shuffle question</option>
+                      <option value="close">Close session</option>
                     </select>
                     <p className="text-xs text-slate-500 mt-1">Action when student switches tabs/windows</p>
                   </div>
@@ -3130,7 +3195,7 @@ function InstructorDashboard() {
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition text-xs font-medium"
                     title="Live anti-cheat monitoring"
                   >
-                    🛡️ Monitor
+                    <ShieldCheck className="w-3.5 h-3.5" /> Monitor
                   </button>
                 )}
                 <button
@@ -3254,22 +3319,30 @@ function InstructorDashboard() {
                         {selectedLiveQuiz.allow_late_join && <span className="px-2.5 py-1 bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 rounded-lg text-xs">Late Join</span>}
                         {selectedLiveQuiz.shuffle_questions && <span className="px-2.5 py-1 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-lg text-xs">Shuffle Qs</span>}
                         {selectedLiveQuiz.shuffle_answers && <span className="px-2.5 py-1 bg-pink-500/10 text-pink-400 border border-pink-500/20 rounded-lg text-xs">Shuffle As</span>}
-                        {/* Phase 2: anti-cheat badges */}
+                        {/* Phase 2: anti-cheat badges — icon-only, no emojis */}
                         {selectedLiveQuiz.fullscreen_exit_action && selectedLiveQuiz.fullscreen_exit_action !== 'warn' && (
-                          <span className="px-2.5 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-xs">
-                            FS Exit: {selectedLiveQuiz.fullscreen_exit_action}
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-xs">
+                            <ShieldCheck className="w-3 h-3" />
+                            FS: {selectedLiveQuiz.fullscreen_exit_action}
                           </span>
                         )}
                         {selectedLiveQuiz.alt_tab_action && selectedLiveQuiz.alt_tab_action !== 'warn' && (
-                          <span className="px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-lg text-xs">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-lg text-xs">
+                            <Eye className="w-3 h-3" />
                             Tab: {selectedLiveQuiz.alt_tab_action}
                           </span>
                         )}
                         {selectedLiveQuiz.enable_ai_proctor && (
-                          <span className="px-2.5 py-1 bg-violet-500/10 text-violet-400 border border-violet-500/20 rounded-lg text-xs">AI Proctor 🎥</span>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-violet-500/10 text-violet-400 border border-violet-500/20 rounded-lg text-xs">
+                            <Camera className="w-3 h-3" />
+                            AI Proctor
+                          </span>
                         )}
                         {selectedLiveQuiz.enable_code_execution && (
-                          <span className="px-2.5 py-1 bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-lg text-xs">Code Exec ⚙️</span>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-teal-500/10 text-teal-400 border border-teal-500/20 rounded-lg text-xs">
+                            <Code2 className="w-3 h-3" />
+                            Code Exec
+                          </span>
                         )}
                       </div>
                     </div>
@@ -3332,11 +3405,50 @@ function InstructorDashboard() {
                       </h4>
                       {selectedLiveQuiz.questions_count > 0 && (
                         <button
-                          onClick={() => toast('Start quiz session coming soon!', { icon: '\u{1F680}' })}
-                          className="w-full px-4 py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-lg transition flex items-center justify-center gap-2 font-medium"
+                          disabled={isStartingQuiz}
+                          onClick={async () => {
+                            if (!selectedLiveQuiz) return;
+                            setIsStartingQuiz(true);
+                            try {
+                              // 1. Tell the backend to create/open the session
+                              await api.post(`/learning/live-quiz/${selectedLiveQuiz.id}/start/`);
+                              // 2. Open WS as instructor and broadcast quiz_started
+                              const wsBase = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
+                              const ws = new WebSocket(`${wsBase}/quiz/${selectedLiveQuiz.join_code}/`);
+                              ws.onopen = () => {
+                                ws.send(JSON.stringify({ type: 'instructor_join', join_code: selectedLiveQuiz.join_code }));
+                                ws.send(JSON.stringify({ type: 'start_quiz' }));
+                                toast.success(`Session started! Share code: ${selectedLiveQuiz.join_code}`);
+                                // Refresh to update is_active flag
+                                fetchLiveQuizzes();
+                              };
+                              ws.onerror = () => toast.error('WS error — session API succeeded but WS failed.');
+                            } catch (e: any) {
+                              // "already has an active session" is fine — just start WS broadcast
+                              const msg = e?.response?.data?.error || '';
+                              if (msg.includes('active session')) {
+                                const wsBase = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
+                                const ws = new WebSocket(`${wsBase}/quiz/${selectedLiveQuiz.join_code}/`);
+                                ws.onopen = () => {
+                                  ws.send(JSON.stringify({ type: 'instructor_join', join_code: selectedLiveQuiz.join_code }));
+                                  ws.send(JSON.stringify({ type: 'start_quiz' }));
+                                  toast.success(`Quiz session live! Code: ${selectedLiveQuiz.join_code}`);
+                                  fetchLiveQuizzes();
+                                };
+                              } else {
+                                toast.error(msg || 'Failed to start quiz session');
+                              }
+                            } finally {
+                              setIsStartingQuiz(false);
+                            }
+                          }}
+                          className="w-full px-4 py-2.5 bg-green-600 hover:bg-green-500 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg transition flex items-center justify-center gap-2 font-medium"
                         >
-                          <Play className="w-4 h-4" />
-                          Start Quiz Session
+                          {isStartingQuiz
+                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                            : <Play className="w-4 h-4" />
+                          }
+                          {isStartingQuiz ? 'Starting...' : 'Start Quiz Session'}
                         </button>
                       )}
                       <button

@@ -32,10 +32,10 @@ const getDefaultQuestion = (order: number): LocalQuestion => ({
     question_text: '',
     question_type: 'multiple_choice',
     order,
-    option_a: 'Option A',
-    option_b: 'Option B',
-    option_c: 'Option C',
-    option_d: 'Option D',
+    option_a: '',
+    option_b: '',
+    option_c: '',
+    option_d: '',
     correct_answer: 'A',
     explanation: '',
     points: 10,
@@ -146,14 +146,14 @@ export default function LiveQuizQuestionEditor({
 
             if (response.data.success && response.data.questions) {
                 const extractedQuestions: LocalQuestion[] = response.data.questions.map((q: any, index: number) => {
-                    let optionA = 'Option A', optionB = 'Option B', optionC = 'Option C', optionD = 'Option D'
+                    let optionA = '', optionB = '', optionC = '', optionD = ''
                     let correctAnswer = 'A'
 
                     if (q.choices && q.choices.length > 0) {
-                        optionA = q.choices[0]?.text || 'Option A'
-                        optionB = q.choices[1]?.text || 'Option B'
-                        optionC = q.choices[2]?.text || 'Option C'
-                        optionD = q.choices[3]?.text || 'Option D'
+                        optionA = q.choices[0]?.text || ''
+                        optionB = q.choices[1]?.text || ''
+                        optionC = q.choices[2]?.text || ''
+                        optionD = q.choices[3]?.text || ''
 
                         const correctIndex = q.choices.findIndex((c: any) => c.isCorrect)
                         if (correctIndex >= 0) {
