@@ -121,7 +121,7 @@ const QuizLobby = () => {
     }, [joinCode, navigate]);
 
     return (
-        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 pb-20 sm:pb-4">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-950 to-slate-950" />
 
             <div className="relative w-full max-w-lg text-center">

@@ -46,12 +46,14 @@ export default function AuthCallback() {
             return;
         }
 
-        // Parse mode from state parameter (default to 'login')
+        // Parse mode and returnUrl from state parameter (default to 'login')
         let mode = 'login';
+        let returnUrl = '/learning';
         try {
             if (state) {
                 const stateData = JSON.parse(atob(state));
                 mode = stateData.mode || 'login';
+                returnUrl = stateData.returnUrl || '/learning';
             }
         } catch {
             // If state parsing fails, default to login
@@ -95,7 +97,7 @@ export default function AuthCallback() {
                 setAuthData(data.tokens.access, data.user);
                 toast.success(`Welcome back, ${data.user.first_name || data.user.username}!`);
                 // Use window.location for OAuth to ensure fresh page load with auth tokens
-                window.location.href = '/learning';
+                window.location.href = returnUrl;
                 return;
             }
 

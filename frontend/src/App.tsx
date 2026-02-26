@@ -36,6 +36,7 @@ import CompleteProfile from './pages/CompleteProfile'
 import JoinQuiz from './pages/JoinQuiz'
 import QuizLobby from './pages/QuizLobby'
 import LiveQuizSession from './pages/LiveQuizSession'
+import SelfPacedQuizSession from './pages/SelfPacedQuizSession'
 import QuizResults from './pages/QuizResults'
 import QuizAnalytics from './pages/QuizAnalytics'
 import { Capacitor } from '@capacitor/core'
@@ -254,6 +255,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <LiveQuizSession />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quiz/self-paced/:joinCode"
+                element={
+                  <ProtectedRoute>
+                    <SelfPacedQuizSession />
                   </ProtectedRoute>
                 }
               />

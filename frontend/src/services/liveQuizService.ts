@@ -116,6 +116,7 @@ export interface LiveQuizParticipant {
 export interface CreateLiveQuizData {
     title: string
     description?: string
+    quiz_mode?: 'live' | 'self_paced'
     max_participants?: number
     default_question_time?: number
     show_leaderboard?: boolean
@@ -266,6 +267,14 @@ class LiveQuizService {
     // Analytics
     async getFinalOverview(quizId: string): Promise<any> {
         const response = await api.get(`${this.baseUrl}/${quizId}/final_overview/`)
+        return response.data
+    }
+
+    // Self-Paced
+    async completeSelfPaced(participantId: string): Promise<any> {
+        const response = await api.post(`/learning/live-quiz-responses/complete_self_paced/`, {
+            participant_id: participantId
+        })
         return response.data
     }
 }

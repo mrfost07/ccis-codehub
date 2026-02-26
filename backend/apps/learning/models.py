@@ -309,6 +309,11 @@ class LiveQuiz(models.Model):
         ('ai_prompt', 'AI Generated'),
         ('manual', 'Manual Entry'),
     ]
+
+    QUIZ_MODES = [
+        ('live', 'Live (Host Required)'),
+        ('self_paced', 'Self-Paced (Deadline)'),
+    ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     instructor = models.ForeignKey(
@@ -321,6 +326,7 @@ class LiveQuiz(models.Model):
     title = models.CharField(max_length=200, db_index=True)
     description = models.TextField(blank=True)
     creation_method = models.CharField(max_length=20, choices=CREATION_METHODS, db_index=True)
+    quiz_mode = models.CharField(max_length=20, choices=QUIZ_MODES, default='live', db_index=True)
     source_file = models.FileField(upload_to='live_quiz_sources/', null=True, blank=True)
     ai_prompt_text = models.TextField(blank=True)
     

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
     Timer, CheckCircle, XCircle, AlertCircle, Play, Terminal,
-    Loader2, Maximize, Camera, CameraOff, ShieldAlert, Lock
+    Loader2, Maximize, Camera, CameraOff, ShieldAlert, Lock, Clock
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import Editor from '@monaco-editor/react';
@@ -346,6 +346,10 @@ const LiveQuizSession = () => {
     // WebSocket connection
     // ─────────────────────────────────────────────────────────────────────────
 
+    // Keep a ref so WS message handler always reads current gameState
+    const gameStateRef = useRef(gameState);
+    useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
+
     useEffect(() => {
         if (!joinCode) return;
 
@@ -354,10 +358,9 @@ const LiveQuizSession = () => {
         wsRef.current = socket;
 
         socket.onopen = () => {
-            socket.send(JSON.stringify({
-                type: 'join',
-                nickname: sessionState.nickname || 'Student',
-            }));
+            // Do NOT send 'join' here — student is already registered via REST in JoinQuiz.
+            // Sending 'join' again creates a duplicate participant in the consumer.
+            console.log('Quiz WS connected');
         };
 
         socket.onmessage = (event) => {
@@ -425,7 +428,7 @@ const LiveQuizSession = () => {
             // ── Phase 2: Question shuffle on alt-tab (instructor's choice) ──
             case 'question_shuffle': {
                 const question = applyQuestion(data.question);
-                toast('❗ Question shuffled due to focus loss.', { icon: '🔀', duration: 3000 });
+                toast('Question changed — focus was detected elsewhere.', { duration: 3000 });
                 setGameState(prev => ({
                     ...prev,
                     currentQuestion: question,
@@ -538,12 +541,13 @@ const LiveQuizSession = () => {
             case 'quiz_end':
                 setGameState(prev => ({ ...prev, status: 'results' }));
                 if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
+                // Use ref to avoid stale closure — gameState captured at WS setup would have score=0
                 navigate('/quiz/results', {
                     state: {
-                        score: gameState.score,
-                        totalCorrect: gameState.totalCorrect,
-                        totalAttempted: gameState.totalAttempted,
-                        totalQuestions: gameState.totalQuestions || gameState.questionNumber,
+                        score: gameStateRef.current.score,
+                        totalCorrect: gameStateRef.current.totalCorrect,
+                        totalAttempted: gameStateRef.current.totalAttempted,
+                        totalQuestions: gameStateRef.current.totalQuestions || gameStateRef.current.questionNumber,
                         quizTitle: sessionState.quizTitle,
                     },
                 });
@@ -599,7 +603,7 @@ const LiveQuizSession = () => {
         // Quick run without submitting — show placeholder until execution result arrives
         setIsRunningCode(true);
         setCodeExecResult(null);
-        toast('Running tests...', { icon: '⚙️', duration: 1500 });
+        toast('Running code...', { duration: 1500 });
         // In practice, wire to a /run endpoint or share the submit_code flow
         setTimeout(() => setIsRunningCode(false), 3000);
     };
@@ -700,12 +704,12 @@ const LiveQuizSession = () => {
     // ─────────────────────────────────────────────────────────────────────────
 
     return (
-        <div className="min-h-screen bg-slate-950 flex flex-col">
+        <div className="min-h-screen bg-slate-950 flex flex-col pb-16 sm:pb-0">
 
             {/* ── Header ──────────────────────────────────────────────── */}
-            <div className="bg-slate-900 border-b border-slate-800 p-4 sticky top-0 z-10">
+            <div className="bg-slate-900 border-b border-slate-800 px-3 sm:px-4 py-2 sm:py-4 sticky top-0 z-10">
                 <div className="max-w-4xl mx-auto flex justify-between items-center">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                         <span className="bg-gradient-to-r from-purple-600 to-indigo-600 px-2 py-1 rounded text-xs font-bold text-white">
                             LIVE
                         </span>
@@ -717,7 +721,7 @@ const LiveQuizSession = () => {
                             </span>
                         )}
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 sm:gap-4">
                         {/* AI Proctor status */}
                         {aiProctorEnabled && (
                             <div className="flex items-center gap-1.5">
@@ -764,10 +768,11 @@ const LiveQuizSession = () => {
                 </div>
 
                 {/* Question Card */}
-                <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-8 mb-8 text-center shadow-xl">
-                    <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">
-                        {gameState.currentQuestion.text}
-                    </h2>
+                <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 sm:p-8 mb-6 sm:mb-8 text-center shadow-xl">
+                    <h2
+                        className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-tight [&_p]:m-0"
+                        dangerouslySetInnerHTML={{ __html: gameState.currentQuestion.text }}
+                    />
                     <div className={`mt-6 flex justify-center items-center gap-2 font-mono text-xl ${gameState.timeRemaining <= 5 ? 'text-red-400' :
                         gameState.timeRemaining <= 10 ? 'text-amber-400' : 'text-slate-400'
                         }`}>
@@ -830,7 +835,7 @@ const LiveQuizSession = () => {
                                                 <div className="text-slate-500 text-xs mt-0.5">{r.stderr.slice(0, 120)}</div>
                                             )}
                                             {!r.passed && r.error === 'timeout' && (
-                                                <div className="text-amber-400 text-xs mt-0.5">⏱ Timed out</div>
+                                                <div className="text-amber-400 text-xs mt-0.5 flex items-center gap-1"><Clock className="w-3 h-3" /> Timed out</div>
                                             )}
                                         </div>
                                     </div>
@@ -855,7 +860,10 @@ const LiveQuizSession = () => {
                                 disabled={isAnswerSubmitted}
                                 className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-lg font-bold flex items-center gap-2 transition disabled:opacity-50"
                             >
-                                {isAnswerSubmitted ? 'Submitted ✓' : 'Submit Solution'}
+                                {isAnswerSubmitted
+                                    ? <><CheckCircle className="w-4 h-4" /> Submitted</>
+                                    : 'Submit Solution'
+                                }
                             </button>
                         </div>
                     </div>
@@ -881,13 +889,13 @@ const LiveQuizSession = () => {
                                     key={choice.id}
                                     onClick={() => submitAnswer(choice.id)}
                                     disabled={isAnswerSubmitted}
-                                    className={`p-6 rounded-xl border-2 text-left transition-all transform active:scale-[0.98] flex items-center justify-between group ${boxClass}`}
+                                    className={`p-4 sm:p-6 rounded-xl border-2 text-left transition-all transform active:scale-[0.98] flex items-center justify-between group ${boxClass}`}
                                 >
                                     <div className="flex items-center gap-3">
                                         <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-700 text-slate-400'}`}>
                                             {choice.id}
                                         </span>
-                                        <span className={`text-lg font-medium ${isSelected ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>
+                                        <span className={`text-base sm:text-lg font-medium ${isSelected ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>
                                             {choice.text}
                                         </span>
                                     </div>

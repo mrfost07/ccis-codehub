@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { authAPI } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -15,6 +15,7 @@ export default function Login() {
   const [captchaToken, setCaptchaToken] = useState('')
   const [captchaAnswer, setCaptchaAnswer] = useState<number | null>(null)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { setAuthData } = useAuth()
 
   const handleCaptchaVerified = (token: string, answer: number) => {
@@ -45,7 +46,9 @@ export default function Login() {
 
       setAuthData(access, userData)
       toast.success('Welcome back!')
-      navigate('/learning')
+      // Redirect to return URL if one was saved (e.g. from quiz join link)
+      const returnUrl = searchParams.get('returnUrl')
+      navigate(returnUrl || '/learning')
     } catch (error: any) {
       console.error('Login error:', error.response?.data)
       // Reset CAPTCHA on failure
@@ -64,9 +67,10 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     const clientId = '1018587300192-m0n93uesm6v33bahs57tatg52v3lurah.apps.googleusercontent.com'
-    const redirectUri = encodeURIComponent('https://ccis-codehub.space/auth/callback')
+    const redirectUri = encodeURIComponent(`${window.location.origin}/auth/callback`)
     const scope = encodeURIComponent('openid email profile')
-    const state = btoa(JSON.stringify({ mode: 'login' }))
+    const returnUrl = searchParams.get('returnUrl') || '/learning'
+    const state = btoa(JSON.stringify({ mode: 'login', returnUrl }))
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=${state}`
 
     if (Capacitor.isNativePlatform()) {

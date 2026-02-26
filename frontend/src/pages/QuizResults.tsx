@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Trophy, Home, Award, Target, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Trophy, Home, Award, Target, CheckCircle, XCircle, Clock, Star, ThumbsUp, TrendingUp } from 'lucide-react';
 
 interface ResultsState {
     score: number;
@@ -23,45 +23,45 @@ const QuizResults = () => {
     const quizTitle = state.quizTitle || 'Quiz';
 
     const getEncouragement = (acc: number) => {
-        if (acc >= 90) return { text: "Outstanding!", color: "text-yellow-400", icon: "🏆" };
-        if (acc >= 70) return { text: "Great Job!", color: "text-green-400", icon: "🎉" };
-        if (acc >= 50) return { text: "Good Effort!", color: "text-indigo-400", icon: "👏" };
-        return { text: "Keep Practicing!", color: "text-slate-400", icon: "💪" };
+        if (acc >= 90) return { text: "Outstanding!", color: "text-yellow-400", Icon: Trophy };
+        if (acc >= 70) return { text: "Great Job!", color: "text-green-400", Icon: Star };
+        if (acc >= 50) return { text: "Good Effort!", color: "text-indigo-400", Icon: ThumbsUp };
+        return { text: "Keep Practicing!", color: "text-slate-400", Icon: TrendingUp };
     };
 
-    const { text, color, icon } = getEncouragement(accuracy);
+    const { text, color, Icon } = getEncouragement(accuracy);
 
     return (
-        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 pb-20 sm:pb-4">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-950 to-slate-950" />
 
             <div className="relative w-full max-w-lg text-center space-y-6">
-                <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-3xl p-10 shadow-2xl">
+                <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-3xl p-8 sm:p-10 shadow-2xl">
                     {/* Trophy Icon */}
                     <div className="mb-6 flex justify-center">
                         <div className="relative">
                             <div className="absolute inset-0 bg-purple-500 blur-2xl opacity-20 rounded-full" />
-                            <Trophy className={`w-24 h-24 ${color} drop-shadow-lg`} />
+                            <Icon className={`w-20 h-20 sm:w-24 sm:h-24 ${color} drop-shadow-lg`} />
                         </div>
                     </div>
 
                     {/* Title */}
-                    <h1 className="text-4xl font-bold text-white mb-1">{text}</h1>
-                    <p className="text-slate-400 text-lg mb-2">{quizTitle}</p>
+                    <h1 className="text-3xl sm:text-4xl font-bold text-white mb-1">{text}</h1>
+                    <p className="text-slate-400 text-base sm:text-lg mb-2">{quizTitle}</p>
                     <p className="text-slate-500 text-sm">You completed the session</p>
 
                     {/* Stats Grid */}
                     <div className="mt-8 py-6 border-t border-b border-slate-800 grid grid-cols-3 gap-4">
                         <div className="text-center">
-                            <div className="text-3xl font-bold text-white">{score}</div>
+                            <div className="text-2xl sm:text-3xl font-bold text-white">{score}</div>
                             <div className="text-xs text-slate-500 uppercase tracking-widest mt-1">Score</div>
                         </div>
                         <div className="text-center border-x border-slate-800">
-                            <div className="text-3xl font-bold text-white">{accuracy}%</div>
+                            <div className="text-2xl sm:text-3xl font-bold text-white">{accuracy}%</div>
                             <div className="text-xs text-slate-500 uppercase tracking-widest mt-1">Accuracy</div>
                         </div>
                         <div className="text-center">
-                            <div className="text-3xl font-bold text-white">
+                            <div className="text-2xl sm:text-3xl font-bold text-white">
                                 {totalCorrect}/{totalQuestions}
                             </div>
                             <div className="text-xs text-slate-500 uppercase tracking-widest mt-1">Correct</div>

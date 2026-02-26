@@ -65,32 +65,44 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
     def start(self, request, pk=None):
         """Start a live quiz session"""
         quiz = self.get_object()
-        
-        # Check if quiz already has an active session
-        if hasattr(quiz, 'session') and quiz.session.status != 'ended':
-            return Response(
-                {'error': 'Quiz already has an active session'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Check if quiz has questions
+
+        # Check if quiz has questions first
         if quiz.live_questions.count() == 0:
             return Response(
                 {'error': 'Quiz must have at least one question'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
-        # Create session
-        session = LiveQuizSession.objects.create(
-            quiz=quiz,
-            status='lobby'
-        )
-        
+
+        # Get or create session — join_by_code may have already created a lobby session
+        try:
+            session = quiz.session
+            if session.status == 'in_progress':
+                return Response(
+                    {'error': 'Quiz is already in progress'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if session.status == 'ended':
+                # Old ended session — delete and create a fresh lobby
+                session.delete()
+                initial_status = 'in_progress' if quiz.quiz_mode == 'self_paced' else 'lobby'
+                session = LiveQuizSession.objects.create(quiz=quiz, status=initial_status)
+            # else: status == 'lobby' — reuse it (students may already be waiting)
+            # For self_paced, immediately set to in_progress
+            if quiz.quiz_mode == 'self_paced' and session.status == 'lobby':
+                session.status = 'in_progress'
+                session.save(update_fields=['status'])
+        except LiveQuizSession.DoesNotExist:
+            initial_status = 'in_progress' if quiz.quiz_mode == 'self_paced' else 'lobby'
+            session = LiveQuizSession.objects.create(quiz=quiz, status=initial_status)
+
         # Mark quiz as active
-        quiz.start_session()
-        
+        quiz.is_active = True
+        quiz.started_at = timezone.now()
+        quiz.save(update_fields=['is_active', 'started_at'])
+
         serializer = LiveQuizSessionSerializer(session)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
     
     @action(detail=True, methods=['post'], permission_classes=[IsInstructorOrAdmin])
     def end(self, request, pk=None):
@@ -105,31 +117,34 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
         
         session = quiz.session
         session.status = 'ended'
-        session.save()
-        
-        quiz.end_session()
-        
+        session.save(update_fields=['status'])
+
+        # Mark quiz as inactive (inline — no helper method needed)
+        quiz.is_active = False
+        quiz.save(update_fields=['is_active'])
+
         # Generate results
         results = self._generate_results(session)
         
         return Response(results, status=status.HTTP_200_OK)
     
-    @action(detail=True, methods=['get'])
-    def join_info(self, request, pk=None):
-        """Get quiz info for students joining via code"""
-        quiz = self.get_object()
-        
-        if not quiz.is_active:
-            return Response(
-                {'error': 'Quiz is not active'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
+    @action(detail=False, methods=['get'])
+    def join_info(self, request):
+        """Get quiz info for students joining — looked up by join_code query param"""
+        join_code = request.query_params.get('join_code', '').upper()
+        if not join_code:
+            return Response({'error': 'join_code query parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            quiz = LiveQuiz.objects.get(join_code=join_code)
+        except LiveQuiz.DoesNotExist:
+            return Response({'error': 'Invalid join code'}, status=status.HTTP_404_NOT_FOUND)
+
         return Response({
             'id': quiz.id,
             'title': quiz.title,
             'description': quiz.description,
-            'instructor_name': quiz.instructor.get_full_name(),
+            'quiz_mode': quiz.quiz_mode,
+            'instructor_name': f'{quiz.instructor.first_name or ""} {quiz.instructor.last_name or ""}'.strip() or quiz.instructor.username,
             'require_fullscreen': quiz.require_fullscreen,
             'fullscreen_exit_action': quiz.fullscreen_exit_action,
             'alt_tab_action': quiz.alt_tab_action,
@@ -138,7 +153,9 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
             'max_violations': quiz.max_violations,
             'violation_penalty_points': quiz.violation_penalty_points,
             'max_participants': quiz.max_participants,
-            'questions_count': quiz.live_questions.count()
+            'questions_count': quiz.live_questions.count(),
+            'time_limit_minutes': quiz.time_limit_minutes,
+            'deadline': quiz.deadline.isoformat() if quiz.deadline else None,
         })
     
     @action(detail=False, methods=['post'])
@@ -169,24 +186,26 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Check if quiz is active
-        if not quiz.is_active:
-            return Response(
-                {'error': 'Quiz is not active yet'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Check if session exists
-        if not hasattr(quiz, 'session'):
-            return Response(
-                {'error': 'Quiz session not started yet'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        session = quiz.session
-        
-        # Check late join policy
-        if session.status != 'lobby' and not quiz.allow_late_join:
+        # Get or create session
+        try:
+            session = quiz.session
+            if session.status == 'ended':
+                if quiz.quiz_mode == 'self_paced':
+                    # Self-paced: create a new session for this student
+                    session.delete()
+                    session = LiveQuizSession.objects.create(quiz=quiz, status='in_progress')
+                else:
+                    return Response(
+                        {'error': 'This quiz session has already ended'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+        except LiveQuizSession.DoesNotExist:
+            # Auto-create session
+            initial_status = 'in_progress' if quiz.quiz_mode == 'self_paced' else 'lobby'
+            session = LiveQuizSession.objects.create(quiz=quiz, status=initial_status)
+
+        # Check late join policy (live mode only — self_paced always allows join)
+        if quiz.quiz_mode == 'live' and session.status not in ('lobby',) and not quiz.allow_late_join:
             return Response(
                 {'error': 'Quiz has already started and late join is not allowed'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -213,16 +232,48 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
             participant.save()
         
         # Update participant count
-        session.update_participant_count()
+        session.total_participants = session.participants.count()
+        session.active_participants = session.participants.filter(is_active=True).count()
+        session.save(update_fields=['total_participants', 'active_participants'])
         
-        return Response({
+        response_data = {
             'quiz_id': str(quiz.id),
             'session_id': str(session.id),
             'participant_id': str(participant.id),
+            'quiz_mode': quiz.quiz_mode,
             'attempts_message': message,
             'time_limit_minutes': quiz.time_limit_minutes,
             'quiz_info': LiveQuizSerializer(quiz, context={'request': request}).data
-        }, status=status.HTTP_200_OK)
+        }
+        
+        # For self-paced mode, include all questions so student can work independently
+        if quiz.quiz_mode == 'self_paced':
+            questions = quiz.live_questions.all().order_by('order')
+            if quiz.shuffle_questions:
+                questions = list(questions)
+                import random
+                random.shuffle(questions)
+            response_data['questions'] = [
+                {
+                    'id': str(q.id),
+                    'order': idx + 1,
+                    'question_text': q.question_text,
+                    'question_type': q.question_type,
+                    'image_url': q.image_url or '',
+                    'option_a': q.option_a or '',
+                    'option_b': q.option_b or '',
+                    'option_c': q.option_c or '',
+                    'option_d': q.option_d or '',
+                    'points': q.points,
+                    'time_limit': q.time_limit,
+                    'time_bonus_enabled': q.time_bonus_enabled,
+                    'programming_language': q.programming_language or '',
+                    'starter_code': q.starter_code or '',
+                    'test_cases': q.test_cases or [],
+                } for idx, q in enumerate(questions)
+            ]
+        
+        return Response(response_data, status=status.HTTP_200_OK)
     
     def _generate_results(self, session):
         """Generate final quiz results"""
@@ -276,7 +327,7 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
                 'rank': rank,
                 'participant_id': str(participant.id),
                 'nickname': participant.nickname,
-                'student_name': participant.student.get_full_name() if participant.student else 'Anonymous',
+                'student_name': (f'{participant.student.first_name or ""} {participant.student.last_name or ""}'.strip() or participant.student.username) if participant.student else 'Anonymous',
                 'student_email': participant.student.email if participant.student else None,
                 'total_score': participant.total_score,
                 'total_correct': participant.total_correct,
@@ -439,7 +490,7 @@ class LiveQuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
 
 class LiveQuizResponseViewSet(viewsets.ModelViewSet):
     """ViewSet for submitting and viewing quiz responses"""
-    queryset = LiveQuizResponse.objects.all()
+    queryset = LiveQuizResponse.objects.select_related('participant', 'question').all()
     serializer_class = LiveQuizResponseSerializer
     permission_classes = [IsAuthenticated]
     
@@ -451,8 +502,11 @@ class LiveQuizResponseViewSet(viewsets.ModelViewSet):
         code_submission = request.data.get('code_submission', '')
         response_time = request.data.get('response_time_seconds', 0)
         
-        # Get participant and question
-        participant = get_object_or_404(LiveQuizParticipant, id=participant_id, student=request.user)
+        # Get participant and question with related session preloaded
+        participant = get_object_or_404(
+            LiveQuizParticipant.objects.select_related('session'),
+            id=participant_id, student=request.user
+        )
         question = get_object_or_404(LiveQuizQuestion, id=question_id)
         
         # Check if already answered
@@ -499,10 +553,95 @@ class LiveQuizResponseViewSet(viewsets.ModelViewSet):
         # Update average response time
         total_time = participant.average_response_time * (participant.total_attempted - 1) + response_time
         participant.average_response_time = total_time / participant.total_attempted
+        
+        # Update rank inline
+        higher_scorers = LiveQuizParticipant.objects.filter(
+            session=participant.session,
+            is_active=True,
+            total_score__gt=participant.total_score
+        ).count()
+        participant.rank = higher_scorers + 1
         participant.save()
         
-        # Update rank
-        participant.update_rank()
+        return Response({
+            'id': str(response.id),
+            'is_correct': is_correct,
+            'points_earned': points,
+            'explanation': question.explanation or '',
+            'participant_score': participant.total_score,
+            'participant_correct': participant.total_correct,
+            'participant_attempted': participant.total_attempted,
+            'rank': participant.rank,
+        }, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['post'])
+    def complete_self_paced(self, request):
+        """Mark self-paced quiz as completed for a participant"""
+        participant_id = request.data.get('participant_id')
         
-        serializer = self.get_serializer(response)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        participant = get_object_or_404(
+            LiveQuizParticipant,
+            id=participant_id,
+            student=request.user
+        )
+        
+        session = participant.session
+        quiz = session.quiz
+        
+        if quiz.quiz_mode != 'self_paced':
+            return Response(
+                {'error': 'This endpoint is only for self-paced quizzes'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Mark participant as done
+        participant.is_active = False
+        participant.left_at = timezone.now()
+        participant.save(update_fields=['is_active', 'left_at'])
+        
+        # Update session counts
+        session.active_participants = session.participants.filter(is_active=True).count()
+        session.save(update_fields=['active_participants'])
+        
+        # Generate results for this participant
+        total_questions = quiz.live_questions.count()
+        responses = LiveQuizResponse.objects.filter(
+            participant=participant
+        ).select_related('question').order_by('question__order')
+        
+        question_results = []
+        for resp in responses:
+            question_results.append({
+                'question_text': resp.question.question_text,
+                'question_type': resp.question.question_type,
+                'answer_given': resp.answer_text or resp.code_submission,
+                'is_correct': resp.is_correct,
+                'points_earned': resp.points_earned,
+                'points_possible': resp.question.points,
+                'response_time': round(resp.response_time_seconds, 1),
+                'explanation': resp.question.explanation or '',
+            })
+        
+        # Get rank among all participants for this quiz
+        all_participants = LiveQuizParticipant.objects.filter(
+            session__quiz=quiz
+        ).order_by('-total_score', 'average_response_time')
+        
+        rank = 1
+        for p in all_participants:
+            if p.id == participant.id:
+                break
+            rank += 1
+        
+        return Response({
+            'quiz_title': quiz.title,
+            'total_score': participant.total_score,
+            'total_correct': participant.total_correct,
+            'total_attempted': participant.total_attempted,
+            'total_questions': total_questions,
+            'accuracy': round((participant.total_correct / max(participant.total_attempted, 1)) * 100, 1),
+            'average_response_time': round(participant.average_response_time, 2),
+            'rank': rank,
+            'total_participants': all_participants.count(),
+            'question_results': question_results,
+        }, status=status.HTTP_200_OK)

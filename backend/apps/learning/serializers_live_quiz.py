@@ -65,7 +65,7 @@ class LiveQuizQuestionSerializer(serializers.ModelSerializer):
 class LiveQuizSerializer(serializers.ModelSerializer):
     """Serializer for live quiz configuration"""
     
-    instructor_name = serializers.CharField(source='instructor.get_full_name', read_only=True)
+    instructor_name = serializers.SerializerMethodField()
     questions_count = serializers.SerializerMethodField()
     questions = LiveQuizQuestionSerializer(many=True, read_only=True, source='live_questions')
     status_text = serializers.CharField(source='get_status_text', read_only=True)
@@ -75,7 +75,7 @@ class LiveQuizSerializer(serializers.ModelSerializer):
         model = LiveQuiz
         fields = [
             'id', 'instructor', 'instructor_name', 'title', 'description',
-            'creation_method', 'source_file', 'ai_prompt_text', 'is_active',
+            'creation_method', 'quiz_mode', 'source_file', 'ai_prompt_text', 'is_active',
             'join_code', 'max_participants', 'auto_advance_questions',
             'show_leaderboard', 'show_correct_answers', 'allow_late_join',
             'shuffle_questions', 'shuffle_answers', 'require_fullscreen',
@@ -92,6 +92,10 @@ class LiveQuizSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'join_code', 'created_at', 'updated_at', 'instructor', 'status_text', 'is_open']
     
+    def get_instructor_name(self, obj):
+        name = f'{obj.instructor.first_name or ""} {obj.instructor.last_name or ""}'.strip()
+        return name or obj.instructor.username
+
     def get_questions_count(self, obj):
         return obj.live_questions.count()
     
@@ -124,7 +128,7 @@ class LiveQuizCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = LiveQuiz
         fields = [
-            'title', 'description', 'creation_method', 'source_file',
+            'title', 'description', 'creation_method', 'quiz_mode', 'source_file',
             'ai_prompt_text', 'max_participants', 'auto_advance_questions',
             'show_leaderboard', 'show_correct_answers', 'allow_late_join',
             'shuffle_questions', 'shuffle_answers', 'require_fullscreen',

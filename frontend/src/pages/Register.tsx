@@ -160,7 +160,7 @@ export default function Register() {
 
   const handleGoogleSignup = async () => {
     const clientId = '1018587300192-m0n93uesm6v33bahs57tatg52v3lurah.apps.googleusercontent.com'
-    const redirectUri = encodeURIComponent('https://ccis-codehub.space/auth/callback')
+    const redirectUri = encodeURIComponent(`${window.location.origin}/auth/callback`)
     const scope = encodeURIComponent('openid email profile')
     const state = btoa(JSON.stringify({ mode: 'signup' }))
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=${state}`

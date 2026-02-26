@@ -253,29 +253,48 @@ CORS_ALLOW_METHODS = [
 ]
 
 # Channels (WebSockets)
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [env('REDIS_URL', default='redis://localhost:6379/0')],
+# Use InMemoryChannelLayer in development (no Redis needed).
+# Set REDIS_URL in .env to switch to Redis-backed channels for production.
+_REDIS_URL = env('REDIS_URL', default='')
+if _REDIS_URL:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [_REDIS_URL],
+            },
         },
-    },
-}
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        },
+    }
 
-# Redis Cache
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': env('REDIS_URL', default='redis://localhost:6379/0'),
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+# Redis Cache — falls back to LocMemCache if no Redis configured
+if _REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': _REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            }
         }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        }
+    }
 
-# Celery Configuration
-CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://localhost:6379/0')
+
+# Celery Configuration — fall back to in-memory when Redis not configured
+CELERY_BROKER_URL = env('CELERY_BROKER_URL', default=_REDIS_URL or 'memory://')
+CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default=_REDIS_URL or 'cache+memory://')
+CELERY_TASK_ALWAYS_EAGER = not bool(_REDIS_URL)  # Run tasks synchronously in dev (no Redis)
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
