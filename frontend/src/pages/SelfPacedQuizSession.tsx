@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
     Timer, CheckCircle, XCircle, AlertCircle, ChevronRight,
-    Trophy, Clock, Expand, Eye, Shield, BookOpen, Camera, Loader2, X as XIcon
+    Trophy, Clock, Expand, Eye, Shield, BookOpen, Camera, Loader2, X as XIcon, Maximize
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import liveQuizService from '../services/liveQuizService';
@@ -175,6 +175,7 @@ const SelfPacedQuizSession = () => {
 
     // ── AI Proctor onboarding ─────────────────────────────────────────────────
     const [proctorReady, setProctorReady] = useState(!sessionState.enableAiProctor);
+    const [fullscreenReady, setFullscreenReady] = useState(!sessionState.requireFullscreen);
     const onboardingVideoRef = useRef<HTMLVideoElement>(null);
     const [onboardingCamActive, setOnboardingCamActive] = useState(false);
     const [onboardingCamError, setOnboardingCamError] = useState<string | null>(null);
@@ -185,7 +186,7 @@ const SelfPacedQuizSession = () => {
     const maxViolations = sessionState.maxViolations || 3;
 
     // ── Quiz status ───────────────────────────────────────────────────────────
-    const quizActive = !isFinished && !isQuizClosed && questions.length > 0 && proctorReady;
+    const quizActive = !isFinished && !isQuizClosed && questions.length > 0 && proctorReady && fullscreenReady;
     const currentQuestion = questions[currentIndex];
 
     // ── AI Proctor (optional) ─────────────────────────────────────────────────
@@ -483,6 +484,48 @@ const SelfPacedQuizSession = () => {
                     >
                         Back to Dashboard
                     </button>
+                </div>
+            </div>
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Fullscreen Start Screen (requires user gesture for browser API)
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    if (!fullscreenReady && sessionState.requireFullscreen) {
+        const handleEnterFullscreen = async () => {
+            try {
+                const elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                    await elem.requestFullscreen();
+                } else if ((elem as any).webkitRequestFullscreen) {
+                    (elem as any).webkitRequestFullscreen();
+                }
+            } catch { /* ignore */ }
+            setFullscreenReady(true);
+        };
+
+        return (
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-950 to-slate-950" />
+                <div className="relative w-full max-w-md">
+                    <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl text-center">
+                        <div className="w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Maximize className="w-8 h-8 text-purple-400" />
+                        </div>
+                        <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">Fullscreen Required</h1>
+                        <p className="text-slate-400 text-sm mb-6">
+                            This quiz must be taken in fullscreen mode to prevent distractions and ensure fair assessment.
+                        </p>
+                        <button
+                            onClick={handleEnterFullscreen}
+                            className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
+                        >
+                            <Maximize className="w-5 h-5" />
+                            Start in Fullscreen
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -797,11 +840,9 @@ const SelfPacedQuizSession = () => {
                 ? 'ring-2 ring-purple-400 bg-purple-900/30 border-purple-500'
                 : 'bg-slate-800/50 border-slate-700 hover:border-slate-500';
         }
-        // After submission: only highlight the selected answer as correct/incorrect
+        // After submission: just dim non-selected, keep selected highlighted
         if (selectedAnswer === key) {
-            return answerResult?.is_correct
-                ? 'bg-green-900/40 border-green-500 ring-2 ring-green-400'
-                : 'bg-red-900/40 border-red-500 ring-2 ring-red-400';
+            return 'ring-2 ring-purple-400 bg-purple-900/30 border-purple-500';
         }
         return 'bg-slate-800/30 border-slate-700 opacity-50';
     };
@@ -922,7 +963,7 @@ const SelfPacedQuizSession = () => {
                         )}
 
                         {/* MCQ Options */}
-                        {currentQuestion?.question_type !== 'coding' && (
+                        {currentQuestion?.question_type === 'multiple_choice' && options.length > 0 && (
                             <div className="grid gap-3">
                                 {options.map((opt) => (
                                     <button
@@ -947,28 +988,65 @@ const SelfPacedQuizSession = () => {
                             </div>
                         )}
 
-                        {/* Answer feedback */}
-                        {isAnswerSubmitted && answerResult && (
-                            <div className={`mt-4 p-4 rounded-xl border ${answerResult.is_correct
-                                ? 'bg-green-950/30 border-green-800/40'
-                                : 'bg-red-950/30 border-red-800/40'
-                                }`}>
-                                <div className="flex items-center gap-2 mb-1">
-                                    {answerResult.is_correct
-                                        ? <CheckCircle className="w-5 h-5 text-green-400" />
-                                        : <XCircle className="w-5 h-5 text-red-400" />
-                                    }
-                                    <span className={`font-semibold ${answerResult.is_correct ? 'text-green-300' : 'text-red-300'}`}>
-                                        {answerResult.is_correct ? 'Correct!' : 'Incorrect'}
-                                    </span>
-                                    <span className="text-sm text-slate-400 ml-auto">
-                                        +{answerResult.points_earned} pts
-                                    </span>
-                                </div>
+                        {/* True/False Options */}
+                        {currentQuestion?.question_type === 'true_false' && (
+                            <div className="grid grid-cols-2 gap-3">
+                                {['True', 'False'].map((val) => (
+                                    <button
+                                        key={val}
+                                        onClick={() => !isAnswerSubmitted && setSelectedAnswer(val.toLowerCase())}
+                                        disabled={isAnswerSubmitted}
+                                        className={`w-full text-center p-4 rounded-xl border transition-all duration-200 ${!isAnswerSubmitted
+                                            ? selectedAnswer === val.toLowerCase()
+                                                ? 'ring-2 ring-purple-400 bg-purple-900/30 border-purple-500'
+                                                : 'bg-slate-800/50 border-slate-700 hover:border-slate-500'
+                                            : selectedAnswer === val.toLowerCase()
+                                                ? answerResult?.is_correct
+                                                    ? 'bg-green-900/40 border-green-500 ring-2 ring-green-400'
+                                                    : 'bg-red-900/40 border-red-500 ring-2 ring-red-400'
+                                                : 'bg-slate-800/30 border-slate-700 opacity-50'
+                                            }`}
+                                    >
+                                        <span className="text-white font-semibold text-sm">{val}</span>
+                                        {isAnswerSubmitted && selectedAnswer === val.toLowerCase() && (
+                                            <span className="ml-2 inline-block">
+                                                {answerResult?.is_correct
+                                                    ? <CheckCircle className="w-5 h-5 text-green-400 inline" />
+                                                    : <XCircle className="w-5 h-5 text-red-400 inline" />
+                                                }
+                                            </span>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
 
-                                {answerResult.explanation && (
-                                    <p className="text-sm text-slate-400 mt-2">{answerResult.explanation}</p>
-                                )}
+                        {/* Text-based answer (short_answer, enumeration, essay) */}
+                        {['short_answer', 'enumeration', 'essay'].includes(currentQuestion?.question_type || '') && (
+                            <div>
+                                <textarea
+                                    value={selectedAnswer || ''}
+                                    onChange={(e) => !isAnswerSubmitted && setSelectedAnswer(e.target.value)}
+                                    disabled={isAnswerSubmitted}
+                                    placeholder={
+                                        currentQuestion?.question_type === 'enumeration'
+                                            ? 'Enter items separated by commas...'
+                                            : currentQuestion?.question_type === 'essay'
+                                                ? 'Write your answer here...'
+                                                : 'Type your answer...'
+                                    }
+                                    rows={currentQuestion?.question_type === 'essay' ? 6 : 3}
+                                    className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 resize-none"
+                                />
+                            </div>
+                        )}
+
+                        {/* Submitted indicator (no answer reveal) */}
+                        {isAnswerSubmitted && answerResult && (
+                            <div className="mt-4 p-3 rounded-xl border bg-slate-800/40 border-slate-700 flex items-center gap-2">
+                                <CheckCircle className="w-5 h-5 text-purple-400" />
+                                <span className="text-sm text-slate-300 font-medium">Answer submitted</span>
+                                <span className="text-sm text-slate-500 ml-auto">+{answerResult.points_earned} pts</span>
                             </div>
                         )}
                     </div>

@@ -622,13 +622,19 @@ function InstructorDashboard() {
     try {
       setCreatingLiveQuiz(true)
       const quiz = await liveQuizService.createQuiz(liveQuizForm)
-      setShowCreateLiveQuiz(false)
-      resetLiveQuizForm()
 
       // Refresh the quiz list
       await fetchLiveQuizzes()
 
-      toast.success(`Quiz "${quiz.title}" created! Click it to add questions.`)
+      // Brief pause so the spinner feels intentional before transitioning
+      await new Promise(resolve => setTimeout(resolve, 800))
+
+      setShowCreateLiveQuiz(false)
+      resetLiveQuizForm()
+
+      // Auto-open the quiz detail/editor view
+      setSelectedLiveQuiz(quiz)
+      toast.success(`Quiz "${quiz.title}" created! Add questions below.`)
     } catch (error: any) {
       console.error('Failed to create live quiz:', error)
       toast.error(error.response?.data?.error || 'Failed to create live quiz')

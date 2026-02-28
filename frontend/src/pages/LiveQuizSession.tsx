@@ -15,6 +15,7 @@ import ViolationWarningModal from '../components/ViolationWarningModal';
 interface Question {
     id: string;
     type: 'mcq' | 'code';
+    questionType: string;
     text: string;
     choices?: Array<{ id: string; text: string }>;
     timeLimit: number;
@@ -384,9 +385,10 @@ const LiveQuizSession = () => {
     const applyQuestion = (q: any): Question => ({
         id: q.id,
         type: q.question_type === 'coding' || q.type === 'code' ? 'code' : 'mcq',
+        questionType: q.question_type || 'multiple_choice',
         text: q.question_text || q.text,
         timeLimit: q.time_limit || q.timeLimit || 30,
-        choices: (q.question_type === 'multiple_choice' || q.question_type === 'true_false')
+        choices: (q.question_type === 'multiple_choice')
             ? [
                 q.option_a && { id: 'A', text: q.option_a },
                 q.option_b && { id: 'B', text: q.option_b },
@@ -868,42 +870,108 @@ const LiveQuizSession = () => {
                         </div>
                     </div>
                 ) : (
-                    /* ── MCQ Grid ─────────────────────────────────────────── */
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 content-start">
-                        {gameState.currentQuestion.choices?.map((choice) => {
-                            const isSelected = selectedAnswer === choice.id;
-                            const showResult = answerResult !== null;
+                    /* ── Answer Area ─────────────────────────────────────── */
+                    <div className="flex-1 content-start">
+                        {/* MCQ Grid */}
+                        {gameState.currentQuestion.questionType === 'multiple_choice' && gameState.currentQuestion.choices && gameState.currentQuestion.choices.length > 0 && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {gameState.currentQuestion.choices.map((choice) => {
+                                    const isSelected = selectedAnswer === choice.id;
+                                    const showResult = answerResult !== null;
 
-                            let boxClass = 'bg-slate-800 border-slate-700 hover:bg-slate-700';
-                            if (isSelected && !showResult) boxClass = 'bg-gradient-to-r from-purple-600 to-indigo-600 border-purple-500 text-white';
-                            if (isAnswerSubmitted && !isSelected && !showResult) boxClass = 'opacity-50 bg-slate-800 border-slate-700';
+                                    let boxClass = 'bg-slate-800 border-slate-700 hover:bg-slate-700';
+                                    if (isSelected && !showResult) boxClass = 'bg-gradient-to-r from-purple-600 to-indigo-600 border-purple-500 text-white';
+                                    if (isAnswerSubmitted && !isSelected && !showResult) boxClass = 'opacity-50 bg-slate-800 border-slate-700';
 
-                            if (showResult) {
-                                if (isSelected && answerResult === 'correct') boxClass = 'bg-green-600 border-green-500 ring-4 ring-green-900';
-                                if (isSelected && answerResult === 'incorrect') boxClass = 'bg-red-600 border-red-500 ring-4 ring-red-900';
-                                if (!isSelected) boxClass = 'opacity-40 bg-slate-800 border-slate-700';
-                            }
+                                    if (showResult) {
+                                        if (isSelected && answerResult === 'correct') boxClass = 'bg-green-600 border-green-500 ring-4 ring-green-900';
+                                        if (isSelected && answerResult === 'incorrect') boxClass = 'bg-red-600 border-red-500 ring-4 ring-red-900';
+                                        if (!isSelected) boxClass = 'opacity-40 bg-slate-800 border-slate-700';
+                                    }
 
-                            return (
-                                <button
-                                    key={choice.id}
-                                    onClick={() => submitAnswer(choice.id)}
+                                    return (
+                                        <button
+                                            key={choice.id}
+                                            onClick={() => submitAnswer(choice.id)}
+                                            disabled={isAnswerSubmitted}
+                                            className={`p-4 sm:p-6 rounded-xl border-2 text-left transition-all transform active:scale-[0.98] flex items-center justify-between group ${boxClass}`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                                                    {choice.id}
+                                                </span>
+                                                <span className={`text-base sm:text-lg font-medium ${isSelected ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>
+                                                    {choice.text}
+                                                </span>
+                                            </div>
+                                            {isSelected && answerResult === 'correct' && <CheckCircle className="text-white w-6 h-6" />}
+                                            {isSelected && answerResult === 'incorrect' && <XCircle className="text-white w-6 h-6" />}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {/* True/False Buttons */}
+                        {gameState.currentQuestion.questionType === 'true_false' && (
+                            <div className="grid grid-cols-2 gap-4 max-w-xl mx-auto">
+                                {['True', 'False'].map((val) => {
+                                    const valLower = val.toLowerCase();
+                                    const isSelected = selectedAnswer === valLower;
+                                    const showResult = answerResult !== null;
+
+                                    let boxClass = 'bg-slate-800 border-slate-700 hover:bg-slate-700';
+                                    if (isSelected && !showResult) boxClass = 'bg-gradient-to-r from-purple-600 to-indigo-600 border-purple-500';
+                                    if (isAnswerSubmitted && !isSelected && !showResult) boxClass = 'opacity-50 bg-slate-800 border-slate-700';
+                                    if (showResult) {
+                                        if (isSelected && answerResult === 'correct') boxClass = 'bg-green-600 border-green-500 ring-4 ring-green-900';
+                                        if (isSelected && answerResult === 'incorrect') boxClass = 'bg-red-600 border-red-500 ring-4 ring-red-900';
+                                        if (!isSelected) boxClass = 'opacity-40 bg-slate-800 border-slate-700';
+                                    }
+
+                                    return (
+                                        <button
+                                            key={val}
+                                            onClick={() => submitAnswer(valLower)}
+                                            disabled={isAnswerSubmitted}
+                                            className={`p-6 rounded-xl border-2 text-center transition-all transform active:scale-[0.98] ${boxClass}`}
+                                        >
+                                            <span className="text-xl font-bold text-white">{val}</span>
+                                            {isSelected && answerResult === 'correct' && <CheckCircle className="text-white w-6 h-6 mx-auto mt-2" />}
+                                            {isSelected && answerResult === 'incorrect' && <XCircle className="text-white w-6 h-6 mx-auto mt-2" />}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {/* Text-based answer (short_answer, enumeration, essay) */}
+                        {['short_answer', 'enumeration', 'essay'].includes(gameState.currentQuestion.questionType) && (
+                            <div className="max-w-2xl mx-auto">
+                                <textarea
+                                    value={selectedAnswer || ''}
+                                    onChange={(e) => !isAnswerSubmitted && setSelectedAnswer(e.target.value)}
                                     disabled={isAnswerSubmitted}
-                                    className={`p-4 sm:p-6 rounded-xl border-2 text-left transition-all transform active:scale-[0.98] flex items-center justify-between group ${boxClass}`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-700 text-slate-400'}`}>
-                                            {choice.id}
-                                        </span>
-                                        <span className={`text-base sm:text-lg font-medium ${isSelected ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>
-                                            {choice.text}
-                                        </span>
-                                    </div>
-                                    {isSelected && answerResult === 'correct' && <CheckCircle className="text-white w-6 h-6" />}
-                                    {isSelected && answerResult === 'incorrect' && <XCircle className="text-white w-6 h-6" />}
-                                </button>
-                            );
-                        })}
+                                    placeholder={
+                                        gameState.currentQuestion.questionType === 'enumeration'
+                                            ? 'Enter items separated by commas...'
+                                            : gameState.currentQuestion.questionType === 'essay'
+                                                ? 'Write your answer here...'
+                                                : 'Type your answer...'
+                                    }
+                                    rows={gameState.currentQuestion.questionType === 'essay' ? 6 : 3}
+                                    className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-white text-base placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 resize-none"
+                                />
+                                {!isAnswerSubmitted && selectedAnswer && (
+                                    <button
+                                        onClick={() => submitAnswer(selectedAnswer)}
+                                        className="mt-3 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl transition-all w-full"
+                                    >
+                                        Submit Answer
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

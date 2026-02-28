@@ -7,6 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
+from django.db import IntegrityError
 from django.db.models import Avg, Count, Q
 from django.utils import timezone
 
@@ -533,16 +534,22 @@ class LiveQuizResponseViewSet(viewsets.ModelViewSet):
             else:
                 points = question.points
         
-        # Create response
-        response = LiveQuizResponse.objects.create(
-            participant=participant,
-            question=question,
-            answer_text=answer_text,
-            code_submission=code_submission,
-            is_correct=is_correct,
-            points_earned=points,
-            response_time_seconds=response_time
-        )
+        # Create response (with race-condition guard)
+        try:
+            response = LiveQuizResponse.objects.create(
+                participant=participant,
+                question=question,
+                answer_text=answer_text,
+                code_submission=code_submission,
+                is_correct=is_correct,
+                points_earned=points,
+                response_time_seconds=response_time
+            )
+        except IntegrityError:
+            return Response(
+                {'error': 'Question already answered'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         # Update participant stats
         participant.total_attempted += 1
