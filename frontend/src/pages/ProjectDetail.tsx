@@ -167,6 +167,8 @@ export default function ProjectDetail() {
   // Drag state for Kanban
   const [draggedTask, setDraggedTask] = useState<Task | null>(null)
   const [touchDragActive, setTouchDragActive] = useState(false)
+  const touchDragActiveRef = useRef(false)
+  const draggedTaskRef = useRef<Task | null>(null)
   const touchLongPressRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const touchStartPosRef = useRef<{ x: number, y: number } | null>(null)
   const touchGhostRef = useRef<HTMLDivElement | null>(null)
@@ -447,6 +449,56 @@ export default function ProjectDetail() {
     }
   }
 
+  // Global cleanup function for touch drag (handles cases where per-card touchend misses)
+  const cleanupTouchDrag = useCallback((e?: TouchEvent) => {
+    // Clear long press timer
+    if (touchLongPressRef.current) {
+      clearTimeout(touchLongPressRef.current)
+      touchLongPressRef.current = null
+    }
+
+    // Remove ghost element
+    if (touchGhostRef.current) {
+      touchGhostRef.current.remove()
+      touchGhostRef.current = null
+    }
+
+    // Reset column highlights
+    document.querySelectorAll('[data-status]').forEach(col => {
+      const el = col as HTMLElement
+      el.style.borderColor = ''
+      el.style.background = ''
+    })
+
+    // If we were dragging, find drop target
+    if (touchDragActiveRef.current && draggedTaskRef.current && e) {
+      const touch = e.changedTouches?.[0]
+      if (touch) {
+        const dropElement = document.elementFromPoint(touch.clientX, touch.clientY)
+        const column = dropElement?.closest('[data-status]')
+        if (column) {
+          const newStatus = column.getAttribute('data-status')
+          if (newStatus && newStatus !== draggedTaskRef.current.status) {
+            updateTaskStatus(draggedTaskRef.current.id, newStatus)
+            toast.success(`Task moved to ${newStatus.replace('_', ' ')}`)
+          }
+        }
+      }
+    }
+
+    // ALWAYS reset drag state
+    setDraggedTask(null)
+    setTouchDragActive(false)
+    touchDragActiveRef.current = false
+    draggedTaskRef.current = null
+    touchStartPosRef.current = null
+    touchDraggedElementRef.current = null
+
+    // Remove global listeners
+    document.removeEventListener('touchend', cleanupTouchDrag)
+    document.removeEventListener('touchcancel', cleanupTouchDrag)
+  }, [])
+
   // Touch handlers for mobile long-press drag with visual ghost
   const handleTouchStart = (e: React.TouchEvent, task: Task) => {
     if (!task.can_drag && !task.can_edit) return
@@ -459,6 +511,12 @@ export default function ProjectDetail() {
     touchLongPressRef.current = setTimeout(() => {
       setDraggedTask(task)
       setTouchDragActive(true)
+      touchDragActiveRef.current = true
+      draggedTaskRef.current = task
+
+      // Add global listeners as safety net for cleanup
+      document.addEventListener('touchend', cleanupTouchDrag, { once: true })
+      document.addEventListener('touchcancel', cleanupTouchDrag, { once: true })
 
       // Vibrate if supported for haptic feedback
       if (navigator.vibrate) {
@@ -469,6 +527,7 @@ export default function ProjectDetail() {
       if (touchDraggedElementRef.current) {
         const rect = touchDraggedElementRef.current.getBoundingClientRect()
         const ghost = touchDraggedElementRef.current.cloneNode(true) as HTMLDivElement
+        ghost.id = 'kanban-touch-ghost'
         ghost.style.cssText = `
           position: fixed;
           left: ${rect.left}px;
@@ -509,9 +568,8 @@ export default function ProjectDetail() {
       }
     }
 
-    // Move ghost element if we're actively dragging
-    if (touchDragActive && touchGhostRef.current) {
-      // CSS touch-action:none handles scroll prevention
+    // Move ghost element if we're actively dragging (use ref to avoid stale state)
+    if (touchDragActiveRef.current && touchGhostRef.current) {
       const ghost = touchGhostRef.current
       const width = ghost.offsetWidth
       const height = ghost.offsetHeight
@@ -519,16 +577,14 @@ export default function ProjectDetail() {
       ghost.style.top = `${touch.clientY - height / 2}px`
 
       // Auto-scroll when near edges of viewport
-      const edgeThreshold = 80 // pixels from edge to trigger scroll
-      const maxScrollSpeed = 15 // max pixels to scroll per frame
+      const edgeThreshold = 80
+      const maxScrollSpeed = 15
       const viewportHeight = window.innerHeight
 
       if (touch.clientY < edgeThreshold) {
-        // Near top - scroll up
         const scrollSpeed = Math.max(5, maxScrollSpeed * (1 - touch.clientY / edgeThreshold))
         window.scrollBy({ top: -scrollSpeed, behavior: 'auto' })
       } else if (touch.clientY > viewportHeight - edgeThreshold) {
-        // Near bottom - scroll down
         const distanceFromBottom = viewportHeight - touch.clientY
         const scrollSpeed = Math.max(5, maxScrollSpeed * (1 - distanceFromBottom / edgeThreshold))
         window.scrollBy({ top: scrollSpeed, behavior: 'auto' })
@@ -538,14 +594,12 @@ export default function ProjectDetail() {
       const dropElement = document.elementFromPoint(touch.clientX, touch.clientY)
       const column = dropElement?.closest('[data-status]')
 
-      // Remove highlight from all columns
       document.querySelectorAll('[data-status]').forEach(col => {
         const el = col as HTMLElement
         el.style.borderColor = ''
         el.style.background = ''
       })
 
-      // Add highlight to current column
       if (column) {
         const el = column as HTMLElement
         el.style.borderColor = '#06b6d4'
@@ -555,47 +609,19 @@ export default function ProjectDetail() {
   }
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    // Clear long press timer
-    if (touchLongPressRef.current) {
-      clearTimeout(touchLongPressRef.current)
-      touchLongPressRef.current = null
-    }
-
-    // Remove ghost element
-    if (touchGhostRef.current) {
-      touchGhostRef.current.remove()
-      touchGhostRef.current = null
-    }
-
-    // Reset column highlights
-    document.querySelectorAll('[data-status]').forEach(col => {
-      const el = col as HTMLElement
-      el.style.borderColor = ''
-      el.style.background = ''
-    })
-
-    // If we were dragging, find drop target
-    if (touchDragActive && draggedTask) {
-      const touch = e.changedTouches[0]
-      const dropElement = document.elementFromPoint(touch.clientX, touch.clientY)
-
-      // Find the status column by looking for data-status attribute
-      const column = dropElement?.closest('[data-status]')
-      if (column) {
-        const newStatus = column.getAttribute('data-status')
-        if (newStatus && newStatus !== draggedTask.status) {
-          updateTaskStatus(draggedTask.id, newStatus)
-          toast.success(`Task moved to ${newStatus.replace('_', ' ')}`)
-        }
-      }
-    }
-
-    // ALWAYS reset drag state - moved outside if block to ensure cleanup
-    setDraggedTask(null)
-    setTouchDragActive(false)
-    touchStartPosRef.current = null
-    touchDraggedElementRef.current = null
+    // Delegate to the global cleanup (pass the native event)
+    cleanupTouchDrag(e.nativeEvent as TouchEvent)
   }
+
+  // Safety: clean up any orphaned ghost on unmount
+  useEffect(() => {
+    return () => {
+      const orphanedGhost = document.getElementById('kanban-touch-ghost')
+      if (orphanedGhost) orphanedGhost.remove()
+      document.removeEventListener('touchend', cleanupTouchDrag)
+      document.removeEventListener('touchcancel', cleanupTouchDrag)
+    }
+  }, [cleanupTouchDrag])
 
   // Branch functions
   const createBranch = async () => {
