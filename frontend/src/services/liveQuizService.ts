@@ -150,6 +150,10 @@ export interface CreateQuestionData {
     option_d?: string
     correct_answer: string
     explanation?: string
+    programming_language?: string
+    starter_code?: string
+    test_cases?: string
+    solution_code?: string
     points?: number
     time_limit?: number
     time_bonus_enabled?: boolean

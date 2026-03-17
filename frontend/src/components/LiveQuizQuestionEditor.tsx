@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Trash2, Save, Upload, Loader2, Check, X, Clock, Award, ChevronLeft, ChevronRight, FileText, HelpCircle, Zap, Info, AlertCircle } from 'lucide-react'
+import { Plus, Trash2, Save, Upload, Loader2, Check, X, Clock, Award, ChevronLeft, ChevronRight, FileText, HelpCircle, Zap, Info, AlertCircle, Code } from 'lucide-react'
 import api from '../services/api'
 import toast from 'react-hot-toast'
 import liveQuizService, { LiveQuizQuestion, CreateQuestionData } from '../services/liveQuizService'
@@ -9,6 +9,12 @@ interface LiveQuizQuestionEditorProps {
     initialQuestions?: LiveQuizQuestion[]
     onClose: () => void
     onQuestionsChange?: (questions: LiveQuizQuestion[]) => void
+}
+
+interface TestCase {
+    input: string
+    expected_output: string
+    is_hidden?: boolean
 }
 
 interface LocalQuestion {
@@ -22,11 +28,21 @@ interface LocalQuestion {
     option_d: string
     correct_answer: string
     explanation: string
+    programming_language: string
+    starter_code: string
+    test_cases: TestCase[]
     points: number
     time_limit: number
     time_bonus_enabled: boolean
     isDirty?: boolean
 }
+
+const SUPPORTED_LANGUAGES = [
+    { value: 'python', label: 'Python' },
+    { value: 'javascript', label: 'JavaScript' },
+    { value: 'java', label: 'Java' },
+    { value: 'cpp', label: 'C++' },
+]
 
 const getDefaultQuestion = (order: number): LocalQuestion => ({
     question_text: '',
@@ -38,6 +54,9 @@ const getDefaultQuestion = (order: number): LocalQuestion => ({
     option_d: '',
     correct_answer: 'A',
     explanation: '',
+    programming_language: 'python',
+    starter_code: '',
+    test_cases: [{ input: '', expected_output: '' }],
     points: 10,
     time_limit: 30,
     time_bonus_enabled: true,
@@ -89,22 +108,35 @@ export default function LiveQuizQuestionEditor({
             setLoading(true)
             const apiQuestions = await liveQuizService.getQuestions(quizId)
             if (apiQuestions.length > 0) {
-                setQuestions(apiQuestions.map(q => ({
-                    id: q.id,
-                    question_text: q.question_text,
-                    question_type: q.question_type,
-                    order: q.order,
-                    option_a: q.option_a || '',
-                    option_b: q.option_b || '',
-                    option_c: q.option_c || '',
-                    option_d: q.option_d || '',
-                    correct_answer: q.correct_answer,
-                    explanation: q.explanation || '',
-                    points: q.points,
-                    time_limit: q.time_limit,
-                    time_bonus_enabled: q.time_bonus_enabled,
-                    isDirty: false
-                })))
+                setQuestions(apiQuestions.map(q => {
+                    let parsedTestCases = [{ input: '', expected_output: '' }]
+                    if (q.test_cases) {
+                        try {
+                            parsedTestCases = typeof q.test_cases === 'string'
+                                ? JSON.parse(q.test_cases)
+                                : q.test_cases
+                        } catch { /* keep default */ }
+                    }
+                    return {
+                        id: q.id,
+                        question_text: q.question_text,
+                        question_type: q.question_type,
+                        order: q.order,
+                        option_a: q.option_a || '',
+                        option_b: q.option_b || '',
+                        option_c: q.option_c || '',
+                        option_d: q.option_d || '',
+                        correct_answer: q.correct_answer,
+                        explanation: q.explanation || '',
+                        programming_language: q.programming_language || 'python',
+                        starter_code: q.starter_code || '',
+                        test_cases: parsedTestCases,
+                        points: q.points,
+                        time_limit: q.time_limit,
+                        time_bonus_enabled: q.time_bonus_enabled,
+                        isDirty: false
+                    }
+                }))
             } else {
                 setQuestions([getDefaultQuestion(0)])
             }
@@ -265,6 +297,11 @@ export default function LiveQuizQuestionEditor({
                 option_d: question.option_d,
                 correct_answer: question.correct_answer,
                 explanation: question.explanation,
+                ...(question.question_type === 'coding' ? {
+                    programming_language: question.programming_language,
+                    starter_code: question.starter_code,
+                    test_cases: JSON.stringify(question.test_cases),
+                } : {}),
                 points: question.points,
                 time_limit: question.time_limit,
                 time_bonus_enabled: question.time_bonus_enabled
@@ -319,6 +356,11 @@ export default function LiveQuizQuestionEditor({
                     option_d: question.option_d,
                     correct_answer: question.correct_answer,
                     explanation: question.explanation,
+                    ...(question.question_type === 'coding' ? {
+                        programming_language: question.programming_language,
+                        starter_code: question.starter_code,
+                        test_cases: JSON.stringify(question.test_cases),
+                    } : {}),
                     points: question.points,
                     time_limit: question.time_limit,
                     time_bonus_enabled: question.time_bonus_enabled
@@ -500,6 +542,7 @@ export default function LiveQuizQuestionEditor({
                                 <option value="multiple_choice">Multiple Choice</option>
                                 <option value="true_false">True/False</option>
                                 <option value="short_answer">Short Answer</option>
+                                <option value="coding">Coding Challenge</option>
                             </select>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-1 gap-3 sm:contents">
@@ -612,6 +655,104 @@ export default function LiveQuizQuestionEditor({
                         </div>
                     )}
 
+                    {/* Coding Challenge - Config */}
+                    {currentQuestion.question_type === 'coding' && (
+                        <div className="space-y-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1">
+                                        <Code className="w-3 h-3" /> Language
+                                    </label>
+                                    <select
+                                        value={currentQuestion.programming_language}
+                                        onChange={(e) => updateQuestion('programming_language', e.target.value)}
+                                        className="w-full px-2.5 py-2 sm:py-1.5 text-sm bg-slate-800/50 border border-slate-600/50 rounded-lg text-white focus:ring-1 focus:ring-orange-500 transition"
+                                    >
+                                        {SUPPORTED_LANGUAGES.map(lang => (
+                                            <option key={lang.value} value={lang.value}>{lang.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-medium text-slate-400 mb-1.5">Starter Code (given to student)</label>
+                                <textarea
+                                    value={currentQuestion.starter_code}
+                                    onChange={(e) => updateQuestion('starter_code', e.target.value)}
+                                    rows={4}
+                                    className="w-full px-2.5 py-1.5 text-sm bg-slate-900/80 border border-slate-600/50 rounded-lg text-green-400 font-mono focus:ring-1 focus:ring-orange-500 transition"
+                                    placeholder={currentQuestion.programming_language === 'python' ? 'def solution(n):\n    # Your code here\n    pass' : '// Your code here'}
+                                />
+                            </div>
+
+                            <div>
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <label className="text-xs font-medium text-slate-400">Test Cases</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const newTests = [...currentQuestion.test_cases, { input: '', expected_output: '' }]
+                                            updateQuestion('test_cases', newTests)
+                                        }}
+                                        className="text-[10px] text-orange-400 hover:text-orange-300 flex items-center gap-0.5"
+                                    >
+                                        <Plus className="w-3 h-3" /> Add Test
+                                    </button>
+                                </div>
+                                <div className="space-y-2">
+                                    {currentQuestion.test_cases.map((tc: TestCase, tcIdx: number) => (
+                                        <div key={tcIdx} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-start">
+                                            <div>
+                                                <label className="block text-[10px] text-slate-500 mb-0.5">Input</label>
+                                                <textarea
+                                                    value={tc.input}
+                                                    onChange={(e) => {
+                                                        const newTests = [...currentQuestion.test_cases]
+                                                        newTests[tcIdx] = { ...newTests[tcIdx], input: e.target.value }
+                                                        updateQuestion('test_cases', newTests)
+                                                    }}
+                                                    rows={2}
+                                                    className="w-full px-2 py-1 text-xs bg-slate-900/80 border border-slate-600/50 rounded text-white font-mono focus:ring-1 focus:ring-orange-500"
+                                                    placeholder="5\n3"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] text-slate-500 mb-0.5">Expected Output</label>
+                                                <textarea
+                                                    value={tc.expected_output}
+                                                    onChange={(e) => {
+                                                        const newTests = [...currentQuestion.test_cases]
+                                                        newTests[tcIdx] = { ...newTests[tcIdx], expected_output: e.target.value }
+                                                        updateQuestion('test_cases', newTests)
+                                                    }}
+                                                    rows={2}
+                                                    className="w-full px-2 py-1 text-xs bg-slate-900/80 border border-slate-600/50 rounded text-white font-mono focus:ring-1 focus:ring-orange-500"
+                                                    placeholder="8"
+                                                />
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (currentQuestion.test_cases.length <= 1) return
+                                                    const newTests = currentQuestion.test_cases.filter((_: TestCase, i: number) => i !== tcIdx)
+                                                    updateQuestion('test_cases', newTests)
+                                                }}
+                                                disabled={currentQuestion.test_cases.length <= 1}
+                                                className="mt-4 p-1 text-red-400 hover:text-red-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
+                                    <Info className="w-3 h-3" /> Use \n for newlines in input. Output is compared exactly (trimmed).
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Explanation - Compact */}
                     <div>
                         <label className="block text-xs font-medium text-slate-400 mb-1.5">Explanation (optional)</label>
@@ -697,6 +838,7 @@ export default function LiveQuizQuestionEditor({
                     <span>{questions.filter(q => q.question_type === 'multiple_choice').length} MC</span>
                     <span>{questions.filter(q => q.question_type === 'true_false').length} T/F</span>
                     <span>{questions.filter(q => q.question_type === 'short_answer').length} SA</span>
+                    <span>{questions.filter(q => q.question_type === 'coding').length} Code</span>
                 </div>
             </div>
         </div>

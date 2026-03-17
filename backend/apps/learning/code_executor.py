@@ -15,8 +15,6 @@ import subprocess
 import tempfile
 import os
 import sys
-import resource
-import signal
 from typing import Any
 
 TIMEOUT = 5  # seconds per test case

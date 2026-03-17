@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
     Timer, CheckCircle, XCircle, AlertCircle, ChevronRight,
-    Trophy, Clock, Expand, Eye, Shield, BookOpen, Camera, Loader2, X as XIcon, Maximize
+    Trophy, Clock, Expand, Eye, Shield, BookOpen, Camera, Loader2, X as XIcon, Maximize, Code
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import liveQuizService from '../services/liveQuizService';
@@ -152,6 +152,7 @@ const SelfPacedQuizSession = () => {
 
     // ── Current question state ────────────────────────────────────────────────
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+    const [codeSubmission, setCodeSubmission] = useState<string>('');
     const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false);
     const [answerResult, setAnswerResult] = useState<AnswerResult | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -325,6 +326,7 @@ const SelfPacedQuizSession = () => {
             setTimeRemaining(currentQuestion.time_limit || 30);
             answerStartTime.current = Date.now();
             setSelectedAnswer(null);
+            setCodeSubmission(currentQuestion.starter_code || '');
             setIsAnswerSubmitted(false);
             setAnswerResult(null);
             // Clear any pending auto-advance from previous question
@@ -395,10 +397,12 @@ const SelfPacedQuizSession = () => {
         const responseTime = (Date.now() - answerStartTime.current) / 1000;
 
         try {
+            const isCoding = currentQuestion.question_type === 'coding';
             const result = await liveQuizService.submitResponse({
                 participant_id: sessionState.participantId,
                 question_id: currentQuestion.id,
-                answer_text: answer || selectedAnswer || '',
+                answer_text: isCoding ? '' : (answer || selectedAnswer || ''),
+                ...(isCoding ? { code_submission: codeSubmission } : {}),
                 response_time_seconds: responseTime,
             });
 
@@ -1041,6 +1045,31 @@ const SelfPacedQuizSession = () => {
                             </div>
                         )}
 
+                        {/* Coding Question */}
+                        {currentQuestion?.question_type === 'coding' && (
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Code className="w-4 h-4 text-purple-400" />
+                                    <span className="text-xs font-medium text-purple-400 uppercase tracking-wider">
+                                        {currentQuestion.programming_language || 'Python'}
+                                    </span>
+                                </div>
+                                <textarea
+                                    value={codeSubmission}
+                                    onChange={(e) => !isAnswerSubmitted && setCodeSubmission(e.target.value)}
+                                    disabled={isAnswerSubmitted}
+                                    rows={12}
+                                    className="w-full bg-slate-900/80 border border-slate-700 rounded-xl p-4 text-green-400 text-sm font-mono placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 resize-y leading-relaxed"
+                                    placeholder="Write your code here..."
+                                    spellCheck={false}
+                                />
+                                <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                                    <AlertCircle className="w-3 h-3" />
+                                    Your code will be tested against {currentQuestion.test_cases?.length || 0} test case(s)
+                                </p>
+                            </div>
+                        )}
+
                         {/* Submitted indicator (no answer reveal) */}
                         {isAnswerSubmitted && answerResult && (
                             <div className="mt-4 p-3 rounded-xl border bg-slate-800/40 border-slate-700 flex items-center gap-2">
@@ -1055,8 +1084,18 @@ const SelfPacedQuizSession = () => {
                     <div className="flex justify-end">
                         {!isAnswerSubmitted ? (
                             <button
-                                onClick={() => handleSubmitAnswer(selectedAnswer || '')}
-                                disabled={!selectedAnswer || isSubmitting}
+                                onClick={() => {
+                                    if (currentQuestion?.question_type === 'coding') {
+                                        handleSubmitAnswer('');
+                                    } else {
+                                        handleSubmitAnswer(selectedAnswer || '');
+                                    }
+                                }}
+                                disabled={(
+                                    currentQuestion?.question_type === 'coding'
+                                        ? !codeSubmission.trim()
+                                        : !selectedAnswer
+                                ) || isSubmitting}
                                 className="px-5 sm:px-8 py-2.5 sm:py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm sm:text-base"
                             >
                                 {isSubmitting ? (

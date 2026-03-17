@@ -10,6 +10,10 @@ from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
 from django.db.models import Avg, Count, Q
 from django.utils import timezone
+import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 from apps.learning.models import (
     LiveQuiz,
@@ -519,20 +523,41 @@ class LiveQuizResponseViewSet(viewsets.ModelViewSet):
         
         # Evaluate answer
         is_correct = False
+        points = 0
         if question.question_type == 'coding':
-            # TODO: Implement code execution and testing
-            is_correct = False
+            # Run code against test cases using CodeExecutor
+            try:
+                from apps.learning.code_executor import CodeExecutor
+                executor = CodeExecutor()
+                test_cases_raw = question.test_cases or '[]'
+                test_cases = json.loads(test_cases_raw) if isinstance(test_cases_raw, str) else test_cases_raw
+                language = question.programming_language or 'python'
+                result = executor.run(language, code_submission, test_cases)
+                
+                passed = result.get('passed', 0)
+                total = result.get('total', 0)
+                is_correct = result.get('all_passed', False)
+                
+                # Partial credit: proportional to test cases passed
+                if total > 0:
+                    pass_ratio = passed / total
+                    if question.time_bonus_enabled and is_correct:
+                        time_percentage = max(0, (question.time_limit - response_time) / question.time_limit)
+                        points = int(question.points * 0.5 + question.points * 0.5 * time_percentage)
+                    else:
+                        points = int(question.points * pass_ratio)
+            except Exception as e:
+                logger.error(f'Code execution failed for question {question.id}: {e}')
+                is_correct = False
+                points = 0
         else:
             is_correct = answer_text.strip().upper() == question.correct_answer.strip().upper()
-        
-        # Calculate points
-        points = 0
-        if is_correct:
-            if question.time_bonus_enabled:
-                time_percentage = max(0, (question.time_limit - response_time) / question.time_limit)
-                points = int(question.points * 0.5 + question.points * 0.5 * time_percentage)
-            else:
-                points = question.points
+            if is_correct:
+                if question.time_bonus_enabled:
+                    time_percentage = max(0, (question.time_limit - response_time) / question.time_limit)
+                    points = int(question.points * 0.5 + question.points * 0.5 * time_percentage)
+                else:
+                    points = question.points
         
         # Create response (with race-condition guard)
         try:
