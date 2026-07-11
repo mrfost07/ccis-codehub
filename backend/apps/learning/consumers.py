@@ -490,13 +490,9 @@ class LiveQuizConsumer(AsyncWebsocketConsumer):
             participant = LiveQuizParticipant.objects.get(id=participant_id)
             question = LiveQuizQuestion.objects.get(id=question_id)
 
-            is_correct = answer_text.strip().upper() == question.correct_answer.strip().upper()
-            points_earned = 0
-            if is_correct:
-                points_earned = question.points
-                if question.time_bonus_enabled and response_time < question.time_limit:
-                    time_ratio = 1 - (response_time / question.time_limit)
-                    points_earned += int(question.points * 0.5 * time_ratio)
+            # Shared scorer — identical to the REST path. (Req 9.)
+            from .live_quiz_scoring import score_mcq
+            is_correct, points_earned = score_mcq(question, answer_text, response_time)
 
             response, created = LiveQuizResponse.objects.update_or_create(
                 participant=participant,
@@ -566,13 +562,9 @@ class LiveQuizConsumer(AsyncWebsocketConsumer):
                     test_cases=question.test_cases,
                 )
                 test_results = exec_result
-                passed_ratio = exec_result.get('passed', 0) / max(exec_result.get('total', 1), 1)
-                is_correct = exec_result.get('all_passed', False)
-                # Partial credit: proportional to tests passed
-                points_earned = int(question.points * passed_ratio)
-                if is_correct and question.time_bonus_enabled and response_time < question.time_limit:
-                    time_ratio = 1 - (response_time / question.time_limit)
-                    points_earned += int(question.points * 0.3 * time_ratio)
+                # Shared scorer — identical to the REST path. (Req 9.)
+                from .live_quiz_scoring import score_coding
+                is_correct, points_earned = score_coding(question, exec_result, response_time)
             else:
                 # Execution disabled — manual review
                 test_results = {'status': 'pending_review', 'results': []}

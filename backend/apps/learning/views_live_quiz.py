@@ -605,7 +605,9 @@ class LiveQuizResponseViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Evaluate answer
+        # Evaluate answer using the shared scorer so REST and WebSocket paths
+        # always agree for identical inputs. (Req 9.)
+        from apps.learning.live_quiz_scoring import score_mcq, score_coding
         is_correct = False
         points = 0
         if question.question_type == 'coding':
@@ -617,31 +619,13 @@ class LiveQuizResponseViewSet(viewsets.ModelViewSet):
                 test_cases = json.loads(test_cases_raw) if isinstance(test_cases_raw, str) else test_cases_raw
                 language = question.programming_language or 'python'
                 result = executor.run(language, code_submission, test_cases)
-                
-                passed = result.get('passed', 0)
-                total = result.get('total', 0)
-                is_correct = result.get('all_passed', False)
-                
-                # Partial credit: proportional to test cases passed
-                if total > 0:
-                    pass_ratio = passed / total
-                    if question.time_bonus_enabled and is_correct:
-                        time_percentage = max(0, (question.time_limit - response_time) / question.time_limit)
-                        points = int(question.points * 0.5 + question.points * 0.5 * time_percentage)
-                    else:
-                        points = int(question.points * pass_ratio)
+                is_correct, points = score_coding(question, result, response_time)
             except Exception as e:
                 logger.error(f'Code execution failed for question {question.id}: {e}')
                 is_correct = False
                 points = 0
         else:
-            is_correct = answer_text.strip().upper() == question.correct_answer.strip().upper()
-            if is_correct:
-                if question.time_bonus_enabled:
-                    time_percentage = max(0, (question.time_limit - response_time) / question.time_limit)
-                    points = int(question.points * 0.5 + question.points * 0.5 * time_percentage)
-                else:
-                    points = question.points
+            is_correct, points = score_mcq(question, answer_text, response_time)
         
         # Create response (with race-condition guard)
         try:
