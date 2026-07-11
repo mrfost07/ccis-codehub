@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import {
   MessageCircle, X, Send, Settings, Reply, ArrowUp, Trash2,
-  MoreVertical, Smile, Users, Edit2, Check, ChevronDown, Globe, Building2
+  MoreVertical, Smile, Edit2, Check, Globe, Building2, ChevronDown
 } from 'lucide-react'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
@@ -74,13 +75,21 @@ export default function CommunityChat() {
   const [showReactions, setShowReactions] = useState<string | null>(null)
   const [showMessageMenu, setShowMessageMenu] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [showScrollBtn, setShowScrollBtn] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isOpenRef = useRef(isOpen)
+  // Per-room message cache — switching back is instant
+  const messageCache = useRef<Map<string, ChatMessage[]>>(new Map())
 
-  // Sync isOpen state with localStorage
+  // Keep ref in sync for use inside setTimeout closures
   useEffect(() => {
+    isOpenRef.current = isOpen
     localStorage.setItem('communityChatOpen', isOpen.toString())
+    if (isOpen) setUnreadCount(0)
   }, [isOpen])
 
   // Cleanup idle timer on unmount
@@ -105,24 +114,21 @@ export default function CommunityChat() {
   // Handle closing the chat - start idle timer
   const handleClose = () => {
     setIsOpen(false)
-    // Start idle timer (5 seconds)
     idleTimerRef.current = setTimeout(() => {
       setIsIdle(true)
     }, 5000)
   }
 
-  // Handle clicking idle button to expand
+  // Click idle dock → expand to floating button
   const handleIdleClick = () => {
     if (idleTimerRef.current) {
       clearTimeout(idleTimerRef.current)
       idleTimerRef.current = null
     }
     setIsIdle(false)
-    // Start new idle timer - if user doesn't open chat in 5 seconds, go back to idle
+    // Go back to idle if user doesn't open within 5s
     idleTimerRef.current = setTimeout(() => {
-      if (!isOpen) {
-        setIsIdle(true)
-      }
+      if (!isOpenRef.current) setIsIdle(true)
     }, 5000)
   }
 
@@ -146,24 +152,69 @@ export default function CommunityChat() {
   }, [])
 
   useEffect(() => {
-    if (activeRoom) {
-      fetchMessages()
-      // Save active room ID to localStorage
-      localStorage.setItem('communityChatActiveRoom', activeRoom.id)
-      // Poll for new messages every 3 seconds
-      pollIntervalRef.current = setInterval(fetchMessages, 3000)
+    if (!activeRoom) return
+
+    // Instantly show cached messages — no flicker on room switch
+    const cached = messageCache.current.get(activeRoom.id)
+    if (cached) setMessages(cached)
+    else setMessages([])   // clear stale messages from previous room
+
+    localStorage.setItem('communityChatActiveRoom', activeRoom.id)
+
+    // AbortController cancels in-flight requests when room changes
+    const controller = new AbortController()
+
+    const doFetch = async () => {
+      if (!activeRoom) return
+      try {
+        const response = await api.get(
+          `/community/chat/rooms/${activeRoom.id}/messages/`,
+          { signal: controller.signal }
+        )
+        const msgs: ChatMessage[] = response.data
+        messageCache.current.set(activeRoom.id, msgs)
+        setMessages(msgs)
+      } catch (err: any) {
+        // Ignore cancellation — this is intentional on room switch
+        if (err?.code === 'ERR_CANCELED' || err?.name === 'AbortError') return
+        console.error('Failed to fetch messages:', err)
+      }
     }
+
+    doFetch()
+    const interval = setInterval(doFetch, 3000)
+
     return () => {
-      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current)
+      controller.abort()      // cancel any in-flight request immediately
+      clearInterval(interval)
     }
   }, [activeRoom])
 
+  // Smart auto-scroll: only pull to bottom if already near bottom
   useEffect(() => {
-    scrollToBottom()
+    const container = messagesContainerRef.current
+    if (!container) return
+    const distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
+    if (distFromBottom < 120) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    } else if (!isOpen) {
+      // Chat is closed — increment unread badge
+      setUnreadCount(c => c + 1)
+    } else {
+      setShowScrollBtn(true)
+    }
   }, [messages])
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    setShowScrollBtn(false)
+  }, [])
+
+  const handleScroll = () => {
+    const container = messagesContainerRef.current
+    if (!container) return
+    const distFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight
+    setShowScrollBtn(distFromBottom > 120)
   }
 
   const fetchRooms = async () => {
@@ -191,15 +242,17 @@ export default function CommunityChat() {
     }
   }
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     if (!activeRoom) return
     try {
       const response = await api.get(`/community/chat/rooms/${activeRoom.id}/messages/`)
-      setMessages(response.data)
+      const msgs: ChatMessage[] = response.data
+      messageCache.current.set(activeRoom.id, msgs)
+      setMessages(msgs)
     } catch (error) {
       console.error('Failed to fetch messages:', error)
     }
-  }
+  }, [activeRoom])
 
   const fetchNickname = async () => {
     try {
@@ -298,34 +351,45 @@ export default function CommunityChat() {
     return getMediaUrl(profilePic)
   }
 
-  if (!isOpen) {
-    // Idle mode - minimized side dock
-    if (isIdle) {
+  const content = (() => {
+    if (!isOpen) {
+      // Idle mode — minimized side dock
+      if (isIdle) {
+        return (
+          <button
+            onClick={handleIdleClick}
+            className="fixed right-0 bottom-[45%] w-10 h-16 bg-slate-900/60 backdrop-blur-sm border border-slate-700/30 border-r-0 rounded-l-xl shadow-lg hover:w-12 hover:bg-slate-800/80 transition-[width,background] z-50 flex items-center justify-center group"
+            title="Community Chat"
+          >
+            <MessageCircle className="w-4 h-4 text-purple-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
+        )
+      }
+
+      // Active mode — full floating button
       return (
         <button
-          onClick={handleIdleClick}
-          className="fixed right-0 bottom-[45%] w-10 h-16 bg-slate-900/60 backdrop-blur-sm border border-slate-700/30 border-r-0 rounded-l-xl shadow-lg hover:w-12 hover:bg-slate-800/80 transition-all duration-300 z-50 flex items-center justify-center group"
-          title="Community Chat"
+          onClick={handleOpen}
+          className="fixed right-4 sm:right-6 bottom-36 sm:bottom-24 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-transform z-50 flex items-center justify-center"
+          title="Open Community Chat"
         >
-          <MessageCircle className="w-4 h-4 text-purple-400 opacity-60 group-hover:opacity-100 group-hover:w-5 group-hover:h-5 transition-all" />
+          <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
         </button>
       )
     }
 
-    // Active mode - full floating button
     return (
-      <button
-        onClick={handleOpen}
-        className="fixed right-4 sm:right-6 bottom-36 sm:bottom-40 p-3 sm:p-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all z-50"
-        title="Community Chat"
-      >
-        <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-      </button>
-    )
-  }
-
-  return (
-    <div className="fixed right-2 sm:right-6 bottom-36 sm:bottom-40 w-[calc(100vw-16px)] sm:w-96 h-[calc(100vh-160px)] sm:h-[550px] bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 flex flex-col z-[60] overflow-hidden">
+      <div className="fixed right-2 sm:right-6 bottom-36 sm:bottom-40 w-[calc(100vw-16px)] sm:w-96 h-[calc(100vh-160px)] sm:h-[550px] bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 flex flex-col z-[60] overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-800">
         <div className="flex items-center gap-3">
@@ -390,40 +454,38 @@ export default function CommunityChat() {
             </div>
           </div>
 
-          {/* Room Selector */}
-          <div>
-            <label className="text-xs text-slate-400 block mb-1">Chat Room</label>
-            <div className="grid grid-cols-2 gap-2">
-              {rooms.map((room) => {
-                // Map room type to Lucide icon (no emojis)
-                const getRoomIcon = () => {
-                  if (room.room_type === 'global' || room.name.toLowerCase().includes('global')) {
-                    return <Globe className="w-4 h-4" />
-                  }
-                  return <Building2 className="w-4 h-4" />
-                }
+        </div>
+      )}
 
-                return (
-                  <button
-                    key={room.id}
-                    onClick={() => setActiveRoom(room)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition ${activeRoom?.id === room.id
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                      }`}
-                  >
-                    {getRoomIcon()}
-                    <span className="truncate">{room.name}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
+      {/* Room Tabs */}
+      {rooms.length > 1 && (
+        <div className="flex gap-1 px-3 pt-2 pb-1 border-b border-slate-700/50 overflow-x-auto scrollbar-none">
+          {rooms.map((room) => (
+            <button
+              key={room.id}
+              onClick={() => setActiveRoom(room)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                activeRoom?.id === room.id
+                  ? 'bg-purple-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+              }`}
+            >
+              {room.room_type === 'global' || room.name.toLowerCase().includes('global')
+                ? <Globe className="w-3 h-3" />
+                : <Building2 className="w-3 h-3" />
+              }
+              {room.name}
+            </button>
+          ))}
         </div>
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 relative"
+      >
         {messages.length === 0 ? (
           <div className="text-center text-slate-500 py-12">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-800 flex items-center justify-center">
@@ -481,8 +543,7 @@ export default function CommunityChat() {
                 </div>
 
                 {/* Message Container */}
-                <div className={`flex flex-col max-w-[75%] sm:max-w-[70%] ${message.is_own_message ? 'items-end' : 'items-start'
-                  }`}>
+                <div className={`relative flex flex-col max-w-[75%] sm:max-w-[70%] ${message.is_own_message ? 'items-end' : 'items-start'}`}>
                   {/* Sender Name - Only show for others' messages and first in group */}
                   {!message.is_own_message && showAvatar && (
                     <span
@@ -568,10 +629,9 @@ export default function CommunityChat() {
 
 
 
-                  {/* Reactions Picker */}
+                  {/* Reactions Picker — anchored to message container */}
                   {showReactions === message.id && (
-                    <div className={`absolute ${message.is_own_message ? 'right-0' : 'left-10'
-                      } top-full mt-1 bg-slate-800/95 backdrop-blur rounded-xl p-2 shadow-xl border border-slate-700 flex gap-1 z-20`}>
+                    <div className={`absolute ${message.is_own_message ? 'right-0' : 'left-0'} bottom-full mb-1 bg-slate-800/95 backdrop-blur rounded-xl p-2 shadow-xl border border-slate-700 flex gap-1 z-20`}>
                       {REACTIONS.map((emoji) => (
                         <button
                           key={emoji}
@@ -584,10 +644,9 @@ export default function CommunityChat() {
                     </div>
                   )}
 
-                  {/* Message Menu - 3-dot dropdown */}
+                  {/* Message Menu — anchored to message container */}
                   {showMessageMenu === message.id && (
-                    <div className={`absolute ${message.is_own_message ? 'right-0' : 'left-10'
-                      } top-full mt-1 bg-slate-800/95 backdrop-blur rounded-xl shadow-xl border border-slate-700 overflow-hidden z-20 min-w-[160px]`}>
+                    <div className={`absolute ${message.is_own_message ? 'right-0' : 'left-0'} bottom-full mb-1 bg-slate-800/95 backdrop-blur rounded-xl shadow-xl border border-slate-700 overflow-hidden z-20 min-w-[160px]`}>
                       {/* Reply */}
                       <button
                         onClick={() => { setReplyingTo(message); setShowMessageMenu(null) }}
@@ -654,6 +713,17 @@ export default function CommunityChat() {
           })
         )}
         <div ref={messagesEndRef} />
+
+        {/* Scroll to bottom button */}
+        {showScrollBtn && (
+          <button
+            onClick={scrollToBottom}
+            className="sticky bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium rounded-full shadow-lg transition-all animate-bounce"
+          >
+            <ChevronDown className="w-3 h-3" />
+            New messages
+          </button>
+        )}
       </div>
 
       {/* Reply Preview */}
@@ -689,13 +759,24 @@ export default function CommunityChat() {
       <div className="p-3 sm:p-4 border-t border-slate-700 bg-slate-800/95 backdrop-blur">
         <div className="flex items-end gap-2 sm:gap-3">
           <div className="flex-1 relative">
-            <input
-              type="text"
+            <textarea
+              rows={1}
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder="Type a message..."
-              className="w-full px-4 py-2.5 sm:py-3 bg-slate-700/80 border border-slate-600 rounded-2xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all"
+              onChange={(e) => {
+                setNewMessage(e.target.value)
+                // Auto-grow up to 4 rows
+                e.target.style.height = 'auto'
+                e.target.style.height = Math.min(e.target.scrollHeight, 96) + 'px'
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSendMessage()
+                }
+              }}
+              placeholder="Type a message... (Shift+Enter for newline)"
+              className="w-full px-4 py-2.5 sm:py-3 bg-slate-700/80 border border-slate-600 rounded-2xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all resize-none overflow-hidden"
+              style={{ minHeight: '44px' }}
             />
           </div>
           <button
@@ -708,5 +789,8 @@ export default function CommunityChat() {
         </div>
       </div>
     </div>
-  )
+    )
+  })()
+
+  return createPortal(content, document.body)
 }

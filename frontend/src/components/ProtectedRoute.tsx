@@ -22,6 +22,8 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
   if (!token || !user) {
     // Preserve the current URL so login can redirect back
     const returnUrl = encodeURIComponent(location.pathname + location.search + location.hash)
+    // Also save to sessionStorage as backup (survives page reloads)
+    sessionStorage.setItem('loginReturnUrl', location.pathname + location.search + location.hash)
     return <Navigate to={`/login?returnUrl=${returnUrl}`} replace />
   }
 

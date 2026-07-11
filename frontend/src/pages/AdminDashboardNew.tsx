@@ -97,6 +97,7 @@ export default function AdminDashboard() {
     const [showQuizEditor, setShowQuizEditor] = useState(false)
     const [creatingQuiz, setCreatingQuiz] = useState(false)
     const [updatingQuiz, setUpdatingQuiz] = useState(false)
+    const [isCreatingPath, setIsCreatingPath] = useState(false)
     const [isUserDeleteEnabled, setIsUserDeleteEnabled] = useState(false)
 
     // Initial data fetch
@@ -293,6 +294,8 @@ export default function AdminDashboard() {
     const resetPathForm = () => setPathForm(defaultPathForm)
 
     const createCareerPath = async () => {
+        if (isCreatingPath) return
+        setIsCreatingPath(true)
         try {
             let response
             if (certificateFile) {
@@ -317,6 +320,8 @@ export default function AdminDashboard() {
             } else {
                 toast.error(error.response?.data?.detail || 'Failed to create career path')
             }
+        } finally {
+            setIsCreatingPath(false)
         }
     }
 
@@ -520,10 +525,11 @@ export default function AdminDashboard() {
                 isOpen={showCreatePath}
                 pathForm={pathForm}
                 certificateFile={certificateFile}
+                isSubmitting={isCreatingPath}
                 onFormChange={handlePathFormChange}
                 onCertificateChange={setCertificateFile}
                 onSubmit={createCareerPath}
-                onClose={() => setShowCreatePath(false)}
+                onClose={() => !isCreatingPath && setShowCreatePath(false)}
             />
 
             <EditPathModal

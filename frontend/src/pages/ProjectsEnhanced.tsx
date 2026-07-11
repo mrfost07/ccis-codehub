@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import toast from 'react-hot-toast'
 import { projectsAPI, teamsAPI, projectNotificationsAPI, communityAPI } from '../services/api'
@@ -156,6 +156,9 @@ export default function ProjectsEnhanced() {
   const [userSearchQuery, setUserSearchQuery] = useState('')
   const [userSearchResults, setUserSearchResults] = useState<Follower[]>([])
   const [searchingUsers, setSearchingUsers] = useState(false)
+  const [isCreatingTeam, setIsCreatingTeam] = useState(false)
+  const [isCreatingProject, setIsCreatingProject] = useState(false)
+  const [isCreatingTask, setIsCreatingTask] = useState(false)
 
   const [newProject, setNewProject] = useState({
     name: '',
@@ -313,11 +316,13 @@ export default function ProjectsEnhanced() {
   // Team handlers
   const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isCreatingTeam) return
     if (!newTeam.name.trim()) {
       toast.error('Team name is required')
       return
     }
 
+    setIsCreatingTeam(true)
     try {
       // Create the team first
       const response = await teamsAPI.createTeam({
@@ -352,6 +357,8 @@ export default function ProjectsEnhanced() {
       fetchData() // Refresh to get updated data
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Failed to create team')
+    } finally {
+      setIsCreatingTeam(false)
     }
   }
 
@@ -546,6 +553,7 @@ export default function ProjectsEnhanced() {
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isCreatingTask) return
     if (!selectedProject) return
 
     if (!newTask.title.trim()) {
@@ -556,6 +564,8 @@ export default function ProjectsEnhanced() {
       toast.error('Task must be assigned to a team member')
       return
     }
+
+    setIsCreatingTask(true)
 
     try {
       const taskData = {
@@ -574,6 +584,8 @@ export default function ProjectsEnhanced() {
       fetchData()
     } catch (error: any) {
       toast.error(error.response?.data?.detail || error.response?.data?.error || 'Failed to create task')
+    } finally {
+      setIsCreatingTask(false)
     }
   }
 
@@ -720,10 +732,13 @@ export default function ProjectsEnhanced() {
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isCreatingProject) return
     if (!newProject.name.trim()) {
       toast.error('Project name is required')
       return
     }
+
+    setIsCreatingProject(true)
 
     try {
       // Prepare data - only include team if selected
@@ -760,6 +775,8 @@ export default function ProjectsEnhanced() {
       refetchTasks()
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Failed to create project')
+    } finally {
+      setIsCreatingProject(false)
     }
   }
 
@@ -940,6 +957,13 @@ export default function ProjectsEnhanced() {
                   </span>
                 </button>
               )}
+              <Link
+                to="/projects/explore"
+                className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg font-medium text-white hover:bg-slate-700 transition-all text-sm"
+              >
+                <Star className="w-4 h-4 text-yellow-400" />
+                Explore
+              </Link>
               <button
                 onClick={() => setShowCreateTeamModal(true)}
                 className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg font-medium text-white hover:bg-slate-700 transition-all"
@@ -1061,6 +1085,7 @@ export default function ProjectsEnhanced() {
           </div>
         ) : (
           <>
+
             {/* Teams Tab */}
             {activeTab === 'teams' && (
               <div className="space-y-6">
@@ -1878,16 +1903,32 @@ export default function ProjectsEnhanced() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
+                  disabled={isCreatingProject}
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition"
+                  className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-lg hover:from-cyan-600 hover:to-purple-600 transition"
+                  disabled={isCreatingProject}
+                  className={`flex-1 px-4 py-2 text-white rounded-lg transition flex items-center justify-center gap-2 ${
+                    isCreatingProject
+                      ? 'bg-gradient-to-r from-cyan-500/50 to-purple-500/50 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600'
+                  }`}
                 >
-                  Create Project
+                  {isCreatingProject ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Project'
+                  )}
                 </button>
               </div>
             </form>
@@ -2034,23 +2075,39 @@ export default function ProjectsEnhanced() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
+                  disabled={isCreatingTeam}
                   onClick={() => {
                     setShowCreateTeamModal(false)
                     setNewTeam({ name: '', description: '', selectedMembers: [] })
                     setUserSearchQuery('')
                     setUserSearchResults([])
                   }}
-                  className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition"
+                  className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-lg hover:from-cyan-600 hover:to-purple-600 transition"
+                  disabled={isCreatingTeam}
+                  className={`flex-1 px-4 py-2 text-white rounded-lg transition flex items-center justify-center gap-2 ${
+                    isCreatingTeam
+                      ? 'bg-gradient-to-r from-cyan-500/50 to-purple-500/50 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600'
+                  }`}
                 >
-                  {newTeam.selectedMembers.length > 0
-                    ? `Create & Invite ${newTeam.selectedMembers.length}`
-                    : 'Create Team'}
+                  {isCreatingTeam ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Creating...
+                    </>
+                  ) : (
+                    newTeam.selectedMembers.length > 0
+                      ? `Create & Invite ${newTeam.selectedMembers.length}`
+                      : 'Create Team'
+                  )}
                 </button>
               </div>
             </form>
@@ -2790,16 +2847,32 @@ export default function ProjectsEnhanced() {
               <div className="flex gap-3 pt-2">
                 <button
                   type="button"
+                  disabled={isCreatingTask}
                   onClick={closeCreateTaskModal}
-                  className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition"
+                  className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-lg hover:from-cyan-600 hover:to-purple-600 transition"
+                  disabled={isCreatingTask}
+                  className={`flex-1 px-4 py-2 text-white rounded-lg transition flex items-center justify-center gap-2 ${
+                    isCreatingTask
+                      ? 'bg-gradient-to-r from-cyan-500/50 to-purple-500/50 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600'
+                  }`}
                 >
-                  Create Task
+                  {isCreatingTask ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Task'
+                  )}
                 </button>
               </div>
             </form>

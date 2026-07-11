@@ -5,6 +5,7 @@ import CommunityChat from '../components/CommunityChat'
 import FollowRequests from '../components/FollowRequests'
 import toast from 'react-hot-toast'
 import api, { communityAPI } from '../services/api'
+import JobStories from '../components/JobStories'
 import { Heart, MessageCircle, Share2, Image, Send, X, Reply, ChevronDown, ChevronUp, ChevronRight, UserPlus, UserMinus, Bell, Users, Users2, Clock, Building2, Crown, Shield, Lock, Search, Check, ArrowLeft, Settings, Camera, Edit3, Trash2, Globe, MoreVertical } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { getMediaUrl } from '../utils/mediaUrl'
@@ -2186,6 +2187,9 @@ export default function CommunityEnhanced() {
                 </button>
               </div>
             </form>
+
+            {/* Job Stories Strip */}
+            <JobStories />
 
             {/* Posts List */}
             <div className="space-y-6">

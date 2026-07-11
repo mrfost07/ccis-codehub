@@ -58,6 +58,14 @@ export default function AuthCallback() {
         } catch {
             // If state parsing fails, default to login
         }
+        // Fallback: check sessionStorage for saved return URL
+        if (returnUrl === '/learning') {
+            const savedUrl = sessionStorage.getItem('loginReturnUrl');
+            if (savedUrl) {
+                returnUrl = savedUrl;
+            }
+        }
+        sessionStorage.removeItem('loginReturnUrl');
 
         try {
             // Exchange code for user info via backend with mode

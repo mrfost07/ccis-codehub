@@ -45,8 +45,8 @@ const QuizLobby = () => {
 
     useEffect(() => {
         if (!joinCode) return;
+        let navigated = false;
 
-        // Connect to WebSocket using environment variable
         const baseWsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
         const wsUrl = `${baseWsUrl}/quiz/${joinCode}/`;
 
@@ -58,7 +58,6 @@ const QuizLobby = () => {
         socket.onopen = () => {
             console.log('Connected to Quiz WebSocket');
             setStatus('connected');
-            // Send join message with actual nickname
             socket.send(JSON.stringify({
                 type: 'join',
                 nickname: lobbyState.nickname || 'Student'
@@ -70,9 +69,12 @@ const QuizLobby = () => {
                 const data: WebSocketMessage = JSON.parse(event.data);
                 console.log('Received message:', data);
 
-                if (data.type === 'quiz_started') {
-                    toast.success('Quiz starting!');
-                    // Pass all data to live session
+                if (data.type === 'quiz_started' || data.type === 'question_start') {
+                    toast.success('Session starting!');
+                    // Close WS BEFORE navigating so LiveQuizSession can open a fresh one
+                    navigated = true;
+                    socket.close();
+                    wsRef.current = null;
                     navigate(`/quiz/live/${joinCode}`, {
                         state: {
                             participantId: lobbyState.participantId,
@@ -81,7 +83,6 @@ const QuizLobby = () => {
                             quizTitle: lobbyState.quizTitle,
                             timeLimitMinutes: lobbyState.timeLimitMinutes,
                             nickname: lobbyState.nickname,
-                            // Anti-cheat config pass-through
                             requireFullscreen: lobbyState.requireFullscreen,
                             maxViolations: lobbyState.maxViolations,
                             violationPenaltyPoints: lobbyState.violationPenaltyPoints,
@@ -108,17 +109,17 @@ const QuizLobby = () => {
 
         socket.onclose = () => {
             console.log('WebSocket disconnected');
-            if (status !== 'error') {
+            if (!navigated && status !== 'error') {
                 setStatus('connecting');
             }
         };
 
         return () => {
-            if (wsRef.current) {
+            if (!navigated && wsRef.current) {
                 wsRef.current.close();
             }
         };
-    }, [joinCode, navigate]);
+    }, [joinCode]);
 
     return (
         <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 pb-20 sm:pb-4">

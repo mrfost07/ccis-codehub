@@ -45,6 +45,8 @@ export default function QuizTaking() {
   const [score, setScore] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<number>>(new Set())
+  // Per-question breakdown — only populated if instructor has enabled show_results_to_students
+  const [questionResults, setQuestionResults] = useState<Array<{ question_id: string; is_correct: boolean; question_text: string }> | null>(null)
 
   useEffect(() => {
     fetchQuiz()
@@ -113,8 +115,12 @@ export default function QuizTaking() {
       const response = await api.post(`/learning/quizzes/${quizId}/submit/`, {
         answers
       })
-      
+
       setScore(response.data.score)
+      // If instructor enabled show_results_to_students, backend sends per-question detail
+      if (response.data.answers_detail) {
+        setQuestionResults(response.data.answers_detail)
+      }
       setQuizCompleted(true)
       toast.success(
         response.data.score >= (quiz?.passing_score || 70)
@@ -233,7 +239,7 @@ export default function QuizTaking() {
   // Quiz Results Screen
   if (quizCompleted && score !== null) {
     const passed = score >= quiz.passing_score
-    
+
     return (
       <div className="min-h-screen bg-slate-950 p-6">
         <div className="max-w-4xl mx-auto">
@@ -255,7 +261,7 @@ export default function QuizTaking() {
 
           <div className="bg-slate-800 rounded-2xl p-8 mb-6">
             <h2 className="text-2xl font-bold text-white mb-6">Your Results</h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="text-center p-6 bg-slate-700/50 rounded-xl">
                 <div className="text-4xl font-bold text-white mb-2">{score}%</div>
@@ -274,6 +280,36 @@ export default function QuizTaking() {
                 <div className="text-slate-400">Status</div>
               </div>
             </div>
+
+            {/* Per-question breakdown — only shown if instructor enabled it */}
+            {questionResults && questionResults.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold text-white mb-3">Question Breakdown</h3>
+                <div className="space-y-2">
+                  {questionResults.map((qr, i) => (
+                    <div
+                      key={qr.question_id}
+                      className={`flex items-center gap-3 p-3 rounded-xl border text-sm ${
+                        qr.is_correct
+                          ? 'bg-green-500/10 border-green-500/30'
+                          : 'bg-red-500/10 border-red-500/30'
+                      }`}
+                    >
+                      {qr.is_correct ? (
+                        <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      ) : (
+                        <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                      )}
+                      <span className="text-slate-400 font-mono text-xs w-6">Q{i + 1}</span>
+                      <span className="text-slate-300 flex-1 truncate">{qr.question_text}</span>
+                      <span className={`text-xs font-semibold ${qr.is_correct ? 'text-green-400' : 'text-red-400'}`}>
+                        {qr.is_correct ? 'Correct' : 'Incorrect'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-4">
               <button

@@ -1,5 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { useEffect, lazy, Suspense } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './contexts/AuthContext'
@@ -15,15 +15,12 @@ import InstructorDashboard from './pages/InstructorDashboard'
 import StudentDashboard from './pages/StudentDashboard'
 import StudentLearningDashboard from './pages/StudentLearningDashboard'
 import QuizTaking from './pages/QuizTaking'
-import PathDetail from './pages/PathDetail'
 import PathDetailEnhanced from './pages/PathDetailEnhanced'
-import ModuleLearning from './pages/ModuleLearning'
 import ModuleLearningEnhanced from './pages/ModuleLearningEnhanced'
 import Certificates from './pages/Certificates'
 import Leaderboard from './pages/Leaderboard'
 import QuestionManagement from './pages/QuestionManagement'
 import LearningEnhanced from './pages/LearningEnhanced'
-import Learning from './pages/Learning'
 import ProjectsEnhanced from './pages/ProjectsEnhanced'
 import ProjectDetail from './pages/ProjectDetail'
 import CommunityEnhanced from './pages/CommunityEnhanced'
@@ -39,6 +36,11 @@ import LiveQuizSession from './pages/LiveQuizSession'
 import SelfPacedQuizSession from './pages/SelfPacedQuizSession'
 import QuizResults from './pages/QuizResults'
 import QuizAnalytics from './pages/QuizAnalytics'
+import ResumePage from './pages/ResumePage'
+import FeaturedProjects from './pages/FeaturedProjects'
+// Lazy-load heavy pages so Prism.js + Monaco editor only download when needed
+const CodingChallengePage = lazy(() => import('./pages/CodingChallengePage'))
+const VideoCoursePage = lazy(() => import('./pages/VideoCoursePage'))
 import { Capacitor } from '@capacitor/core'
 import { App as CapApp } from '@capacitor/app'
 
@@ -54,6 +56,15 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+/** Hide the AI Mentor on immersive pages like quizzes and coding challenges */
+function ConditionalAIMentor() {
+  const { pathname } = useLocation()
+  const hideOnRoutes = ['/quiz/live/', '/quiz/self-paced/', '/quiz/lobby/', '/challenges/']
+  const shouldHide = hideOnRoutes.some(r => pathname.startsWith(r))
+  if (shouldHide) return null
+  return <FloatingAIMentor />
+}
 
 function App() {
   return (
@@ -168,10 +179,38 @@ function App() {
                 }
               />
               <Route
+                path="/learning/challenges/:slug"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
+                      <CodingChallengePage />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/learning/videos/:slug"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
+                      <VideoCoursePage />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/projects"
                 element={
                   <ProtectedRoute>
                     <ProjectsEnhanced />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/projects/explore"
+                element={
+                  <ProtectedRoute>
+                    <FeaturedProjects />
                   </ProtectedRoute>
                 }
               />
@@ -197,6 +236,15 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ProfileEnhanced />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/resume"
+                element={
+                  <ProtectedRoute>
+                    <ResumePage />
                   </ProtectedRoute>
                 }
               />
@@ -284,7 +332,7 @@ function App() {
               />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-            <FloatingAIMentor />
+            <ConditionalAIMentor />
           </div>
         </Router>
       </AuthProvider>

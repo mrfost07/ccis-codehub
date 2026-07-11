@@ -5,6 +5,8 @@ import {
     Trophy, Clock, Expand, Eye, Shield, BookOpen, Camera, Loader2, X as XIcon, Maximize, Code
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import DOMPurify from 'dompurify';
+import Editor from '@monaco-editor/react';
 import liveQuizService from '../services/liveQuizService';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -44,6 +46,8 @@ interface SessionState {
     altTabAction?: 'warn' | 'shuffle' | 'close';
     enableAiProctor?: boolean;
     enableCodeExecution?: boolean;
+    showCorrectAnswers?: boolean;
+    showLeaderboard?: boolean;
     questions?: Question[];
     deadline?: string | null;
     attemptsMessage?: string;
@@ -63,72 +67,103 @@ interface AnswerResult {
 // Proctor camera hook (same as LiveQuizSession)
 // ─────────────────────────────────────────────────────────────────────────────
 
+interface ProctorResult {
+    label: string;
+    confidence: number;
+    is_violation: boolean;
+    calibrating: boolean;
+    violations: number;
+    action: string;
+}
+
 function useProctoringCamera(
     enabled: boolean,
     participantId: string | undefined,
     joinCode: string | undefined,
-    nickname: string | undefined
+    nickname: string | undefined,
+    onViolation?: (result: ProctorResult) => void,
+    onStatusUpdate?: (result: ProctorResult) => void,
 ) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const procWsRef = useRef<WebSocket | null>(null);
     const [cameraActive, setCameraActive] = useState(false);
+    const [proctorLabel, setProctorLabel] = useState<string>('looking_center');
+    const [wsConnected, setWsConnected] = useState(false);
+    const [isCalibrating, setIsCalibrating] = useState(true);
+
+    const onViolationRef = useRef(onViolation);
+    const onStatusRef = useRef(onStatusUpdate);
+    onViolationRef.current = onViolation;
+    onStatusRef.current = onStatusUpdate;
 
     useEffect(() => {
         if (!enabled || !participantId) return;
+        console.log('AI Proctor: hook starting (server-side camera mode)');
 
-        let stream: MediaStream | null = null;
-        let frameInterval: ReturnType<typeof setInterval>;
+        let cancelled = false;
 
-        const start = async () => {
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } });
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
-                    await videoRef.current.play();
-                }
+        const start = () => {
+            const wsBase = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
+            const procWs = new WebSocket(`${wsBase}/proctor/${participantId}/`);
+            procWsRef.current = procWs;
+
+            procWs.onopen = () => {
+                console.log('AI Proctor: WS connected, telling server to start camera');
+                setWsConnected(true);
                 setCameraActive(true);
 
-                const wsBase = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
-                const procWs = new WebSocket(`${wsBase}/proctor/${participantId}/`);
-                procWsRef.current = procWs;
+                procWs.send(JSON.stringify({
+                    type: 'start_camera',
+                    participant_id: participantId,
+                    join_code: joinCode,
+                    nickname,
+                }));
+            };
 
-                frameInterval = setInterval(() => {
-                    const canvas = canvasRef.current;
-                    const video = videoRef.current;
-                    if (!canvas || !video || procWs.readyState !== WebSocket.OPEN) return;
-
-                    const ctx = canvas.getContext('2d');
-                    if (!ctx) return;
-
-                    ctx.drawImage(video, 0, 0, 320, 240);
-                    const frame = canvas.toDataURL('image/jpeg', 0.5).split(',')[1];
-
-                    procWs.send(JSON.stringify({
-                        type: 'frame',
-                        frame,
-                        participant_id: participantId,
-                        join_code: joinCode,
-                        nickname,
-                    }));
-                }, 2000);
-            } catch (_) {
-                console.warn('AI Proctor: camera access denied or unavailable');
+            procWs.onerror = (e) => console.error('AI Proctor: WS error', e);
+            procWs.onclose = () => {
+                console.log('AI Proctor: WS closed');
+                setWsConnected(false);
                 setCameraActive(false);
-            }
+            };
+
+            procWs.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'proctor_result') {
+                        const result: ProctorResult = {
+                            label: data.label || 'looking_center',
+                            confidence: data.confidence || 0,
+                            is_violation: data.is_violation || false,
+                            calibrating: data.calibrating || false,
+                            violations: data.violations || 0,
+                            action: data.action || 'none',
+                        };
+
+                        setProctorLabel(result.label);
+                        setIsCalibrating(result.calibrating);
+                        onStatusRef.current?.(result);
+
+                        if (result.is_violation && result.action === 'flag') {
+                            onViolationRef.current?.(result);
+                        }
+                    }
+                } catch (_) { /* ignore parse errors */ }
+            };
         };
 
         start();
 
         return () => {
-            clearInterval(frameInterval);
-            stream?.getTracks().forEach(t => t.stop());
+            cancelled = true;
             procWsRef.current?.close();
             setCameraActive(false);
+            setWsConnected(false);
         };
     }, [enabled, participantId, joinCode, nickname]);
 
-    return { videoRef, canvasRef, cameraActive };
+    return { videoRef, canvasRef, cameraActive, proctorLabel, wsConnected, isCalibrating };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -168,6 +203,7 @@ const SelfPacedQuizSession = () => {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [isQuizPaused, setIsQuizPaused] = useState(false);
     const [pauseReason, setPauseReason] = useState('');
+    const [pauseSource, setPauseSource] = useState<'proctor' | 'fullscreen' | 'tab_switch' | ''>('');
     const [isQuizClosed, setIsQuizClosed] = useState(false);
     const [closeReason, setCloseReason] = useState('');
     const [violations, setViolations] = useState(0);
@@ -176,28 +212,58 @@ const SelfPacedQuizSession = () => {
 
     // ── AI Proctor onboarding ─────────────────────────────────────────────────
     const [proctorReady, setProctorReady] = useState(!sessionState.enableAiProctor);
-    const [fullscreenReady, setFullscreenReady] = useState(!sessionState.requireFullscreen);
+    const [fullscreenReady, setFullscreenReady] = useState(false); // Always require fullscreen
     const onboardingVideoRef = useRef<HTMLVideoElement>(null);
     const [onboardingCamActive, setOnboardingCamActive] = useState(false);
     const [onboardingCamError, setOnboardingCamError] = useState<string | null>(null);
     const onboardingStreamRef = useRef<MediaStream | null>(null);
 
-    const fsAction = sessionState.fullscreenExitAction || 'warn';
-    const atAction = sessionState.altTabAction || 'warn';
+    // Always enforce fullscreen and pause on violations
+    const fsAction = 'pause' as const;
+    const atAction = 'pause' as const;
     const maxViolations = sessionState.maxViolations || 3;
+    const canShowResult = sessionState.showCorrectAnswers !== false;
 
-    // ── Quiz status ───────────────────────────────────────────────────────────
-    const quizActive = !isFinished && !isQuizClosed && questions.length > 0 && proctorReady && fullscreenReady;
-    const currentQuestion = questions[currentIndex];
+    // Friendly warning messages for proctor labels (match LiveQuizSession)
+    const proctorWarnings: Record<string, string> = {
+        'no_face': 'Please show your face to the camera',
+        'looking_left': 'Please keep your eyes on the screen',
+        'looking_right': 'Please keep your eyes on the screen',
+        'looking_up': 'Please look at your screen',
+        'looking_down': 'Please look at your screen',
+        'phone_detected': 'Please put your phone away',
+    };
 
     // ── AI Proctor (optional) ─────────────────────────────────────────────────
-    const { videoRef: proctorVideoRef, canvasRef: proctorCanvasRef, cameraActive } =
+    const { videoRef: proctorVideoRef, canvasRef: proctorCanvasRef, cameraActive, proctorLabel, wsConnected: proctorWsConnected, isCalibrating } =
         useProctoringCamera(
             !!sessionState.enableAiProctor && proctorReady, // Only enable if proctorReady
             sessionState.participantId,
             joinCode,
-            sessionState.nickname
+            sessionState.nickname,
+            // onViolation: AI flagged cheating
+            (result) => {
+                setViolations(v => v + 1);
+                setIsQuizPaused(true);
+                const friendlyMsg = proctorWarnings[result.label] || 'Suspicious activity detected';
+                setPauseReason(friendlyMsg);
+                setPauseSource('proctor');
+            },
         );
+
+    // Auto-resume when AI proctor clears (only for proctor-triggered pauses)
+    useEffect(() => {
+        if (isQuizPaused && pauseSource === 'proctor' && proctorLabel === 'looking_center') {
+            setIsQuizPaused(false);
+            setPauseReason('');
+            setPauseSource('');
+        }
+    }, [proctorLabel, isQuizPaused, pauseSource]);
+
+    // ── Quiz status ───────────────────────────────────────────────────────────
+    const quizActive = !isFinished && !isQuizClosed && questions.length > 0 && proctorReady && fullscreenReady
+        && (sessionState.enableAiProctor ? proctorWsConnected : true);
+    const currentQuestion = questions[currentIndex];
 
     // ─────────────────────────────────────────────────────────────────────────
     // Auto-enter fullscreen on mount
@@ -213,17 +279,17 @@ const SelfPacedQuizSession = () => {
     }, []);
 
     useEffect(() => {
-        if (sessionState.requireFullscreen && proctorReady) { // Only enter fullscreen if proctor is ready
+        if (proctorReady) { // Always enter fullscreen when proctor is ready
             enterFullscreen();
         }
-    }, [proctorReady]); // Depend on proctorReady
+    }, [proctorReady]);
 
     // ─────────────────────────────────────────────────────────────────────────
     // Fullscreen change detection
     // ─────────────────────────────────────────────────────────────────────────
 
     useEffect(() => {
-        if (!sessionState.requireFullscreen || !proctorReady) return; // Only if proctor is ready
+        if (!proctorReady) return; // Only start monitoring after proctor is ready
 
         const handleFsChange = () => {
             const isFull = !!document.fullscreenElement;
@@ -239,14 +305,11 @@ const SelfPacedQuizSession = () => {
                     return newCount;
                 });
 
+                // Always pause on fullscreen exit
                 if (fsAction === 'pause') {
                     setIsQuizPaused(true);
                     setPauseReason('You exited fullscreen. Re-enter fullscreen to continue.');
-                } else if (fsAction === 'close') {
-                    setIsQuizClosed(true);
-                    setCloseReason('Quiz closed: fullscreen exit is not permitted.');
-                } else {
-                    setShowViolationPanel(true);
+                    setPauseSource('fullscreen');
                 }
             }
 
@@ -281,12 +344,10 @@ const SelfPacedQuizSession = () => {
                     return newCount;
                 });
 
-                if (atAction === 'close') {
-                    setIsQuizClosed(true);
-                    setCloseReason('Quiz closed: switching tabs is not permitted.');
-                } else {
-                    setShowViolationPanel(true);
-                }
+                // Always pause on tab switch
+                setIsQuizPaused(true);
+                setPauseReason('You switched tabs or windows. Return to fullscreen to continue.');
+                setPauseSource('tab_switch');
             }
         };
 
@@ -497,7 +558,7 @@ const SelfPacedQuizSession = () => {
     // Fullscreen Start Screen (requires user gesture for browser API)
     // ─────────────────────────────────────────────────────────────────────────────
 
-    if (!fullscreenReady && sessionState.requireFullscreen) {
+    if (!fullscreenReady) {
         const handleEnterFullscreen = async () => {
             try {
                 const elem = document.documentElement;
@@ -565,13 +626,13 @@ const SelfPacedQuizSession = () => {
             // Stop onboarding stream (will be restarted by proctor hook)
             onboardingStreamRef.current?.getTracks().forEach(t => t.stop());
             onboardingStreamRef.current = null;
-            setProctorReady(true);
+            setTimeout(() => setProctorReady(true), 1500);
         };
 
         const handleSkipProctor = () => {
             onboardingStreamRef.current?.getTracks().forEach(t => t.stop());
             onboardingStreamRef.current = null;
-            setProctorReady(true);
+            setTimeout(() => setProctorReady(true), 1500);
         };
 
         return (
@@ -676,6 +737,46 @@ const SelfPacedQuizSession = () => {
         );
     }
 
+    // ─────────────────────────────────────────────────────────────────────────────
+    // AI Proctor Connecting Screen (after onboarding, before WS connects)
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    if (proctorReady && sessionState.enableAiProctor && (!proctorWsConnected || isCalibrating)) {
+        return (
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 pb-20">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-950 to-slate-950" />
+                <div className="relative w-full max-w-md">
+                    <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl text-center">
+                        {!proctorWsConnected ? (
+                            <>
+                                <div className="w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+                                </div>
+                                <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">Setting Up Proctoring</h1>
+                                <p className="text-slate-400 text-sm">Connecting to monitoring server...</p>
+                            </>
+                        ) : (
+                            <>
+                                <div className="w-20 h-20 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-5 relative">
+                                    <div className="absolute inset-0 rounded-full border-2 border-blue-400/30 animate-ping" />
+                                    <Eye className="w-10 h-10 text-blue-400" />
+                                </div>
+                                <h1 className="text-xl sm:text-2xl font-bold text-white mb-3">Look at the Center of Your Screen</h1>
+                                <p className="text-slate-400 text-sm mb-6">
+                                    Keep your eyes on the screen while we set up face tracking...
+                                </p>
+                                <div className="w-48 h-2 bg-slate-700 rounded-full mx-auto overflow-hidden">
+                                    <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse" style={{ width: '60%' }} />
+                                </div>
+                                <p className="text-slate-500 text-xs mt-3">This only takes a few seconds</p>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Quiz Closed overlay
     // ─────────────────────────────────────────────────────────────────────────
@@ -715,13 +816,35 @@ const SelfPacedQuizSession = () => {
                     <AlertCircle className="w-12 h-12 sm:w-16 sm:h-16 text-yellow-400 mx-auto mb-4 animate-pulse" />
                     <h2 className="text-2xl font-bold text-white mb-2">Quiz Paused</h2>
                     <p className="text-yellow-300 mb-6">{pauseReason}</p>
-                    <button
-                        onClick={enterFullscreen}
-                        className="px-6 py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-xl transition-colors flex items-center gap-2 mx-auto"
-                    >
-                        <Expand className="w-5 h-5" />
-                        Re-enter Fullscreen
-                    </button>
+
+                    {pauseSource === 'proctor' ? (
+                        <div className="flex flex-col items-center gap-3">
+                            <div className="animate-pulse flex items-center gap-2 text-blue-400 text-sm">
+                                <div className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
+                                Monitoring... will auto-resume when you look at the screen
+                            </div>
+                        </div>
+                    ) : document.fullscreenElement ? (
+                        <button
+                            onClick={() => {
+                                setIsQuizPaused(false);
+                                setPauseReason('');
+                                setPauseSource('');
+                            }}
+                            className="px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl transition-colors flex items-center gap-2 mx-auto"
+                        >
+                            <CheckCircle className="w-5 h-5" />
+                            Continue Quiz
+                        </button>
+                    ) : (
+                        <button
+                            onClick={enterFullscreen}
+                            className="px-6 py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-xl transition-colors flex items-center gap-2 mx-auto"
+                        >
+                            <Expand className="w-5 h-5" />
+                            Re-enter Fullscreen
+                        </button>
+                    )}
                 </div>
             </div>
         );
@@ -955,7 +1078,7 @@ const SelfPacedQuizSession = () => {
 
                         <h2
                             className="text-base sm:text-xl text-white font-semibold mb-4 sm:mb-6 leading-relaxed [&_p]:m-0"
-                            dangerouslySetInnerHTML={{ __html: currentQuestion?.question_text || '' }}
+                            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion?.question_text || '') }}
                         />
 
                         {currentQuestion?.image_url && (
@@ -981,7 +1104,7 @@ const SelfPacedQuizSession = () => {
                                                 {opt.key}
                                             </span>
                                             <span className="text-white text-sm">{opt.text}</span>
-                                            {isAnswerSubmitted && selectedAnswer === opt.key && (
+                                            {isAnswerSubmitted && selectedAnswer === opt.key && canShowResult && (
                                                 answerResult?.is_correct
                                                     ? <CheckCircle className="w-5 h-5 text-green-400 ml-auto shrink-0" />
                                                     : <XCircle className="w-5 h-5 text-red-400 ml-auto shrink-0" />
@@ -1005,14 +1128,16 @@ const SelfPacedQuizSession = () => {
                                                 ? 'ring-2 ring-purple-400 bg-purple-900/30 border-purple-500'
                                                 : 'bg-slate-800/50 border-slate-700 hover:border-slate-500'
                                             : selectedAnswer === val.toLowerCase()
-                                                ? answerResult?.is_correct
-                                                    ? 'bg-green-900/40 border-green-500 ring-2 ring-green-400'
-                                                    : 'bg-red-900/40 border-red-500 ring-2 ring-red-400'
+                                                ? canShowResult
+                                                    ? answerResult?.is_correct
+                                                        ? 'bg-green-900/40 border-green-500 ring-2 ring-green-400'
+                                                        : 'bg-red-900/40 border-red-500 ring-2 ring-red-400'
+                                                    : 'ring-2 ring-purple-400 bg-purple-900/30 border-purple-500'
                                                 : 'bg-slate-800/30 border-slate-700 opacity-50'
                                             }`}
                                     >
                                         <span className="text-white font-semibold text-sm">{val}</span>
-                                        {isAnswerSubmitted && selectedAnswer === val.toLowerCase() && (
+                                        {isAnswerSubmitted && selectedAnswer === val.toLowerCase() && canShowResult && (
                                             <span className="ml-2 inline-block">
                                                 {answerResult?.is_correct
                                                     ? <CheckCircle className="w-5 h-5 text-green-400 inline" />
@@ -1045,7 +1170,7 @@ const SelfPacedQuizSession = () => {
                             </div>
                         )}
 
-                        {/* Coding Question */}
+                        {/* Coding Question — Monaco Editor */}
                         {currentQuestion?.question_type === 'coding' && (
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2 mb-2">
@@ -1054,15 +1179,27 @@ const SelfPacedQuizSession = () => {
                                         {currentQuestion.programming_language || 'Python'}
                                     </span>
                                 </div>
-                                <textarea
-                                    value={codeSubmission}
-                                    onChange={(e) => !isAnswerSubmitted && setCodeSubmission(e.target.value)}
-                                    disabled={isAnswerSubmitted}
-                                    rows={12}
-                                    className="w-full bg-slate-900/80 border border-slate-700 rounded-xl p-4 text-green-400 text-sm font-mono placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 resize-y leading-relaxed"
-                                    placeholder="Write your code here..."
-                                    spellCheck={false}
-                                />
+                                <div className="rounded-xl overflow-hidden border border-slate-700" style={{ minHeight: '300px' }}>
+                                    <Editor
+                                        height="300px"
+                                        defaultLanguage="python"
+                                        language={currentQuestion.programming_language || 'python'}
+                                        theme="vs-dark"
+                                        value={codeSubmission}
+                                        onChange={(value) => !isAnswerSubmitted && setCodeSubmission(value || '')}
+                                        options={{
+                                            minimap: { enabled: false },
+                                            fontSize: 14,
+                                            scrollBeyondLastLine: false,
+                                            automaticLayout: true,
+                                            readOnly: isAnswerSubmitted,
+                                            lineNumbers: 'on',
+                                            renderLineHighlight: 'line',
+                                            padding: { top: 12, bottom: 12 },
+                                            wordWrap: 'on',
+                                        }}
+                                    />
+                                </div>
                                 <p className="text-[10px] text-slate-500 flex items-center gap-1">
                                     <AlertCircle className="w-3 h-3" />
                                     Your code will be tested against {currentQuestion.test_cases?.length || 0} test case(s)
@@ -1075,7 +1212,9 @@ const SelfPacedQuizSession = () => {
                             <div className="mt-4 p-3 rounded-xl border bg-slate-800/40 border-slate-700 flex items-center gap-2">
                                 <CheckCircle className="w-5 h-5 text-purple-400" />
                                 <span className="text-sm text-slate-300 font-medium">Answer submitted</span>
-                                <span className="text-sm text-slate-500 ml-auto">+{answerResult.points_earned} pts</span>
+                                {canShowResult && (
+                                    <span className="text-sm text-slate-500 ml-auto">+{answerResult.points_earned} pts</span>
+                                )}
                             </div>
                         )}
                     </div>
@@ -1121,9 +1260,6 @@ const SelfPacedQuizSession = () => {
                 </div>
             </div>
 
-            {/* Hidden proctor video/canvas elements */}
-            <video ref={proctorVideoRef} style={{ display: 'none' }} muted playsInline />
-            <canvas ref={proctorCanvasRef} width={320} height={240} style={{ display: 'none' }} />
 
             {/* ── Violation Sidebar Overlay ── */}
             {showViolationPanel && (

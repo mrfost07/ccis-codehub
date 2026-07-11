@@ -6,15 +6,27 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 interface CaptchaCheckboxProps {
     onVerified: (token: string, answer: number) => void
     onExpired?: () => void
+    resetKey?: number   // increment to force-reset the widget
 }
 
-export default function CaptchaCheckbox({ onVerified, onExpired }: CaptchaCheckboxProps) {
+export default function CaptchaCheckbox({ onVerified, onExpired, resetKey = 0 }: CaptchaCheckboxProps) {
     const [state, setState] = useState<'idle' | 'loading' | 'challenge' | 'verified' | 'error'>('idle')
     const [question, setQuestion] = useState('')
     const [token, setToken] = useState('')
     const [answer, setAnswer] = useState('')
     const [error, setError] = useState('')
     const [expiresAt, setExpiresAt] = useState(0)
+
+    // Reset when parent increments resetKey (e.g. after failed login)
+    useEffect(() => {
+        if (resetKey > 0) {
+            setState('idle')
+            setAnswer('')
+            setQuestion('')
+            setToken('')
+            setError('')
+        }
+    }, [resetKey])
 
     // Auto-expire timer
     useEffect(() => {
@@ -77,8 +89,12 @@ export default function CaptchaCheckbox({ onVerified, onExpired }: CaptchaCheckb
             setError('Please enter a number')
             return
         }
-
-        // We trust the backend to verify, but do a basic check client-side for UX
+        if (!answer.trim()) {
+            setError('Please enter your answer')
+            return
+        }
+        // Move to verified state and let backend confirm
+        // Parent will call resetKey if login fails (wrong answer)
         setState('verified')
         setError('')
         onVerified(token, numAnswer)

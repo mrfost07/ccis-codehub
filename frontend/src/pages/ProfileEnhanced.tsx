@@ -3,7 +3,7 @@ import {
   User, Mail, Award, Calendar, Edit2, Save, X, Camera,
   Github, Linkedin, Globe, MapPin, BookOpen, Code, Trophy,
   Star, TrendingUp, Clock, CheckCircle, Settings, Shield,
-  Users, UserPlus, UserMinus, Palette, Sparkles
+  Users, UserPlus, UserMinus, Palette, Sparkles, Zap, Target
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import api, { authAPI, communityAPI } from '../services/api'
@@ -161,6 +161,18 @@ const highwayPreset = {
   }
 }
 
+interface AchievedSkill {
+  id: string
+  source_type: 'module' | 'path' | 'challenge' | 'video' | 'quiz'
+  source_id: string
+  source_name: string
+  skill_name: string
+  skill_category: string
+  proficiency_level: 'beginner' | 'intermediate' | 'advanced'
+  earned_at: string
+  is_verified: boolean
+}
+
 interface FollowUser {
   id: string
   username: string
@@ -225,6 +237,17 @@ export default function ProfileEnhanced() {
   const [showFollowingModal, setShowFollowingModal] = useState(false)
   const [followingUsers, setFollowingUsers] = useState<Set<string>>(new Set())
 
+  // Achieved Skills state
+  const [achievedSkills, setAchievedSkills] = useState<{
+    total: number
+    by_category: Record<string, AchievedSkill[]>
+  } | null>(null)
+  const [skillsLoading, setSkillsLoading] = useState(false)
+
+  // Badge catalog state
+  const [badgeCatalog, setBadgeCatalog] = useState<any[] | null>(null)
+  const [badgesLoading, setBadgesLoading] = useState(false)
+
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -244,6 +267,32 @@ export default function ProfileEnhanced() {
     fetchProfile()
     fetchFollowData()
   }, [])
+
+  const fetchAchievedSkills = async () => {
+    if (achievedSkills) return // already loaded
+    try {
+      setSkillsLoading(true)
+      const res = await api.get('/learning/skills/me/')
+      setAchievedSkills(res.data)
+    } catch {
+      // silently ignore — skills may not exist yet
+    } finally {
+      setSkillsLoading(false)
+    }
+  }
+
+  const fetchBadgeCatalog = async () => {
+    if (badgeCatalog) return // already loaded
+    try {
+      setBadgesLoading(true)
+      const res = await api.get('/learning/badges/catalog/')
+      setBadgeCatalog(res.data.badges || [])
+    } catch {
+      setBadgeCatalog([])
+    } finally {
+      setBadgesLoading(false)
+    }
+  }
 
   const fetchFollowData = async () => {
     try {
@@ -640,16 +689,29 @@ export default function ProfileEnhanced() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2 px-4 sm:px-0">
-          {['overview', 'skills', 'activity', 'settings'].map((tab) => (
+          {[
+            { id: 'overview', label: 'Overview' },
+            { id: 'achievements', label: '🏆 Achievements' },
+            { id: 'skills', label: 'Skills' },
+            { id: 'activity', label: 'Activity' },
+            { id: 'settings', label: 'Settings' },
+          ].map((tab) => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-lg font-medium capitalize whitespace-nowrap transition ${activeTab === tab
-                ? 'bg-purple-600 text-white'
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                }`}
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id)
+                if (tab.id === 'achievements') {
+                  fetchAchievedSkills()
+                  fetchBadgeCatalog()
+                }
+              }}
+              className={`px-4 py-2 rounded-lg font-medium capitalize whitespace-nowrap transition ${
+                activeTab === tab.id
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              }`}
             >
-              {tab}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -849,6 +911,173 @@ export default function ProfileEnhanced() {
               </div>
             )}
 
+            {/* ── ACHIEVEMENTS TAB ─────────────────────── */}
+            {activeTab === 'achievements' && (
+              <div className="space-y-6">
+                {/* Stats row */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+                    <Zap className="w-6 h-6 text-yellow-400 mx-auto mb-1" />
+                    <p className="text-2xl font-bold text-white">{achievedSkills?.total ?? 0}</p>
+                    <p className="text-xs text-slate-400">Skills Earned</p>
+                  </div>
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+                    <Trophy className="w-6 h-6 text-purple-400 mx-auto mb-1" />
+                    <p className="text-2xl font-bold text-white">{profile?.profile?.certificates_earned ?? 0}</p>
+                    <p className="text-xs text-slate-400">Certificates</p>
+                  </div>
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+                    <Target className="w-6 h-6 text-emerald-400 mx-auto mb-1" />
+                    <p className="text-2xl font-bold text-white">{profile?.profile?.total_modules_completed ?? 0}</p>
+                    <p className="text-xs text-slate-400">Modules Done</p>
+                  </div>
+                </div>
+
+                {/* Skills by category */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <Award className="w-5 h-5 text-purple-400" />
+                    Verified Skills
+                    <span className="ml-auto text-xs text-slate-500 font-normal">Earned through learning</span>
+                  </h2>
+
+                  {skillsLoading ? (
+                    <div className="text-center py-8">
+                      <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                    </div>
+                  ) : achievedSkills && Object.keys(achievedSkills.by_category).length > 0 ? (
+                    <div className="space-y-5">
+                      {Object.entries(achievedSkills.by_category).map(([category, skills]) => (
+                        <div key={category}>
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                            {category}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {(skills as any[]).map((skill: any) => (
+                              <div
+                                key={skill.id}
+                                className="group relative flex items-center gap-2 px-3 py-1.5 bg-purple-600/10 border border-purple-500/20 hover:border-purple-500/50 rounded-full transition"
+                                title={`Earned from ${skill.source_name}`}
+                              >
+                                <CheckCircle className="w-3.5 h-3.5 text-purple-400 flex-shrink-0" />
+                                <span className="text-sm text-purple-300">{skill.skill_name}</span>
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                                  skill.proficiency_level === 'advanced'
+                                    ? 'bg-yellow-500/20 text-yellow-400'
+                                    : skill.proficiency_level === 'intermediate'
+                                    ? 'bg-blue-500/20 text-blue-400'
+                                    : 'bg-emerald-500/20 text-emerald-400'
+                                }`}>
+                                  {skill.proficiency_level}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-10">
+                      <Star className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+                      <p className="text-slate-400 text-sm">No verified skills yet</p>
+                      <p className="text-slate-600 text-xs mt-1">Complete modules to earn skills automatically</p>
+                      <a href="/learning" className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition">
+                        <BookOpen className="w-4 h-4" /> Go to Learning
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                {/* Badge Showcase */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-yellow-400" />
+                    Badge Showcase
+                    {badgeCatalog && (
+                      <span className="ml-auto text-xs text-slate-500 font-normal">
+                        {badgeCatalog.filter(b => b.earned).length}/{badgeCatalog.length} earned
+                      </span>
+                    )}
+                  </h2>
+
+                  {badgesLoading ? (
+                    <div className="flex justify-center py-6">
+                      <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : badgeCatalog && badgeCatalog.length > 0 ? (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                      {badgeCatalog.map((badge: any) => (
+                        <div
+                          key={badge.id}
+                          title={badge.earned ? `Earned: ${badge.name}` : `Locked: ${badge.description}`}
+                          className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition ${
+                            badge.earned
+                              ? badge.rarity === 'legendary'
+                                ? 'bg-yellow-500/10 border-yellow-500/40 shadow-lg shadow-yellow-500/10'
+                                : badge.rarity === 'epic'
+                                ? 'bg-purple-500/10 border-purple-500/40'
+                                : badge.rarity === 'rare'
+                                ? 'bg-blue-500/10 border-blue-500/40'
+                                : 'bg-emerald-500/10 border-emerald-500/30'
+                              : 'bg-slate-800/40 border-slate-700/30 opacity-40 grayscale'
+                          }`}
+                        >
+                          <span className="text-2xl">{badge.icon}</span>
+                          <p className={`text-[10px] font-semibold leading-tight ${
+                            badge.earned ? 'text-white' : 'text-slate-500'
+                          }`}>{badge.name}</p>
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
+                            badge.rarity === 'legendary' ? 'bg-yellow-500/20 text-yellow-400' :
+                            badge.rarity === 'epic' ? 'bg-purple-500/20 text-purple-400' :
+                            badge.rarity === 'rare' ? 'bg-blue-500/20 text-blue-400' :
+                            'bg-slate-700 text-slate-400'
+                          }`}>
+                            {badge.rarity}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-slate-500 text-sm text-center py-4">No badges available yet</p>
+                  )}
+                </div>
+
+                {/* Link to full certificates page */}
+                <a
+                  href="/certificates"
+                  className="flex items-center justify-between p-4 bg-slate-900 border border-slate-800 hover:border-purple-500/40 rounded-xl transition group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-600/20 rounded-lg">
+                      <Award className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">View All Certificates</p>
+                      <p className="text-xs text-slate-400">{profile?.profile?.certificates_earned ?? 0} certificates earned</p>
+                    </div>
+                  </div>
+                  <Code className="w-5 h-5 text-slate-600 group-hover:text-purple-400 transition" />
+                </a>
+
+                {/* Resume Builder shortcut */}
+                <a
+                  href="/resume"
+                  className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/30 hover:border-purple-500/60 rounded-xl transition group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-600/30 rounded-lg">
+                      <Sparkles className="w-5 h-5 text-purple-300" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Build My Resume</p>
+                      <p className="text-xs text-slate-400">Auto-fill from your profile, skills & certificates</p>
+                    </div>
+                  </div>
+                  <Zap className="w-5 h-5 text-purple-400 group-hover:text-yellow-400 transition" />
+                </a>
+              </div>
+            )}
+
             {activeTab === 'settings' && (
               <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
                 <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
@@ -941,27 +1170,43 @@ export default function ProfileEnhanced() {
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-yellow-400" />
                 Achievements
+                {badgeCatalog && (
+                  <span className="ml-auto text-xs text-slate-500 font-normal">
+                    {badgeCatalog.filter(b => b.earned).length}/{badgeCatalog.length}
+                  </span>
+                )}
               </h3>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="p-3 bg-slate-800 rounded-lg text-center" title="First Login">
-                  <span className="text-2xl">🎯</span>
+              {!badgeCatalog ? (
+                <div className="text-center py-4">
+                  <button
+                    onClick={fetchBadgeCatalog}
+                    disabled={badgesLoading}
+                    className="text-sm text-purple-400 hover:text-purple-300 transition"
+                  >
+                    {badgesLoading ? 'Loading...' : 'View Achievements'}
+                  </button>
                 </div>
-                <div className="p-3 bg-slate-800 rounded-lg text-center" title="First Module">
-                  <span className="text-2xl">📚</span>
+              ) : badgeCatalog.length > 0 ? (
+                <div className="grid grid-cols-3 gap-3">
+                  {badgeCatalog.slice(0, 6).map((badge: any) => (
+                    <div
+                      key={badge.id}
+                      title={badge.earned ? badge.name : `Locked: ${badge.description || badge.name}`}
+                      className={`p-3 rounded-lg text-center transition ${
+                        badge.earned
+                          ? 'bg-slate-800 hover:bg-slate-700'
+                          : 'bg-slate-800/50 opacity-50'
+                      }`}
+                    >
+                      <span className="text-2xl">{badge.earned ? badge.icon : '🔒'}</span>
+                    </div>
+                  ))}
                 </div>
-                <div className="p-3 bg-slate-800/50 rounded-lg text-center opacity-50" title="Locked">
-                  <span className="text-2xl">🔒</span>
-                </div>
-                <div className="p-3 bg-slate-800/50 rounded-lg text-center opacity-50" title="Locked">
-                  <span className="text-2xl">🔒</span>
-                </div>
-                <div className="p-3 bg-slate-800/50 rounded-lg text-center opacity-50" title="Locked">
-                  <span className="text-2xl">🔒</span>
-                </div>
-                <div className="p-3 bg-slate-800/50 rounded-lg text-center opacity-50" title="Locked">
-                  <span className="text-2xl">🔒</span>
-                </div>
-              </div>
+              ) : (
+                <p className="text-slate-500 text-sm text-center py-4">
+                  Complete modules and quizzes to earn badges!
+                </p>
+              )}
             </div>
           </div>
         </div>

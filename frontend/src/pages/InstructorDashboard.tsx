@@ -5,7 +5,7 @@ import {
   Calendar, FileText, Video, MessageCircle, Settings,
   PlusCircle, BarChart2, Clock, CheckCircle, GraduationCap, Wand2,
   Eye, ChevronRight, RefreshCw, Edit, Trash2, Play, X, Save, Upload, Home, Radio, Filter, Loader2, Copy, Link, Download,
-  Camera, Code2, ShieldCheck
+  Camera, Code2, ShieldCheck, Shield
 } from 'lucide-react'
 import DashboardLayout, { SidenavItem } from '../components/layout/DashboardLayout'
 import PDFContentExtractor from '../components/PDFContentExtractor'
@@ -101,6 +101,7 @@ function InstructorDashboard() {
   const [modules, setModules] = useState<any[]>([])
   const [quizzes, setQuizzes] = useState<any[]>([])
   const [showCreatePath, setShowCreatePath] = useState(false)
+  const [isCreatingPath, setIsCreatingPath] = useState(false)
   const [showCreateModule, setShowCreateModule] = useState(false)
   const [showCreateQuiz, setShowCreateQuiz] = useState(false)
   const [showCreateLiveQuiz, setShowCreateLiveQuiz] = useState(false)
@@ -210,6 +211,53 @@ function InstructorDashboard() {
   const [showMonitorPanel, setShowMonitorPanel] = useState(false)
   const [isStartingQuiz, setIsStartingQuiz] = useState(false)
 
+  // Coding Challenges states
+  const [challengesList, setChallengesList] = useState<any[]>([])
+  const [showCreateChallenge, setShowCreateChallenge] = useState(false)
+  const [challengeForm, setChallengeForm] = useState({
+    title: '',
+    description: '',
+    difficulty: 'easy',
+    category: 'basics',
+    supported_languages: ['python', 'javascript'],
+    starter_code: { python: '# Write your solution here\n', javascript: '// Write your solution here\n' },
+    test_cases: [{ input: '', expected_output: '', is_hidden: false }],
+    constraints: '',
+    points: 10,
+    time_limit_seconds: 300,
+  })
+
+  // Video Courses states
+  const [videoCoursesList, setVideoCoursesList] = useState<any[]>([])
+  const [showCreateVideoCourse, setShowCreateVideoCourse] = useState(false)
+  const [videoCourseForm, setVideoCourseForm] = useState({
+    title: '',
+    description: '',
+    instructor_name: '',
+    category: 'general',
+    difficulty: 'beginner',
+    thumbnail_url: '',
+    lessons: [{ title: '', video_url: '', duration_minutes: 0 }],
+  })
+
+  // Live Challenge states
+  const [showLiveChallengeModal, setShowLiveChallengeModal] = useState(false)
+  const [liveChallengeData, setLiveChallengeData] = useState<any>(null)
+  const [goingLive, setGoingLive] = useState<string | null>(null) // slug of challenge being launched
+
+  // Go Live Config Modal
+  const [showGoLiveConfig, setShowGoLiveConfig] = useState(false)
+  const [goLiveChallenge, setGoLiveChallenge] = useState<any>(null)
+  const [goLiveConfig, setGoLiveConfig] = useState({
+    enable_ai_proctor: false,
+    require_fullscreen: true,
+    fullscreen_exit_action: 'pause',
+    alt_tab_action: 'warn',
+    max_violations: 3,
+    max_participants: 100,
+    time_limit_seconds: 300,
+  })
+
   useEffect(() => {
     checkInstructorAccess()
     fetchDashboardData()
@@ -229,6 +277,10 @@ function InstructorDashboard() {
       } else if (learningView === 'quizzes') {
         fetchQuizzes()
         fetchLiveQuizzes()
+      } else if (learningView === 'challenges') {
+        fetchChallenges()
+      } else if (learningView === 'videos') {
+        fetchVideoCourses()
       }
     }
   }, [learningView, activeTab])
@@ -348,6 +400,151 @@ function InstructorDashboard() {
     }
   }
 
+  const fetchChallenges = async () => {
+    try {
+      const response = await api.get('/learning/challenges/')
+      setChallengesList(response.data.results || response.data || [])
+    } catch (error) {
+      console.error('Failed to fetch challenges:', error)
+      setChallengesList([])
+    }
+  }
+
+  const handleGoLive = (challenge: any) => {
+    // Open config modal instead of launching immediately
+    setGoLiveChallenge(challenge)
+    setGoLiveConfig(prev => ({
+      ...prev,
+      time_limit_seconds: challenge.time_limit_seconds || 300,
+    }))
+    setShowGoLiveConfig(true)
+  }
+
+  const confirmGoLive = async () => {
+    if (!goLiveChallenge) return
+    setShowGoLiveConfig(false)
+    setGoingLive(goLiveChallenge.slug)
+    try {
+      const response = await api.post(`/learning/challenges/${goLiveChallenge.slug}/go-live/`, {
+        time_limit_seconds: goLiveConfig.time_limit_seconds,
+        max_participants: goLiveConfig.max_participants,
+        require_fullscreen: goLiveConfig.require_fullscreen,
+        enable_ai_proctor: goLiveConfig.enable_ai_proctor,
+        fullscreen_exit_action: goLiveConfig.fullscreen_exit_action,
+        alt_tab_action: goLiveConfig.alt_tab_action,
+        max_violations: goLiveConfig.max_violations,
+      })
+      const quizId = response.data.quiz_id
+      toast.success(`Live challenge created! Code: ${response.data.join_code}`)
+
+      // Refresh the live quiz list and switch to Quiz Manager
+      const quizList = await liveQuizService.getQuizzes()
+      setLiveQuizzes(quizList)
+
+      // Find and auto-select the newly created quiz
+      const newQuiz = quizList.find((q: any) => String(q.id) === quizId)
+      if (newQuiz) {
+        setSelectedLiveQuiz(newQuiz)
+        setDetailTab('overview')
+      }
+
+      // Navigate to the quizzes tab
+      setLearningView('quizzes')
+    } catch (error: any) {
+      const msg = error.response?.data?.detail || 'Failed to create live challenge'
+      toast.error(msg)
+    } finally {
+      setGoingLive(null)
+      setGoLiveChallenge(null)
+    }
+  }
+
+  const fetchVideoCourses = async () => {
+    try {
+      const response = await api.get('/learning/video-courses/')
+      setVideoCoursesList(response.data.results || response.data || [])
+    } catch (error) {
+      console.error('Failed to fetch video courses:', error)
+      setVideoCoursesList([])
+    }
+  }
+
+  const submitCreateChallenge = async () => {
+    if (!challengeForm.title.trim()) { toast.error('Title is required'); return }
+    if (!challengeForm.description.trim()) { toast.error('Description is required'); return }
+    try {
+      const payload = {
+        ...challengeForm,
+        tags: ((challengeForm as any).tags_raw || '')
+          .split(',')
+          .map((t: string) => t.trim())
+          .filter(Boolean),
+        hints: (challengeForm as any).hints || [],
+      }
+      await api.post('/learning/challenges/', payload)
+      toast.success('Challenge created!')
+      setShowCreateChallenge(false)
+      setChallengeForm({
+        title: '', description: '', difficulty: 'easy', category: 'basics',
+        supported_languages: ['python', 'javascript'],
+        starter_code: { python: '# Write your solution here\n', javascript: '// Write your solution here\n' },
+        test_cases: [{ input: '', expected_output: '', is_hidden: false }],
+        constraints: '', points: 10, time_limit_seconds: 300,
+      })
+      fetchChallenges()
+    } catch (error: any) {
+      toast.error(error?.response?.data?.detail || 'Failed to create challenge')
+    }
+  }
+
+  // Extract YouTube video ID from various URL formats
+  const extractYouTubeId = (url: string): string | null => {
+    const patterns = [
+      /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+      /youtube\.com\/v\/([a-zA-Z0-9_-]{11})/,
+    ]
+    for (const p of patterns) {
+      const match = url.match(p)
+      if (match) return match[1]
+    }
+    return null
+  }
+
+  // Auto-fill thumbnail from first lesson's YouTube URL
+  const updateLessonUrl = (index: number, url: string) => {
+    const l = [...videoCourseForm.lessons]
+    l[index] = { ...l[index], video_url: url }
+    const updates: any = { lessons: l }
+    // Auto-fill thumbnail from first lesson if thumbnail is empty
+    if (index === 0 && !videoCourseForm.thumbnail_url) {
+      const videoId = extractYouTubeId(url)
+      if (videoId) {
+        updates.thumbnail_url = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+      }
+    }
+    setVideoCourseForm({ ...videoCourseForm, ...updates })
+  }
+
+  const submitCreateVideoCourse = async () => {
+    if (!videoCourseForm.title.trim()) { toast.error('Title is required'); return }
+    if (!videoCourseForm.instructor_name.trim()) { toast.error('Instructor name is required'); return }
+    try {
+      await api.post('/learning/video-courses/', videoCourseForm)
+      toast.success('Video course created!')
+      setShowCreateVideoCourse(false)
+      setVideoCourseForm({
+        title: '', description: '', instructor_name: '', category: 'general',
+        difficulty: 'beginner', thumbnail_url: '',
+        lessons: [{ title: '', video_url: '', duration_minutes: 0 }],
+      })
+      fetchVideoCourses()
+    } catch (error: any) {
+      toast.error(error?.response?.data?.detail || 'Failed to create course')
+    }
+  }
+
   const fetchEnrolledStudents = async (pathId: string, pathName: string) => {
     try {
       setLoadingStudents(true)
@@ -390,6 +587,8 @@ function InstructorDashboard() {
 
   // CRUD Functions for Career Paths
   const createCareerPath = async () => {
+    if (isCreatingPath) return
+    setIsCreatingPath(true)
     try {
       console.log('Creating path with data:', pathForm)
 
@@ -441,6 +640,8 @@ function InstructorDashboard() {
       } else {
         toast.error('Failed to create career path')
       }
+    } finally {
+      setIsCreatingPath(false)
     }
   }
 
@@ -1008,7 +1209,9 @@ function InstructorDashboard() {
     { id: 'overview', label: 'Overview', icon: BarChart2 },
     { id: 'paths', label: 'Career Paths', icon: BookOpen },
     { id: 'modules', label: 'Modules', icon: FileText },
-    { id: 'quizzes', label: 'Quizzes', icon: ClipboardCheck }
+    { id: 'quizzes', label: 'Quizzes', icon: ClipboardCheck },
+    { id: 'challenges', label: 'Challenges', icon: Code2 },
+    { id: 'videos', label: 'Video Courses', icon: Video }
   ]
 
   // Sidebar navigation items
@@ -1222,6 +1425,24 @@ function InstructorDashboard() {
                     Quiz Online
                   </button>
                 </div>
+              )}
+              {learningView === 'challenges' && (
+                <button
+                  onClick={() => setShowCreateChallenge(true)}
+                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition flex items-center gap-2 text-sm"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  Create Challenge
+                </button>
+              )}
+              {learningView === 'videos' && (
+                <button
+                  onClick={() => setShowCreateVideoCourse(true)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition flex items-center gap-2 text-sm"
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  Create Video Course
+                </button>
               )}
             </div>
           </div>
@@ -1894,6 +2115,121 @@ function InstructorDashboard() {
         </div>
       )}
 
+          {/* Challenges Management */}
+          {learningView === 'challenges' && (
+            <div className="space-y-4">
+              {challengesList.length === 0 ? (
+                <div className="text-center py-12 bg-slate-800/30 rounded-xl border border-slate-700/50">
+                  <Code2 className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+                  <p className="text-slate-400">No coding challenges yet</p>
+                  <p className="text-slate-500 text-sm mt-1">Create your first challenge to get started</p>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {challengesList.map((c: any) => (
+                    <div key={c.id} className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700/50 rounded-xl hover:border-teal-500/30 transition">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-white font-medium text-sm truncate">{c.title}</h4>
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                            c.difficulty === 'easy' ? 'text-emerald-400 bg-emerald-500/10' :
+                            c.difficulty === 'medium' ? 'text-amber-400 bg-amber-500/10' :
+                            'text-rose-400 bg-rose-500/10'
+                          }`}>{c.difficulty}</span>
+                          <span className="text-[10px] text-slate-500">{c.category}</span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {c.points} pts • {c.total_attempts} attempts • {c.total_solved} solved
+                          {c.supported_languages?.length > 0 && (
+                            <> • {c.supported_languages.join(', ')}</>
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        {/* Go Live Button */}
+                        <button
+                          onClick={() => handleGoLive(c)}
+                          disabled={goingLive === c.slug}
+                          className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white rounded-lg transition flex items-center gap-1.5 text-xs font-medium"
+                          title="Host a live coding competition with this challenge"
+                        >
+                          {goingLive === c.slug ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Radio className="w-3.5 h-3.5" />
+                          )}
+                          Go Live
+                        </button>
+                        {/* Delete Button */}
+                        <button
+                          onClick={async () => {
+                            if (confirm('Delete this challenge?')) {
+                              try {
+                                await api.delete(`/learning/challenges/${c.slug}/`)
+                                toast.success('Challenge deleted')
+                                fetchChallenges()
+                              } catch { toast.error('Failed to delete') }
+                            }
+                          }}
+                          className="p-2 text-slate-400 hover:text-rose-400 transition"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+
+
+          {/* Video Courses Management */}
+          {learningView === 'videos' && (
+            <div className="space-y-4">
+              {videoCoursesList.length === 0 ? (
+                <div className="text-center py-12 bg-slate-800/30 rounded-xl border border-slate-700/50">
+                  <Video className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+                  <p className="text-slate-400">No video courses yet</p>
+                  <p className="text-slate-500 text-sm mt-1">Create your first video course to get started</p>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {videoCoursesList.map((vc: any) => (
+                    <div key={vc.id} className="flex items-center justify-between p-4 bg-slate-800/50 border border-slate-700/50 rounded-xl hover:border-indigo-500/30 transition">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-white font-medium text-sm truncate">{vc.title}</h4>
+                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                            vc.difficulty === 'beginner' ? 'text-emerald-400 bg-emerald-500/10' :
+                            vc.difficulty === 'intermediate' ? 'text-amber-400 bg-amber-500/10' :
+                            'text-rose-400 bg-rose-500/10'
+                          }`}>{vc.difficulty}</span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-1">{vc.instructor_name} • {vc.lessons_count || 0} lessons • {vc.category}</p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (confirm('Delete this video course?')) {
+                            try {
+                              await api.delete(`/learning/video-courses/${vc.slug}/`)
+                              toast.success('Course deleted')
+                              fetchVideoCourses()
+                            } catch { toast.error('Failed to delete') }
+                          }
+                        }}
+                        className="p-2 text-slate-400 hover:text-rose-400 transition"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
       {/* Students Tab - Now with Path Selection */}
       {activeTab === 'students' && (
         <div className="space-y-6">
@@ -2366,10 +2702,33 @@ function InstructorDashboard() {
                 </label>
               </div>
               <div className="flex gap-3 pt-4">
-                <button type="submit" className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium">
-                  Create Path
+                <button
+                  type="submit"
+                  disabled={isCreatingPath}
+                  className={`flex-1 px-6 py-3 text-white rounded-lg font-medium flex items-center justify-center gap-2 ${
+                    isCreatingPath
+                      ? 'bg-purple-600/50 cursor-not-allowed'
+                      : 'bg-purple-600 hover:bg-purple-700'
+                  }`}
+                >
+                  {isCreatingPath ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Creating...
+                    </>
+                  ) : (
+                    'Create Path'
+                  )}
                 </button>
-                <button type="button" onClick={() => setShowCreatePath(false)} className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg">
+                <button
+                  type="button"
+                  disabled={isCreatingPath}
+                  onClick={() => !isCreatingPath && setShowCreatePath(false)}
+                  className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   Cancel
                 </button>
               </div>
@@ -3132,6 +3491,18 @@ function InstructorDashboard() {
                       <p className="text-xs text-slate-500">Allow code questions to be compiled and run against test cases</p>
                     </div>
                   </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={(liveQuizForm as any).show_results_to_students ?? false}
+                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, show_results_to_students: e.target.checked } as any)}
+                      className="w-4 h-4 text-orange-600 bg-slate-800 border-slate-700 rounded focus:ring-orange-500"
+                    />
+                    <div>
+                      <span className="text-sm text-slate-300">Show Results to Students</span>
+                      <p className="text-xs text-slate-500">If enabled, students see which questions they answered correctly after completing the quiz</p>
+                    </div>
+                  </label>
                 </div>
               </div>
 
@@ -3194,8 +3565,8 @@ function InstructorDashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {/* Monitor button — only when quiz is open/active */}
-                {selectedLiveQuiz.is_open && (
+                {/* Monitor button — show whenever quiz is active/open */}
+                {(selectedLiveQuiz.is_open || selectedLiveQuiz.is_active) && (
                   <button
                     onClick={() => setShowMonitorPanel(true)}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition text-xs font-medium"
@@ -3416,31 +3787,61 @@ function InstructorDashboard() {
                             if (!selectedLiveQuiz) return;
                             setIsStartingQuiz(true);
                             try {
-                              // 1. Tell the backend to create/open the session
                               await api.post(`/learning/live-quiz/${selectedLiveQuiz.id}/start/`);
-                              // 2. Open WS as instructor and broadcast quiz_started
+                              const questions = await liveQuizService.getQuestions(selectedLiveQuiz.id);
                               const wsBase = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
                               const ws = new WebSocket(`${wsBase}/quiz/${selectedLiveQuiz.join_code}/`);
+
                               ws.onopen = () => {
                                 ws.send(JSON.stringify({ type: 'instructor_join', join_code: selectedLiveQuiz.join_code }));
-                                ws.send(JSON.stringify({ type: 'start_quiz' }));
-                                toast.success(`Session started! Share code: ${selectedLiveQuiz.join_code}`);
-                                // Refresh to update is_active flag
+                                setTimeout(() => {
+                                  ws.send(JSON.stringify({ type: 'start_quiz' }));
+                                  if (questions.length > 0) {
+                                    setTimeout(() => {
+                                      ws.send(JSON.stringify({
+                                        type: 'next_question',
+                                        question: questions[0],
+                                        timeLimit: questions[0].time_limit || selectedLiveQuiz.default_question_time || 30,
+                                        totalQuestions: questions.length,
+                                      }));
+                                      setTimeout(() => ws.close(), 3000);
+                                    }, 500);
+                                  } else {
+                                    setTimeout(() => ws.close(), 3000);
+                                  }
+                                }, 1000);
+                                toast.success(`Session started! Code: ${selectedLiveQuiz.join_code}`);
+                                setShowMonitorPanel(true);
                                 fetchLiveQuizzes();
                               };
-                              ws.onerror = () => toast.error('WS error — session API succeeded but WS failed.');
+                              ws.onerror = () => toast.error('WS connection error.');
                             } catch (e: any) {
-                              // "already has an active session" is fine — just start WS broadcast
                               const msg = e?.response?.data?.error || '';
-                              if (msg.includes('active session')) {
-                                const wsBase = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
-                                const ws = new WebSocket(`${wsBase}/quiz/${selectedLiveQuiz.join_code}/`);
-                                ws.onopen = () => {
-                                  ws.send(JSON.stringify({ type: 'instructor_join', join_code: selectedLiveQuiz.join_code }));
-                                  ws.send(JSON.stringify({ type: 'start_quiz' }));
-                                  toast.success(`Quiz session live! Code: ${selectedLiveQuiz.join_code}`);
-                                  fetchLiveQuizzes();
-                                };
+                              if (msg.includes('active session') || msg.includes('already in progress')) {
+                                try {
+                                  const questions = await liveQuizService.getQuestions(selectedLiveQuiz.id);
+                                  const wsBase = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
+                                  const ws = new WebSocket(`${wsBase}/quiz/${selectedLiveQuiz.join_code}/`);
+                                  ws.onopen = () => {
+                                    ws.send(JSON.stringify({ type: 'instructor_join', join_code: selectedLiveQuiz.join_code }));
+                                    setTimeout(() => {
+                                      ws.send(JSON.stringify({ type: 'start_quiz' }));
+                                      if (questions.length > 0) {
+                                        setTimeout(() => {
+                                          ws.send(JSON.stringify({
+                                            type: 'next_question',
+                                            question: questions[0],
+                                            timeLimit: questions[0].time_limit || selectedLiveQuiz.default_question_time || 30,
+                                            totalQuestions: questions.length,
+                                          }));
+                                          setTimeout(() => ws.close(), 3000);
+                                        }, 500);
+                                      }
+                                      toast.success(`Quiz session live! Code: ${selectedLiveQuiz.join_code}`);
+                                      fetchLiveQuizzes();
+                                    }, 1000);
+                                  };
+                                } catch { toast.error('Failed to resume session'); }
                               } else {
                                 toast.error(msg || 'Failed to start quiz session');
                               }
@@ -3457,6 +3858,120 @@ function InstructorDashboard() {
                           {isStartingQuiz ? 'Starting...' : 'Start Quiz Session'}
                         </button>
                       )}
+
+                      {/* Pause / Resume Session */}
+                      {selectedLiveQuiz.is_active && (() => {
+                        const sendSessionMsg = (type: string) => {
+                          const wsBase = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
+                          const ws = new WebSocket(`${wsBase}/quiz/${selectedLiveQuiz.join_code}/`);
+                          ws.onopen = () => {
+                            ws.send(JSON.stringify({ type: 'instructor_join' }));
+                            setTimeout(() => {
+                              ws.send(JSON.stringify({ type }));
+                              setTimeout(() => ws.close(), 1500);
+                            }, 500);
+                          };
+                        };
+                        return (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                sendSessionMsg('pause_session');
+                                toast('Session paused — students are frozen', { icon: '⏸️' });
+                              }}
+                              className="flex-1 px-3 py-2 bg-amber-600/80 hover:bg-amber-500 text-white rounded-lg transition flex items-center justify-center gap-2 text-sm font-medium"
+                            >
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>
+                              </svg>
+                              Pause
+                            </button>
+                            <button
+                              onClick={() => {
+                                sendSessionMsg('resume_session');
+                                toast('Session resumed!', { icon: '▶️' });
+                              }}
+                              className="flex-1 px-3 py-2 bg-blue-600/80 hover:bg-blue-500 text-white rounded-lg transition flex items-center justify-center gap-2 text-sm font-medium"
+                            >
+                              <Play className="w-4 h-4" />
+                              Resume
+                            </button>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Stop Session */}
+                      {selectedLiveQuiz.is_active && (
+                        <button
+                          onClick={async () => {
+                            if (!confirm('Stop the session for all students?')) return;
+                            const wsBase = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
+                            const ws = new WebSocket(`${wsBase}/quiz/${selectedLiveQuiz.join_code}/`);
+                            ws.onopen = () => {
+                              ws.send(JSON.stringify({ type: 'instructor_join' }));
+                              setTimeout(() => {
+                                ws.send(JSON.stringify({ type: 'end_quiz' }));
+                                setTimeout(() => ws.close(), 1500);
+                              }, 500);
+                            };
+                            toast.success('Session ended for all students');
+                            fetchLiveQuizzes();
+                          }}
+                          className="w-full px-4 py-2 bg-red-700/60 hover:bg-red-600 text-red-200 hover:text-white rounded-lg transition flex items-center justify-center gap-2 text-sm font-medium"
+                        >
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <rect x="4" y="4" width="16" height="16" rx="2"/>
+                          </svg>
+                          Stop Session
+                        </button>
+                      )}
+
+
+                      {/* Send Next Question button — for multi-question quizzes */}
+                      {selectedLiveQuiz.is_active && selectedLiveQuiz.questions_count > 1 && (
+                        <button
+                          onClick={async () => {
+                            if (!selectedLiveQuiz) return;
+                            try {
+                              const questions = await liveQuizService.getQuestions(selectedLiveQuiz.id);
+                              if (questions.length === 0) {
+                                toast.error('No questions found');
+                                return;
+                              }
+
+                              // Prompt for which question to send
+                              const currentIndex = prompt(`Enter question number to send (1-${questions.length}):`, '1');
+                              if (!currentIndex) return;
+                              const idx = parseInt(currentIndex, 10) - 1;
+                              if (isNaN(idx) || idx < 0 || idx >= questions.length) {
+                                toast.error(`Invalid question number. Must be 1-${questions.length}`);
+                                return;
+                              }
+
+                              const q = questions[idx];
+                              const wsBase = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
+                              const ws = new WebSocket(`${wsBase}/quiz/${selectedLiveQuiz.join_code}/`);
+                              ws.onopen = () => {
+                                ws.send(JSON.stringify({ type: 'instructor_join', join_code: selectedLiveQuiz.join_code }));
+                                ws.send(JSON.stringify({
+                                  type: 'next_question',
+                                  question: q,
+                                  timeLimit: q.time_limit || selectedLiveQuiz.default_question_time || 30,
+                                  totalQuestions: questions.length,
+                                }));
+                                toast.success(`Question ${idx + 1} sent to all students!`);
+                              };
+                            } catch (err) {
+                              toast.error('Failed to send question');
+                            }
+                          }}
+                          className="w-full px-4 py-2 bg-purple-600/80 hover:bg-purple-600 text-white rounded-lg transition flex items-center justify-center gap-2 text-sm font-medium"
+                        >
+                          <ChevronRight className="w-3.5 h-3.5" />
+                          Send Next Question
+                        </button>
+                      )}
+
                       <button
                         onClick={() => {
                           deleteLiveQuiz(selectedLiveQuiz.id)
@@ -3470,6 +3985,7 @@ function InstructorDashboard() {
                     </div>
                   </div>
                 </div>
+
               ) : (
                 /* Student Scores Tab */
                 <div>
@@ -3657,6 +4173,483 @@ function InstructorDashboard() {
           quizTitle={selectedLiveQuiz.title}
           onClose={() => setShowMonitorPanel(false)}
         />
+      )}
+
+      {/* Create Challenge Modal */}
+      {showCreateChallenge && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-white">Create New Coding Challenge</h3>
+              <button onClick={() => setShowCreateChallenge(false)} className="text-slate-400 hover:text-white">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); submitCreateChallenge(); }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Challenge Title</label>
+                <input
+                  type="text"
+                  value={challengeForm.title}
+                  onChange={(e) => setChallengeForm({ ...challengeForm, title: e.target.value })}
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                  placeholder="e.g., Two Sum"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
+                <textarea
+                  value={challengeForm.description}
+                  onChange={(e) => setChallengeForm({ ...challengeForm, description: e.target.value })}
+                  rows={4}
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                  placeholder="Given an array of integers nums and an integer target..."
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Difficulty</label>
+                  <select
+                    value={challengeForm.difficulty}
+                    onChange={(e) => setChallengeForm({ ...challengeForm, difficulty: e.target.value })}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  >
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Category</label>
+                  <select
+                    value={challengeForm.category}
+                    onChange={(e) => setChallengeForm({ ...challengeForm, category: e.target.value })}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  >
+                    <option value="basics">Basics</option>
+                    <option value="arrays">Arrays</option>
+                    <option value="strings">Strings</option>
+                    <option value="math">Math</option>
+                    <option value="sorting">Sorting</option>
+                    <option value="dp">Dynamic Programming</option>
+                    <option value="algorithms">Algorithms</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Points Reward</label>
+                  <input
+                    type="number"
+                    value={challengeForm.points}
+                    onChange={(e) => setChallengeForm({ ...challengeForm, points: parseInt(e.target.value) || 0 })}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                    min="1"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Time Limit (seconds)</label>
+                  <input
+                    type="number"
+                    value={challengeForm.time_limit_seconds}
+                    onChange={(e) => setChallengeForm({ ...challengeForm, time_limit_seconds: parseInt(e.target.value) || 300 })}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                    min="10"
+                    required
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Constraints (Optional)</label>
+                <textarea
+                  value={challengeForm.constraints}
+                  onChange={(e) => setChallengeForm({ ...challengeForm, constraints: e.target.value })}
+                  rows={2}
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500 text-sm"
+                  placeholder="1 <= nums.length <= 10^4"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Tags (comma-separated)</label>
+                  <input
+                    type="text"
+                    value={(challengeForm as any).tags_raw || ''}
+                    onChange={(e) => setChallengeForm({ ...challengeForm, tags_raw: e.target.value } as any)}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500 text-sm"
+                    placeholder="hash-map, two-pointer"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-slate-300">Hints (Optional)</label>
+                    <button type="button"
+                      onClick={() => setChallengeForm({ ...challengeForm, hints: [...((challengeForm as any).hints || []), ''] } as any)}
+                      className="text-xs text-purple-400 hover:text-purple-300">+ Add Hint</button>
+                  </div>
+                  {((challengeForm as any).hints || []).map((hint: string, i: number) => (
+                    <input key={i} type="text" value={hint}
+                      onChange={(e) => { const h = [...((challengeForm as any).hints || [])]; h[i] = e.target.value; setChallengeForm({ ...challengeForm, hints: h } as any) }}
+                      className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500 text-sm mb-1"
+                      placeholder={`Hint ${i + 1}...`} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Test Cases */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-medium text-slate-300">Test Cases</label>
+                  <button type="button"
+                    onClick={() => setChallengeForm({ ...challengeForm, test_cases: [...challengeForm.test_cases, { input: '', expected_output: '', is_hidden: false }] })}
+                    className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-purple-400 rounded-lg border border-slate-600 transition"
+                  >
+                    + Add Test Case
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {challengeForm.test_cases.map((tc, i) => (
+                    <div key={i} className="p-3 bg-slate-900/40 rounded-lg border border-slate-700/50 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-slate-500">Test Case {i + 1}</span>
+                        <label className="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer">
+                          <input type="checkbox" checked={tc.is_hidden}
+                            onChange={(e) => { const t = [...challengeForm.test_cases]; t[i] = { ...t[i], is_hidden: e.target.checked }; setChallengeForm({ ...challengeForm, test_cases: t }) }}
+                            className="w-3.5 h-3.5 rounded" />
+                          Hidden
+                        </label>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] text-slate-500 mb-1 block">Input</label>
+                          <input
+                            value={tc.input}
+                            onChange={(e) => { const t = [...challengeForm.test_cases]; t[i] = { ...t[i], input: e.target.value }; setChallengeForm({ ...challengeForm, test_cases: t }) }}
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
+                            placeholder="e.g., [2,7,11,15], 9"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-slate-500 mb-1 block">Expected Output</label>
+                          <input
+                            value={tc.expected_output}
+                            onChange={(e) => { const t = [...challengeForm.test_cases]; t[i] = { ...t[i], expected_output: e.target.value }; setChallengeForm({ ...challengeForm, test_cases: t }) }}
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
+                            placeholder="e.g., [0,1]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button type="submit" className="flex-1 px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium transition">
+                  Create Challenge
+                </button>
+                <button type="button" onClick={() => setShowCreateChallenge(false)} className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Go Live Config Modal */}
+      {showGoLiveConfig && goLiveChallenge && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-lg">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-white">Launch Live Challenge</h3>
+                <p className="text-sm text-slate-400 mt-1">{goLiveChallenge.title}</p>
+              </div>
+              <button onClick={() => setShowGoLiveConfig(false)} className="text-slate-400 hover:text-white">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-5">
+              {/* Time & Participants */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Time Limit (seconds)</label>
+                  <input
+                    type="number"
+                    value={goLiveConfig.time_limit_seconds}
+                    onChange={(e) => setGoLiveConfig({ ...goLiveConfig, time_limit_seconds: parseInt(e.target.value) || 300 })}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+                    min="30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Max Participants</label>
+                  <input
+                    type="number"
+                    value={goLiveConfig.max_participants}
+                    onChange={(e) => setGoLiveConfig({ ...goLiveConfig, max_participants: parseInt(e.target.value) || 100 })}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+                    min="1"
+                  />
+                </div>
+              </div>
+
+              {/* Anti-Cheat Section */}
+              <div className="border-t border-slate-700 pt-4">
+                <h4 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-emerald-400" />
+                  Anti-Cheat Settings
+                </h4>
+
+                {/* Checkboxes */}
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={goLiveConfig.require_fullscreen}
+                      onChange={(e) => setGoLiveConfig({ ...goLiveConfig, require_fullscreen: e.target.checked })}
+                      className="w-4 h-4 text-emerald-600 bg-slate-800 border-slate-700 rounded focus:ring-emerald-500"
+                    />
+                    <div>
+                      <span className="text-sm text-slate-300">Require Fullscreen</span>
+                      <p className="text-xs text-slate-500">Students must stay in fullscreen during the challenge</p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={goLiveConfig.enable_ai_proctor}
+                      onChange={(e) => setGoLiveConfig({ ...goLiveConfig, enable_ai_proctor: e.target.checked })}
+                      className="w-4 h-4 text-emerald-600 bg-slate-800 border-slate-700 rounded focus:ring-emerald-500"
+                    />
+                    <div>
+                      <span className="text-sm text-slate-300">Enable AI Proctoring (webcam)</span>
+                      <p className="text-xs text-slate-500">Uses AI to detect suspicious behaviour via webcam</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Action Selects */}
+              {goLiveConfig.require_fullscreen && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Fullscreen Exit Action</label>
+                    <select
+                      value={goLiveConfig.fullscreen_exit_action}
+                      onChange={(e) => setGoLiveConfig({ ...goLiveConfig, fullscreen_exit_action: e.target.value })}
+                      className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+                    >
+                      <option value="warn">Warn only</option>
+                      <option value="pause">Pause session</option>
+                      <option value="close">Close session</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Tab Switch Action</label>
+                    <select
+                      value={goLiveConfig.alt_tab_action}
+                      onChange={(e) => setGoLiveConfig({ ...goLiveConfig, alt_tab_action: e.target.value })}
+                      className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+                    >
+                      <option value="warn">Warn only</option>
+                      <option value="shuffle">Shuffle question</option>
+                      <option value="close">Close session</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Max Violations */}
+              {(goLiveConfig.require_fullscreen || goLiveConfig.enable_ai_proctor) && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Max Violations Before Auto-Close</label>
+                  <input
+                    type="number"
+                    value={goLiveConfig.max_violations}
+                    onChange={(e) => setGoLiveConfig({ ...goLiveConfig, max_violations: parseInt(e.target.value) || 3 })}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-emerald-500"
+                    min="1"
+                    max="20"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">Student session closes after this many violations</p>
+                </div>
+              )}
+
+              {/* Launch Button */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={confirmGoLive}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg font-medium transition flex items-center justify-center gap-2"
+                >
+                  <Radio className="w-4 h-4" />
+                  Launch Live Challenge
+                </button>
+                <button
+                  onClick={() => setShowGoLiveConfig(false)}
+                  className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCreateVideoCourse && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-white">Create New Video Course</h3>
+              <button onClick={() => setShowCreateVideoCourse(false)} className="text-slate-400 hover:text-white">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); submitCreateVideoCourse(); }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Course Title</label>
+                <input
+                  type="text"
+                  value={videoCourseForm.title}
+                  onChange={(e) => setVideoCourseForm({ ...videoCourseForm, title: e.target.value })}
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                  placeholder="e.g., Complete Python Bootcamp"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
+                <textarea
+                  value={videoCourseForm.description}
+                  onChange={(e) => setVideoCourseForm({ ...videoCourseForm, description: e.target.value })}
+                  rows={3}
+                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Instructor Name</label>
+                  <input
+                    type="text"
+                    value={videoCourseForm.instructor_name}
+                    onChange={(e) => setVideoCourseForm({ ...videoCourseForm, instructor_name: e.target.value })}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                    placeholder="e.g., John Doe"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Thumbnail URL (Optional)</label>
+                  <input
+                    type="url"
+                    value={videoCourseForm.thumbnail_url}
+                    onChange={(e) => setVideoCourseForm({ ...videoCourseForm, thumbnail_url: e.target.value })}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                    placeholder="https://img.youtube.com/..."
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Category</label>
+                  <select
+                    value={videoCourseForm.category}
+                    onChange={(e) => setVideoCourseForm({ ...videoCourseForm, category: e.target.value })}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  >
+                    <option value="general">General</option>
+                    <option value="web_dev">Web Development</option>
+                    <option value="mobile">Mobile</option>
+                    <option value="python">Python</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="java">Java</option>
+                    <option value="data_science">Data Science</option>
+                    <option value="algorithms">Algorithms</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Difficulty Level</label>
+                  <select
+                    value={videoCourseForm.difficulty}
+                    onChange={(e) => setVideoCourseForm({ ...videoCourseForm, difficulty: e.target.value })}
+                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  >
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Lessons */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-medium text-slate-300">Course Lessons</label>
+                  <button type="button"
+                    onClick={() => setVideoCourseForm({ ...videoCourseForm, lessons: [...videoCourseForm.lessons, { title: '', video_url: '', duration_minutes: 0 }] })}
+                    className="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-purple-400 rounded-lg border border-slate-600 transition"
+                  >
+                    + Add Lesson
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  {videoCourseForm.lessons.map((lesson, i) => (
+                    <div key={i} className="p-3 bg-slate-900/40 rounded-lg border border-slate-700/50 space-y-2">
+                      <span className="text-xs font-medium text-slate-500">Lesson {i + 1}</span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-[10px] text-slate-500 mb-1 block">Title</label>
+                          <input
+                            value={lesson.title}
+                            onChange={(e) => { const l = [...videoCourseForm.lessons]; l[i] = { ...l[i], title: e.target.value }; setVideoCourseForm({ ...videoCourseForm, lessons: l }) }}
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
+                            placeholder="e.g., Introduction to Variables"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-slate-500 mb-1 block">Duration (min)</label>
+                          <input
+                            type="number"
+                            value={lesson.duration_minutes}
+                            onChange={(e) => { const l = [...videoCourseForm.lessons]; l[i] = { ...l[i], duration_minutes: parseInt(e.target.value) || 0 }; setVideoCourseForm({ ...videoCourseForm, lessons: l }) }}
+                            className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
+                            min="0"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-500 mb-1 block">YouTube URL</label>
+                        <input
+                          value={lesson.video_url}
+                          onChange={(e) => updateLessonUrl(i, e.target.value)}
+                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
+                          placeholder="https://youtube.com/watch?v=..."
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button type="submit" className="flex-1 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition">
+                  Create Course
+                </button>
+                <button type="button" onClick={() => setShowCreateVideoCourse(false)} className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </DashboardLayout>
   )

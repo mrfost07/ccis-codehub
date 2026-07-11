@@ -352,7 +352,8 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
     }
 
     try {
-      await api.post('/ai/custom-models/', newCustomModel)
+      const response = await api.post('/ai/custom-models/', newCustomModel)
+      const created = response.data
       toast.success('Model added!')
       fetchCustomModels()
       setShowAddCustom(false)
@@ -365,6 +366,10 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
         response_path: 'response',
         is_active: true
       })
+      // Auto-select the newly added custom model
+      if (created?.id) {
+        setSelectedModel(`custom_${created.id}`)
+      }
     } catch (error) {
       toast.error('Failed to add model')
     }
@@ -463,8 +468,40 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
                   </div>
                 </div>
               ))}
+              {/* Custom models appear here too */}
+              {customModels.length > 0 && (
+                <>
+                  <div className="px-3 pt-2 pb-1 text-[10px] text-slate-500 uppercase tracking-wider">Your Custom Models</div>
+                  {customModels.map(model => {
+                    const customId = `custom_${model.id}`
+                    return (
+                      <div
+                        key={customId}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition ${selectedModel === customId ? 'bg-purple-500/15' : 'hover:bg-slate-800/50'}`}
+                        onClick={() => setSelectedModel(customId)}
+                      >
+                        <div className="shrink-0">
+                          {selectedModel === customId ? (
+                            <CheckCircle2 className="w-4 h-4 text-purple-400" />
+                          ) : (
+                            <Circle className="w-4 h-4 text-slate-600" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm truncate ${selectedModel === customId ? 'text-white font-medium' : 'text-slate-300'}`}>{model.name}</span>
+                            <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-[10px] rounded font-medium">CUSTOM</span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 truncate mt-0.5">{model.endpoint_url}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </>
+              )}
             </div>
           )}
+
 
           {activeTab === 'custom' && (
             <div className="space-y-4">

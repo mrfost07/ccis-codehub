@@ -124,10 +124,16 @@ const InstructorMonitorPanel: React.FC<InstructorMonitorPanelProps> = ({ joinCod
                 break;
             }
 
-            case 'participant_update': {
-                const list: ParticipantStatus[] = (data.data?.participants || []).map((p: any) => ({
+            case 'instructor_registered': {
+                setStatus('connected');
+                break;
+            }
+
+            case 'instructor_participant_update': {
+                // Rich participant data from DB — use this as the source of truth
+                const list: ParticipantStatus[] = (data.participants || []).map((p: any) => ({
                     participantId: p.id || p.participant_id,
-                    nickname: p.nickname,
+                    nickname: p.nickname || p.id,
                     score: p.total_score || 0,
                     violations: (p.fullscreen_violations || 0) + (p.tab_switch_count || 0) + (p.copy_paste_attempts || 0),
                     isFlagged: p.is_flagged || false,
@@ -135,6 +141,23 @@ const InstructorMonitorPanel: React.FC<InstructorMonitorPanelProps> = ({ joinCod
                     pauseReason: p.pause_reason || '',
                 }));
                 setParticipants(list);
+                break;
+            }
+
+            case 'participant_update': {
+                // Simple username list — only use if no rich data yet
+                const rawList: string[] = data.data?.participants || data.participants || [];
+                setParticipants(prev => {
+                    if (prev.length > 0) return prev; // Already have rich data, skip
+                    return rawList.map((name: string) => ({
+                        participantId: name,
+                        nickname: name,
+                        score: 0,
+                        violations: 0,
+                        isFlagged: false,
+                        isPaused: false,
+                    }));
+                });
                 break;
             }
 

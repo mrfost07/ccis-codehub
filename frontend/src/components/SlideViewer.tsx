@@ -104,7 +104,16 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
 
         // Extract content (everything after title)
         const contentMatch = slideHtml.match(/<div class="slide-content">(.*?)<\/div>/s)
-        const slideContent = contentMatch ? contentMatch[1] : slideHtml
+        let slideContent = contentMatch ? contentMatch[1] : slideHtml
+
+        // Remove duplicate h2 that matches the slide title to avoid triple-showing
+        if (title && title !== `Slide ${slideNumber}`) {
+          const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+          slideContent = slideContent.replace(
+            new RegExp(`<h2[^>]*>\\s*${escapedTitle}\\s*</h2>`, 'i'),
+            ''
+          )
+        }
 
         return {
           number: slideNumber,

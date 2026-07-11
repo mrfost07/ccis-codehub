@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import SlideViewer from '../components/SlideViewer'
 import QuizViewer from '../components/QuizViewer'
+import BadgeUnlockToast from '../components/BadgeUnlockToast'
 import ReactMarkdown from 'react-markdown'
 import {
   ArrowLeft, ArrowRight, CheckCircle, Clock, Award,
@@ -43,6 +44,7 @@ export default function ModuleLearningEnhanced() {
   const [startTime] = useState(Date.now())
   const [allModules, setAllModules] = useState<ModuleData[]>([])
   const [allSlidesViewed, setAllSlidesViewed] = useState(false)
+  const [earnedBadges, setEarnedBadges] = useState<string[]>([])
 
   useEffect(() => {
     console.log('=== MODULE ID CHANGED:', moduleId, '===')
@@ -155,9 +157,15 @@ export default function ModuleLearningEnhanced() {
     try {
       setCompleting(true)
 
-      await api.post(`/learning/modules/${moduleId}/complete/`, {
+      const res = await api.post(`/learning/modules/${moduleId}/complete/`, {
         time_spent_seconds: readingTime
       })
+
+      // Show badge unlock toast if earned
+      const badges = res.data?.badges_earned || []
+      if (badges.length > 0) {
+        setEarnedBadges(badges)
+      }
 
       setModule(prev => prev ? { ...prev, is_completed: true } : null)
       toast.success(`✅ Module completed! You earned ${module.points_reward} points!`, { duration: 4000 })
@@ -209,6 +217,12 @@ export default function ModuleLearningEnhanced() {
       })
 
       console.log('Complete response:', completeResponse.data)
+
+      // Show badge unlock toast if earned
+      const badges = completeResponse.data?.badges_earned || []
+      if (badges.length > 0) {
+        setEarnedBadges(badges)
+      }
 
       setModule(prev => prev ? { ...prev, is_completed: true } : null)
 
@@ -485,9 +499,17 @@ export default function ModuleLearningEnhanced() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
       <Navbar />
 
+      {/* Badge Unlock Celebration */}
+      {earnedBadges.length > 0 && (
+        <BadgeUnlockToast
+          badgeNames={earnedBadges}
+          onComplete={() => setEarnedBadges([])}
+        />
+      )}
+
       {/* Header - Mobile Responsive */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-purple-800 px-4 sm:px-6 py-6 sm:py-8 shadow-xl">
-        <div className="max-w-5xl mx-auto">
+      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-purple-800 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 shadow-xl">
+        <div className="max-w-6xl mx-auto">
           <button
             onClick={() => navigate(`/learning/paths/${module.career_path}`)}
             className="flex items-center gap-2 text-blue-100 hover:text-white transition mb-4 sm:mb-6 text-sm sm:text-base"
@@ -538,8 +560,8 @@ export default function ModuleLearningEnhanced() {
         </div>
       </div>
 
-      {/* Main Content - Mobile Responsive */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      {/* Main Content - Desktop Optimized */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Learning Content or Quiz - Mobile Responsive */}
         {showQuiz && quiz && quiz.content ? (
           <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6 shadow-xl">
@@ -628,14 +650,7 @@ export default function ModuleLearningEnhanced() {
               </button>
             )}
 
-            {/* Debug info (remove after testing) */}
-            {!module.is_completed && (
-              <div className="text-xs text-slate-500 mt-2">
-                Quiz exists: {quiz ? 'Yes' : 'No'} |
-                Quiz has content: {quiz?.content ? 'Yes' : 'No'} |
-                Showing quiz: {showQuiz ? 'Yes' : 'No'}
-              </div>
-            )}
+
 
             {module.is_completed && (
               <div className="flex items-center gap-2 px-6 py-3 bg-green-600/20 text-green-400 rounded-lg font-semibold">

@@ -83,6 +83,10 @@ export const QUERY_KEYS = {
     // Achievements
     achievements: ['achievements'],
     certificates: ['certificates'],
+
+    // Featured / Jobs
+    featuredProjects: ['featuredProjects'],
+    jobs: (params?: any) => ['jobs', params],
 }
 
 // ===========================================
@@ -503,4 +507,36 @@ export function usePrefetch() {
             })
         },
     }
+}
+
+// ===========================================
+// FEATURED PROJECTS
+// ===========================================
+
+export function useFeaturedProjects() {
+    return useQuery({
+        queryKey: QUERY_KEYS.featuredProjects,
+        queryFn: async () => {
+            const response = await api.get('/projects/projects/featured/')
+            return (Array.isArray(response.data) ? response.data : []) as any[]
+        },
+        staleTime: CACHE_TIMES.PROJECTS,
+    })
+}
+
+// ===========================================
+// JOBS
+// ===========================================
+
+export function useJobs(params?: { page_size?: number }) {
+    return useQuery({
+        queryKey: QUERY_KEYS.jobs(params),
+        queryFn: async () => {
+            const p = new URLSearchParams()
+            if (params?.page_size) p.append('page_size', String(params.page_size))
+            const response = await api.get(`/learning/jobs/?${p}`)
+            return (Array.isArray(response.data.results) ? response.data.results : []) as any[]
+        },
+        staleTime: 5 * 60 * 1000,
+    })
 }

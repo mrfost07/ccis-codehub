@@ -1,9 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import toast from 'react-hot-toast'
 import { useCareerPaths, useEnrollments } from '../hooks/useApiCache'
-import { ChevronRight, ArrowRight, Search, BookOpen, Video, Code, Trophy, Medal, Star, Clock } from 'lucide-react'
+import { ChevronRight, ArrowRight, Search, BookOpen, Video, Code, Trophy, Medal, Star, Clock, CheckCircle, Circle, Loader2, Play } from 'lucide-react'
+import codingService, { CodingChallenge, CodingStats } from '../services/codingService'
+import videoService, { VideoCourse } from '../services/videoService'
 
 interface CareerPath {
   id: string
@@ -24,6 +26,68 @@ export default function LearningEnhanced() {
   const [searchQuery, setSearchQuery] = useState('')
   const [difficultyFilter, setDifficultyFilter] = useState('')
   const [activeTab, setActiveTab] = useState<'courses' | 'videos' | 'hands-on'>('courses')
+
+  // Coding challenges state
+  const [challenges, setChallenges] = useState<CodingChallenge[]>([])
+  const [codingStats, setCodingStats] = useState<CodingStats | null>(null)
+  const [challengesLoading, setChallengesLoading] = useState(false)
+  const [codingDifficulty, setCodingDifficulty] = useState('')
+  const [codingCategory, setCodingCategory] = useState('')
+  const [codingSearch, setCodingSearch] = useState('')
+
+  // Video courses state
+  const [videoCourses, setVideoCourses] = useState<VideoCourse[]>([])
+  const [videosLoading, setVideosLoading] = useState(false)
+  const [videoCategory, setVideoCategory] = useState('')
+  const [videoDifficulty, setVideoDifficulty] = useState('')
+  const [videoSearch, setVideoSearch] = useState('')
+
+  // Load coding challenges when tab becomes active
+  useEffect(() => {
+    if (activeTab === 'hands-on' && challenges.length === 0) {
+      loadChallenges()
+      loadCodingStats()
+    }
+  }, [activeTab])
+
+  // Load video courses when tab becomes active
+  useEffect(() => {
+    if (activeTab === 'videos' && videoCourses.length === 0) {
+      loadVideoCourses()
+    }
+  }, [activeTab])
+
+  const loadChallenges = async () => {
+    setChallengesLoading(true)
+    try {
+      const data = await codingService.getChallenges({
+        difficulty: codingDifficulty || undefined,
+        category: codingCategory || undefined,
+        search: codingSearch || undefined,
+      })
+      setChallenges(data)
+    } catch { /* ignore */ } finally { setChallengesLoading(false) }
+  }
+
+  const loadCodingStats = async () => {
+    try { setCodingStats(await codingService.getStats()) } catch { /* ignore */ }
+  }
+
+  const loadVideoCourses = async () => {
+    setVideosLoading(true)
+    try {
+      const data = await videoService.getCourses({
+        category: videoCategory || undefined,
+        difficulty: videoDifficulty || undefined,
+        search: videoSearch || undefined,
+      })
+      setVideoCourses(data)
+    } catch { /* ignore */ } finally { setVideosLoading(false) }
+  }
+
+  // Reload on filter changes
+  useEffect(() => { if (activeTab === 'hands-on') loadChallenges() }, [codingDifficulty, codingCategory, codingSearch])
+  useEffect(() => { if (activeTab === 'videos') loadVideoCourses() }, [videoCategory, videoDifficulty, videoSearch])
   const navigate = useNavigate()
 
   // Use cached queries instead of manual useEffect
@@ -47,8 +111,8 @@ export default function LearningEnhanced() {
 
   const tabs = [
     { id: 'courses' as const, label: 'Learning Center', icon: BookOpen, active: true },
-    { id: 'videos' as const, label: 'Video Courses', icon: Video, active: false },
-    { id: 'hands-on' as const, label: 'Hands On', icon: Code, active: false }
+    { id: 'videos' as const, label: 'Video Courses', icon: Video, active: true },
+    { id: 'hands-on' as const, label: 'Hands On', icon: Code, active: true }
   ]
 
   const handleEnroll = async (pathId: string) => {
@@ -74,7 +138,13 @@ export default function LearningEnhanced() {
 
   // Get path display values (handle different API response formats)
   const getPathTitle = (path: CareerPath) => path.title || path.name || 'Untitled'
-  const getPathDuration = (path: CareerPath) => path.duration || (path.estimated_duration ? `${path.estimated_duration} weeks` : 'N/A')
+  const getPathDuration = (path: CareerPath) => {
+    const raw = path.duration || (path.estimated_duration ? `${path.estimated_duration} weeks` : 'N/A')
+    // Fix "1 weeks" → "1 week"
+    return raw.replace(/(\d+)\s+weeks?/, (_, n) => `${n} ${n === '1' ? 'week' : 'weeks'}`)
+              .replace(/(\d+)\s+days?/,  (_, n) => `${n} ${n === '1' ? 'day'  : 'days'}`)
+              .replace(/(\d+)\s+months?/,(_, n) => `${n} ${n === '1' ? 'month': 'months'}`)
+  }
   const getPathModules = (path: CareerPath) => path.modules_count ?? path.total_modules ?? 0
   const getPathEnrolled = (path: CareerPath) => path.enrolled_count ?? 0
 
@@ -91,7 +161,7 @@ export default function LearningEnhanced() {
   })
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-slate-950 pb-24 sm:pb-8">
       <Navbar />
 
       {/* Tab Navigation */}
@@ -202,7 +272,7 @@ export default function LearningEnhanced() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 items-stretch">
               {filteredPaths.map((path) => {
                 // More robust enrollment check - try multiple ID formats
                 const isEnrolled = enrollments.some((e: any) => {
@@ -215,14 +285,14 @@ export default function LearningEnhanced() {
                   <div
                     key={path.id}
                     onClick={() => isEnrolled && navigate(`/learning/paths/${path.id}`)}
-                    className={`group bg-slate-900/60 backdrop-blur-sm border border-slate-800/60 rounded-xl overflow-hidden transition-all duration-300 hover:border-slate-700/80 hover:bg-slate-900/80 ${isEnrolled ? 'cursor-pointer ring-1 ring-emerald-500/20' : ''
+                    className={`group bg-slate-900/60 backdrop-blur-sm border border-slate-800/60 rounded-xl overflow-hidden transition-all duration-300 hover:border-slate-700/80 hover:bg-slate-900/80 flex flex-col h-full ${isEnrolled ? 'cursor-pointer ring-1 ring-emerald-500/20' : ''
                       }`}
                   >
                     {/* Card Header - Gradient Accent */}
                     <div className="h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500"></div>
 
                     {/* Card Content */}
-                    <div className="p-4 sm:p-5">
+                    <div className="p-4 sm:p-5 flex flex-col flex-1">
                       {/* Title & Difficulty */}
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <h3 className="text-base sm:text-lg font-semibold text-white group-hover:text-blue-300 transition-colors leading-tight line-clamp-1">
@@ -247,21 +317,23 @@ export default function LearningEnhanced() {
                         <span><span className="text-white font-medium">{getPathEnrolled(path)}</span> enrolled</span>
                       </div>
 
-                      {/* Progress Bar (if enrolled) */}
-                      {isEnrolled && (
-                        <div className="mb-4">
-                          <div className="flex items-center justify-between text-xs mb-1.5">
-                            <span className="text-slate-400">Your Progress</span>
-                            <span className="text-emerald-400 font-semibold">{progress}%</span>
+                      {/* Progress + Action — pinned to bottom */}
+                      <div className="mt-auto pt-2">
+                        {/* Progress Bar (if enrolled) */}
+                        {isEnrolled && (
+                          <div className="mb-4">
+                            <div className="flex items-center justify-between text-xs mb-1.5">
+                              <span className="text-slate-400">Your Progress</span>
+                              <span className="text-emerald-400 font-semibold">{progress}%</span>
+                            </div>
+                            <div className="w-full bg-slate-800 rounded-full h-1.5">
+                              <div
+                                className="bg-gradient-to-r from-emerald-500 to-teal-500 h-1.5 rounded-full transition-all duration-500"
+                                style={{ width: `${Math.max(progress, 2)}%` }}
+                              />
+                            </div>
                           </div>
-                          <div className="w-full bg-slate-800 rounded-full h-1.5">
-                            <div
-                              className="bg-gradient-to-r from-emerald-500 to-teal-500 h-1.5 rounded-full transition-all duration-500"
-                              style={{ width: `${Math.max(progress, 2)}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
+                        )}
 
                       {/* Action Button */}
                       {isEnrolled ? (
@@ -288,12 +360,13 @@ export default function LearningEnhanced() {
                         </button>
                       )}
 
-                      {/* Enrolled Badge */}
-                      {isEnrolled && (
-                        <div className="mt-2 text-center">
-                          <span className="text-xs text-emerald-500/80">✓ Enrolled</span>
-                        </div>
-                      )}
+                        {/* Enrolled Badge */}
+                        {isEnrolled && (
+                          <div className="mt-2 text-center">
+                            <span className="text-xs text-emerald-500/80">✓ Enrolled</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )
@@ -303,7 +376,7 @@ export default function LearningEnhanced() {
         </div>
       )}
 
-      {/* Video Courses Tab (Coming Soon) */}
+      {/* Video Courses Tab */}
       {activeTab === 'videos' && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
           <div className="mb-6 sm:mb-8">
@@ -311,36 +384,100 @@ export default function LearningEnhanced() {
               Video Courses
             </h1>
             <p className="text-sm sm:text-base lg:text-lg text-slate-400 max-w-2xl">
-              Learn from expert instructors with high-quality video tutorials
+              Learn from expert instructors with curated YouTube video tutorials
             </p>
           </div>
 
-          {/* Coming Soon Card */}
-          <div className="bg-slate-900/60 backdrop-blur-sm border border-slate-800/60 rounded-2xl p-8 sm:p-12 text-center">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-6 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-full flex items-center justify-center">
-              <Video className="w-10 h-10 sm:w-12 sm:h-12 text-purple-400" />
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">Coming Soon</h2>
-            <p className="text-slate-400 text-sm sm:text-base max-w-md mx-auto mb-6">
-              We're working hard to bring you an amazing collection of video courses.
-              Expert-led tutorials covering web development, mobile apps, data science, and more!
-            </p>
-            <div className="flex flex-wrap justify-center gap-3 text-xs sm:text-sm">
-              <span className="px-3 py-1.5 bg-slate-800/50 border border-slate-700/50 rounded-full text-slate-300">
-                🎬 HD Video Lessons
-              </span>
-              <span className="px-3 py-1.5 bg-slate-800/50 border border-slate-700/50 rounded-full text-slate-300">
-                👨‍🏫 Expert Instructors
-              </span>
-              <span className="px-3 py-1.5 bg-slate-800/50 border border-slate-700/50 rounded-full text-slate-300">
-                📱 Watch Anywhere
-              </span>
+          {/* Search & Filters */}
+          <div className="bg-slate-900/50 backdrop-blur-sm border border-slate-800/50 rounded-xl p-4 mb-6">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <input
+                  type="text" placeholder="Search video courses..."
+                  value={videoSearch} onChange={(e) => setVideoSearch(e.target.value)}
+                  className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500/50"
+                />
+              </div>
+              <select value={videoCategory} onChange={(e) => setVideoCategory(e.target.value)}
+                className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none min-w-[140px]">
+                <option value="">All Categories</option>
+                <option value="web_dev">Web Development</option>
+                <option value="mobile">Mobile</option>
+                <option value="python">Python</option>
+                <option value="javascript">JavaScript</option>
+                <option value="java">Java</option>
+                <option value="data_science">Data Science</option>
+                <option value="algorithms">Algorithms</option>
+              </select>
+              <select value={videoDifficulty} onChange={(e) => setVideoDifficulty(e.target.value)}
+                className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none min-w-[140px]">
+                <option value="">All Levels</option>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </select>
             </div>
           </div>
+
+          {/* Course Grid */}
+          {videosLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-10 h-10 text-purple-400 animate-spin" />
+            </div>
+          ) : videoCourses.length === 0 ? (
+            <div className="text-center py-16 bg-slate-900/30 rounded-xl border border-slate-800/50">
+              <Video className="w-12 h-12 text-slate-700 mx-auto mb-3" />
+              <p className="text-slate-400 text-sm">No video courses available yet</p>
+              <p className="text-slate-600 text-xs mt-1">Check back soon!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {videoCourses.map(course => (
+                <div
+                  key={course.id}
+                  onClick={() => navigate(`/learning/videos/${course.slug}`)}
+                  className="group bg-slate-900/60 border border-slate-800/60 rounded-xl overflow-hidden cursor-pointer hover:border-purple-500/40 transition-all"
+                >
+                  {/* Thumbnail */}
+                  <div className="relative aspect-video bg-slate-800/50 overflow-hidden">
+                    {course.thumbnail_url ? (
+                      <img src={course.thumbnail_url} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Play className="w-12 h-12 text-slate-700" />
+                      </div>
+                    )}
+                    <div className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded">
+                      {course.lessons_count} lessons
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="text-sm font-semibold text-white group-hover:text-purple-300 transition line-clamp-1">{course.title}</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">{course.instructor_name}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${getDifficultyColor(course.difficulty)}`}>
+                        {course.difficulty}
+                      </span>
+                      <span className="text-[10px] text-slate-600">{course.total_duration_minutes} min</span>
+                    </div>
+                    {course.user_progress > 0 && (
+                      <div className="mt-2">
+                        <div className="w-full h-1 bg-slate-800 rounded-full">
+                          <div className="h-1 bg-purple-500 rounded-full transition-all" style={{ width: `${course.user_progress}%` }} />
+                        </div>
+                        <p className="text-[10px] text-purple-400 mt-0.5">{course.user_progress}% complete</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Hands On Tab (Coming Soon) */}
+      {/* Hands On Tab */}
       {activeTab === 'hands-on' && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -351,80 +488,165 @@ export default function LearningEnhanced() {
                   Hands On Practice
                 </h1>
                 <p className="text-sm sm:text-base lg:text-lg text-slate-400 max-w-2xl">
-                  Solve coding challenges and build real-world projects
+                  Solve coding challenges and sharpen your skills
                 </p>
               </div>
 
-              {/* Coming Soon Card */}
-              <div className="bg-slate-900/60 backdrop-blur-sm border border-slate-800/60 rounded-2xl p-8 sm:p-12 text-center">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-6 bg-gradient-to-br from-green-500/20 to-teal-500/20 rounded-full flex items-center justify-center">
-                  <Code className="w-10 h-10 sm:w-12 sm:h-12 text-green-400" />
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">Coming Soon</h2>
-                <p className="text-slate-400 text-sm sm:text-base max-w-md mx-auto mb-6">
-                  Put your skills to the test with interactive coding challenges!
-                  Practice algorithms, data structures, and build real projects.
-                </p>
-                <div className="flex flex-wrap justify-center gap-3 text-xs sm:text-sm">
-                  <span className="px-3 py-1.5 bg-slate-800/50 border border-slate-700/50 rounded-full text-slate-300">
-                    💻 Live Code Editor
-                  </span>
-                  <span className="px-3 py-1.5 bg-slate-800/50 border border-slate-700/50 rounded-full text-slate-300">
-                    🧪 Automated Tests
-                  </span>
-                  <span className="px-3 py-1.5 bg-slate-800/50 border border-slate-700/50 rounded-full text-slate-300">
-                    🏆 Earn Badges
-                  </span>
+              {/* Filters */}
+              <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-4 mb-4">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                    <input
+                      type="text" placeholder="Search challenges..."
+                      value={codingSearch} onChange={(e) => setCodingSearch(e.target.value)}
+                      className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50"
+                    />
+                  </div>
+                  <select value={codingDifficulty} onChange={(e) => setCodingDifficulty(e.target.value)}
+                    className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none">
+                    <option value="">All Levels</option>
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                  </select>
+                  <select value={codingCategory} onChange={(e) => setCodingCategory(e.target.value)}
+                    className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none">
+                    <option value="">All Categories</option>
+                    <option value="basics">Basics</option>
+                    <option value="arrays">Arrays</option>
+                    <option value="strings">Strings</option>
+                    <option value="math">Math</option>
+                    <option value="sorting">Sorting</option>
+                    <option value="dp">Dynamic Programming</option>
+                    <option value="algorithms">Algorithms</option>
+                  </select>
                 </div>
               </div>
-            </div>
 
-            {/* Leaderboard Sidebar */}
-            <div className="lg:col-span-1">
-              <div className="bg-slate-900/60 backdrop-blur-sm border border-slate-800/60 rounded-2xl p-5 sm:p-6 sticky top-24">
-                <div className="flex items-center gap-3 mb-5">
-                  <Trophy className="w-6 h-6 text-amber-400" />
-                  <h3 className="text-lg font-bold text-white">Leaderboard</h3>
+              {/* Challenge List */}
+              {challengesLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" />
                 </div>
-
-                <p className="text-slate-400 text-sm mb-5">
-                  Top problem solvers this week
-                </p>
-
-                {/* Static Leaderboard - Coming Soon */}
-                <div className="space-y-3">
-                  {[1, 2, 3, 4, 5].map((rank) => (
-                    <div key={rank} className="flex items-center gap-3 p-3 bg-slate-800/30 rounded-lg">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${rank === 1 ? 'bg-amber-500/20 text-amber-400' :
-                        rank === 2 ? 'bg-slate-400/20 text-slate-300' :
-                          rank === 3 ? 'bg-orange-500/20 text-orange-400' :
-                            'bg-slate-700/50 text-slate-400'
-                        }`}>
-                        {rank <= 3 ? (
-                          rank === 1 ? <Trophy className="w-4 h-4" /> :
-                            rank === 2 ? <Medal className="w-4 h-4" /> :
-                              <Star className="w-4 h-4" />
+              ) : challenges.length === 0 ? (
+                <div className="text-center py-16 bg-slate-900/30 rounded-xl border border-slate-800/50">
+                  <Code className="w-12 h-12 text-slate-700 mx-auto mb-3" />
+                  <p className="text-slate-400 text-sm">No challenges available yet</p>
+                  <p className="text-slate-600 text-xs mt-1">Check back soon!</p>
+                </div>
+              ) : (
+                <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl overflow-hidden">
+                  {/* Table Header */}
+                  <div className="grid grid-cols-12 gap-2 px-4 py-2.5 text-[10px] text-slate-600 uppercase tracking-wider border-b border-slate-800/50">
+                    <div className="col-span-1">Status</div>
+                    <div className="col-span-5">Title</div>
+                    <div className="col-span-2">Difficulty</div>
+                    <div className="col-span-2 hidden sm:block">Category</div>
+                    <div className="col-span-2 text-right">Acceptance</div>
+                  </div>
+                  {/* Rows */}
+                  {challenges.map(c => (
+                    <div
+                      key={c.id}
+                      onClick={() => navigate(`/learning/challenges/${c.slug}`)}
+                      className="grid grid-cols-12 gap-2 px-4 py-3 items-center border-b border-slate-800/30 hover:bg-slate-800/30 cursor-pointer transition group"
+                    >
+                      <div className="col-span-1">
+                        {c.user_status === 'solved' ? (
+                          <CheckCircle className="w-4 h-4 text-emerald-400" />
+                        ) : c.user_status === 'attempted' ? (
+                          <Circle className="w-4 h-4 text-amber-400" />
                         ) : (
-                          <span className="text-sm font-bold">{rank}</span>
+                          <Circle className="w-4 h-4 text-slate-700" />
                         )}
                       </div>
-                      <div className="flex-1">
-                        <div className="h-3 bg-slate-700/50 rounded w-24 mb-1"></div>
-                        <div className="h-2 bg-slate-700/30 rounded w-16"></div>
+                      <div className="col-span-5">
+                        <span className="text-sm text-slate-300 group-hover:text-white transition truncate block">{c.title}</span>
                       </div>
-                      <div className="text-right">
-                        <div className="h-3 bg-slate-700/50 rounded w-12"></div>
+                      <div className="col-span-2">
+                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${
+                          c.difficulty === 'easy' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' :
+                          c.difficulty === 'medium' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' :
+                          'text-rose-400 bg-rose-500/10 border-rose-500/30'
+                        }`}>
+                          {c.difficulty}
+                        </span>
+                      </div>
+                      <div className="col-span-2 hidden sm:block">
+                        <span className="text-xs text-slate-500">{c.category}</span>
+                      </div>
+                      <div className="col-span-2 text-right">
+                        <span className="text-xs text-slate-500">{c.acceptance_rate}%</span>
                       </div>
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
 
-                <div className="mt-5 pt-5 border-t border-slate-700/50 text-center">
-                  <div className="flex items-center justify-center gap-2 text-slate-500 text-sm">
-                    <Clock className="w-4 h-4" />
-                    <span>Coming Soon</span>
-                  </div>
+            {/* Stats Sidebar */}
+            <div className="lg:col-span-1">
+              <div className="bg-slate-900/60 backdrop-blur-sm border border-slate-800/60 rounded-2xl p-5 sm:p-6 sticky top-24">
+                <div className="flex items-center gap-3 mb-5">
+                  <Trophy className="w-6 h-6 text-amber-400" />
+                  <h3 className="text-lg font-bold text-white">Your Stats</h3>
                 </div>
+
+                {codingStats ? (
+                  <div className="space-y-4">
+                    {/* Solved Ring */}
+                    <div className="text-center">
+                      <div className="relative w-24 h-24 mx-auto">
+                        <svg className="w-24 h-24 transform -rotate-90">
+                          <circle cx="48" cy="48" r="40" fill="none" stroke="#1e293b" strokeWidth="6" />
+                          <circle
+                            cx="48" cy="48" r="40" fill="none" stroke="#10b981" strokeWidth="6"
+                            strokeDasharray={`${codingStats.total_challenges > 0 ? (codingStats.solved / codingStats.total_challenges) * 251.2 : 0} 251.2`}
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-xl font-bold text-white">{codingStats.solved}</span>
+                          <span className="text-[10px] text-slate-500">/ {codingStats.total_challenges}</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2">Problems Solved</p>
+                    </div>
+
+                    {/* Difficulty Breakdown */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-emerald-400">Easy</span>
+                        <span className="text-white font-medium">{codingStats.easy_solved}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-amber-400">Medium</span>
+                        <span className="text-white font-medium">{codingStats.medium_solved}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-rose-400">Hard</span>
+                        <span className="text-white font-medium">{codingStats.hard_solved}</span>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-slate-800/50 pt-3 space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-500">Total Submissions</span>
+                        <span className="text-white">{codingStats.total_submissions}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-500">Total Points</span>
+                        <span className="text-amber-400 font-medium">{codingStats.total_points}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-slate-500 text-sm">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-slate-700" />
+                    Loading stats...
+                  </div>
+                )}
               </div>
             </div>
           </div>

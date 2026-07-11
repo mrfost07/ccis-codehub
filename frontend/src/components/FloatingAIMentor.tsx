@@ -1,10 +1,13 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { aiAPI } from '../services/api'
 import AIChatSettings from './AIChatSettings'
+import WaveformVisualizer from './WaveformVisualizer'
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition'
+import { useAudioPlayback } from '../hooks/useAudioPlayback'
 import { AIActionHandler, ConfirmationCallback, SearchResult, ActionButton, generateSearchActionButtons } from '../services/aiActionHandler'
 import toast from 'react-hot-toast'
-import { Menu, Plus, Settings, X, Bot, MessageSquare, Send, ChevronRight, Trash2 } from 'lucide-react'
+import { Menu, Plus, Settings, X, Bot, MessageSquare, Send, ChevronRight, Trash2, Mic, MicOff, Phone, Volume2 } from 'lucide-react'
 
 // Enhanced formatted message component for rendering AI responses with proper markdown styling
 const FormattedMessage = ({ content }: { content: string }) => {
@@ -191,6 +194,100 @@ export default function FloatingAIMentor() {
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const location = useLocation()
   const navigate = useNavigate()
+
+  // ── Voice Mode State ────────────────────────────────────────────────────
+  const [isVoiceMode, setIsVoiceMode] = useState(false)
+  const [voiceStatus, setVoiceStatus] = useState<'idle' | 'listening' | 'processing' | 'speaking'>('idle')
+  const [voiceTranscript, setVoiceTranscript] = useState<Array<{ role: 'user' | 'ai'; text: string }>>([]
+  )
+  const [recordingTime, setRecordingTime] = useState(0)
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const transcriptEndRef = useRef<HTMLDivElement>(null)
+
+  // Voice hooks
+  const speech = useSpeechRecognition()
+  const audio = useAudioPlayback()
+
+  // Ref for sessionId to avoid stale closures
+  const sessionIdRef = useRef(sessionId)
+  useEffect(() => { sessionIdRef.current = sessionId }, [sessionId])
+
+  // Helper: send voice transcript to AI
+  const handleVoiceSend = useCallback(async () => {
+    // Wait for recognition to finalize transcript
+    await new Promise(r => setTimeout(r, 800))
+    // Read directly from refs — bypasses React state timing
+    const captured = speech.getTranscript()
+    const text = (captured.transcript || captured.interim || '').trim()
+    console.log('[Voice] Captured transcript:', { final: captured.transcript, interim: captured.interim, text })
+
+    if (!text) {
+      toast.error('No speech detected. Please try again.')
+      setVoiceStatus('idle')
+      return
+    }
+
+    setVoiceStatus('processing')
+    setVoiceTranscript(prev => [...prev, { role: 'user', text }])
+
+    try {
+      let currentSessionId = sessionIdRef.current
+      if (!currentSessionId) {
+        await createNewConversation()
+        // Wait a tick for state to update
+        await new Promise(r => setTimeout(r, 100))
+        currentSessionId = sessionIdRef.current
+      }
+      if (!currentSessionId) {
+        toast.error('Failed to create conversation')
+        setVoiceStatus('idle')
+        return
+      }
+
+      const res = await aiAPI.voiceChat({
+        transcript: text,
+        session_id: currentSessionId,
+        current_page: location.pathname,
+      })
+      const aiText = res.data.ai_text || "I'm here to help!"
+      setVoiceTranscript(prev => [...prev, { role: 'ai', text: aiText }])
+      setMessages(prev => [...prev, { role: 'user', content: text }, { role: 'ai', content: aiText }])
+
+      if (res.data.action && actionHandlerRef.current) {
+        await actionHandlerRef.current.handleAction(res.data.action, currentSessionId)
+      }
+      if (res.data.audio_base64) {
+        setVoiceStatus('speaking')
+        await audio.play(res.data.audio_base64)
+        setVoiceStatus('idle')
+      } else {
+        setVoiceStatus('idle')
+      }
+    } catch (err) {
+      console.error('Voice chat error:', err)
+      toast.error('Voice chat failed. Please try again.')
+      setVoiceStatus('idle')
+    }
+  }, [audio, location.pathname, speech.getTranscript])
+
+  // Toggle voice: click to start listening, click again to stop & send
+  const handleVoiceToggle = useCallback(() => {
+    if (voiceStatus === 'processing' || voiceStatus === 'speaking') return
+
+    if (voiceStatus === 'listening') {
+      // STOP listening & send
+      if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null }
+      speech.stopListening()
+      handleVoiceSend()
+    } else {
+      // START listening
+      if (!speech.isSupported) { toast.error('Speech recognition is not supported in this browser'); return }
+      speech.startListening()
+      setVoiceStatus('listening')
+      setRecordingTime(0)
+      recordingTimerRef.current = setInterval(() => setRecordingTime(t => t + 1), 1000)
+    }
+  }, [voiceStatus, speech, handleVoiceSend])
 
   useEffect(() => {
     actionHandlerRef.current = new AIActionHandler(
@@ -794,9 +891,12 @@ export default function FloatingAIMentor() {
         </button>
       )}
 
-      {/* Chat Window - Dark Glass UI */}
+      {/* Chat Window - Dark Glass UI (full screen in voice mode) */}
       {isOpen && (
-        <div className="fixed inset-2 bottom-20 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[420px] sm:h-[550px] bg-slate-900/95 backdrop-blur-lg border border-slate-700/50 rounded-2xl shadow-2xl z-[60] flex flex-col overflow-hidden">
+        <div className={isVoiceMode
+          ? "fixed inset-0 bg-slate-950/98 backdrop-blur-xl z-[60] flex flex-col overflow-hidden"
+          : "fixed inset-2 bottom-20 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[420px] sm:h-[550px] bg-slate-900/95 backdrop-blur-lg border border-slate-700/50 rounded-2xl shadow-2xl z-[60] flex flex-col overflow-hidden"
+        }>
           {/* Header - Dark Glass */}
           <div className="bg-slate-800/80 backdrop-blur-lg border-b border-slate-700/50 p-4 flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -814,6 +914,15 @@ export default function FloatingAIMentor() {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <button
+                onClick={() => { setIsVoiceMode(!isVoiceMode); if (isVoiceMode && speech.isListening) speech.stopListening(); }}
+                className={`hover:bg-slate-700/50 rounded-lg p-2 flex items-center justify-center transition-colors ${
+                  isVoiceMode ? 'text-purple-400 bg-purple-500/10' : 'text-slate-400 hover:text-white'
+                }`}
+                title={isVoiceMode ? 'Switch to chat' : 'Switch to voice'}
+              >
+                {isVoiceMode ? <MessageSquare className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              </button>
               <button
                 onClick={createNewConversation}
                 className="text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg p-2 flex items-center justify-center transition-colors"
@@ -886,7 +995,113 @@ export default function FloatingAIMentor() {
             </div>
           )}
 
-          {/* Messages */}
+          {/* ── VOICE MODE (Full Screen) ───────────────────────── */}
+          {isVoiceMode ? (
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-slate-950">
+              {/* Voice Panel (center — takes up most space) */}
+              <div className="flex-1 flex flex-col items-center justify-center relative min-h-0">
+                {/* Animated background glow */}
+                <div className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-all duration-700 ${
+                  voiceStatus === 'speaking' ? 'opacity-100 scale-100' : voiceStatus === 'listening' ? 'opacity-60 scale-90' : 'opacity-0 scale-75'
+                }`}>
+                  <div className={`w-[600px] h-[600px] rounded-full blur-[120px] transition-colors duration-500 ${
+                    voiceStatus === 'listening' ? 'bg-red-600/15' : 'bg-purple-600/12'
+                  }`} />
+                </div>
+
+                {/* Status indicator */}
+                <div className={`text-sm font-medium mb-6 h-6 flex items-center gap-2 transition-all duration-300 ${
+                  voiceStatus === 'listening' ? 'text-red-400' : voiceStatus === 'processing' ? 'text-yellow-400 animate-pulse' : voiceStatus === 'speaking' ? 'text-purple-400' : 'text-slate-600'
+                }`}>
+                  {voiceStatus === 'listening' && <><span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" /> Listening...</>}
+                  {voiceStatus === 'processing' && <><span className="w-2 h-2 rounded-full bg-yellow-400" /> Processing...</>}
+                  {voiceStatus === 'speaking' && <><span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" /> AI Speaking...</>}
+                </div>
+
+                {/* Title with subtitle */}
+                <h2 className="text-white text-3xl md:text-4xl font-bold mb-2 tracking-tight relative z-10">AI Mentor</h2>
+                <p className="text-slate-500 text-sm mb-12 relative z-10">Voice Assistant</p>
+
+                {/* Waveform — large, centered */}
+                <div className="mb-12 w-full max-w-[750px] px-6 relative z-10">
+                  <WaveformVisualizer
+                    analyserNode={audio.analyserNode}
+                    isActive={voiceStatus === 'speaking' || voiceStatus === 'listening'}
+                    width={700}
+                    height={140}
+                    color={voiceStatus === 'listening' ? '#f87171' : '#a78bfa'}
+                    secondaryColor={voiceStatus === 'listening' ? '#dc2626' : '#7c3aed'}
+                  />
+                </div>
+
+                {/* Voice Toggle Button — Click to start/stop */}
+                <button
+                  onClick={handleVoiceToggle}
+                  disabled={voiceStatus === 'processing' || voiceStatus === 'speaking'}
+                  className={`relative z-10 w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    voiceStatus === 'listening'
+                      ? 'bg-red-500 scale-110 shadow-[0_0_40px_rgba(239,68,68,0.5)] ring-4 ring-red-500/30 animate-pulse'
+                      : voiceStatus === 'processing'
+                        ? 'bg-slate-700 cursor-wait'
+                        : voiceStatus === 'speaking'
+                          ? 'bg-purple-500/30 cursor-not-allowed ring-4 ring-purple-500/20 shadow-[0_0_30px_rgba(168,85,247,0.3)]'
+                          : 'bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 hover:scale-105 shadow-[0_0_30px_rgba(147,51,234,0.3)] hover:shadow-[0_0_50px_rgba(147,51,234,0.5)]'
+                  }`}
+                >
+                  {voiceStatus === 'listening'
+                    ? <MicOff className="w-8 h-8 md:w-10 md:h-10 text-white" />
+                    : voiceStatus === 'processing'
+                      ? <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      : <Mic className="w-8 h-8 md:w-10 md:h-10 text-white" />
+                  }
+                </button>
+                <p className="text-slate-500 text-sm mt-5 select-none relative z-10">
+                  {voiceStatus === 'listening' ? 'Click to send' : voiceStatus === 'processing' ? 'Thinking...' : voiceStatus === 'speaking' ? 'Playing response...' : 'Click to start'}
+                </p>
+
+                {/* Timer */}
+                {voiceStatus === 'listening' && (
+                  <p className="text-red-400/80 text-base mt-3 font-mono relative z-10">
+                    {String(Math.floor(recordingTime / 60)).padStart(2, '0')}:{String(recordingTime % 60).padStart(2, '0')}
+                  </p>
+                )}
+
+                {/* Interim transcript preview */}
+                {speech.interimTranscript && (
+                  <p className="text-purple-300/50 text-sm mt-5 italic max-w-lg text-center relative z-10">
+                    &ldquo;{speech.interimTranscript}&rdquo;
+                  </p>
+                )}
+              </div>
+
+              {/* Transcript Panel */}
+              <div className="md:w-[300px] h-48 md:h-auto border-t md:border-t-0 md:border-l border-slate-800 overflow-y-auto p-6 bg-slate-900/80">
+                <h4 className="text-slate-500 text-[11px] font-semibold mb-5 uppercase tracking-[0.2em]">Transcript</h4>
+                {voiceTranscript.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center mt-12 opacity-40">
+                    <Mic className="w-8 h-8 text-slate-600 mb-3" />
+                    <p className="text-slate-600 text-sm text-center">Hold the mic button<br/>and start speaking</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {voiceTranscript.map((entry, i) => (
+                      <div key={i} className={`p-3 rounded-lg ${entry.role === 'user' ? 'bg-slate-800/50' : 'bg-purple-500/10 border border-purple-500/20'}`}>
+                        <span className={`text-[10px] font-bold uppercase tracking-widest ${
+                          entry.role === 'user' ? 'text-slate-500' : 'text-purple-500'
+                        }`}>{entry.role === 'user' ? 'You' : 'AI Mentor'}</span>
+                        <p className={`text-sm mt-1 leading-relaxed ${
+                          entry.role === 'user' ? 'text-slate-300' : 'text-purple-200'
+                        }`}>{entry.text}</p>
+                      </div>
+                    ))}
+                    <div ref={transcriptEndRef} />
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+          /* ── CHAT MODE (existing) ───────────────────────────── */
+          <>
           <div className="flex-1 overflow-y-auto p-4 space-y-3 relative">
             {loadingHistory ? (
               <div className="flex items-center justify-center h-full">
@@ -1038,6 +1253,8 @@ export default function FloatingAIMentor() {
               </button>
             </div>
           </form>
+          </>
+          )}
         </div>
       )}
 

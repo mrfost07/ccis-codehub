@@ -1086,13 +1086,15 @@ export default function ProjectDetail() {
                     <option value="oldest">Oldest First</option>
                     <option value="priority">By Priority</option>
                   </select>
-                  <button
-                    onClick={() => { resetTaskForm(); setEditingTask(null); setShowTaskModal(true) }}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-lg hover:from-cyan-600 hover:to-purple-600 transition"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span className="hidden sm:inline">Add Task</span>
-                  </button>
+                  {isOwnerOrAdmin && (
+                    <button
+                      onClick={() => { resetTaskForm(); setEditingTask(null); setShowTaskModal(true) }}
+                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-lg hover:from-cyan-600 hover:to-purple-600 transition"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span className="hidden sm:inline">Add Task</span>
+                    </button>
+                  )}
                 </div>
               </div>
 

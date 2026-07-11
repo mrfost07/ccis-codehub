@@ -180,6 +180,9 @@ export const projectsAPI = {
   getProjectFiles: (projectId: string) => api.get('/projects/files/', { params: { project: projectId } }),
   uploadFile: (data: FormData) => api.post('/projects/files/', data),
   deleteFile: (id: string) => api.delete(`/projects/files/${id}/`),
+
+  // Featured projects (public, with contributor avatars)
+  getFeatured: () => api.get('/projects/projects/featured/'),
 }
 
 // Teams API - Team-first project management
@@ -287,6 +290,24 @@ export const aiAPI = {
   updateSession: (id: string, data: { title?: string }) => api.patch(`/ai/sessions/${id}/`, data),
   analyzeCode: (data: any) => api.post('/ai/code-analysis/', data),
   getRecommendations: () => api.get('/ai/recommendations/'),
+
+  // Voice chat
+  voiceChat: (data: { transcript: string, session_id: string, current_page?: string }) =>
+    api.post('/ai/voice/', data),
+  // Standalone TTS
+  textToSpeech: (text: string) =>
+    api.post('/ai/tts/', { text }),
+}
+
+// Jobs API — Phase 6
+export const jobsAPI = {
+  getJobs: (params?: { q?: string; type?: string; location?: string; page?: number; page_size?: number }) =>
+    api.get('/learning/jobs/', { params }),
+  getJob: (id: string) => api.get(`/learning/jobs/${id}/`),
+  saveJob: (id: string) => api.post(`/learning/jobs/${id}/save/`),
+  unsaveJob: (id: string) => api.post(`/learning/jobs/${id}/unsave/`),
+  getSavedJobs: () => api.get('/learning/jobs/saved/'),
+  syncJobs: () => api.post('/learning/jobs/sync/'),
 }
 
 export default api

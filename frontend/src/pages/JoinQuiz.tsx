@@ -19,6 +19,17 @@ const JoinQuiz = () => {
         }
     }, [code]);
 
+    // Auto-join when code comes from URL (e.g. shared link redirect after login)
+    const [autoJoinAttempted, setAutoJoinAttempted] = useState(false);
+    useEffect(() => {
+        if (code && !autoJoinAttempted && !isJoining && user) {
+            setAutoJoinAttempted(true);
+            // Trigger join automatically
+            const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+            handleJoin(fakeEvent);
+        }
+    }, [code, user, autoJoinAttempted]);
+
     const handleJoin = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!joinCode.trim()) return;
@@ -59,6 +70,8 @@ const JoinQuiz = () => {
                 altTabAction: quizMeta.alt_tab_action ?? 'warn',
                 enableAiProctor: quizMeta.enable_ai_proctor ?? false,
                 enableCodeExecution: quizMeta.enable_code_execution ?? true,
+                showCorrectAnswers: quizMeta.show_correct_answers ?? true,
+                showLeaderboard: quizMeta.show_leaderboard ?? true,
             };
 
             // Route based on quiz mode
@@ -70,7 +83,13 @@ const JoinQuiz = () => {
                         deadline: quizMeta.deadline || null,
                     }
                 });
+            } else if (result.session_status === 'in_progress') {
+                // Session already started — skip lobby, go directly to live session
+                navigate(`/quiz/live/${joinCode.toUpperCase()}`, {
+                    state: commonState,
+                });
             } else {
+                // Session not started yet — go to lobby and wait
                 navigate(`/quiz/lobby/${joinCode.toUpperCase()}`, {
                     state: commonState,
                 });

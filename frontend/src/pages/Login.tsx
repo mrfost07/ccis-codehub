@@ -14,6 +14,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [captchaToken, setCaptchaToken] = useState('')
   const [captchaAnswer, setCaptchaAnswer] = useState<number | null>(null)
+  const [captchaResetKey, setCaptchaResetKey] = useState(0)
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { setAuthData } = useAuth()
@@ -46,13 +47,15 @@ export default function Login() {
 
       setAuthData(access, userData)
       toast.success('Welcome back!')
-      // Redirect to return URL if one was saved (e.g. from quiz join link)
-      const returnUrl = searchParams.get('returnUrl')
-      navigate(returnUrl || '/learning')
+      // Redirect to return URL — check query param first, then sessionStorage backup
+      const returnUrl = searchParams.get('returnUrl') || sessionStorage.getItem('loginReturnUrl')
+      sessionStorage.removeItem('loginReturnUrl') // Clean up
+      window.location.href = returnUrl || '/learning'
     } catch (error: any) {
       console.error('Login error:', error.response?.data)
-      // Reset CAPTCHA on failure
+      // Reset CAPTCHA on failure so user can re-verify
       handleCaptchaExpired()
+      setCaptchaResetKey(k => k + 1)
       if (error.response?.data?.error) {
         toast.error(error.response.data.error)
       } else if (error.response?.data?.detail) {
@@ -143,6 +146,7 @@ export default function Login() {
             <CaptchaCheckbox
               onVerified={handleCaptchaVerified}
               onExpired={handleCaptchaExpired}
+              resetKey={captchaResetKey}
             />
 
             {/* Submit */}
