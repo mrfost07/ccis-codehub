@@ -253,6 +253,21 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
         )
 
         if not created and participant.left_at:
+            # Returning after completing/leaving a prior attempt.
+            if quiz.max_retakes != 1:
+                # Retakes permitted (unlimited or >1): start a fresh, isolated
+                # attempt — reset the score and clear prior responses so the
+                # student answers anew instead of inheriting the old attempt.
+                # (Remediation Req 10.1, 10.2.) can_student_attempt() above already
+                # enforced the max-retake limit (Req 10.3); single-attempt quizzes
+                # never reach this reset, preserving their behavior (Req 10.4).
+                LiveQuizResponse.objects.filter(participant=participant).delete()
+                participant.total_score = 0
+                participant.total_correct = 0
+                participant.total_attempted = 0
+                participant.average_response_time = 0
+                participant.rank = None
+                participant.nickname = nickname or participant.nickname
             # Rejoin — mark as active again
             participant.is_active = True
             participant.left_at = None
