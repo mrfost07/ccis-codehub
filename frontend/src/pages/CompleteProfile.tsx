@@ -90,13 +90,16 @@ export default function CompleteProfile() {
         setLoading(true);
 
         try {
+            const identityToken =
+                location.state?.identityToken || localStorage.getItem('google_identity_token');
             const response = await api.post('/auth/google/create-account/', {
-                google_data: googleData,
+                identity_token: identityToken,
                 profile_data: formData,
             });
 
             // Store tokens and user data
             localStorage.removeItem('google_signup_data');
+            localStorage.removeItem('google_identity_token');
             setAuthData(response.data.tokens.access, response.data.user);
 
             toast.success('🎉 Account created! Welcome to CCIS CodeHub!');

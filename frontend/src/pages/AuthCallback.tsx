@@ -88,11 +88,16 @@ export default function AuthCallback() {
                 }
 
                 if (data.is_new_user && data.google_data) {
-                    // New user - redirect to profile completion wizard
+                    // New user - redirect to profile completion wizard.
+                    // identity_token is the server-signed proof of the verified
+                    // Google email; it must accompany the create-account request.
                     localStorage.setItem('google_signup_data', JSON.stringify(data.google_data));
+                    if (data.identity_token) {
+                        localStorage.setItem('google_identity_token', data.identity_token);
+                    }
                     toast.success('Google connected! Complete your profile to continue.');
                     navigate('/complete-profile', {
-                        state: { googleData: data.google_data },
+                        state: { googleData: data.google_data, identityToken: data.identity_token },
                         replace: true
                     });
                     return;
