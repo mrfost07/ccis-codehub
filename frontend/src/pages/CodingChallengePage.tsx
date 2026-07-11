@@ -16,6 +16,7 @@ import 'prismjs/themes/prism-tomorrow.css'
 import Navbar from '../components/Navbar'
 import BadgeUnlockToast from '../components/BadgeUnlockToast'
 import codingService, { CodingChallenge, CodingSubmissionResult, SubmissionHistory } from '../services/codingService'
+import useExamLockdown from '../hooks/useExamLockdown'
 
 const LANGUAGE_LABELS: Record<string, string> = {
     python: 'Python',
@@ -56,6 +57,26 @@ export default function CodingChallengePage() {
     const [earnedBadges, setEarnedBadges] = useState<string[]>([])
 
     const startTime = useRef(Date.now())
+
+    // Anti-cheat: block copy/paste (capture pasting external solutions), disable
+    // devtools shortcuts, and record tab-switching while a challenge is open.
+    // Fullscreen is intentionally not forced here (it belongs to the timed quiz
+    // flow, which has a start gate); this is best-effort in-browser lockdown.
+    const { violations } = useExamLockdown({
+        active: !!challenge && !loading,
+        enforceFullscreen: false,
+        blockClipboard: true,
+        maxViolations: Number.MAX_SAFE_INTEGER, // no auto-close on a practice page
+        onViolation: ({ type }) => {
+            if (type === 'copy' || type === 'cut' || type === 'paste') {
+                toast.error('Copy/paste is disabled during coding challenges.', { duration: 2000 })
+            } else if (type === 'tab_switch' || type === 'blur') {
+                toast('Leaving the challenge window is recorded.', { icon: '⚠️', duration: 2000 })
+            } else if (type === 'devtools') {
+                toast.error('Developer tools are disabled during the challenge.', { duration: 2000 })
+            }
+        },
+    })
 
     // Derived current code from per-language drafts
     const currentCode = codeDrafts[language] || ''
@@ -222,6 +243,15 @@ export default function CodingChallengePage() {
                 <span className="text-xs text-slate-500 hidden sm:inline">
                     {challenge.acceptance_rate}% acceptance
                 </span>
+                {violations > 0 && (
+                    <span
+                        className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border border-amber-500/40 bg-amber-500/10 text-amber-400"
+                        title="Anti-cheat events recorded (copy/paste, tab switch, or devtools)"
+                    >
+                        <AlertCircle className="w-3.5 h-3.5" />
+                        {violations} flagged
+                    </span>
+                )}
             </div>
 
             {/* Split Pane */}
