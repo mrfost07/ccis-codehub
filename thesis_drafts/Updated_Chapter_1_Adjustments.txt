@@ -1,0 +1,45 @@
+UPDATED CHAPTER 1 ADJUSTMENTS
+
+Use this file to align your current Chapter 1 with the new Chapters 2 to 4 and with the added sixth specific objective.
+
+Revised Specific Objectives
+
+1. To unify learning and practice by developing a robust platform that integrates a learning management environment with collaborative project workflow, coding activities, video-based content, and GitHub-linked development support.
+
+2. To provide contextual career guidance by implementing structured learning modules mapped to degree programs, skill pathways, and recommendation-oriented academic support.
+
+3. To democratize knowledge sharing by building a community-based environment that enables students to share resources, ask questions, collaborate, and interact across academic cohorts.
+
+4. To integrate responsible AI mentorship by deploying a school-focused, curriculum-based AI Mentor built on a fine-tuned Llama model that provides contextual debugging support, recommendation assistance, and pedagogically guided academic help while discouraging skill atrophy.
+
+5. To implement vision-based integrity by developing an integrity-aware assessment framework that combines structured quiz controls, camera-assisted monitoring flow, and AI-supported proctoring architecture for remote or hybrid assessment.
+
+6. To evaluate the overall system performance of CCIS-CodeHub using recognized software-quality and performance indicators, particularly in terms of functional suitability, usability, performance efficiency, reliability, security, maintainability, and AI-support relevance.
+
+Recommended Chapter 1 Sentence Adjustment for Cognitive Load
+
+If you want the background section to align more cleanly with the updated recent references, replace the older narrow statement with:
+
+"Recent literature on digital learning and software-development work indicates that fragmented workflows, difficult-to-interpret technical artifacts, and poorly structured interfaces can increase cognitive load and disrupt sustained focus during complex academic and programming tasks [5], [9], [22]."
+
+Recommended Safe Wording for AI Proctoring
+
+If you want Chapter 1 to remain ambitious while staying technically defensible, use:
+
+"The platform incorporates an integrity-aware assessment framework that combines quiz controls, behavioral monitoring, and a camera-assisted proctoring pipeline designed for AI-based visual analysis."
+
+Recommended AI Wording for Fine-Tuned / Curriculum-Aware Support
+
+If you want the thesis to emphasize the upgraded AI direction without sounding generic, use:
+
+"The AI Mentor is designed as a school-focused, curriculum-based academic support layer centered on a fine-tuned Llama model, strengthened by pedagogical prompting, contextual document grounding, and supporting AI-service integration for more specialized instructional assistance."
+
+Recommended Additional Limitation for AI Accuracy
+
+If you want the limitation section to acknowledge the present weakness of the AI more professionally, use:
+
+"The accuracy and consistency of the AI-driven components were limited by the availability and diversity of training and contextual data, as well as by the hardware resources available for model development and testing. In particular, the performance of the AI Mentor and vision-based proctoring functions may not yet reach optimal accuracy because the current version of the system operates with limited domain-specific data and constrained computational resources for model adaptation, validation, and behavioral detection."
+
+If you want a shorter version, use:
+
+"The accuracy of the AI-driven components is constrained by the limited amount and diversity of available data and by restricted training hardware, which affect the reliability of model adaptation, contextual guidance, and vision-based behavioral detection."

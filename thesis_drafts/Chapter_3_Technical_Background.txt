@@ -1,0 +1,127 @@
+CHAPTER 3
+TECHNICAL BACKGROUND
+
+3.1 Theoretical Framework
+
+The development of CCIS-CodeHub is grounded in a combination of educational, technical, and software-quality perspectives. Because the thesis is both system-oriented and AI-driven, the theoretical framework must explain not only how the platform is built, but also why its structure is educationally justified.
+
+Connectivism as a Digital Learning Theory
+
+Goldie explains that connectivism is especially relevant to learning in digital environments because it treats knowledge as something formed through networks, connections, and distributed information sources rather than through isolated transmission alone [21]. This perspective aligns strongly with the philosophy of CCIS-CodeHub. The platform is designed on the assumption that computer science students do not learn only by reading course material. They also learn through interaction, peer exchange, guided practice, project collaboration, mentor support, and access to contextually relevant resources.
+
+In the thesis, connectivism supports the decision to build CCIS-CodeHub as an integrated student experience platform rather than a content-only learning management system. The theory helps explain why learning modules, community features, project workspaces, AI mentorship, and assessment mechanisms should be connected in one digital ecosystem.
+
+Cognitive Load and Integrated Learning Environments
+
+The study is also supported by cognitive-load considerations. Skulmowski and Xu explain that poorly designed digital environments can create extraneous cognitive load when learners are forced to split attention across fragmented interfaces and processes [9]. In software-related work, the issue of cognitive burden is similarly important because complex and poorly structured artifacts make technical work harder to interpret [5], [22].
+
+This theoretical lens is directly relevant to the thesis. CCIS-CodeHub is designed to reduce unnecessary switching between unrelated tools by placing learning, collaboration, support, and assessment within a coherent environment. In other words, the platform is not only a matter of convenience; it is intended to support concentration, continuity, and more stable engagement during technical learning.
+
+Responsible AI and Human-Guided Academic Support
+
+The AI-driven component of the thesis is best understood through the concept of responsible academic augmentation. Recent research shows that AI can serve as an effective educational support layer when it provides guidance, explanation, and context-aware assistance rather than replacing student reasoning [3], [12], [15]. This is especially important in computing education, where uncritical AI use can weaken problem-solving habits.
+
+The theoretical implication for the thesis is that AI should function as an academic mentor rather than an answer-dispensing shortcut. This directly informs the design of the AI Mentor in CCIS-CodeHub, which is framed around contextual recommendations, debugging support, pedagogical prompting, and curriculum-aware grounding. The architecture also supports the thesis direction toward fine-tuned academic assistance by allowing institutional content and structured context to influence AI behavior [13], [14].
+
+Software Quality as a Formal Evaluation Basis
+
+Because the thesis includes an explicit objective to evaluate system performance, it also relies on a formal quality framework. ISO/IEC 25010:2023 defines a product quality model for software and ICT products and provides a recognized basis for evaluating whether a system is functionally suitable, efficient, reliable, secure, maintainable, and otherwise fit for intended use [20]. This standard is important because the success of CCIS-CodeHub cannot be judged solely by the presence of features. It must also be judged by how well the integrated platform performs during real academic use.
+
+3.2 Conceptual Framework
+
+The conceptual framework of the study follows an Input-Process-Output (IPO) model. This model explains how academic needs, technical resources, and AI-related components are transformed into an integrated educational platform.
+
+Figure 1 presents the IPO conceptual framework of CCIS-CodeHub and shows how the inputs of the study are transformed through development processes into an integrated academic platform.
+
+[Insert Figure 1 here.]
+
+Figure 1. IPO Conceptual Framework of CCIS-CodeHub
+
+Input Phase
+
+The input phase consists of the core needs and resources of the study. These include the identified problems of tool fragmentation, employability gaps, AI dependence, academic-integrity risks, and the need for system-performance evaluation. The input phase also includes the role-based needs of students, instructors, and administrators; instructional documents and curriculum materials; project-management requirements; AI model providers; camera-enabled assessment devices; and the selected software stack used for development.
+
+Process Phase
+
+The process phase refers to the transformation of these inputs into a functioning system. It includes requirements analysis, platform design, interface development, database modeling, API development, community and collaboration design, contextual AI integration, curriculum-aware content extraction, camera-assisted assessment flow, real-time event handling, and iterative testing. The process phase also includes system evaluation planning in terms of software quality, responsiveness, reliability, and AI-support relevance.
+
+Output Phase
+
+The output phase is the completed CCIS-CodeHub platform as an integrated AI-driven academic ecosystem. The outputs include a structured learning environment, collaborative project workspace, community-based support layer, contextual AI mentor, integrity-aware assessment flow, and a formal basis for evaluating overall system performance. In conceptual terms, the output phase represents the conversion of fragmented academic work into a connected and measurable digital environment.
+
+3.3 Requirements Analysis
+
+The thesis requires both educational and technical readiness. On the educational side, the platform must support structured learning paths, meaningful collaboration, accessible mentoring, and more accountable digital assessment. On the technical side, the platform must support multiple user roles, modular services, real-time communication, AI-service integration, and secure data handling.
+
+From a software perspective, the requirements of CCIS-CodeHub can be grouped into hardware, software, and integration needs. The system requires development devices capable of running a modern web-development stack, backend services for API and database handling, browser-based access for students and instructors, and a stable network for real-time communication features. Because the thesis includes AI and monitoring-related components, the requirements also include integration with external AI services, document-processing utilities, and camera-enabled assessment hardware.
+
+3.4 Functional and Non-Functional Requirements
+
+Functional Requirements
+
+The functional requirements of the thesis map directly to the six specific objectives of the study.
+
+1. The platform must unify learning and practice by integrating learning modules, quizzes, coding activities, video-based content, and project-oriented tasks in one environment.
+2. The platform must provide contextual career guidance through structured learning paths, progression logic, and recommendation support.
+3. The platform must democratize knowledge sharing through community interaction, peer discussion, and collaboration spaces.
+4. The platform must integrate responsible AI mentorship capable of offering contextual academic support without encouraging skill atrophy.
+5. The platform must implement integrity-aware assessment with proctoring-oriented monitoring flow.
+6. The platform must support the evaluation of overall system performance using quality and performance indicators.
+
+Non-Functional Requirements
+
+The non-functional requirements of the thesis emphasize how the system should perform. These include usability, responsiveness, security, reliability, maintainability, modularity, and compatibility with real academic use. Because the thesis now includes a sixth objective on system-performance evaluation, non-functional quality is not secondary; it is part of the core research commitment.
+
+3.5 User Requirements
+
+The user requirements of CCIS-CodeHub are structured according to the three major user roles in the system.
+
+Students
+
+Students require access to learning paths, modules, assessments, coding activities, project workspaces, community interaction, and AI-guided academic support. They also require a platform that remains understandable and responsive during normal academic use.
+
+Instructors
+
+Instructors require tools for creating and managing modules, quizzes, video materials, learning pathways, and assessment settings. They also need visibility over student progress, community interaction, and integrity-related events during assessments.
+
+Administrators
+
+Administrators require system-wide oversight, user management, role control, moderation capability, and broader monitoring of platform activity. They also need a platform architecture that supports maintainability and secure access management.
+
+3.6 Use Case Overview
+
+The use case structure of the platform centers on the interactions of students, instructors, and administrators with the major modules of the system.
+
+Figure 2 presents the major user interactions within CCIS-CodeHub and illustrates how students, instructors, and administrators engage with the platform's core functions.
+
+[Insert Figure 2 here.]
+
+Figure 2. Use Case Diagram of CCIS-CodeHub
+
+At a high level, students enroll in learning paths, take quizzes, perform coding activities, participate in project work, join the community space, and interact with the AI Mentor. Instructors create content, manage assessments, monitor progress, and oversee instructional flow. Administrators manage roles, permissions, and overall system governance. This use case structure reflects the thesis argument that CCIS-CodeHub functions as a full academic ecosystem rather than a single-task application.
+
+3.7 System Architecture and Technical Design
+
+The technical design of CCIS-CodeHub is modular. The frontend layer is built using React and TypeScript to provide the user interface for the learning environment, project workspace, community features, dashboards, and AI interaction pages. The backend layer is built using Django and Django REST Framework to manage application logic, role-based access, assessment flow, AI actions, and data processing. Real-time features are handled through WebSocket-based communication, while persistent storage is handled through PostgreSQL. Redis and background processing components support asynchronous and event-driven operations.
+
+The architecture also includes an AI and context layer. This layer manages model-provider selection, AI-generated recommendations, debugging assistance, content generation, and contextual grounding from uploaded instructional materials. In thesis terms, this design supports a progression from generic AI assistance toward curriculum-aware and fine-tuned academic support.
+
+The integrity layer is another important architectural component. It combines quiz controls, behavioral event monitoring, and camera-assisted assessment flow. This layer is especially relevant because it reflects the thesis objective of implementing advanced integrity mechanisms in a digital environment.
+
+Figure 3 presents the real system architecture of CCIS-CodeHub and shows the actual runtime objects and integrations that support the platform's major functions.
+
+[Insert Figure 3 here.]
+
+Figure 3. Real System Architecture of CCIS-CodeHub
+
+3.8 Prototyping, Testing, and Refinement
+
+The thesis followed an iterative technical-development approach. Early prototypes focused on core user flows such as authentication, learning navigation, and basic content interaction. Later refinements expanded the system into collaborative projects, community-based exchange, AI mentorship, advanced assessments, and integrity-aware monitoring.
+
+Prototype testing involved checking whether the modules were understandable, navigable, and technically consistent. Refinement was then guided by the need to strengthen coherence across modules, improve user-role flows, support AI-context integration, and prepare the system for more reliable academic use.
+
+3.9 System Development Perspective
+
+Although the thesis is strongly AI-oriented, it remains a system-development study in practical execution. The technical background presented in this chapter shows that CCIS-CodeHub is not merely an AI concept, nor merely a software interface. It is a system that combines educational theory, software architecture, AI support, and quality-oriented design in response to a specific institutional problem.
+
+This chapter therefore establishes the theoretical and technical foundation of the study. The next chapter presents the research methodology used in implementing, deploying, and evaluating the proposed system.

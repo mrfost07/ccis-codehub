@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="900" viewBox="0 0 1500 900">
+  <defs>
+    <style>
+      .title { font: 700 28px Arial, sans-serif; fill: #7c2d12; }
+      .section { font: 700 24px Arial, sans-serif; fill: #ffffff; letter-spacing: 1px; }
+      .cardTitle { font: 700 16px Arial, sans-serif; fill: #9a3412; }
+      .body { font: 500 14px Arial, sans-serif; fill: #431407; }
+      .caption { font: 600 14px Arial, sans-serif; fill: #7c2d12; }
+    </style>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#7c2d12" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto">
+      <polygon points="0,0 14,7 0,14" fill="#c2410c"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1500" height="900" fill="#fffaf5"/>
+
+  <text x="750" y="48" text-anchor="middle" class="title">Figure 1. IPO Conceptual Framework of CCIS-CodeHub</text>
+
+  <rect x="70" y="120" rx="14" ry="14" width="390" height="660" fill="#ffffff" stroke="#fdba74" stroke-width="3" filter="url(#shadow)"/>
+  <rect x="555" y="120" rx="14" ry="14" width="390" height="660" fill="#ffffff" stroke="#fb923c" stroke-width="3" filter="url(#shadow)"/>
+  <rect x="1040" y="120" rx="14" ry="14" width="390" height="660" fill="#ffffff" stroke="#fdba74" stroke-width="3" filter="url(#shadow)"/>
+
+  <rect x="165" y="88" rx="12" ry="12" width="200" height="48" fill="#ea580c"/>
+  <rect x="650" y="88" rx="12" ry="12" width="200" height="48" fill="#ea580c"/>
+  <rect x="1135" y="88" rx="12" ry="12" width="200" height="48" fill="#ea580c"/>
+
+  <text x="265" y="119" text-anchor="middle" class="section">INPUT</text>
+  <text x="750" y="119" text-anchor="middle" class="section">PROCESS</text>
+  <text x="1235" y="119" text-anchor="middle" class="section">OUTPUT</text>
+
+  <line x1="460" y1="450" x2="535" y2="450" stroke="#c2410c" stroke-width="5" marker-end="url(#arrow)"/>
+  <line x1="945" y1="450" x2="1020" y2="450" stroke="#c2410c" stroke-width="5" marker-end="url(#arrow)"/>
+
+  <rect x="98" y="155" rx="12" ry="12" width="334" height="105" fill="#fff7ed" stroke="#fdba74" stroke-width="2"/>
+  <text x="118" y="181" class="cardTitle">Academic Problems and Needs</text>
+  <text x="118" y="208" class="body">- Tool fragmentation and workflow gaps</text>
+  <text x="118" y="232" class="body">- Employability and skill-readiness issues</text>
+  <text x="118" y="256" class="body">- AI dependence and integrity concerns</text>
+
+  <rect x="98" y="278" rx="12" ry="12" width="334" height="128" fill="#fff7ed" stroke="#fdba74" stroke-width="2"/>
+  <text x="118" y="304" class="cardTitle">Stakeholders and Data Sources</text>
+  <text x="118" y="331" class="body">- Students, instructors, administrators</text>
+  <text x="118" y="355" class="body">- Curriculum and learning documents</text>
+  <text x="118" y="379" class="body">- Quiz, project, and interaction data</text>
+  <text x="118" y="403" class="body">- Webcam frames / proctoring dataset</text>
+
+  <rect x="98" y="424" rx="12" ry="12" width="334" height="128" fill="#fff7ed" stroke="#fdba74" stroke-width="2"/>
+  <text x="118" y="450" class="cardTitle">AI Foundations</text>
+  <text x="118" y="477" class="body">- Base LLM for AI Mentor</text>
+  <text x="118" y="501" class="body">- Base computer-vision model</text>
+  <text x="118" y="525" class="body">- Prompting and grounding rules</text>
+  <text x="118" y="549" class="body">- Fine-tuning / adaptation setup</text>
+
+  <rect x="98" y="570" rx="12" ry="12" width="334" height="175" fill="#fff7ed" stroke="#fdba74" stroke-width="2"/>
+  <text x="118" y="596" class="cardTitle">Technical and Evaluation Resources</text>
+  <text x="118" y="623" class="body">- React, Django, PostgreSQL, WebSockets</text>
+  <text x="118" y="647" class="body">- API services and camera-enabled devices</text>
+  <text x="118" y="671" class="body">- ISO/IEC 25010 quality framework</text>
+  <text x="118" y="695" class="body">- Accuracy, Precision, Recall, F1, Latency</text>
+  <text x="118" y="719" class="body">- System performance indicators</text>
+
+  <rect x="583" y="155" rx="12" ry="12" width="334" height="105" fill="#fff7ed" stroke="#fb923c" stroke-width="2"/>
+  <text x="603" y="181" class="cardTitle">Analysis and Design</text>
+  <text x="603" y="208" class="body">- Requirements analysis and architecture</text>
+  <text x="603" y="232" class="body">- UI, database, API, and module planning</text>
+  <text x="603" y="256" class="body">- IPO and evaluation design alignment</text>
+
+  <rect x="583" y="278" rx="12" ry="12" width="334" height="128" fill="#fff7ed" stroke="#fb923c" stroke-width="2"/>
+  <text x="603" y="304" class="cardTitle">Data Preparation and AI Development</text>
+  <text x="603" y="331" class="body">- Data collection, cleaning, preprocessing</text>
+  <text x="603" y="355" class="body">- Labeling for proctoring-related data</text>
+  <text x="603" y="379" class="body">- Curriculum grounding and prompt design</text>
+  <text x="603" y="403" class="body">- AI-support behavior setup</text>
+
+  <rect x="583" y="424" rx="12" ry="12" width="334" height="128" fill="#fff7ed" stroke="#fb923c" stroke-width="2"/>
+  <text x="603" y="450" class="cardTitle">Model Adaptation and Training</text>
+  <text x="603" y="477" class="body">- AI Mentor fine-tuning / adaptation</text>
+  <text x="603" y="501" class="body">- Vision-proctor model training / validation</text>
+  <text x="603" y="525" class="body">- Relevance and behavior tuning</text>
+  <text x="603" y="549" class="body">- Metric-based checking</text>
+
+  <rect x="583" y="570" rx="12" ry="12" width="334" height="175" fill="#fff7ed" stroke="#fb923c" stroke-width="2"/>
+  <text x="603" y="596" class="cardTitle">System Integration, Testing, Evaluation</text>
+  <text x="603" y="623" class="body">- Integration with learning, projects, community</text>
+  <text x="603" y="647" class="body">- Camera and event-flow integration</text>
+  <text x="603" y="671" class="body">- Iterative testing and refinement</text>
+  <text x="603" y="695" class="body">- Software quality and AI metrics evaluation</text>
+  <text x="603" y="719" class="body">- Performance, reliability, relevance checks</text>
+
+  <rect x="1068" y="155" rx="12" ry="12" width="334" height="105" fill="#fff7ed" stroke="#fdba74" stroke-width="2"/>
+  <text x="1088" y="181" class="cardTitle">Integrated Platform</text>
+  <text x="1088" y="208" class="body">- Structured learning environment</text>
+  <text x="1088" y="232" class="body">- Collaborative project workspace</text>
+  <text x="1088" y="256" class="body">- Community-based academic ecosystem</text>
+
+  <rect x="1068" y="278" rx="12" ry="12" width="334" height="128" fill="#fff7ed" stroke="#fdba74" stroke-width="2"/>
+  <text x="1088" y="304" class="cardTitle">AI Outputs</text>
+  <text x="1088" y="331" class="body">- Contextual curriculum-aware AI Mentor</text>
+  <text x="1088" y="355" class="body">- Fine-tuned / adaptation-ready support layer</text>
+  <text x="1088" y="379" class="body">- Guided academic recommendation features</text>
+  <text x="1088" y="403" class="body">- Contextual learning assistance</text>
+
+  <rect x="1068" y="424" rx="12" ry="12" width="334" height="128" fill="#fff7ed" stroke="#fdba74" stroke-width="2"/>
+  <text x="1088" y="450" class="cardTitle">Integrity and Proctoring Outputs</text>
+  <text x="1088" y="477" class="body">- Vision-based integrity framework</text>
+  <text x="1088" y="501" class="body">- AI-proctoring / monitoring component</text>
+  <text x="1088" y="525" class="body">- Camera-assisted assessment workflow</text>
+  <text x="1088" y="549" class="body">- Monitoring-ready quiz environment</text>
+
+  <rect x="1068" y="570" rx="12" ry="12" width="334" height="175" fill="#fff7ed" stroke="#fdba74" stroke-width="2"/>
+  <text x="1088" y="596" class="cardTitle">Evaluation and Final Outcome</text>
+  <text x="1088" y="623" class="body">- System-performance evaluation results</text>
+  <text x="1088" y="647" class="body">- Software-quality assessment basis</text>
+  <text x="1088" y="671" class="body">- AI-model performance indicators</text>
+  <text x="1088" y="695" class="body">- Connected, measurable, defensible platform</text>
+  <text x="1088" y="719" class="body">- Thesis-ready integrated academic ecosystem</text>
+
+  <text x="750" y="835" text-anchor="middle" class="caption">Caption: The IPO model shows how the academic problems, datasets, base AI models, technical resources, and evaluation criteria of the study are transformed through analysis, data preparation, model adaptation, system integration, and testing into CCIS-CodeHub as an integrated AI-driven academic platform.</text>
+</svg>

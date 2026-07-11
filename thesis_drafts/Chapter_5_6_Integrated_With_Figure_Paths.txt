@@ -1,0 +1,189 @@
+CHAPTER 5
+PRESENTATION, ANALYSIS, AND INTERPRETATION OF DATA
+
+This chapter presents, analyzes, and interprets the findings of the study in relation to the objectives of CCIS-CodeHub. The presentation covers the system evaluation of the integrated platform, the performance of the AI proctoring component, and the evaluation outcomes of the AI Mentor subsystem. The chapter is organized to show both the acceptability of the developed platform as a software system and the measured behavior of its AI-driven components within the context of the study.
+
+5.1 Presentation of System Evaluation Results
+
+A total of 30 BSCS students evaluated the CCIS-CodeHub platform following the beta testing phase. The system was evaluated using the ISO/IEC 25010 software quality characteristics, specifically focusing on Functional Suitability, Performance Efficiency, Usability, Security, and Reliability. The data gathered from the survey was tabulated and computed for its weighted mean using a 5-point Likert scale. The interpretation scale used was: 4.50-5.00 (Highly Acceptable), 3.50-4.49 (Acceptable), 2.50-3.49 (Moderately Acceptable), 1.50-2.49 (Fairly Acceptable), 1.00-1.49 (Not Acceptable).
+
+Table 1 presents the summary of the ISO/IEC 25010 system evaluation results of CCIS-CodeHub.
+
+Table 1. Summary of ISO/IEC 25010 System Evaluation (N=30)
+
+Software Quality Characteristic | Weighted Mean | Verbal Interpretation
+Functional Suitability | 4.65 | Highly Acceptable
+Performance Efficiency | 4.42 | Acceptable
+Usability | 4.70 | Highly Acceptable
+Security | 4.85 | Highly Acceptable
+Reliability | 4.50 | Highly Acceptable
+Overall Weighted Mean | 4.62 | Highly Acceptable
+
+The results indicate that the developed platform achieved an overall weighted mean of 4.62, verbally interpreted as Highly Acceptable. Among the evaluated characteristics, Security obtained the highest score of 4.85, showing that the respondents perceived the platform's authentication, access control, and protected workflows as strong and dependable. Usability also received a high score of 4.70, indicating that the respondents found the integrated platform understandable and practical to use. Functional Suitability received 4.65, which means that the system features were considered aligned with the intended academic tasks of the users. Reliability obtained 4.50, which still falls under Highly Acceptable and suggests stable system behavior during testing. Meanwhile, Performance Efficiency received the lowest score of 4.42, interpreted as Acceptable, indicating that although the platform performed well overall, optimization is still needed for some resource-intensive or real-time features.
+
+These findings support the study's sixth objective of evaluating the overall system performance of CCIS-CodeHub. The evaluation results also confirm that the developed platform was not only functionally complete but also positively received by its intended academic users in terms of quality and practical usability.
+
+5.2 Presentation of AI Proctoring Model Results
+
+The AI proctoring component of the study was developed through several model iterations. Based on the available artifacts in the proctoring model documentation, four model versions were observed during experimentation. These versions differed in performance, evaluation completeness, and suitability for deployment-oriented discussion.
+
+Table 2 presents the comparative summary of the documented AI proctoring model versions.
+
+Table 2. Summary of AI Proctoring Model Versions
+
+Model Version | Reported Result | Remarks
+v1 | Accuracy = 81.48% | Baseline trained model with acceptable performance and strong detection of no_face and phone_detected
+v2 | Accuracy = 77.00%, Weighted F1 = 75.00% | Lower-performing version with greater class confusion in gaze-direction classes
+v3 | Best Validation Accuracy = 86.98% | Highest recorded experimental validation accuracy during iteration, but supporting reporting was less complete and less stable for final thesis presentation
+V4 | Accuracy = 85.80%, F1-score = 85.70%, Inference Time = 30-50 ms | Final selected model for thesis discussion because it provided the most complete evaluation artifact set, including dataset size, class report, and deployment-relevant performance
+
+Among the recorded versions, v3 produced the highest experimental validation accuracy at 86.98%. However, V4 was selected as the final AI proctoring model for thesis discussion because it provided the most complete and defensible evaluation evidence. In addition to reporting an overall accuracy of 85.80%, the V4 artifacts also included structured metadata, class-level evaluation metrics, dataset-scale reporting, and inference-time measurements. For this reason, v3 is best treated as the highest-performing iterative result, while V4 is the most suitable final model for academic reporting and practical discussion.
+
+Figure 4 shows the training accuracy and loss behavior of the selected AI proctoring model during its advanced training phase.
+
+[Insert Figure 4 here.]
+Figure 4 file path: C:\Users\fosta\OneDrive\Desktop\ccis-codehub-ai-models\CCIS_Proctoring_AI\docs\V4\Screenshot 2026-02-02 194659.png
+
+Figure 4. Training Accuracy and Loss of the CCIS Proctoring AI V4 Model
+
+The training curves show that the selected final model reached a best validation accuracy of 85.80% with a best F1-score of 85.67% during the phase shown in the results artifact. The curves also indicate a relatively stable convergence pattern in the selected phase, although some gap remained between training and validation performance. This implies that the model was able to learn the targeted behavioral classes effectively, but still faced greater difficulty in generalizing some of the more subtle gaze-direction distinctions. In comparison, the earlier v3 iteration reached a higher peak validation accuracy of 86.98%, but its reporting set was less complete for final thesis presentation.
+
+Figure 5 presents the advanced classification report of the selected proctoring model.
+
+[Insert Figure 5 here.]
+Figure 5 file path: C:\Users\fosta\OneDrive\Desktop\ccis-codehub-ai-models\CCIS_Proctoring_AI\docs\V4\Screenshot 2026-02-02 202341.png
+
+Figure 5. Advanced Classification Report of the CCIS Proctoring AI V4 Model
+
+The advanced classification report shows that the final selected model achieved an overall accuracy of 85.80% on 1,408 evaluated samples. The class-level results are particularly important. The model achieved perfect precision, recall, and F1-score for both no_face and phone_detected, indicating excellent capability in identifying the absence of a test taker from the frame and the presence of a prohibited mobile phone. It also performed strongly on looking_down with an F1-score of 0.9263. However, the model was less consistent in gaze-direction classes such as looking_right, which obtained an F1-score of 0.6732, and looking_up, which obtained an F1-score of 0.7550. The macro-average precision, recall, and F1-score were 0.8892, 0.8578, and 0.8525, respectively, while the weighted-average F1-score was 0.8523. The corresponding metadata for the selected model also reported a dataset size of 7,000 images, mixed-precision training, and an estimated inference time of 30 to 50 milliseconds per prediction.
+
+These results indicate that the AI proctoring component was most effective in detecting concrete integrity-related conditions such as no face present and phone detected, while directional gaze interpretation remained a more difficult classification problem. This pattern is consistent with the expected limitations of behavioral computer-vision classification, especially when data diversity and hardware resources are constrained. Even so, the model demonstrates that a vision-based integrity mechanism is technically feasible within the CCIS-CodeHub platform and can support automated monitoring of selected suspicious behaviors during assessments.
+
+5.3 Presentation of AI Mentor Evaluation Results
+
+The AI Mentor component, represented in this study by the school-focused, curriculum-based, fine-tuned Llama AI_MentorV3, was evaluated using the available training and output artifacts. Unlike the proctoring model, the evidence for the AI Mentor was stored primarily as evaluation screenshots rather than as a complete exported model report. Even so, the available artifacts provide clear comparative results showing the effect of structured prompting on the mentor's response quality.
+
+Table 3 presents the comparative evaluation results of AI_MentorV3 with and without the system prompt.
+
+Table 3. Summary of AI Mentor V3 Evaluation Results
+
+Evaluation Setup | Passed | Pass Rate | Average Score
+With System Prompt | 113/113 | 100.0% | 90.1%
+Without System Prompt | 113/113 | 100.0% | 83.9%
+Difference | - | - | +6.2 percentage points
+
+The comparison in Table 3 shows that both evaluation modes achieved a 100% pass rate under the applied scoring criteria, but the system-prompt-guided version achieved a notably higher average score of 90.1% compared with 83.9% without the system prompt. This indicates that prompt engineering and structured behavioral guidance significantly improved the quality and consistency of the mentor's responses even when the pass rate remained constant.
+
+Figure 6 shows the training loss behavior recorded for AI_MentorV3.
+
+[Insert Figure 6 here.]
+Figure 6 file path: C:\Users\fosta\OneDrive\Desktop\ccis-codehub-ai-models\AI_MentorV3\Screenshot 2026-02-05 015134.png
+
+Figure 6. Training Loss Over Time of AI_MentorV3
+
+The training-loss graph shows a rapid decrease from approximately 2.7 at the early stage of training to roughly 0.09 near the final stage of the recorded run. This pattern indicates that the adaptation process of the fine-tuned Llama model converged effectively and that the fine-tuning or instruction-adjustment process substantially improved optimization over time.
+
+Figure 7 presents the evaluation result of AI_MentorV3 with the system prompt enabled.
+
+[Insert Figure 7 here.]
+Figure 7 file path: C:\Users\fosta\OneDrive\Desktop\ccis-codehub-ai-models\AI_MentorV3\Screenshot 2026-02-05 014441.png
+
+Figure 7. Evaluation Result of AI_MentorV3 with System Prompt
+
+The result with the system prompt enabled shows an average score of 90.1%, with strong performance across student, instructor, admin, and general-role evaluations. The output distribution also shows that most evaluation scores clustered in the higher range, indicating improved consistency and task alignment under prompt-guided operation.
+
+Figure 8 presents the competence heatmap of the AI Mentor across user roles and system features.
+
+[Insert Figure 8 here.]
+Figure 8 file path: C:\Users\fosta\OneDrive\Desktop\ccis-codehub-ai-models\AI_MentorV3\Screenshot 2026-02-05 015152.png
+
+Figure 8. Competence Heatmap of AI_MentorV3 by Role and Feature
+
+The competence heatmap indicates that the model performed strongly in several platform-relevant domains. Perfect or near-perfect scores were observed in features such as Chat, Platform, Support, Analytics, and About under specific role contexts. Strong results were also recorded in Learning Paths, Proctoring, Playground, Student Management, and Project-related support. These results suggest that the mentor was able to provide useful role-aware assistance across a broad range of CCIS-CodeHub functions. At the same time, the variation of scores across features also shows that the model's competence is not uniformly distributed, which means further domain-specific refinement remains necessary.
+
+Taken together, the mentor results suggest that AI_MentorV3 is a promising school-focused and curriculum-based support component for the platform. The strongest evidence from the available artifacts is not simply that the model can respond, but that structured prompting and fine-tuned adaptation measurably improve output quality. This supports the thesis position that the AI Mentor should be treated as a guided and curriculum-aware academic support mechanism rather than as a generic chatbot.
+
+5.4 Synthesis and Interpretation of Findings
+
+The findings of this chapter indicate that CCIS-CodeHub was successful both as an integrated software platform and as a developing AI-enhanced academic environment. From the system perspective, the ISO/IEC 25010 evaluation showed that the platform was highly acceptable overall, with especially strong ratings in security, usability, and functional suitability. This confirms that the integrated design of the platform was meaningful to its intended users and successfully addressed the issue of fragmented academic tools.
+
+From the AI perspective, the results show two different but complementary patterns. In the proctoring component, the iterative experiments showed that v3 achieved the highest peak validation accuracy, while V4 provided the most complete and defensible final evaluation package. The selected V4 model demonstrated the strongest reliability in detecting concrete behavioral events such as no_face and phone_detected, while gaze-direction classification remained a comparatively more difficult task. This means that the proctoring model is already useful for selected academic-integrity functions, although it still requires further data expansion and refinement for more nuanced behavioral interpretation. Meanwhile, the AI Mentor evaluation showed that guided prompting and adaptation substantially improved the quality of mentor responses. This reinforces the argument that context-aware AI support is more effective when it is shaped by explicit instructional framing.
+
+Overall, the results support the central thesis of the study: that CCIS-CodeHub is not merely a collection of isolated features, but a viable integrated platform that combines learning, collaboration, community interaction, AI support, and integrity-aware assessment. At the same time, the chapter also shows that the AI components remain developmental technologies within the platform, with strong promise but clear areas for future improvement in data scale, model specialization, and hardware-supported optimization.
+
+5.5 Alignment of Findings with the Specific Objectives of the Study
+
+To ensure that the presentation of results remains directly connected to the direction of the study, the findings may be aligned with the six specific objectives as follows:
+
+1. Objective 1, which aimed to unify learning and practice, was addressed by the integrated structure of the platform itself. The developed environment combined learning content, project collaboration, development-oriented workflows, and academic support functions in one system, while the high ratings in functional suitability and usability indicate that the integrated setup was meaningful and workable for the respondents.
+
+2. Objective 2, which aimed to provide contextual career guidance, was addressed through the implementation of structured learning modules, guided learning pathways, and assessment-oriented academic support. Although this objective was not evaluated through a separate isolated metric, the platform's strong functional suitability indicates that the implemented learning structure was aligned with its intended academic purpose.
+
+3. Objective 3, which aimed to democratize knowledge sharing, was addressed through the inclusion of community-oriented and collaborative features within the integrated platform environment. The results support the view that CCIS-CodeHub functioned not only as a content-delivery system, but also as a connected academic ecosystem that supports interaction, collaboration, and peer-supported engagement.
+
+4. Objective 4, which aimed to integrate responsible AI mentorship, was supported by the evaluation results of AI_MentorV3. The prompt-guided setup achieved a higher average score of 90.1% compared with 83.9% without the system prompt, showing that structured prompting and contextual guidance improved the quality and consistency of the mentor's responses.
+
+5. Objective 5, which aimed to implement vision-based integrity, was supported by the proctoring-model experimentation and evaluation. The results showed that Version 3 achieved the highest peak validation accuracy at 86.98%, while Version 4 served as the final selected thesis model with 85.80% accuracy, approximately 85.70% F1-score, and strong detection performance for no_face and phone_detected conditions.
+
+6. Objective 6, which aimed to evaluate the overall system performance of CCIS-CodeHub, was directly supported by the ISO/IEC 25010 evaluation results. The platform obtained an overall weighted mean of 4.62, interpreted as Highly Acceptable, which confirms that the system performed well in terms of quality, usability, security, reliability, and practical acceptability.
+
+CHAPTER 6
+SUMMARY OF FINDINGS, CONCLUSIONS, AND RECOMMENDATIONS
+
+This chapter presents the summary of findings, conclusions, and recommendations of the study. It synthesizes the key results of the system evaluation and AI-component assessment, draws the overall conclusions of the research, and outlines recommendations for future development and implementation of CCIS-CodeHub.
+
+6.1 Summary of Findings
+
+Based on the results presented in Chapter 5, the following findings were established:
+
+1. In relation to Objective 1, the study found that CCIS-CodeHub was able to unify learning and practice by integrating learning management, collaborative project workflows, development-oriented activities, and academic support features in one connected platform environment.
+
+2. In relation to Objective 2, the study found that the platform was able to support contextual and career-oriented learning through structured modules, guided pathways, and targeted academic support features aligned with the intended educational setting of the users.
+
+3. In relation to Objective 3, the study found that CCIS-CodeHub functioned as a connected academic environment that supports knowledge sharing, collaboration, and community participation through its integrated community and interaction-oriented features.
+
+4. On responsible AI mentorship, the evaluation of the school-focused, curriculum-based, fine-tuned Llama AI_MentorV3 showed that the system-prompt-guided configuration achieved a higher average score of 90.1% compared with 83.9% without the system prompt, indicating that structured prompting and contextual guidance improved response quality and consistency.
+
+5. In relation to Objective 5, the proctoring-model experimentation showed that Version 3 achieved the highest peak validation accuracy at 86.98%, while Version 4 was selected as the final thesis model because it offered the most complete evaluation evidence. The selected V4 model achieved 85.80% accuracy, approximately 85.70% F1-score, and strong results in no_face and phone_detected detection, although gaze-direction classes remained less stable.
+
+6. In relation to Objective 6, the system evaluation results showed that CCIS-CodeHub obtained an overall weighted mean of 4.62, verbally interpreted as Highly Acceptable. Functional Suitability, Usability, Security, and Reliability were rated highly acceptable, while Performance Efficiency obtained an acceptable rating of 4.42, indicating that the system performed well overall but still requires further optimization for resource-intensive and real-time operations.
+
+6.2 Conclusions
+
+This study was conducted to design, develop, and evaluate CCIS-CodeHub as an AI-driven academic platform that integrates learning management, collaborative project work, community-based interaction, contextual AI mentorship, and integrity-aware assessment for the College of Computing and Information Sciences. Based on the findings of the study, it is concluded that the platform was able to satisfy its major objectives in a meaningful and academically defensible way.
+
+The study concludes that CCIS-CodeHub successfully addressed the problem of tool fragmentation by integrating multiple academic functions into one platform. Instead of requiring users to move across disconnected systems for learning, assessment, collaboration, communication, and support, the developed platform provided a unified environment in which these functions were structurally connected. This directly supports the objective of unifying learning and practice in one coherent academic ecosystem.
+
+The study further concludes that the platform supported contextual and career-oriented learning by combining structured learning pathways, coding exercises, project workspaces, and academic support features. In this sense, the system did not function merely as a repository of content, but as a broader academic environment that aligns learning activities with practical computing-related tasks and skills.
+
+It is also concluded that the community and collaborative features of the platform strengthened its academic value. Through project collaboration and community-based interaction, the system established a stronger basis for peer-supported knowledge sharing, student engagement, and connected academic participation.
+
+The study additionally concludes that the school-focused, curriculum-based, fine-tuned Llama AI Mentor component is a meaningful academic support feature when guided by structured prompting and contextual design. The improvement in average score from 83.9% to 90.1% supports the position that AI mentorship becomes more effective when it is implemented as guided, curriculum-aware academic assistance rather than as unrestricted answer generation.
+
+Moreover, the study concludes that the AI proctoring component is feasible as part of an integrity-aware assessment framework. Although Version 3 produced the highest peak validation accuracy during experimentation, Version 4 served as the most appropriate final thesis model because it offered more complete and defensible evaluation evidence. The selected V4 model demonstrated that the platform can support selected integrity-monitoring functions, especially in detecting concrete conditions such as no face present and phone detected, even though more nuanced gaze-related interpretation still requires improvement.
+
+Finally, the study concludes that CCIS-CodeHub performed well as a software system based on the ISO/IEC 25010 evaluation. With an overall weighted mean of 4.62, interpreted as Highly Acceptable, the platform showed strong user acceptance in terms of functionality, usability, security, and reliability. Although performance efficiency remained the lowest-rated criterion, it still fell within the acceptable range, which means that the system is viable for academic use while still benefiting from future optimization.
+
+Overall, CCIS-CodeHub is concluded to be a viable integrated academic platform that responds to the identified educational and technical problems of the study. The findings show that it is capable of supporting learning, collaboration, community engagement, AI-guided assistance, and integrity-aware assessment in one connected environment. At the same time, the AI components remain developmental and should be viewed as strong but still improving subsystems whose performance depends heavily on data quality, hardware resources, and continued refinement.
+
+6.3 Recommendations
+
+Based on the findings and limitations of the study, the following recommendations are proposed:
+
+1. The AI proctoring component should be improved through the collection of a larger and more diverse dataset, especially for gaze-direction and subtle behavioral classes where the model still showed weaker performance. Expanding the dataset would improve class balance and help increase generalization capability.
+
+2. The training and evaluation of the AI-driven components should be supported by stronger hardware resources in future development cycles. More capable computational resources would allow broader experimentation, larger batch training, more stable hyperparameter tuning, and more efficient validation of the models.
+
+3. The AI Mentor should be further refined using a more complete domain-specific adaptation pipeline. Future work should prioritize a richer curriculum-grounded training or fine-tuning process, together with stronger reproducible reporting artifacts such as structured metric files, validation logs, and exportable evaluation reports.
+
+4. The AI proctoring model should be fully integrated into the live runtime pipeline of the deployed platform so that the current monitoring flow can move beyond transport and placeholder analysis toward direct model-based behavioral detection during assessment sessions.
+
+5. Future studies should expand the user evaluation to include a larger and more diverse respondent population beyond the current 30 BSCS students. Including more respondents across programs and roles would provide stronger evidence for system acceptability and performance.
+
+6. The platform should undergo further optimization for performance efficiency, especially in modules that involve real-time communication, AI processing, or larger media and assessment workflows. This is necessary to improve responsiveness under wider institutional deployment.
+
+7. Offline-first capability and local synchronization support should be considered in future versions of the system to reduce dependence on continuous network connectivity and improve accessibility in environments with unstable internet access.
+
+8. Additional thesis work may also focus on producing more detailed experimental reporting for both the proctoring and mentor components, including confusion matrices, precision-recall summaries, ablation studies, and deployment benchmarks, so that the AI contributions of the platform become even more rigorous and reproducible.
+
+In summary, CCIS-CodeHub has demonstrated strong potential as an integrated, AI-enhanced academic platform. However, its long-term institutional value will depend on sustained refinement, stronger datasets, better hardware support, fuller deployment of the trained AI models, and more extensive validation in real academic settings.
