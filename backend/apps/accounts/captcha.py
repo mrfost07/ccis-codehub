@@ -10,6 +10,7 @@ import base64
 import json
 import random
 from django.conf import settings
+from django.core.cache import cache
 
 
 # Token validity duration (5 minutes)
@@ -126,12 +127,21 @@ def verify_captcha_token(token: str, answer) -> tuple:
         timestamp = payload.get('t', 0)
         expected_hash = payload.get('h', '')
         user_hash = _hash_answer(user_answer, timestamp)
-        
+
         if not hmac.compare_digest(user_hash, expected_hash):
             return False, 'Incorrect CAPTCHA answer'
-        
+
+        # Single-use enforcement: atomically claim this token so a captured
+        # token+answer pair cannot be replayed within its remaining TTL.
+        # cache.add() sets the key only if absent, returning False if it
+        # already existed (i.e. the token was already consumed). (Req 5.)
+        consumed_key = f'captcha:used:{hashlib.sha256(token.encode()).hexdigest()}'
+        remaining_ttl = max(1, int(payload.get('e', 0)) - current_time)
+        if not cache.add(consumed_key, '1', remaining_ttl):
+            return False, 'This CAPTCHA has already been used. Please refresh and try again.'
+
         return True, None
-        
+
     except Exception:
         return False, 'CAPTCHA verification failed'
 
