@@ -36,16 +36,13 @@ def get_user_role(user) -> str:
     # Check if user is admin
     if user.is_superuser or user.is_staff:
         return 'admin'
-    
-    # Check if user has instructor role from UserProfile
-    try:
-        from apps.auth_app.models import UserProfile
-        profile = UserProfile.objects.filter(user=user).first()
-        if profile and profile.role in ['instructor', 'teacher', 'faculty']:
-            return 'instructor'
-    except Exception:
-        pass
-    
+
+    # Read the role straight from the User model, where it is defined. The old
+    # code imported a non-existent apps.auth_app.models.UserProfile, so the
+    # lookup always failed and every user was treated as a student. (Req 18.5.)
+    if getattr(user, 'role', None) in ['instructor', 'teacher', 'faculty']:
+        return 'instructor'
+
     return 'student'
 
 
@@ -204,8 +201,12 @@ class ProjectMentorSessionViewSet(viewsets.ModelViewSet):
         action_service = ActionService(request.user)
         content_generator = ContentGenerator(request.user, model_type=model_type)
         
-        # Check if user is confirming a previous action
-        last_ai_message = recent_messages.first()
+        # Check if user is confirming a previous action. Look up the most recent
+        # AI message explicitly — recent_messages.first() is the user message we
+        # just created, whose metadata is empty. (Remediation Req 18.1.)
+        last_ai_message = AIMessage.objects.filter(
+            session=session, sender='ai'
+        ).order_by('-created_at').first()
         awaiting_confirmation = False
         if last_ai_message and last_ai_message.metadata:
             awaiting_confirmation = last_ai_message.metadata.get('awaiting_confirmation', False)
@@ -228,15 +229,21 @@ class ProjectMentorSessionViewSet(viewsets.ModelViewSet):
                     message=ai_response_text,
                     tokens_used=len(ai_response_text.split())
                 )
-                
+
                 profile.total_interactions += 1
                 profile.save()
-                
+
                 return Response({
                     'user_message': AIMessageSerializer(user_message).data,
                     'ai_response': AIMessageSerializer(ai_response).data,
                     'action': {'type': 'cancelled'}
                 })
+            else:
+                # Ambiguous reply while awaiting confirmation (neither yes nor no).
+                # Deterministically treat it as a fresh message and fall through to
+                # normal intent classification, so pending_intent/pending_data are
+                # never read unset. (Remediation Req 18.2 — was UnboundLocalError.)
+                awaiting_confirmation = False
         
         if not awaiting_confirmation:
             # Classify intent for new message
@@ -1046,9 +1053,11 @@ Encourage them to create their first project or join existing ones. Offer to hel
             if not post_id:
                 ai_response_text = "Which post would you like to comment on? Please navigate to the Community page to comment on posts directly."
             else:
-                # Generate a comment based on topic
+                # Generate comment text via an existing generator method.
+                # ContentGenerator has no generate_comment(); generate_post_content
+                # returns a {'content': ...} dict we can reuse. (Req 18.3.)
                 content_generator = ContentGenerator(request.user, model_type=model_type)
-                comment_content = content_generator.generate_comment(topic)
+                comment_content = content_generator.generate_post_content(topic)
                 
                 result = action_service.comment_on_post(int(post_id), comment_content.get('content', topic))
                 ai_response_text = result['message']
@@ -1286,7 +1295,12 @@ class GenerateQuizFromPDFView(APIView):
         
         content_generator = ContentGenerator(request.user, model_type=model_type)
         
-        num_questions = int(request.data.get('num_questions', 5))
+        # Validate before converting so non-numeric input doesn't 500. (Req 18.4.)
+        try:
+            num_questions = int(request.data.get('num_questions', 5))
+        except (TypeError, ValueError):
+            num_questions = 5
+        num_questions = max(1, min(num_questions, 20))
         difficulty = request.data.get('difficulty', 'intermediate')
         
         result = content_generator.generate_quiz_questions(
