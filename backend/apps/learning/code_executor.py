@@ -4,11 +4,13 @@ Code Execution Engine — Phase 2
 Runs student-submitted code against test cases in a sandboxed subprocess.
 Supports Python, JavaScript (Node.js), Java, and C++.
 
-Security:
-  - All code runs in a subprocess with a hard timeout (TIMEOUT seconds).
-  - Stdin/stdout are piped; no file system access beyond a temp file.
-  - Memory limit is enforced via resource limits on POSIX systems.
-  - TODO: Replace with Judge0 or Docker sandbox for full isolation in production.
+Security (best-effort, NOT a true sandbox):
+  - All code runs in a subprocess with a hard wall-clock timeout (TIMEOUT seconds).
+  - Stdin/stdout are piped and output is capped at MAX_OUTPUT_BYTES.
+  - On POSIX, a CPU-time rlimit is applied as a second line of defence against
+    busy loops that fork or otherwise evade the wall-clock timeout.
+  - This does NOT provide filesystem, network, or memory isolation. For untrusted
+    code in production, run behind Judge0 or a Docker/gVisor sandbox.
 
 Performance improvement (v2):
   - Java and C++ are compiled ONCE per submission, not once per test case.
@@ -27,6 +29,26 @@ logger = logging.getLogger(__name__)
 TIMEOUT = 5        # seconds per test case execution
 COMPILE_TIMEOUT = 15  # seconds for compilation step
 MAX_OUTPUT_BYTES = 16_384  # 16 KB
+
+
+def _posix_cpu_limit():
+    """
+    Return a preexec_fn that caps child CPU time on POSIX, or None elsewhere.
+
+    A wall-clock timeout can be dodged by code that spawns work or blocks; a
+    CPU-time rlimit sends SIGXCPU when the cap is exceeded. Not available on
+    Windows (no os.fork / resource module), where we rely on the wall-clock
+    timeout alone.
+    """
+    if os.name != 'posix':
+        return None
+    import resource  # POSIX-only
+
+    def _set_limits():
+        cpu = TIMEOUT + 2
+        resource.setrlimit(resource.RLIMIT_CPU, (cpu, cpu))
+
+    return _set_limits
 
 # Language → (file extension, run command template)
 LANG_CONFIG = {
@@ -160,6 +182,7 @@ class CodeExecutor:
                 text=True,
                 timeout=TIMEOUT,
                 cwd=cwd,
+                preexec_fn=_posix_cpu_limit(),
             )
             stdout = proc.stdout[:MAX_OUTPUT_BYTES]
             stderr = proc.stderr[:MAX_OUTPUT_BYTES]
@@ -342,7 +365,8 @@ print(_format_output(_result))
         harness = f'''
 
 // ─── Auto-generated test harness (do not edit) ───
-const _input = require('fs').readFileSync('/dev/stdin', 'utf-8').trim().split('\\n');
+// Read stdin via fd 0 (works on Windows too; '/dev/stdin' does not exist there).
+const _input = require('fs').readFileSync(0, 'utf-8').trim().split('\\n');
 const _args = _input.filter(l => l.trim()).map(line => {{
     try {{ return JSON.parse(line.trim()); }} catch {{ return line.trim(); }}
 }});
