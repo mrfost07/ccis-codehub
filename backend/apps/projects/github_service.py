@@ -47,7 +47,7 @@ class GitHubService:
         """Fetch repository information"""
         try:
             url = f"{self.BASE_URL}/repos/{owner}/{repo}"
-            response = requests.get(url, headers=self.headers)
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             
             data = response.json()
@@ -75,7 +75,7 @@ class GitHubService:
         try:
             url = f"{self.BASE_URL}/repos/{owner}/{repo}/branches"
             params = {"per_page": per_page}
-            response = requests.get(url, headers=self.headers, params=params)
+            response = requests.get(url, headers=self.headers, params=params, timeout=10)
             response.raise_for_status()
             
             branches = []
@@ -98,7 +98,7 @@ class GitHubService:
             if branch:
                 params["sha"] = branch
             
-            response = requests.get(url, headers=self.headers, params=params)
+            response = requests.get(url, headers=self.headers, params=params, timeout=10)
             response.raise_for_status()
             
             commits = []
@@ -125,7 +125,7 @@ class GitHubService:
         try:
             url = f"{self.BASE_URL}/repos/{owner}/{repo}/pulls"
             params = {"state": state, "per_page": per_page}
-            response = requests.get(url, headers=self.headers, params=params)
+            response = requests.get(url, headers=self.headers, params=params, timeout=10)
             response.raise_for_status()
             
             prs = []

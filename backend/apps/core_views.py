@@ -46,10 +46,6 @@ def api_root(request):
                 'recommendations': '/api/ai/recommendations/',
                 'models': '/api/ai/models/',
             },
-            'competitions': {
-                'list': '/api/competitions/competitions/',
-                'leaderboard': '/api/competitions/leaderboard/',
-            },
             'documentation': {
                 'swagger': '/api/schema/swagger-ui/',
                 'redoc': '/api/schema/redoc/',

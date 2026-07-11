@@ -588,7 +588,8 @@ class GoogleOAuthCallbackView(APIView):
                     'client_id': client_id,
                     'client_secret': client_secret,
                 },
-                headers={'Content-Type': 'application/x-www-form-urlencoded'}
+                headers={'Content-Type': 'application/x-www-form-urlencoded'},
+                timeout=10,
             )
             
             if not token_response.ok:
@@ -603,7 +604,8 @@ class GoogleOAuthCallbackView(APIView):
             # Get user info from Google
             userinfo_response = requests.get(
                 'https://www.googleapis.com/oauth2/v2/userinfo',
-                headers={'Authorization': f"Bearer {token_data.get('access_token')}"}
+                headers={'Authorization': f"Bearer {token_data.get('access_token')}"},
+                timeout=10,
             )
             
             if not userinfo_response.ok:
