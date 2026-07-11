@@ -464,8 +464,13 @@ class LiveQuizQuestionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsInstructorOrAdmin]
     
     def get_queryset(self):
-        """Filter questions by quiz if provided"""
+        """Filter questions by quiz if provided, scoped to the owner."""
         queryset = super().get_queryset()
+        user = self.request.user
+        # A non-admin instructor may only manage questions in quizzes they own,
+        # so they cannot read/edit/delete another instructor's questions. (Req 8.3.)
+        if not (user.is_staff or user.is_superuser):
+            queryset = queryset.filter(quiz__instructor=user)
         quiz_id = self.request.query_params.get('quiz_id')
         if quiz_id:
             queryset = queryset.filter(quiz_id=quiz_id)
@@ -540,7 +545,23 @@ class LiveQuizResponseViewSet(viewsets.ModelViewSet):
     queryset = LiveQuizResponse.objects.select_related('participant', 'question').all()
     serializer_class = LiveQuizResponseSerializer
     permission_classes = [IsAuthenticated]
-    
+
+    def get_queryset(self):
+        """
+        Scope responses: a student sees only their own; an instructor sees
+        responses to quizzes they own; admins see all. Prevents reading other
+        participants' answers/correctness. (Req 8.2.)
+        """
+        user = self.request.user
+        qs = LiveQuizResponse.objects.select_related(
+            'participant', 'question', 'participant__session__quiz'
+        )
+        if user.is_staff or user.is_superuser:
+            return qs.order_by('-answered_at')
+        return qs.filter(
+            Q(participant__student=user) | Q(participant__session__quiz__instructor=user)
+        ).order_by('-answered_at')
+
     def create(self, request, *args, **kwargs):
         """Submit an answer to a question"""
         participant_id = request.data.get('participant_id')
