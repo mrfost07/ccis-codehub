@@ -68,7 +68,9 @@ const JoinQuiz = () => {
                 violationPenaltyPoints: quizMeta.violation_penalty_points ?? 0,
                 fullscreenExitAction: quizMeta.fullscreen_exit_action ?? 'warn',
                 altTabAction: quizMeta.alt_tab_action ?? 'warn',
-                enableAiProctor: quizMeta.enable_ai_proctor ?? false,
+                // CV proctor removed (Req 17) — anti-cheat is now in-browser
+                // (useExamLockdown). Always off so no camera WS is attempted.
+                enableAiProctor: false,
                 enableCodeExecution: quizMeta.enable_code_execution ?? true,
                 showCorrectAnswers: quizMeta.show_correct_answers ?? true,
                 showLeaderboard: quizMeta.show_leaderboard ?? true,
