@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404
-from django.db import models
+from django.db import models, transaction
 
 from .models import (
     Project, ProjectMembership, ProjectTask, TaskLabel,
@@ -128,9 +128,24 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def add_member(self, request, slug=None):
         """Add a member to the project"""
         project = self.get_object()
+
+        # Only the project owner or an admin member may add members (Req 13).
+        is_manager = (
+            project.owner == request.user or
+            ProjectMembership.objects.filter(
+                project=project, user=request.user,
+                role__in=['owner', 'admin'], is_active=True
+            ).exists()
+        )
+        if not is_manager:
+            return Response(
+                {'error': 'Only the project owner or an admin can add members'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         user_id = request.data.get('user_id')
         role = request.data.get('role', 'developer')
-        
+
         from apps.accounts.models import User
         user = get_object_or_404(User, id=user_id)
         
@@ -171,7 +186,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
             ProjectMembership.objects.filter(
                 project=project,
                 user=request.user,
-                role__in=['owner', 'lead'],
+                role__in=['owner', 'admin'],  # 'lead' is not a defined role (Req 14)
                 is_active=True
             ).exists()
         )
@@ -199,13 +214,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
         
         for member in members:
             assigned_tasks = project.tasks.filter(assigned_to=member.user)
+            completed_count = assigned_tasks.filter(status='done').count()
             member_stats.append({
                 'user': member.user.username,
                 'role': member.role,
                 'total_tasks': assigned_tasks.count(),
-                'completed_tasks': assigned_tasks.filter(status='done').count(),
+                'completed_tasks': completed_count,
                 'in_progress_tasks': assigned_tasks.filter(status='in_progress').count(),
-                'contribution_score': member.contribution_points
+                # ProjectMembership has no contribution_points field; use completed
+                # task count as the contribution measure. (Req 14 — was AttributeError.)
+                'contribution_score': completed_count
             })
         
         # Recent activities
@@ -826,19 +844,34 @@ class PullRequestViewSet(viewsets.ModelViewSet):
         
         if not can_merge:
             return Response({'error': 'No permission to merge'}, status=status.HTTP_403_FORBIDDEN)
-        
-        pr.status = 'merged'
-        pr.merged_by = request.user
-        pr.merged_at = timezone.now()
-        pr.save()
-        
-        ProjectActivity.objects.create(
-            project=project,
-            user=request.user,
-            activity_type='pr_merged',
-            description=f'Pull request "{pr.title}" was merged'
-        )
-        
+
+        # Branch protection: merging into a protected target branch requires at
+        # least one approving review and no outstanding change requests. (Req 12.)
+        if pr.target_branch and pr.target_branch.is_protected:
+            reviews = PRReviewer.objects.filter(pull_request=pr)
+            has_approval = reviews.filter(status='approved').exists()
+            has_blocking = reviews.filter(status='changes_requested').exists()
+            if not has_approval or has_blocking:
+                return Response(
+                    {'error': 'Protected branch requires an approving review with no requested changes'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+        # Apply the merge and its activity record atomically so a failure never
+        # leaves the PR marked merged without the accompanying state. (Req 12.)
+        with transaction.atomic():
+            pr.status = 'merged'
+            pr.merged_by = request.user
+            pr.merged_at = timezone.now()
+            pr.save()
+
+            ProjectActivity.objects.create(
+                project=project,
+                user=request.user,
+                activity_type='pr_merged',
+                description=f'Pull request "{pr.title}" was merged'
+            )
+
         return Response({'status': 'merged'})
     
     @action(detail=True, methods=['post'])
