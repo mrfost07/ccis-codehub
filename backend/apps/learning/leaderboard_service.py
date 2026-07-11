@@ -29,6 +29,41 @@ BADGE_RARITY_POINTS: dict[str, int] = {
 }
 
 
+def _period_points(user, since) -> int:
+    """
+    Total points a user earned across ALL scored activity types since `since`.
+    Each activity is filtered by its own timestamp; a missing model/timestamp
+    contributes 0 rather than raising. (Remediation Req 29.)
+    """
+    from .models import UserProgress, Certificate, Enrollment, UserBadge
+
+    modules = UserProgress.objects.filter(
+        user=user, is_completed=True, completed_at__gte=since
+    ).count()
+    paths = Enrollment.objects.filter(
+        user=user, status='completed', completed_at__gte=since
+    ).count()
+    certs = Certificate.objects.filter(user=user, issued_at__gte=since).count()
+
+    challenges = 0
+    try:
+        from .models import CodingSubmission
+        challenges = (
+            CodingSubmission.objects
+            .filter(user=user, status='accepted', submitted_at__gte=since)
+            .values('challenge').distinct().count()
+        )
+    except Exception:
+        pass
+
+    badge_pts = sum(
+        BADGE_RARITY_POINTS.get(ub.badge.rarity, 0)
+        for ub in UserBadge.objects.filter(user=user, earned_at__gte=since).select_related('badge')
+    )
+
+    return modules * 10 + paths * 100 + challenges * 50 + certs * 200 + badge_pts
+
+
 def _calc_points(user) -> dict:
     """Return raw component counts and total_points for a user."""
     from .models import UserProgress, Certificate, Enrollment, UserBadge
@@ -64,22 +99,11 @@ def _calc_points(user) -> dict:
         + badge_pts
     )
 
-    # Rolling window points (simplified: recalculate from dated events)
+    # Rolling window points — sum ALL scored activity types in the period, not
+    # just completed modules, so weekly/monthly rankings are complete. (Req 29.)
     now = timezone.now()
-    week_start = now - timedelta(days=7)
-    month_start = now - timedelta(days=30)
-
-    weekly_modules = UserProgress.objects.filter(
-        user=user, is_completed=True, completed_at__gte=week_start
-    ).count() if hasattr(UserProgress, 'completed_at') else 0
-
-    monthly_modules = UserProgress.objects.filter(
-        user=user, is_completed=True, completed_at__gte=month_start
-    ).count() if hasattr(UserProgress, 'completed_at') else 0
-
-    # Fallback: use fraction of total for rolling if no timestamp
-    weekly = weekly_modules * 10
-    monthly = monthly_modules * 10
+    weekly = _period_points(user, now - timedelta(days=7))
+    monthly = _period_points(user, now - timedelta(days=30))
 
     return {
         'total_points': total,
