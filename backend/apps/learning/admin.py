@@ -2,7 +2,8 @@ from django.contrib import admin
 from .models import (
     CareerPath, LearningModule, Quiz, Question, QuestionChoice,
     UserProgress, QuizAttempt, Answer, Certificate, Enrollment, ModuleProgress,
-    LiveQuiz, LiveQuizQuestion, LiveQuizSession, LiveQuizParticipant, LiveQuizResponse
+    LiveQuiz, LiveQuizQuestion, LiveQuizSession, LiveQuizParticipant, LiveQuizResponse,
+    CodingChallenge, CodingSubmission, VideoCourse, VideoLesson, VideoProgress
 )
 
 @admin.register(CareerPath)
@@ -100,3 +101,45 @@ class LiveQuizResponseAdmin(admin.ModelAdmin):
     list_filter = ['is_correct']
     search_fields = ['participant__nickname', 'question__question_text']
     readonly_fields = ['id', 'answered_at']
+
+
+# Coding Challenges Admin
+@admin.register(CodingChallenge)
+class CodingChallengeAdmin(admin.ModelAdmin):
+    list_display = ['title', 'difficulty', 'category', 'points', 'total_attempts', 'total_solved', 'is_active']
+    list_filter = ['difficulty', 'category', 'is_active']
+    search_fields = ['title', 'description']
+    prepopulated_fields = {'slug': ('title',)}
+    readonly_fields = ['total_attempts', 'total_solved', 'created_at', 'updated_at']
+    ordering = ['difficulty', 'category', 'title']
+
+@admin.register(CodingSubmission)
+class CodingSubmissionAdmin(admin.ModelAdmin):
+    list_display = ['user', 'challenge', 'language', 'status', 'passed_tests', 'total_tests', 'points_earned', 'submitted_at']
+    list_filter = ['status', 'language']
+    search_fields = ['user__username', 'challenge__title']
+    readonly_fields = ['id', 'submitted_at']
+    ordering = ['-submitted_at']
+
+
+# Video Courses Admin
+class VideoLessonInline(admin.TabularInline):
+    model = VideoLesson
+    extra = 1
+    ordering = ['order']
+
+@admin.register(VideoCourse)
+class VideoCourseAdmin(admin.ModelAdmin):
+    list_display = ['title', 'instructor_name', 'category', 'difficulty', 'is_published', 'is_featured']
+    list_filter = ['category', 'difficulty', 'is_published', 'is_featured']
+    search_fields = ['title', 'description', 'instructor_name']
+    prepopulated_fields = {'slug': ('title',)}
+    readonly_fields = ['created_at', 'updated_at']
+    inlines = [VideoLessonInline]
+
+@admin.register(VideoProgress)
+class VideoProgressAdmin(admin.ModelAdmin):
+    list_display = ['user', 'lesson', 'is_completed', 'watched_seconds', 'last_watched_at']
+    list_filter = ['is_completed']
+    search_fields = ['user__username', 'lesson__title']
+

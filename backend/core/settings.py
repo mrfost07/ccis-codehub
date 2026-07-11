@@ -37,6 +37,14 @@ OPENROUTER_MODEL = env('OPENROUTER_MODEL', default='google/gemini-2.0-flash-exp:
 # GitHub API Configuration
 GITHUB_ACCESS_TOKEN = env('GITHUB_ACCESS_TOKEN', default='')
 
+# JSearch (RapidAPI) — Job Fetcher
+JSEARCH_API_KEY = env('JSEARCH_API_KEY', default='')
+JSEARCH_HOST    = env('JSEARCH_HOST', default='jsearch.p.rapidapi.com')
+
+# ElevenLabs TTS — Voice Chat
+ELEVENLABS_API_KEY = env('ELEVENLABS_API_KEY', default='')
+ELEVENLABS_VOICE_ID = env('ELEVENLABS_VOICE_ID', default='hpp4J3VqNfWAUOO0d1Us')  # Bella
+ELEVENLABS_MODEL_ID = env('ELEVENLABS_MODEL_ID', default='eleven_monolingual_v1')
 
 # Application definition
 

@@ -14,8 +14,8 @@ from apps.accounts.serializers import UserSerializer
 
 
 class LiveQuizQuestionSerializer(serializers.ModelSerializer):
-    """Serializer for quiz questions"""
-    
+    """Full serializer — INSTRUCTOR ONLY. Includes correct_answer."""
+
     class Meta:
         model = LiveQuizQuestion
         fields = [
@@ -26,6 +26,21 @@ class LiveQuizQuestionSerializer(serializers.ModelSerializer):
             'time_limit', 'time_bonus_enabled', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class LiveQuizQuestionStudentSerializer(serializers.ModelSerializer):
+    """STUDENT-FACING serializer — NEVER exposes correct_answer, explanation, or solution_code."""
+
+    class Meta:
+        model = LiveQuizQuestion
+        fields = [
+            'id', 'question_text', 'question_type', 'order',
+            'image_url', 'option_a', 'option_b', 'option_c', 'option_d',
+            'programming_language', 'starter_code', 'test_cases',
+            'points', 'time_limit', 'time_bonus_enabled',
+        ]
+        # correct_answer, explanation, solution_code intentionally excluded
+        read_only_fields = ['id']
     
     def validate(self, data):
         """Validate question data based on question type"""
@@ -81,7 +96,7 @@ class LiveQuizSerializer(serializers.ModelSerializer):
             'shuffle_questions', 'shuffle_answers', 'require_fullscreen',
             'auto_pause_on_exit', 'max_violations', 'violation_penalty_points',
             'fullscreen_exit_action', 'alt_tab_action',
-            'enable_ai_proctor', 'enable_code_execution',
+            'enable_ai_proctor', 'enable_code_execution', 'show_results_to_students',
             'default_question_time', 'break_between_questions',
             # Scheduling fields
             'scheduled_start', 'deadline', 'max_retakes', 'time_limit_minutes',
@@ -134,7 +149,7 @@ class LiveQuizCreateSerializer(serializers.ModelSerializer):
             'shuffle_questions', 'shuffle_answers', 'require_fullscreen',
             'auto_pause_on_exit', 'max_violations', 'violation_penalty_points',
             'fullscreen_exit_action', 'alt_tab_action',
-            'enable_ai_proctor', 'enable_code_execution',
+            'enable_ai_proctor', 'enable_code_execution', 'show_results_to_students',
             'default_question_time', 'break_between_questions',
             # Scheduling fields
             'scheduled_start', 'deadline', 'max_retakes', 'time_limit_minutes',
@@ -196,7 +211,8 @@ class LiveQuizSessionSerializer(serializers.ModelSerializer):
     """Serializer for quiz sessions"""
     
     quiz_info = LiveQuizSerializer(source='quiz', read_only=True)
-    current_question_info = LiveQuizQuestionSerializer(source='current_question', read_only=True)
+    # SECURITY: use student serializer — strips correct_answer, explanation, solution_code
+    current_question_info = LiveQuizQuestionStudentSerializer(source='current_question', read_only=True)
     participants = LiveQuizParticipantSerializer(many=True, read_only=True)
     
     class Meta:

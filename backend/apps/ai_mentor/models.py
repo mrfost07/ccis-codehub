@@ -26,7 +26,7 @@ class AIMentorProfile(models.Model):
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='ai_mentor_profile')
-    preferred_ai_model = models.CharField(max_length=30, choices=AI_MODEL_CHOICES, blank=True, null=True, help_text='User must select a model')
+    preferred_ai_model = models.CharField(max_length=100, default='mistral_direct', blank=True, help_text='User must select a model')
     total_interactions = models.IntegerField(default=0)
     code_analyses_count = models.IntegerField(default=0)
     recommendations_followed = models.IntegerField(default=0)

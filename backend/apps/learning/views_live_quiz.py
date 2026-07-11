@@ -51,7 +51,17 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Filter quizzes based on user role"""
         user = self.request.user
-        if user.role in ['instructor', 'admin']:
+        # Safely resolve role — 'role' may be on UserProfile, not directly on User
+        user_role = getattr(user, 'role', None)
+        if not user_role:
+            try:
+                from apps.auth_app.models import UserProfile
+                profile = UserProfile.objects.filter(user=user).first()
+                user_role = profile.role if profile else 'student'
+            except Exception:
+                user_role = 'student'
+
+        if user_role in ['instructor', 'admin']:
             # Instructors see their own quizzes
             return LiveQuiz.objects.filter(instructor=user).order_by('-created_at')
         # Students don't see quiz list
@@ -124,9 +134,10 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
         session.status = 'ended'
         session.save(update_fields=['status'])
 
-        # Mark quiz as inactive (inline — no helper method needed)
+        # Mark quiz as inactive
         quiz.is_active = False
-        quiz.save(update_fields=['is_active'])
+        quiz.ended_at = timezone.now()
+        quiz.save(update_fields=['is_active', 'ended_at'])
 
         # Generate results
         results = self._generate_results(session)
@@ -155,6 +166,9 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
             'alt_tab_action': quiz.alt_tab_action,
             'enable_ai_proctor': quiz.enable_ai_proctor,
             'enable_code_execution': quiz.enable_code_execution,
+            'show_results_to_students': quiz.show_results_to_students,
+            'show_correct_answers': quiz.show_correct_answers,
+            'show_leaderboard': quiz.show_leaderboard,
             'max_violations': quiz.max_violations,
             'violation_penalty_points': quiz.violation_penalty_points,
             'max_participants': quiz.max_participants,
@@ -196,9 +210,10 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
             session = quiz.session
             if session.status == 'ended':
                 if quiz.quiz_mode == 'self_paced':
-                    # Self-paced: create a new session for this student
-                    session.delete()
-                    session = LiveQuizSession.objects.create(quiz=quiz, status='in_progress')
+                    # Reuse the session — reset status so new participants can join
+                    # (OneToOneField prevents creating a second session for this quiz)
+                    session.status = 'in_progress'
+                    session.save(update_fields=['status'])
                 else:
                     return Response(
                         {'error': 'This quiz session has already ended'},
@@ -210,35 +225,47 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
             session = LiveQuizSession.objects.create(quiz=quiz, status=initial_status)
 
         # Check late join policy (live mode only — self_paced always allows join)
-        if quiz.quiz_mode == 'live' and session.status not in ('lobby',) and not quiz.allow_late_join:
-            return Response(
-                {'error': 'Quiz has already started and late join is not allowed'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Check max participants
-        if session.participants.filter(is_active=True).count() >= quiz.max_participants:
+        if quiz.quiz_mode == 'live':
+            if session.status == 'in_progress' and not quiz.allow_late_join:
+                return Response(
+                    {'error': 'Quiz has already started and late join is not allowed'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if session.status not in ('lobby', 'in_progress'):
+                return Response(
+                    {'error': 'Quiz session is not currently joinable'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        # Check max participants (read from DB, not stale Python variable)
+        active_count = session.participants.filter(is_active=True).count()
+        if active_count >= quiz.max_participants:
             return Response(
                 {'error': 'Quiz is full'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Check if user already joined
         participant, created = LiveQuizParticipant.objects.get_or_create(
             session=session,
             student=request.user,
             defaults={'nickname': nickname}
         )
-        
+
         if not created and participant.left_at:
-            # Rejoin
+            # Rejoin — mark as active again
             participant.is_active = True
             participant.left_at = None
             participant.save()
-        
-        # Update participant count
-        session.total_participants = session.participants.count()
-        session.active_participants = session.participants.filter(is_active=True).count()
+
+        # Use DB aggregation for counts — avoids race conditions from read-modify-write
+        from django.db.models import Count as _Count
+        counts = session.participants.aggregate(
+            total=_Count('id'),
+            active=_Count('id', filter=Q(is_active=True))
+        )
+        session.total_participants = counts['total']
+        session.active_participants = counts['active']
         session.save(update_fields=['total_participants', 'active_participants'])
         
         response_data = {
@@ -246,6 +273,7 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
             'session_id': str(session.id),
             'participant_id': str(participant.id),
             'quiz_mode': quiz.quiz_mode,
+            'session_status': session.status,  # lobby | in_progress | ended
             'attempts_message': message,
             'time_limit_minutes': quiz.time_limit_minutes,
             'quiz_info': LiveQuizSerializer(quiz, context={'request': request}).data
@@ -351,7 +379,7 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
         avg_score = all_participants.aggregate(Avg('total_score'))['total_score__avg'] or 0
         avg_accuracy = all_participants.aggregate(Avg('total_correct'))['total_correct__avg'] or 0
         
-        # Per-question analytics
+        # Per-question analytics — optimized: single aggregate per question
         question_analytics = []
         questions = quiz.live_questions.all().order_by('order')
         for question in questions:
@@ -362,21 +390,30 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
             total_responses = responses.count()
             correct_count = responses.filter(is_correct=True).count()
             avg_time = responses.aggregate(Avg('response_time_seconds'))['response_time_seconds__avg'] or 0
-            
-            # Answer distribution for MCQ/True-False
+
+            # OPTIMIZATION: single aggregate instead of 4 individual COUNT queries
             answer_distribution = {}
             if question.question_type in ('multiple_choice', 'true_false'):
-                for opt_key in ['A', 'B', 'C', 'D']:
-                    count = responses.filter(answer_text__iexact=opt_key).count()
-                    if count > 0:
-                        answer_distribution[opt_key] = count
-            
+                from django.db.models import Count, Q
+                dist = responses.aggregate(
+                    A=Count('id', filter=Q(answer_text__iexact='A')),
+                    B=Count('id', filter=Q(answer_text__iexact='B')),
+                    C=Count('id', filter=Q(answer_text__iexact='C')),
+                    D=Count('id', filter=Q(answer_text__iexact='D')),
+                    True_=Count('id', filter=Q(answer_text__iexact='True')),
+                    False_=Count('id', filter=Q(answer_text__iexact='False')),
+                )
+                answer_distribution = {k: v for k, v in {
+                    'A': dist['A'], 'B': dist['B'], 'C': dist['C'], 'D': dist['D'],
+                    'True': dist['True_'], 'False': dist['False_'],
+                }.items() if v > 0}
+
             question_analytics.append({
                 'question_id': str(question.id),
                 'order': question.order,
                 'question_text': question.question_text[:100],
                 'question_type': question.question_type,
-                'correct_answer': question.correct_answer,
+                'correct_answer': question.correct_answer,  # instructor-only endpoint
                 'points': question.points,
                 'total_responses': total_responses,
                 'correct_count': correct_count,
@@ -437,7 +474,9 @@ class LiveQuizQuestionViewSet(viewsets.ModelViewSet):
 
 class LiveQuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for viewing quiz sessions"""
-    queryset = LiveQuizSession.objects.all()
+    queryset = LiveQuizSession.objects.select_related(
+        'quiz', 'quiz__instructor', 'current_question'
+    ).prefetch_related('participants__student')
     serializer_class = LiveQuizSessionSerializer
     permission_classes = [IsAuthenticated]
     
@@ -445,9 +484,9 @@ class LiveQuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
     def leaderboard(self, request, pk=None):
         """Get current leaderboard for a session"""
         session = self.get_object()
-        participants = session.participants.filter(is_active=True).order_by(
-            '-total_score', 'average_response_time'
-        )[:10]  # Top 10
+        participants = session.participants.select_related('student').filter(
+            is_active=True
+        ).order_by('-total_score', 'average_response_time')[:10]  # Top 10
         
         leaderboard = []
         for rank, participant in enumerate(participants, 1):
@@ -487,7 +526,10 @@ class LiveQuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        session.advance_to_question(next_question)
+        session.current_question = next_question
+        session.current_question_started_at = timezone.now()
+        session.total_questions_shown += 1
+        session.save(update_fields=['current_question', 'current_question_started_at', 'total_questions_shown'])
         
         serializer = self.get_serializer(session)
         return Response(serializer.data)
@@ -509,10 +551,31 @@ class LiveQuizResponseViewSet(viewsets.ModelViewSet):
         
         # Get participant and question with related session preloaded
         participant = get_object_or_404(
-            LiveQuizParticipant.objects.select_related('session'),
+            LiveQuizParticipant.objects.select_related('session__quiz'),
             id=participant_id, student=request.user
         )
         question = get_object_or_404(LiveQuizQuestion, id=question_id)
+
+        # ── LATE ANSWER REJECTION (live mode) ────────────────────────────────
+        # In live mode the instructor advances questions. Reject answers that
+        # arrive after the question's time_limit has expired server-side.
+        session = participant.session
+        if session.quiz.quiz_mode == 'live':
+            if session.current_question_id != question.id:
+                return Response(
+                    {'error': 'This question is no longer active.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if session.current_question_started_at and question.time_limit:
+                from datetime import timedelta
+                deadline = session.current_question_started_at + timedelta(
+                    seconds=question.time_limit + 5  # +5s network grace
+                )
+                if timezone.now() > deadline:
+                    return Response(
+                        {'error': 'Time is up — this question has closed.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
         
         # Check if already answered
         if LiveQuizResponse.objects.filter(participant=participant, question=question).exists():

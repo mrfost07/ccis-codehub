@@ -42,6 +42,10 @@ class CareerPath(models.Model):
     icon = models.URLField(blank=True, null=True)
     color = models.CharField(max_length=7, default='#6366f1')
     certificate_template = models.FileField(upload_to='certificates/templates/', blank=True, null=True, help_text='Certificate template for course completion')
+    skills_granted = models.JSONField(
+        default=list, blank=True,
+        help_text='List of skills granted on path completion. Format: [{"name": "Python", "category": "Programming Language", "level": "intermediate"}]'
+    )
     is_active = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -89,6 +93,10 @@ class LearningModule(models.Model):
     order = models.IntegerField(help_text='Order within the career path')
     prerequisites = models.ManyToManyField('self', blank=True, symmetrical=False)
     is_locked = models.BooleanField(default=False)
+    skills_taught = models.JSONField(
+        default=list, blank=True,
+        help_text='Skills taught in this module. Format: [{"name": "Python", "category": "Programming Language", "level": "beginner"}]'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -112,6 +120,10 @@ class Quiz(models.Model):
     passing_score = models.IntegerField(default=70, help_text='Percentage')
     max_attempts = models.IntegerField(default=3)
     randomize_questions = models.BooleanField(default=True)
+    show_results_to_students = models.BooleanField(
+        default=False,
+        help_text='If enabled, students see right/wrong breakdown per question after completing.'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -294,7 +306,140 @@ class Certificate(models.Model):
         return f"Certificate: {self.user.username} - {self.career_path.name}"
 
 
-# ==================== LIVE QUIZ MODELS ====================
+class AchievedSkill(models.Model):
+    """Auto-granted skill when student completes a module, path, challenge, or video course."""
+
+    SKILL_SOURCES = [
+        ('module', 'Learning Module'),
+        ('path', 'Career Path'),
+        ('challenge', 'Coding Challenge'),
+        ('video', 'Video Course'),
+        ('quiz', 'Quiz'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='achieved_skills'
+    )
+    source_type = models.CharField(max_length=20, choices=SKILL_SOURCES, db_index=True)
+    source_id = models.CharField(max_length=100)  # UUID stored as string for cross-model flexibility
+    source_name = models.CharField(max_length=200)  # Denormalized for display speed
+    skill_name = models.CharField(max_length=100, db_index=True)
+    skill_category = models.CharField(max_length=50, default='General')
+    proficiency_level = models.CharField(
+        max_length=20,
+        choices=[('beginner', 'Beginner'), ('intermediate', 'Intermediate'), ('advanced', 'Advanced')],
+        default='beginner'
+    )
+    earned_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    is_verified = models.BooleanField(default=True)  # System-granted = always verified
+
+    class Meta:
+        # Prevent duplicate skill from same source
+        unique_together = ['user', 'skill_name', 'source_type', 'source_id']
+        ordering = ['-earned_at']
+
+    def __str__(self):
+        return f"{self.user.username} earned {self.skill_name} ({self.source_type})"
+
+
+class BadgeDefinition(models.Model):
+    """Static catalog of all badges that can be earned."""
+
+    CATEGORIES = [
+        ('coding', 'Coding'),
+        ('learning', 'Learning'),
+        ('quiz', 'Quiz'),
+        ('community', 'Community'),
+        ('streak', 'Streak'),
+        ('milestone', 'Milestone'),
+    ]
+
+    RARITIES = [
+        ('common', 'Common'),
+        ('rare', 'Rare'),
+        ('epic', 'Epic'),
+        ('legendary', 'Legendary'),
+    ]
+
+    TRIGGERS = [
+        ('challenges_solved', 'Coding Challenges Solved'),
+        ('challenges_solved_fast', 'Challenge Solved Under 60s'),
+        ('paths_completed', 'Career Paths Completed'),
+        ('modules_completed', 'Modules Completed'),
+        ('certificates_earned', 'Certificates Earned'),
+        ('quiz_perfect', 'Quiz Score 100%'),
+        ('streak_days', 'Consecutive Active Days'),
+        ('community_upvotes', 'Community Post Upvotes'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100, unique=True)
+    description = models.CharField(max_length=300)
+    icon = models.CharField(max_length=10, default='🏅')  # Emoji
+    category = models.CharField(max_length=20, choices=CATEGORIES, db_index=True)
+    trigger_type = models.CharField(max_length=40, choices=TRIGGERS, db_index=True)
+    trigger_threshold = models.IntegerField(default=1, help_text='How many of trigger_type needed')
+    rarity = models.CharField(max_length=20, choices=RARITIES, default='common')
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['category', 'trigger_threshold']
+
+    def __str__(self):
+        return f"{self.icon} {self.name} ({self.rarity})"
+
+
+class UserBadge(models.Model):
+    """A badge earned by a specific user."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='learning_badges'
+    )
+    badge = models.ForeignKey(BadgeDefinition, on_delete=models.CASCADE, related_name='earners')
+    earned_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    # Context of how it was earned (optional, for display)
+    context_note = models.CharField(max_length=200, blank=True)
+
+    class Meta:
+        unique_together = ['user', 'badge']
+        ordering = ['-earned_at']
+
+    def __str__(self):
+        return f"{self.user.username} earned {self.badge.name}"
+
+
+class LeaderboardSnapshot(models.Model):
+    """
+    Cached leaderboard score per user. Rebuilt after every scoring action.
+    Avoids expensive aggregation queries at render time.
+    """
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='leaderboard_entry',
+    )
+    total_points = models.IntegerField(default=0, db_index=True)
+    weekly_points = models.IntegerField(default=0, db_index=True)
+    monthly_points = models.IntegerField(default=0, db_index=True)
+
+    # Component breakdown
+    modules_completed = models.IntegerField(default=0)
+    challenges_solved = models.IntegerField(default=0)
+    paths_completed = models.IntegerField(default=0)
+    certificates_earned = models.IntegerField(default=0)
+    badges_earned = models.IntegerField(default=0)
+    quiz_perfect_scores = models.IntegerField(default=0)
+
+    last_updated = models.DateTimeField(auto_now=True, db_index=True)
+
+    class Meta:
+        ordering = ['-total_points']
+
+    def __str__(self):
+        return f"{self.user.username}: {self.total_points} pts"
+
 
 def generate_join_code():
     """Generate unique 6-character alphanumeric join code"""
@@ -376,7 +521,12 @@ class LiveQuiz(models.Model):
     # Feature toggles
     enable_ai_proctor = models.BooleanField(default=False)
     enable_code_execution = models.BooleanField(default=True)
-
+    # Controls whether students see per-question results after completing
+    # (which questions they got right/wrong). Default OFF — instructors opt-in.
+    show_results_to_students = models.BooleanField(
+        default=False,
+        help_text="If enabled, students see which questions they got right/wrong after completing the quiz."
+    )
 
     default_question_time = models.IntegerField(
         default=30,
@@ -386,6 +536,7 @@ class LiveQuiz(models.Model):
         default=5,
         validators=[MinValueValidator(0), MaxValueValidator(60)]
     )
+
     
     # Audit fields
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
@@ -658,3 +809,313 @@ class LiveQuizResponse(models.Model):
     
     def __str__(self):
         return f"{self.participant.nickname} - Q{self.question.order}"
+
+
+# ==================== CODING CHALLENGES (LeetCode-style) ====================
+
+class CodingChallenge(models.Model):
+    """Standalone coding challenges for hands-on practice"""
+    
+    DIFFICULTY_CHOICES = [
+        ('easy', 'Easy'),
+        ('medium', 'Medium'),
+        ('hard', 'Hard'),
+    ]
+    
+    CATEGORY_CHOICES = [
+        ('basics', 'Basics'),
+        ('arrays', 'Arrays & Lists'),
+        ('strings', 'Strings'),
+        ('math', 'Math & Logic'),
+        ('sorting', 'Sorting & Searching'),
+        ('linked_lists', 'Linked Lists'),
+        ('trees', 'Trees & Graphs'),
+        ('dp', 'Dynamic Programming'),
+        ('oop', 'Object-Oriented'),
+        ('web', 'Web Development'),
+        ('database', 'Database & SQL'),
+        ('algorithms', 'Algorithms'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=255)
+    slug = models.SlugField(unique=True, max_length=300)
+    description = models.TextField(help_text='Problem statement in Markdown')
+    difficulty = models.CharField(max_length=10, choices=DIFFICULTY_CHOICES, default='easy')
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='basics')
+    tags = models.JSONField(default=list, blank=True, help_text='e.g. ["recursion", "binary-search"]')
+    
+    # Code execution config
+    supported_languages = models.JSONField(
+        default=list,
+        help_text='e.g. ["python", "javascript", "java", "cpp"]'
+    )
+    starter_code = models.JSONField(
+        default=dict,
+        help_text='Per-language starter code: {"python": "def solve(n):\\n    pass", ...}'
+    )
+    solution_code = models.JSONField(
+        default=dict, blank=True,
+        help_text='Reference solutions (hidden from students)'
+    )
+    test_cases = models.JSONField(
+        default=list,
+        help_text='[{"input": "5\\n3", "expected_output": "8", "is_hidden": false}, ...]'
+    )
+    
+    # Constraints & hints
+    constraints = models.TextField(blank=True, help_text='Time/space constraints')
+    hints = models.JSONField(default=list, blank=True)
+    
+    # Scoring
+    points = models.IntegerField(default=10)
+    time_limit_seconds = models.IntegerField(default=300, help_text='Max solve time in seconds')
+    
+    # Stats (denormalised for performance)
+    total_attempts = models.IntegerField(default=0)
+    total_solved = models.IntegerField(default=0)
+    
+    # Metadata
+    is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, related_name='created_challenges'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['difficulty', 'category', 'title']
+        indexes = [
+            models.Index(fields=['difficulty', 'category']),
+            models.Index(fields=['is_active', 'difficulty']),
+        ]
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)
+        if not self.supported_languages:
+            self.supported_languages = ['python', 'javascript']
+        super().save(*args, **kwargs)
+    
+    @property
+    def acceptance_rate(self):
+        if self.total_attempts == 0:
+            return 0
+        return round(self.total_solved / self.total_attempts * 100, 1)
+    
+    def __str__(self):
+        return f"[{self.difficulty.upper()}] {self.title}"
+
+
+class CodingSubmission(models.Model):
+    """Track student code submissions for challenges"""
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('running', 'Running'),
+        ('accepted', 'Accepted'),
+        ('wrong_answer', 'Wrong Answer'),
+        ('partial', 'Partial'),
+        ('error', 'Error'),
+        ('timeout', 'Timeout'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='coding_submissions'
+    )
+    challenge = models.ForeignKey(
+        CodingChallenge, on_delete=models.CASCADE,
+        related_name='submissions'
+    )
+    language = models.CharField(max_length=20)
+    code = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    
+    # Results
+    passed_tests = models.IntegerField(default=0)
+    total_tests = models.IntegerField(default=0)
+    results_json = models.JSONField(default=list, blank=True)
+    execution_time_ms = models.IntegerField(null=True, blank=True)
+    points_earned = models.IntegerField(default=0)
+    
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-submitted_at']
+        indexes = [
+            models.Index(fields=['user', 'challenge', 'status']),
+            models.Index(fields=['challenge', 'status']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.challenge.title} [{self.status}]"
+
+
+# ==================== VIDEO COURSES ====================
+
+class VideoCourse(models.Model):
+    """Video-based courses with YouTube-embedded lessons"""
+    
+    CATEGORY_CHOICES = [
+        ('web_dev', 'Web Development'),
+        ('mobile', 'Mobile Development'),
+        ('data_science', 'Data Science'),
+        ('python', 'Python'),
+        ('javascript', 'JavaScript'),
+        ('java', 'Java'),
+        ('cpp', 'C/C++'),
+        ('devops', 'DevOps'),
+        ('database', 'Database'),
+        ('algorithms', 'Algorithms'),
+        ('general', 'General'),
+    ]
+    
+    DIFFICULTY_CHOICES = [
+        ('beginner', 'Beginner'),
+        ('intermediate', 'Intermediate'),
+        ('advanced', 'Advanced'),
+    ]
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=255)
+    slug = models.SlugField(unique=True, max_length=300)
+    description = models.TextField()
+    thumbnail_url = models.URLField(blank=True, help_text='Course thumbnail image URL')
+    instructor_name = models.CharField(max_length=255, help_text='e.g. "freeCodeCamp", "Traversy Media"')
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='general')
+    difficulty = models.CharField(max_length=20, choices=DIFFICULTY_CHOICES, default='beginner')
+    
+    # Metadata
+    total_duration_minutes = models.IntegerField(default=0)
+    is_published = models.BooleanField(default=True)
+    is_featured = models.BooleanField(default=False)
+    
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, related_name='created_video_courses'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-is_featured', '-created_at']
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)
+        super().save(*args, **kwargs)
+    
+    @property
+    def lesson_count(self):
+        return self.lessons.count()
+    
+    def __str__(self):
+        return f"{self.title} by {self.instructor_name}"
+
+
+class VideoLesson(models.Model):
+    """Individual video lessons within a course"""
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    course = models.ForeignKey(VideoCourse, on_delete=models.CASCADE, related_name='lessons')
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    video_url = models.URLField(help_text='YouTube or Vimeo URL')
+    duration_minutes = models.IntegerField(default=0)
+    order = models.IntegerField(default=0)
+    is_free = models.BooleanField(default=True, help_text='Preview lesson (accessible without enrollment)')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['course', 'order']
+        unique_together = ['course', 'order']
+    
+    def __str__(self):
+        return f"{self.course.title} - Lesson {self.order}: {self.title}"
+
+
+class VideoProgress(models.Model):
+    """Track per-user watch progress for video lessons"""
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='video_progress'
+    )
+    lesson = models.ForeignKey(VideoLesson, on_delete=models.CASCADE, related_name='user_progress')
+    watched_seconds = models.IntegerField(default=0)
+    is_completed = models.BooleanField(default=False)
+    last_watched_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['user', 'lesson']
+        ordering = ['-last_watched_at']
+    
+    def __str__(self):
+        status = '✓' if self.is_completed else f'{self.watched_seconds}s'
+        return f"{self.user.username} - {self.lesson.title} [{status}]"
+
+
+# ─────────────────────────────────────────────
+#  Phase 6 — Job Fetcher Models
+# ─────────────────────────────────────────────
+
+class JobCache(models.Model):
+    """
+    Locally cached job listing fetched from JSearch (RapidAPI).
+    Refreshed every 6 hours via management command.
+    """
+    JOB_TYPE_CHOICES = [
+        ('fulltime',   'Full-time'),
+        ('parttime',   'Part-time'),
+        ('internship', 'Internship'),
+        ('contract',   'Contract'),
+        ('remote',     'Remote'),
+    ]
+
+    id           = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    external_id  = models.CharField(max_length=255, unique=True, db_index=True)
+    title        = models.CharField(max_length=300)
+    company      = models.CharField(max_length=200)
+    location     = models.CharField(max_length=200, blank=True)
+    job_type     = models.CharField(max_length=20, choices=JOB_TYPE_CHOICES, blank=True)
+    salary_min   = models.IntegerField(null=True, blank=True)
+    salary_max   = models.IntegerField(null=True, blank=True)
+    salary_currency = models.CharField(max_length=5, default='PHP')
+    description  = models.TextField(blank=True)
+    apply_url    = models.URLField(max_length=1000)
+    company_logo = models.URLField(max_length=1000, blank=True)
+    skills_required = models.JSONField(default=list)
+    posted_at    = models.DateTimeField(null=True, blank=True)
+    cached_at    = models.DateTimeField(auto_now_add=True)
+    is_active    = models.BooleanField(default=True)
+    source       = models.CharField(max_length=30, default='jsearch')
+
+    class Meta:
+        ordering = ['-posted_at', '-cached_at']
+        indexes = [
+            models.Index(fields=['is_active', '-posted_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.title} @ {self.company}"
+
+
+class SavedJob(models.Model):
+    """User's bookmarked job listings."""
+    user     = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='saved_jobs')
+    job      = models.ForeignKey(JobCache, on_delete=models.CASCADE, related_name='saves')
+    saved_at = models.DateTimeField(auto_now_add=True)
+    notes    = models.TextField(blank=True)
+
+    class Meta:
+        unique_together = ['user', 'job']
+        ordering = ['-saved_at']
+
+    def __str__(self):
+        return f"{self.user.username} saved {self.job.title}"
+

@@ -176,9 +176,8 @@ def parse_content_with_ai(text: str, content_type: str = 'full', model_type: str
             except json.JSONDecodeError:
                 pass
         
-        # Strategy 2: Find outermost JSON object
+        # Strategy 2: Try raw parse of brace-matched content
         if not parsed_json:
-            # Find the first { and last } to get the full JSON object
             first_brace = response_text.find('{')
             last_brace = response_text.rfind('}')
             if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
@@ -189,20 +188,34 @@ def parse_content_with_ai(text: str, content_type: str = 'full', model_type: str
                 except json.JSONDecodeError:
                     pass
         
-        # Strategy 3: Use regex to find JSON-like structure
+        # Strategy 3: Use json_repair library
         if not parsed_json:
-            json_match = re.search(r'\{[\s\S]*\}', response_text)
-            if json_match:
-                try:
-                    parsed_json = json.loads(json_match.group())
-                    logger.info("Extracted JSON using regex")
-                except json.JSONDecodeError:
-                    pass
+            try:
+                from json_repair import repair_json
+                first_brace = response_text.find('{')
+                last_brace = response_text.rfind('}')
+                if first_brace != -1 and last_brace != -1:
+                    json_str = response_text[first_brace:last_brace + 1]
+                    repaired = repair_json(json_str, return_objects=False)
+                    parsed_json = json.loads(repaired)
+                    logger.info("Extracted JSON using json_repair library")
+            except Exception as e:
+                logger.error(f"json_repair failed: {e}")
+        
+        # Strategy 4: json_repair with return_objects=True
+        if not parsed_json:
+            try:
+                from json_repair import repair_json
+                result = repair_json(response_text, return_objects=True)
+                if isinstance(result, dict):
+                    parsed_json = result
+                    logger.info("Extracted JSON using json_repair direct object")
+            except Exception as e:
+                logger.error(f"json_repair direct failed: {e}")
         
         if parsed_json:
             return parsed_json
         else:
-            # Log the response for debugging
             logger.error(f"Could not extract JSON from response: {response_text[:1000]}")
             raise ValueError(f"Could not extract JSON from AI response. Response preview: {response_text[:200]}...")
             
@@ -309,7 +322,7 @@ Extract and return a JSON object with the following structure:
         {{
             "title": "Module title",
             "description": "Brief module description",
-            "content": "Full module content in HTML format with proper formatting",
+            "content": "Full module content in HTML format - MUST contain multiple <h2> sections",
             "module_type": "text" or "video" or "interactive",
             "difficulty_level": "beginner" or "intermediate" or "advanced",
             "duration_minutes": number (estimate reading/learning time),
@@ -335,15 +348,21 @@ Extract and return a JSON object with the following structure:
     ]
 }}
 
-IMPORTANT RULES:
+CRITICAL RULES:
 1. Split content into logical modules (chapters, sections, topics)
-2. Each module should be self-contained learning unit
+2. Each module MUST be a self-contained learning unit
 3. Generate 3-5 quiz questions per module based on key concepts
-4. Use HTML formatting for module content (<h2>, <p>, <ul>, <li>, <strong>, <code>)
-5. Ensure questions test understanding, not just memorization
-6. If content doesn't have clear sections, create logical divisions
-7. Return ONLY valid JSON, no other text
-8. CRITICAL: Quiz choices MUST contain ACTUAL answer text from the document. NEVER use generic placeholders like "Option A", "Option B", etc.
+4. CRITICAL - Each module's "content" field MUST have AT LEAST 3-5 <h2> sections. Example structure:
+   <h2>Introduction</h2><p>2-3 paragraphs of real content...</p>
+   <h2>Key Concepts</h2><p>Detailed explanations...</p><ul><li>Point with detail</li></ul>
+   <h2>Examples and Applications</h2><p>Practical examples from the source material...</p>
+   <h2>Summary</h2><p>Key takeaways...</p>
+5. The <h2> tags are ESSENTIAL - the frontend uses them to create presentation slides. Without multiple <h2> tags per module, each module becomes a single page instead of a slide deck.
+6. Use rich HTML: <h2>, <h3>, <p>, <ul>, <ol>, <li>, <strong>, <em>, <code>, <pre>, <blockquote>
+7. Include ALL important information from the source document - do NOT skip or summarize away detail
+8. Ensure questions test understanding, not just memorization
+9. Return ONLY valid JSON, no other text
+10. CRITICAL: Quiz choices MUST contain ACTUAL answer text from the document. NEVER use generic placeholders like "Option A", "Option B", etc.
 
 Return the JSON:"""
 

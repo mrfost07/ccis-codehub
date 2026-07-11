@@ -334,6 +334,72 @@ class ProjectViewSet(viewsets.ModelViewSet):
             }
         })
 
+    @action(detail=False, methods=['get'], url_path='featured',
+            permission_classes=[IsAuthenticated])
+    def featured(self, request):
+        """
+        Return all public projects with contributor avatars.
+        Used by the Featured Projects carousel.
+        """
+        def safe_avatar(user):
+            try:
+                if user.profile_picture and user.profile_picture.name:
+                    return request.build_absolute_uri(user.profile_picture.url)
+            except Exception:
+                pass
+            return None
+
+        projects = (
+            Project.objects
+            .filter(visibility='public')
+            .select_related('owner', 'team')
+            .prefetch_related('team__memberships__user')
+            .order_by('-updated_at')[:24]
+        )
+
+        results = []
+        for p in projects:
+            # Build contributor list: owner/leader first, then accepted members
+            contributors = []
+            seen = set()
+
+            def add_contributor(user, role='member'):
+                if user.id not in seen:
+                    seen.add(user.id)
+                    contributors.append({
+                        'id': str(user.id),
+                        'username': user.username,
+                        'first_name': getattr(user, 'first_name', ''),
+                        'last_name': getattr(user, 'last_name', ''),
+                        'avatar': safe_avatar(user),
+                        'role': role,
+                    })
+
+            add_contributor(p.owner, 'owner')
+            if p.team:
+                add_contributor(p.team.leader, 'leader')
+                for m in p.team.memberships.filter(status='accepted').select_related('user'):
+                    add_contributor(m.user, m.role)
+
+            results.append({
+                'id': str(p.id),
+                'slug': p.slug,
+                'name': p.name,
+                'description': p.description,
+                'project_type': p.project_type,
+                'programming_language': p.programming_language,
+                'status': p.status,
+                'github_repo': p.github_repo or '',
+                'owner_name': p.owner.username,
+                'team_name': p.team.name if p.team else None,
+                'contributors': contributors,
+                'updated_at': p.updated_at.isoformat() if p.updated_at else None,
+                'created_at': p.created_at.isoformat() if p.created_at else None,
+            })
+
+        return Response(results)
+
+
 
 class ProjectTaskViewSet(viewsets.ModelViewSet):
     """ViewSet for ProjectTask - Leader creates, members update their tasks"""

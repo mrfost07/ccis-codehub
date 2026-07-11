@@ -10,14 +10,18 @@ from django.utils import timezone
 
 from .models import (
     CareerPath, LearningModule, Quiz, Question, QuestionChoice,
-    UserProgress, QuizAttempt, Answer, Certificate, Enrollment, ModuleProgress
+    UserProgress, QuizAttempt, Answer, Certificate, Enrollment,
+    ModuleProgress, AchievedSkill, BadgeDefinition, UserBadge, LeaderboardSnapshot
 )
 from .serializers import (
     CareerPathSerializer, LearningModuleSerializer, QuizSerializer,
     QuestionSerializer, UserProgressSerializer, QuizAttemptSerializer,
-    CertificateSerializer, EnrollmentSerializer, ModuleProgressSerializer
+    CertificateSerializer, EnrollmentSerializer, ModuleProgressSerializer,
+    AchievedSkillSerializer, BadgeDefinitionSerializer, UserBadgeSerializer,
+    LeaderboardEntrySerializer
 )
-
+from .badge_service import grant_badges_after_module, grant_badges_after_path
+from .leaderboard_service import update_leaderboard_score
 
 class CareerPathViewSet(viewsets.ModelViewSet):
     """ViewSet for CareerPath"""
@@ -157,7 +161,7 @@ class LearningModuleViewSet(viewsets.ModelViewSet):
             except Exception as e:
                 print(f"Error updating module progress: {e}")
             
-            # Update user profile stats (increment module count, not course count)
+            # Update user profile stats
             try:
                 profile = user.profile
                 profile.total_modules_completed = UserProgress.objects.filter(
@@ -166,14 +170,32 @@ class LearningModuleViewSet(viewsets.ModelViewSet):
                 profile.save(update_fields=['total_modules_completed'])
             except Exception as e:
                 print(f"Could not update profile module count: {e}")
-            
+
+            # Grant skills from this module
+            self._grant_skills_from_module(user, module)
+
+            # Grant badges after module completion
+            newly_earned_badges = []
+            try:
+                newly_earned_badges = grant_badges_after_module(user)
+            except Exception as e:
+                print(f"Badge granting failed (non-fatal): {e}")
+
+            # Update leaderboard score
+            try:
+                update_leaderboard_score(user)
+            except Exception as e:
+                print(f"Leaderboard update failed (non-fatal): {e}")
+
             # Check if all modules completed and award certificate
-            self.check_and_award_certificate(user, module.career_path)
+            path_badges = self.check_and_award_certificate(user, module.career_path)
+            newly_earned_badges += (path_badges or [])
         
         return Response({
             'detail': 'Module marked as completed',
             'points_earned': module.points_reward,
-            'is_completed': True
+            'is_completed': True,
+            'badges_earned': newly_earned_badges,
         })
     
     @action(detail=True, methods=['post'])
@@ -211,6 +233,44 @@ class LearningModuleViewSet(viewsets.ModelViewSet):
             'progress_percentage': progress_percentage
         })
     
+    def _grant_skills_from_module(self, user, module):
+        """Grant AchievedSkill records from module.skills_taught on completion."""
+        skills = module.skills_taught or []
+        for skill in skills:
+            skill_name = skill.get('name', '').strip()
+            if not skill_name:
+                continue
+            AchievedSkill.objects.get_or_create(
+                user=user,
+                skill_name=skill_name,
+                source_type='module',
+                source_id=str(module.id),
+                defaults={
+                    'source_name': module.title,
+                    'skill_category': skill.get('category', 'General'),
+                    'proficiency_level': skill.get('level', 'beginner'),
+                }
+            )
+
+    def _grant_skills_from_path(self, user, career_path):
+        """Grant AchievedSkill records from career_path.skills_granted on path completion."""
+        skills = career_path.skills_granted or []
+        for skill in skills:
+            skill_name = skill.get('name', '').strip()
+            if not skill_name:
+                continue
+            AchievedSkill.objects.get_or_create(
+                user=user,
+                skill_name=skill_name,
+                source_type='path',
+                source_id=str(career_path.id),
+                defaults={
+                    'source_name': career_path.name,
+                    'skill_category': skill.get('category', 'General'),
+                    'proficiency_level': skill.get('level', 'intermediate'),
+                }
+            )
+
     def _ensure_enrollment(self, user, career_path):
         """Ensure user has an enrollment for this career path"""
         enrollment, created = Enrollment.objects.get_or_create(
@@ -223,7 +283,8 @@ class LearningModuleViewSet(viewsets.ModelViewSet):
         return enrollment
     
     def check_and_award_certificate(self, user, career_path):
-        """Check if user completed all modules and award certificate"""
+        """Check if user completed all modules and award certificate. Returns badge names."""
+        path_badges = []
         try:
             from .models import Certificate, Enrollment
             from django.db import transaction
@@ -232,7 +293,7 @@ class LearningModuleViewSet(viewsets.ModelViewSet):
             total_modules = LearningModule.objects.filter(career_path=career_path).count()
             
             if total_modules == 0:
-                return  # No modules, nothing to complete
+                return path_badges  # No modules, nothing to complete
             
             # Get completed modules by user
             completed_modules = UserProgress.objects.filter(
@@ -278,12 +339,22 @@ class LearningModuleViewSet(viewsets.ModelViewSet):
                         except Exception as e:
                             print(f"Could not update profile certificate count: {e}")
                         
+                        # Grant path-completion badges
+                        try:
+                            path_badges = grant_badges_after_path(user)
+                        except Exception as e:
+                            print(f"Path badge granting failed (non-fatal): {e}")
+                        
+                        # Grant skills from path
+                        self._grant_skills_from_path(user, career_path)
+                        
                         # Generate PDF certificate (async-safe)
                         self._generate_certificate_pdf(cert, career_path)
                         
         except Exception as e:
             # Don't fail the request if certificate awarding fails
             print(f"Error awarding certificate: {e}")
+        return path_badges
     
     def _generate_certificate_pdf(self, certificate, career_path):
         """Generate PDF certificate image"""
@@ -385,10 +456,10 @@ class QuizViewSet(viewsets.ModelViewSet):
         quiz = self.get_object()
         user = request.user
         answers_data = request.data.get('answers', [])
-        
+
         # Get active attempt
         try:
-            attempt = QuizAttempt.objects.get(
+            attempt = QuizAttempt.objects.select_related('quiz').get(
                 user=user,
                 quiz=quiz,
                 status='in_progress'
@@ -398,22 +469,42 @@ class QuizViewSet(viewsets.ModelViewSet):
                 {'detail': 'No active quiz attempt found'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
+        # ── SERVER-SIDE TIMER ENFORCEMENT ────────────────────────────────────
+        # Reject submissions that arrive after the time limit has expired.
+        # started_at is set automatically (auto_now_add) when the attempt is created.
+        if quiz.time_limit_minutes and quiz.time_limit_minutes > 0:
+            elapsed_seconds = (timezone.now() - attempt.started_at).total_seconds()
+            allowed_seconds = quiz.time_limit_minutes * 60 + 30  # +30s grace for network delay
+            if elapsed_seconds > allowed_seconds:
+                attempt.status = 'timed_out'
+                attempt.submitted_at = timezone.now()
+                attempt.save(update_fields=['status', 'submitted_at'])
+                return Response(
+                    {'detail': 'Time limit exceeded. Your attempt has been marked as timed out.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
         # Process answers
         total_points = 0
         earned_points = 0
-        
+
+        questions_qs = Question.objects.filter(quiz=quiz).in_bulk(
+            [a.get('question_id') for a in answers_data if a.get('question_id')]
+        )
+
         for answer_data in answers_data:
             question_id = answer_data.get('question_id')
             user_answer = answer_data.get('answer')
-            
-            question = get_object_or_404(Question, id=question_id, quiz=quiz)
+            question = questions_qs.get(question_id)
+            if not question:
+                continue
+
             total_points += question.points
-            
             is_correct = self._check_answer(question, user_answer)
             points = question.points if is_correct else 0
             earned_points += points
-            
+
             Answer.objects.create(
                 quiz_attempt=attempt,
                 question=question,
@@ -421,20 +512,48 @@ class QuizViewSet(viewsets.ModelViewSet):
                 is_correct=is_correct,
                 points_earned=points
             )
-        
+
         # Calculate score
         score = (earned_points / total_points * 100) if total_points > 0 else 0
         attempt.score = score
         attempt.status = 'completed'
         attempt.submitted_at = timezone.now()
         attempt.save()
-        
-        return Response({
+
+        # Count completed attempts to determine if this is the final one
+        completed_attempts = QuizAttempt.objects.filter(
+            user=user, quiz=quiz, status='completed'
+        ).count()
+        is_final_attempt = (completed_attempts >= quiz.max_attempts)
+
+        response_data = {
             'score': score,
             'passed': score >= quiz.passing_score,
             'earned_points': earned_points,
-            'total_points': total_points
-        })
+            'total_points': total_points,
+            'attempts_used': completed_attempts,
+            'attempts_remaining': max(0, quiz.max_attempts - completed_attempts),
+        }
+
+        # Only show per-question breakdown if:
+        # 1. Instructor has opted in AND
+        # 2. Student is on their final attempt (prevents answer inference via retakes)
+        if quiz.show_results_to_students and is_final_attempt:
+            answers_detail = []
+            for answer_data in answers_data:
+                question_id = answer_data.get('question_id')
+                question = questions_qs.get(question_id)
+                if question:
+                    user_answer = answer_data.get('answer')
+                    is_correct = self._check_answer(question, user_answer)
+                    answers_detail.append({
+                        'question_id': str(question.id),
+                        'question_text': question.question_text,
+                        'is_correct': is_correct,
+                    })
+            response_data['answers_detail'] = answers_detail
+
+        return Response(response_data)
     
     @action(detail=True, methods=['post'])
     def submit_simple(self, request, pk=None):
@@ -602,7 +721,98 @@ class CertificateViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return Certificate.objects.filter(user=self.request.user)
+        return Certificate.objects.filter(
+            user=self.request.user
+        ).select_related('career_path', 'user', 'enrollment')
+    
+    @action(detail=False, methods=['get'])
+    def eligibility(self, request):
+        """
+        Return per-career-path eligibility for the current user.
+        Lets the frontend show exactly why a certificate hasn't been issued yet.
+        """
+        user = request.user
+        paths = CareerPath.objects.filter(is_active=True).prefetch_related('modules')
+        result = []
+        for path in paths:
+            total = path.modules.count()
+            if total == 0:
+                continue
+            completed = UserProgress.objects.filter(
+                user=user, career_path=path, is_completed=True
+            ).count()
+            has_cert = Certificate.objects.filter(user=user, career_path=path).exists()
+            result.append({
+                'path_id': str(path.id),
+                'path_name': path.name,
+                'total_modules': total,
+                'completed_modules': completed,
+                'progress_pct': round(completed / total * 100),
+                'is_eligible': completed >= total,
+                'has_certificate': has_cert,
+            })
+        return Response(result)
+    
+    @action(detail=False, methods=['post'])
+    def check_and_award(self, request):
+        """
+        Manually trigger certificate check for a specific career path.
+        POST body: { "career_path_id": "<uuid>" }
+        Useful for awarding certificates retroactively if the trigger missed.
+        """
+        path_id = request.data.get('career_path_id')
+        if not path_id:
+            return Response({'error': 'career_path_id required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        career_path = get_object_or_404(CareerPath, id=path_id, is_active=True)
+        total = career_path.modules.count()
+        if total == 0:
+            return Response({'error': 'No modules in this path'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        completed = UserProgress.objects.filter(
+            user=request.user, career_path=career_path, is_completed=True
+        ).count()
+        
+        if completed < total:
+            return Response({
+                'eligible': False,
+                'message': f'Complete all modules first ({completed}/{total} done)',
+                'completed': completed,
+                'total': total,
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # All modules done — award certificate
+        enrollment, _ = Enrollment.objects.get_or_create(
+            user=request.user, career_path=career_path,
+            defaults={'status': 'active'}
+        )
+        enrollment.status = 'completed'
+        enrollment.progress_percentage = 100
+        enrollment.completed_at = timezone.now()
+        enrollment.save()
+        
+        cert_id = f'CCIS-{timezone.now().year}-{str(request.user.id)[:6].upper()}-{str(career_path.id)[:6].upper()}'
+        cert, created = Certificate.objects.get_or_create(
+            user=request.user,
+            career_path=career_path,
+            defaults={'certificate_id': cert_id, 'enrollment': enrollment}
+        )
+        
+        if created:
+            # Update profile cert count
+            try:
+                profile = request.user.profile
+                profile.certificates_earned = Certificate.objects.filter(user=request.user).count()
+                profile.save(update_fields=['certificates_earned'])
+            except Exception:
+                pass
+        
+        serializer = self.get_serializer(cert)
+        return Response({
+            'created': created,
+            'message': 'Certificate awarded!' if created else 'Certificate already exists',
+            'certificate': serializer.data,
+        }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
     
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
@@ -1096,7 +1306,7 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no expla
         {{
             "title": "Module 1: Topic Name",
             "description": "What this module covers",
-            "content": "<h2>Introduction</h2><p>Module content with HTML formatting...</p><h3>Key Concepts</h3><ul><li>Point 1</li><li>Point 2</li></ul>",
+            "content": "<h2>Introduction</h2><p>This section introduces the topic. Explain the importance and context in 2-3 paragraphs with real detail...</p><h2>Core Concepts</h2><p>Explain the main concepts in depth.</p><ul><li><strong>Concept 1</strong> - Detailed explanation with examples</li><li><strong>Concept 2</strong> - Another detailed explanation</li><li><strong>Concept 3</strong> - More detail here</li></ul><h2>Practical Examples</h2><p>Walk through real examples step by step.</p><pre><code>// Example code here if applicable</code></pre><p>Explain what the code does and why it works this way.</p><h2>Best Practices and Summary</h2><p>Summarize key takeaways and common mistakes to avoid.</p><ol><li>First best practice with explanation</li><li>Second best practice with explanation</li><li>Third best practice with explanation</li></ol>",
             "module_type": "text",
             "difficulty_level": "beginner",
             "duration_minutes": 30,
@@ -1106,11 +1316,17 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no expla
     "quizzes": []
 }}
 
-Requirements:
+CRITICAL CONTENT REQUIREMENTS:
 - Generate exactly {module_count} modules
-- Each module should have rich HTML content (500+ words with headers, paragraphs, lists, code examples where appropriate)
+- Each module content MUST have AT LEAST 4 different <h2> sections (e.g. Introduction, Core Concepts, Examples, Summary)
+- Each <h2> section must contain 2-4 paragraphs of REAL, DETAILED educational content (not placeholders)
+- Total content per module: 800-1500 words minimum
+- Use rich HTML: <h2>, <h3>, <p>, <ul>, <ol>, <li>, <strong>, <em>, <code>, <pre>, <blockquote>
+- Include code examples with <pre><code> where relevant to the topic
 - difficulty_level: "beginner", "intermediate", or "advanced"
 - program_type: "bsit", "bscs", or "bsis"
+- The <h2> tags are ESSENTIAL - the frontend uses them to create presentation slides. Without multiple <h2> tags, the module becomes a single page.
+- IMPORTANT: In code examples inside <pre><code> blocks, use single quotes instead of double quotes (e.g., x = 'hello' not x = "hello") to avoid breaking JSON formatting.
 {quiz_instruction}
 
 Return ONLY the JSON object, nothing else."""
@@ -1139,7 +1355,10 @@ Return ONLY the JSON object, nothing else."""
                     logger.info(f"Trying AI generation with model: {model}")
                     response = get_ai_response(
                         prompt=ai_prompt,
-                        model_type=model
+                        model_type=model,
+                        json_mode=True,
+                        max_tokens=8192,
+                        temperature=0.7
                     )
                     if response:
                         logger.info(f"AI generation succeeded with model: {model}")
@@ -1172,96 +1391,62 @@ Return ONLY the JSON object, nothing else."""
                 response = re.sub(r'^```json?\s*', '', response)
                 response = re.sub(r'\s*```$', '', response)
             
-            # Comprehensive JSON repair function
-            def repair_json(s):
-                """Aggressively repair malformed JSON from AI"""
-                import re as regex
-                
-                # Step 1: Remove any text before first { and after last }
-                first_brace = s.find('{')
-                last_brace = s.rfind('}')
-                if first_brace != -1 and last_brace != -1:
-                    s = s[first_brace:last_brace+1]
-                
-                # Step 2: Replace control characters
-                s = s.replace('\t', ' ')
-                s = s.replace('\r\n', ' ')
-                s = s.replace('\r', ' ')
-                s = s.replace('\n', ' ')
-                
-                # Step 3: Fix unescaped quotes in string values
-                # This is tricky - we need to escape quotes that aren't structural
-                def fix_string_content(match):
-                    content = match.group(1)
-                    # Escape any unescaped quotes inside the string
-                    fixed = regex.sub(r'(?<!\\)"', '\\"', content)
-                    return '"' + fixed + '"'
-                
-                # Step 4: Fix trailing commas before ] or }
-                s = regex.sub(r',\s*([}\]])', r'\1', s)
-                
-                # Step 5: Fix missing commas between values
-                # Pattern: "value" "key" should be "value", "key"
-                s = regex.sub(r'"\s+"', '", "', s)
-                # Pattern: }\s*{ should be }, {
-                s = regex.sub(r'\}\s*\{', '}, {', s)
-                # Pattern: ]\s*[ should be ], [
-                s = regex.sub(r'\]\s*\[', '], [', s)
-                # Pattern: "value"\s*"key": should be "value", "key":
-                s = regex.sub(r'"\s*"([^"]+)":', '", "\\1":', s)
-                # Pattern: }\s*"key": should be }, "key":
-                s = regex.sub(r'\}\s*"([^"]+)":', '}, "\\1":', s)
-                # Pattern: ]\s*"key": should be ], "key":
-                s = regex.sub(r'\]\s*"([^"]+)":', '], "\\1":', s)
-                
-                # Step 6: Remove any remaining control characters
-                s = ''.join(char if ord(char) >= 32 or char in '\n\r\t' else ' ' for char in s)
-                s = s.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
-                
-                # Step 7: Collapse multiple spaces
-                s = regex.sub(r'\s+', ' ', s)
-                
-                return s
+            # Extract JSON from between first { and last }
+            first_brace = response.find('{')
+            last_brace = response.rfind('}')
+            if first_brace != -1 and last_brace != -1:
+                response = response[first_brace:last_brace+1]
             
-            response = repair_json(response)
-            logger.info(f"Repaired JSON (first 500 chars): {response[:500]}")
+            logger.info(f"Cleaned JSON (first 500 chars): {response[:500]}")
             
-            # Parse JSON with multiple fallback attempts
+            # Parse JSON using json_repair library (handles all LLM JSON issues)
             content = None
-            parse_errors = []
             
-            for attempt_name, json_str in [("repaired", response), ("strict_false", response)]:
+            # Strategy 1: Try raw parse first (cheapest)
+            try:
+                content = json.loads(response)
+                logger.info("JSON parsed successfully (raw)")
+            except json.JSONDecodeError:
+                pass
+            
+            # Strategy 2: Use json_repair library (handles unescaped quotes, missing commas, etc.)
+            if content is None:
                 try:
-                    if attempt_name == "strict_false":
-                        content = json.loads(json_str, strict=False)
+                    from json_repair import repair_json
+                    repaired = repair_json(response, return_objects=False)
+                    content = json.loads(repaired)
+                    logger.info(f"JSON parsed successfully (json_repair library)")
+                except Exception as e:
+                    logger.error(f"json_repair failed: {e}")
+            
+            # Strategy 3: json_repair with whitespace normalization
+            if content is None:
+                try:
+                    from json_repair import repair_json
+                    cleaned = response.replace('\r\n', ' ').replace('\r', ' ').replace('\n', ' ').replace('\t', ' ')
+                    repaired = repair_json(cleaned, return_objects=False)
+                    content = json.loads(repaired)
+                    logger.info(f"JSON parsed successfully (json_repair + whitespace)")
+                except Exception as e:
+                    logger.error(f"json_repair+whitespace failed: {e}")
+            
+            # Strategy 4: json_repair return_objects=True (direct object return)
+            if content is None:
+                try:
+                    from json_repair import repair_json
+                    content = repair_json(response, return_objects=True)
+                    if isinstance(content, dict):
+                        logger.info("JSON parsed successfully (json_repair direct object)")
                     else:
-                        content = json.loads(json_str)
-                    logger.info(f"JSON parsed successfully with {attempt_name}")
-                    break
-                except json.JSONDecodeError as e:
-                    parse_errors.append(f"{attempt_name}: {str(e)}")
-                    continue
+                        content = None
+                except Exception as e:
+                    logger.error(f"json_repair direct failed: {e}")
             
             if content is None:
-                # Final attempt: extract just the structure we need manually
-                try:
-                    # Try to find and parse just the path object
-                    path_match = re.search(r'"path"\s*:\s*(\{[^}]+\})', response)
-                    modules_match = re.search(r'"modules"\s*:\s*(\[[^\]]*\])', response)
-                    
-                    if path_match and modules_match:
-                        content = {
-                            'path': json.loads(path_match.group(1), strict=False),
-                            'modules': json.loads(modules_match.group(1), strict=False),
-                            'quizzes': []
-                        }
-                        logger.info("Parsed using regex extraction fallback")
-                except Exception as extract_error:
-                    parse_errors.append(f"extraction: {str(extract_error)}")
-            
-            if content is None:
+                logger.error(f"All parse strategies failed")
+                logger.error(f"Response length: {len(response)}, preview: {response[:500]}")
                 return Response(
-                    {'error': f'AI returned unparseable content. Errors: {"; ".join(parse_errors)}. Please try again.'},
+                    {'error': 'AI returned unparseable content. Please try again.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
@@ -1294,3 +1479,195 @@ Return ONLY the JSON object, nothing else."""
                 {'error': f'Failed to generate content: {str(e)}', 'traceback': error_traceback},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+class AchievedSkillViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only API for skills earned through learning activities.
+
+    GET /learning/skills/          — list all skills for current user
+    GET /learning/skills/me/       — skills grouped by category
+    GET /learning/skills/summary/  — aggregate counts per source type
+    """
+    serializer_class = AchievedSkillSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return AchievedSkill.objects.filter(user=self.request.user)
+
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        """Return skills grouped by category, sorted by most recently earned."""
+        from collections import defaultdict
+        skills = self.get_queryset()
+        grouped = defaultdict(list)
+        for skill in skills:
+            grouped[skill.skill_category].append(AchievedSkillSerializer(skill).data)
+        return Response({
+            'total': skills.count(),
+            'by_category': dict(grouped),
+        })
+
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """Return aggregate counts — how many skills per source type."""
+        from django.db.models import Count
+        counts = (
+            self.get_queryset()
+            .values('source_type')
+            .annotate(count=Count('id'))
+            .order_by('-count')
+        )
+        return Response({
+            'total_skills': self.get_queryset().count(),
+            'by_source': list(counts),
+        })
+
+
+class BadgeViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Badges API.
+
+    GET /learning/badges/           — list user's earned badges
+    GET /learning/badges/catalog/   — full catalog with earned/locked status
+    """
+    serializer_class = UserBadgeSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return UserBadge.objects.filter(
+            user=self.request.user
+        ).select_related('badge')
+
+    @action(detail=False, methods=['get'])
+    def catalog(self, request):
+        """
+        Returns all active badges with an `earned` flag and `earned_at` for
+        the current user. Frontend uses this to render locked/unlocked states.
+        """
+        user = request.user
+        all_badges = BadgeDefinition.objects.filter(is_active=True)
+        earned_map = {
+            ub.badge_id: ub.earned_at
+            for ub in UserBadge.objects.filter(user=user).select_related('badge')
+        }
+
+        result = []
+        for badge in all_badges:
+            item = BadgeDefinitionSerializer(badge).data
+            item['earned'] = badge.id in earned_map
+            item['earned_at'] = earned_map.get(badge.id)
+            result.append(item)
+
+        return Response({
+            'total_badges': len(result),
+            'earned_count': len(earned_map),
+            'badges': result,
+        })
+
+
+class LeaderboardViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Leaderboard API.
+    GET /learning/leaderboard/              — all-time top 50
+    GET /learning/leaderboard/monthly/     — top this month
+    GET /learning/leaderboard/weekly/      — top this week
+    GET /learning/leaderboard/me/          — my rank + percentile
+    GET /learning/leaderboard/categories/  — breakdown by category
+    """
+    serializer_class = LeaderboardEntrySerializer
+    permission_classes = [IsAuthenticated]
+
+    def _annotate_ranks(self, qs):
+        """Add rank numbers to a queryset ordered by total_points desc."""
+        entries = list(qs.select_related('user'))
+        for i, entry in enumerate(entries, start=1):
+            entry.rank = i
+        return entries
+
+    def get_queryset(self):
+        return LeaderboardSnapshot.objects.all().select_related('user')
+
+    def list(self, request, *args, **kwargs):
+        entries = self._annotate_ranks(
+            LeaderboardSnapshot.objects.order_by('-total_points')[:50]
+        )
+        data = LeaderboardEntrySerializer(entries, many=True, context={'request': request}).data
+        return Response({
+            'period': 'all_time',
+            'total_users': LeaderboardSnapshot.objects.count(),
+            'entries': data,
+        })
+
+    @action(detail=False, methods=['get'])
+    def monthly(self, request):
+        entries = self._annotate_ranks(
+            LeaderboardSnapshot.objects.order_by('-monthly_points')[:50]
+        )
+        for i, e in enumerate(entries, start=1):
+            e.rank = i
+        data = LeaderboardEntrySerializer(entries, many=True, context={'request': request}).data
+        return Response({'period': 'monthly', 'total_users': LeaderboardSnapshot.objects.count(), 'entries': data})
+
+    @action(detail=False, methods=['get'])
+    def weekly(self, request):
+        entries = self._annotate_ranks(
+            LeaderboardSnapshot.objects.order_by('-weekly_points')[:50]
+        )
+        data = LeaderboardEntrySerializer(entries, many=True, context={'request': request}).data
+        return Response({'period': 'weekly', 'total_users': LeaderboardSnapshot.objects.count(), 'entries': data})
+
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        from .leaderboard_service import get_user_rank
+        info = get_user_rank(request.user)
+        entry = info.get('entry')
+        if not entry:
+            return Response({'rank': None, 'total_points': 0, 'percentile': 0, 'total_users': 0})
+        entry.rank = info['rank']
+        # Neighbours ±5
+        rank = info['rank']
+        qs = list(LeaderboardSnapshot.objects.order_by('-total_points').select_related('user'))
+        start = max(0, rank - 6)
+        end = min(len(qs), rank + 5)
+        neighbours = qs[start:end]
+        for i, n in enumerate(neighbours, start=start + 1):
+            n.rank = i
+        return Response({
+            'rank': info['rank'],
+            'total_users': info['total_users'],
+            'percentile': info['percentile'],
+            'total_points': info['total_points'],
+            'entry': LeaderboardEntrySerializer(entry, context={'request': request}).data,
+            'neighbours': LeaderboardEntrySerializer(neighbours, many=True, context={'request': request}).data,
+        })
+
+    @action(detail=False, methods=['get'])
+    def categories(self, request):
+        """Return per-category leaders: most modules, most challenges, most certs."""
+        top_modules = (
+            LeaderboardSnapshot.objects.order_by('-modules_completed')
+            .select_related('user')[:5]
+        )
+        top_challenges = (
+            LeaderboardSnapshot.objects.order_by('-challenges_solved')
+            .select_related('user')[:5]
+        )
+        top_certs = (
+            LeaderboardSnapshot.objects.order_by('-certificates_earned')
+            .select_related('user')[:5]
+        )
+        def serialize(qs, start=1):
+            entries = list(qs)
+            for i, e in enumerate(entries, start=start):
+                e.rank = i
+            return LeaderboardEntrySerializer(entries, many=True, context={'request': request}).data
+
+        return Response({
+            'most_modules': serialize(top_modules),
+            'most_challenges': serialize(top_challenges),
+            'most_certificates': serialize(top_certs),
+        })
+
+
+
