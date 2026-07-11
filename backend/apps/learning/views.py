@@ -127,7 +127,12 @@ class LearningModuleViewSet(viewsets.ModelViewSet):
             career_path=module.career_path,
             learning_module=module
         )
-        
+
+        # Initialise before the guard so re-completing an already-finished module
+        # returns success instead of raising UnboundLocalError. The guard below
+        # still prevents duplicate points/badge awards. (Remediation Req 6.)
+        newly_earned_badges = []
+
         if not progress.is_completed:
             progress.is_completed = True
             progress.completion_percentage = 100
@@ -439,14 +444,24 @@ class QuizViewSet(viewsets.ModelViewSet):
                 {'detail': 'Maximum attempts reached'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
+        # Resume an existing in-progress attempt instead of creating a second
+        # one — otherwise submit() can find multiple in-progress attempts and
+        # raise MultipleObjectsReturned. (Remediation Req 11.)
+        existing = QuizAttempt.objects.filter(
+            user=user, quiz=quiz, status='in_progress'
+        ).order_by('-started_at').first()
+        if existing:
+            serializer = QuizAttemptSerializer(existing)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
         # Create new attempt
         attempt = QuizAttempt.objects.create(
             user=user,
             quiz=quiz,
             status='in_progress'
         )
-        
+
         serializer = QuizAttemptSerializer(attempt)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
@@ -457,14 +472,16 @@ class QuizViewSet(viewsets.ModelViewSet):
         user = request.user
         answers_data = request.data.get('answers', [])
 
-        # Get active attempt
-        try:
-            attempt = QuizAttempt.objects.select_related('quiz').get(
-                user=user,
-                quiz=quiz,
-                status='in_progress'
-            )
-        except QuizAttempt.DoesNotExist:
+        # Get active attempt. Use filter().first() rather than get() so that any
+        # pre-existing duplicate in-progress attempts (from before the start()
+        # de-duplication) resolve to exactly one and never raise
+        # MultipleObjectsReturned. (Remediation Req 11.)
+        attempt = QuizAttempt.objects.select_related('quiz').filter(
+            user=user,
+            quiz=quiz,
+            status='in_progress'
+        ).order_by('started_at').first()
+        if attempt is None:
             return Response(
                 {'detail': 'No active quiz attempt found'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -489,14 +506,19 @@ class QuizViewSet(viewsets.ModelViewSet):
         total_points = 0
         earned_points = 0
 
-        questions_qs = Question.objects.filter(quiz=quiz).in_bulk(
-            [a.get('question_id') for a in answers_data if a.get('question_id')]
-        )
+        # Key by str(id): in_bulk() returns UUID-typed keys, so looking up by the
+        # string question_id from the JSON body would always miss and silently
+        # score every answer 0. (Latent scoring bug surfaced fixing Req 7.)
+        submitted_ids = [a.get('question_id') for a in answers_data if a.get('question_id')]
+        questions_by_id = {
+            str(q.id): q
+            for q in Question.objects.filter(quiz=quiz, id__in=submitted_ids)
+        }
 
         for answer_data in answers_data:
             question_id = answer_data.get('question_id')
             user_answer = answer_data.get('answer')
-            question = questions_qs.get(question_id)
+            question = questions_by_id.get(str(question_id))
             if not question:
                 continue
 
@@ -542,7 +564,7 @@ class QuizViewSet(viewsets.ModelViewSet):
             answers_detail = []
             for answer_data in answers_data:
                 question_id = answer_data.get('question_id')
-                question = questions_qs.get(question_id)
+                question = questions_by_id.get(str(question_id))
                 if question:
                     user_answer = answer_data.get('answer')
                     is_correct = self._check_answer(question, user_answer)
