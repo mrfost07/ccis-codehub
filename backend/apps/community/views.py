@@ -6,7 +6,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from django.db.models import Q, F
+from django.db.models import Q, F, Value
+from django.db.models.functions import Greatest
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
@@ -154,16 +155,18 @@ class PostViewSet(viewsets.ModelViewSet):
         )
         
         if not created:
-            # Unlike
+            # Unlike — atomic decrement with a floor of 0 (Req 27).
             like.delete()
-            post.like_count = max(0, post.like_count - 1)
-            post.save()
+            Post.objects.filter(pk=post.pk).update(
+                like_count=Greatest(F('like_count') - 1, Value(0))
+            )
+            post.refresh_from_db(fields=['like_count'])
             return Response({'liked': False, 'like_count': post.like_count})
         else:
-            # Like
-            post.like_count += 1
-            post.save()
-            
+            # Like — atomic increment so concurrent likes don't lose counts.
+            Post.objects.filter(pk=post.pk).update(like_count=F('like_count') + 1)
+            post.refresh_from_db(fields=['like_count'])
+
             # Create notification for post author
             if post.author != request.user:
                 Notification.objects.create(
@@ -402,15 +405,17 @@ class CommentViewSet(viewsets.ModelViewSet):
         )
         
         if not created:
-            # Unlike
+            # Unlike — atomic decrement with a floor of 0 (Req 27).
             like.delete()
-            comment.like_count = max(0, comment.like_count - 1)
-            comment.save()
+            Comment.objects.filter(pk=comment.pk).update(
+                like_count=Greatest(F('like_count') - 1, Value(0))
+            )
+            comment.refresh_from_db(fields=['like_count'])
             return Response({'liked': False, 'like_count': comment.like_count})
         else:
-            # Like
-            comment.like_count += 1
-            comment.save()
+            # Like — atomic increment so concurrent likes don't lose counts.
+            Comment.objects.filter(pk=comment.pk).update(like_count=F('like_count') + 1)
+            comment.refresh_from_db(fields=['like_count'])
             return Response({'liked': True, 'like_count': comment.like_count})
 
 
@@ -475,8 +480,15 @@ class UserFollowViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        """Get follows"""
-        return UserFollow.objects.select_related('follower', 'following').all()
+        """
+        Scope follow records to the requesting user — they may only see or delete
+        rows where they are the follower or the followed party. Prevents reading
+        or deleting other users' follow relationships. (Remediation Req 15.)
+        """
+        user = self.request.user
+        return UserFollow.objects.select_related('follower', 'following').filter(
+            Q(follower=user) | Q(following=user)
+        )
     
     def perform_create(self, serializer):
         """Create follow relationship"""
@@ -1162,7 +1174,9 @@ class OrganizationViewSet(viewsets.ModelViewSet):
             for admin in admins:
                 Notification.objects.create(
                     recipient=admin.user,
+                    sender=request.user,
                     notification_type='org_join_request',
+                    title='New organization join request',
                     message=f'{request.user.username} wants to join {org.name}'
                 )
         
@@ -1243,7 +1257,9 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         # Notify invitee
         Notification.objects.create(
             recipient=invitee,
+            sender=request.user,
             notification_type='org_invitation',
+            title='Organization invitation',
             message=f'{request.user.username} invited you to join {org.name}'
         )
         
@@ -1333,7 +1349,9 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         # Notify user
         Notification.objects.create(
             recipient=membership.user,
+            sender=request.user,
             notification_type='org_approved',
+            title='Organization membership approved',
             message=f'Your request to join {org.name} was approved'
         )
         

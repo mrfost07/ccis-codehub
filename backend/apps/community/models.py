@@ -134,6 +134,9 @@ class Notification(models.Model):
         ('course_completed', 'Course Completed'),
         ('review_request', 'Review Request'),
         ('announcement', 'Announcement'),
+        ('org_join_request', 'Organization Join Request'),
+        ('org_invitation', 'Organization Invitation'),
+        ('org_approved', 'Organization Approved'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
