@@ -145,19 +145,29 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['email', 'username', 'first_name', 'last_name', 'password', 
+        fields = ['email', 'username', 'first_name', 'last_name', 'password',
                  'confirm_password', 'role', 'program', 'year_level']
-        
+        # Security: self-registration must never grant an elevated role.
+        # `role` is echoed back in responses but is read-only on input.
+        read_only_fields = ['role']
+
     def validate(self, attrs):
         if attrs['password'] != attrs['confirm_password']:
             raise serializers.ValidationError("Passwords don't match")
         return attrs
-    
+
     def create(self, validated_data):
         validated_data.pop('confirm_password')
         password = validated_data.pop('password')
+        # Defence in depth: strip any privilege fields a client may have
+        # smuggled in, then force a non-privileged student account.
+        for privileged in ('role', 'is_staff', 'is_superuser', 'is_active'):
+            validated_data.pop(privileged, None)
         user = User.objects.create_user(
             password=password,
+            role='student',
+            is_staff=False,
+            is_superuser=False,
             **validated_data
         )
         return user

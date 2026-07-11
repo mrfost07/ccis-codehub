@@ -17,6 +17,7 @@ from .serializers import (
     UserSerializer, UserProfileSerializer,
     UserRegistrationSerializer, UserLoginSerializer
 )
+from .permissions import IsPlatformAdmin
 from .captcha import generate_captcha_challenge, verify_captcha_token
 
 
@@ -309,11 +310,15 @@ class UserViewSet(viewsets.ModelViewSet):
         return UserSerializer
     
     def get_permissions(self):
-        """Allow different permissions for different actions"""
-        if self.action in ['create']:
-            return [AllowAny()]
-        elif self.action in ['destroy', 'update', 'partial_update']:
-            return [IsAdminUser()]
+        """
+        Only platform admins may create, mutate, or delete users through this
+        viewset. Public self-registration has its own gated endpoint
+        (UserRegistrationView at /auth/register/), so `create` here must not be
+        open — an AllowAny create with a role/is_active-writable serializer is a
+        privilege-escalation hole. (Remediation Req 3.)
+        """
+        if self.action in ['create', 'destroy', 'update', 'partial_update']:
+            return [IsPlatformAdmin()]
         return [IsAuthenticated()]
     
     @action(detail=False, methods=['get'])
