@@ -44,11 +44,12 @@ interface LearningAnalyticsData {
     }
 }
 
-// Color palettes
+// Color palettes — purple-monochrome sequence to match the B/W + purple theme.
+const PURPLE_SEQ = ['#8b5cf6', '#a78bfa', '#6d28d9', '#c4b5fd', '#4c1d95', '#ddd6fe']
 const COLORS = {
-    programs: ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B'],
-    difficulties: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444'],
-    modules: ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#EC4899']
+    programs: PURPLE_SEQ,
+    difficulties: PURPLE_SEQ,
+    modules: PURPLE_SEQ,
 }
 
 function LearningAnalytics() {
@@ -242,11 +243,11 @@ function LearningAnalytics() {
                     {data.career_paths.by_difficulty.length > 0 ? (
                         <ResponsiveContainer width="100%" height={250}>
                             <BarChart data={data.career_paths.by_difficulty}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                                <XAxis dataKey="name" stroke="#9CA3AF" />
-                                <YAxis stroke="#9CA3AF" />
+                                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                                <XAxis dataKey="name" stroke="#a1a1aa" />
+                                <YAxis stroke="#a1a1aa" />
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#1E293B', border: '1px solid #334155' }}
+                                    contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a' }}
                                     labelStyle={{ color: '#fff' }}
                                 />
                                 <Bar dataKey="value" radius={[4, 4, 0, 0]}>
