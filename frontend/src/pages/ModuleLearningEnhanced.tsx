@@ -508,54 +508,55 @@ export default function ModuleLearningEnhanced() {
         />
       )}
 
-      {/* Header - Mobile Responsive */}
-      <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-purple-800 px-4 sm:px-6 lg:px-8 py-6 sm:py-8 shadow-xl">
-        <div className="max-w-6xl mx-auto">
+      {/* Header — clean dark bar with a subtle purple accent line */}
+      <div className="relative border-b border-neutral-800 bg-neutral-900/40">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <button
             onClick={() => navigate(`/learning/paths/${module.career_path}`)}
-            className="flex items-center gap-2 text-blue-100 hover:text-white transition mb-4 sm:mb-6 text-sm sm:text-base"
+            className="flex items-center gap-2 text-neutral-400 hover:text-white transition mb-5 text-sm"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to {module.career_path_name || 'Career Path'}
           </button>
 
-          <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-5">
             <div className="flex-1 w-full">
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 sm:mb-3">{module.title}</h1>
-              <p className="text-blue-100 text-sm sm:text-base md:text-lg">{module.description}</p>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white mb-2">{module.title}</h1>
+              <p className="text-neutral-400 text-sm sm:text-base max-w-3xl leading-relaxed">{module.description}</p>
             </div>
 
-            <div className="flex flex-col gap-2 text-right">
-              <div className="flex items-center gap-2 text-blue-100 text-sm">
-                <Clock className="w-4 h-4" />
+            <div className="flex flex-col gap-1.5 text-sm shrink-0">
+              <div className="flex items-center gap-2 text-neutral-400">
+                <Clock className="w-4 h-4 text-purple-400" />
                 Reading: {formatTime(readingTime)}
               </div>
-              <div className="flex items-center gap-2 text-blue-100 text-sm">
-                <Target className="w-4 h-4" />
+              <div className="flex items-center gap-2 text-neutral-400">
+                <Target className="w-4 h-4 text-purple-400" />
                 Expected: {module.duration_minutes} min
               </div>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur px-3 py-1 rounded-full text-blue-100">
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-700 bg-neutral-800/60 px-3 py-1 text-sm text-neutral-300">
               {module.module_type === 'video' && <Video className="w-4 h-4" />}
               {module.module_type === 'text' && <BookOpen className="w-4 h-4" />}
               {module.module_type === 'project' && <Award className="w-4 h-4" />}
               <span className="capitalize">{module.module_type}</span>
-            </div>
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur px-3 py-1 rounded-full text-blue-100">
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1 text-sm text-purple-300">
               <Award className="w-4 h-4" />
               {module.points_reward} points
-            </div>
-            <div className="flex items-center gap-2 bg-white/10 backdrop-blur px-3 py-1 rounded-full text-blue-100 capitalize">
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-700 bg-neutral-800/60 px-3 py-1 text-sm text-neutral-300 capitalize">
               {module.difficulty_level}
-            </div>
+            </span>
             {module.is_completed && (
-              <div className="flex items-center gap-2 bg-green-500/30 backdrop-blur px-3 py-1 rounded-full text-green-200">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/10 px-3 py-1 text-sm text-green-300">
                 <CheckCircle className="w-4 h-4" />
                 Completed
-              </div>
+              </span>
             )}
           </div>
         </div>

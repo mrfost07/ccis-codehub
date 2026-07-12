@@ -399,7 +399,7 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
         </div>
         <div className="w-full bg-slate-700 rounded-full h-2">
           <div
-            className="bg-gradient-to-r from-purple-600 to-indigo-600 h-2 rounded-full transition-all duration-300"
+            className="bg-purple-500 h-2 rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -408,11 +408,11 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
       {/* Question Card */}
       <div className="bg-slate-800/50 rounded-xl p-6 sm:p-8 border border-slate-700">
         <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="px-3 py-1 bg-blue-600/20 text-blue-400 rounded-lg text-sm font-medium">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="px-2.5 py-1 rounded-full border border-neutral-700 bg-neutral-800 text-neutral-300 text-xs font-medium">
               Question {currentQuestion.number}
             </span>
-            <span className="px-3 py-1 bg-purple-600/20 text-purple-400 rounded-lg text-sm">
+            <span className="px-2.5 py-1 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-xs font-medium">
               {currentQuestion.points} {currentQuestion.points === 1 ? 'point' : 'points'}
             </span>
           </div>
