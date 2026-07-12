@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import DOMPurify from 'dompurify'
 import Navbar from '../components/Navbar'
 import SlideViewer from '../components/SlideViewer'
 import QuizViewer from '../components/QuizViewer'
@@ -323,7 +324,7 @@ export default function ModuleLearningEnhanced() {
       return (
         <div
           className="prose prose-invert prose-lg max-w-none module-content-display"
-          dangerouslySetInnerHTML={{ __html: module.content || module.description }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(module.content || module.description || '') }}
         />
       )
     }
@@ -343,7 +344,7 @@ export default function ModuleLearningEnhanced() {
           </div>
           <div
             className="prose prose-invert prose-lg max-w-none module-content-display"
-            dangerouslySetInnerHTML={{ __html: module.content || module.description }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(module.content || module.description || '') }}
           />
         </div>
       )
@@ -439,7 +440,7 @@ export default function ModuleLearningEnhanced() {
     return (
       <div
         className="prose prose-invert prose-lg max-w-none module-content-display"
-        dangerouslySetInnerHTML={{ __html: module.content || module.description }}
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(module.content || module.description || '') }}
       />
     )
   }

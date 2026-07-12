@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import DOMPurify from 'dompurify'
 import RichTextEditor from './RichTextEditor'
 import { Plus, Trash2, Eye, Edit3, Check, X, GripVertical, Upload, Loader2, FileText } from 'lucide-react'
 import api from '../services/api'
@@ -490,7 +491,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
             {isPreview ? (
               <div
                 className="prose prose-invert prose-lg max-w-none bg-slate-900 rounded-lg p-6 border border-slate-700"
-                dangerouslySetInnerHTML={{ __html: currentQuestion.content }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.content || '') }}
               />
             ) : (
               <RichTextEditor

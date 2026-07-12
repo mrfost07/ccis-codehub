@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react'
+import DOMPurify from 'dompurify'
 import api from '../services/api'
 
 interface SlideViewerProps {
@@ -288,7 +289,7 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-10 lg:p-12">
                 <div
                   className="prose prose-invert prose-sm sm:prose-base md:prose-lg max-w-none module-content-display slide-content-view"
-                  dangerouslySetInnerHTML={{ __html: currentSlide.content }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentSlide.content || '') }}
                 />
               </div>
             </div>
