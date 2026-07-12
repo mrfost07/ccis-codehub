@@ -19,10 +19,10 @@ const PROGRAMS = [
 ]
 
 const YEAR_LEVELS = [
-  { value: '1', label: '1st Year', icon: Sprout, color: 'from-emerald-500 to-green-600' },
-  { value: '2', label: '2nd Year', icon: Flower2, color: 'from-blue-500 to-cyan-600' },
-  { value: '3', label: '3rd Year', icon: TreeDeciduous, color: 'from-purple-500 to-indigo-600' },
-  { value: '4', label: '4th Year', icon: GraduationCap, color: 'from-amber-500 to-orange-600' },
+  { value: '1', label: '1st Year', icon: Sprout, color: 'from-purple-400 to-purple-500' },
+  { value: '2', label: '2nd Year', icon: Flower2, color: 'from-purple-500 to-purple-600' },
+  { value: '3', label: '3rd Year', icon: TreeDeciduous, color: 'from-purple-600 to-purple-700' },
+  { value: '4', label: '4th Year', icon: GraduationCap, color: 'from-purple-700 to-purple-800' },
 ]
 
 export default function Register() {
@@ -173,22 +173,21 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl" />
+    <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
+      {/* Single restrained purple glow — no multi-blob slop */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-1/2 top-0 h-80 w-[36rem] -translate-x-1/2 rounded-full bg-purple-600/10 blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
         {/* Card */}
-        <div className="backdrop-blur-xl bg-slate-900/60 border border-slate-700/50 rounded-2xl p-6 sm:p-8 shadow-2xl">
+        <div className="rounded-2xl border border-neutral-800 bg-neutral-900/70 backdrop-blur-sm p-6 sm:p-8 shadow-card">
           {/* Logo & Title */}
           <div className="text-center mb-5">
             <div className="flex justify-center mb-3">
               <img src="/logo/ccis-logo.png" alt="CCIS CodeHub" className="h-12 w-12 sm:h-14 sm:w-14" />
             </div>
-            <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <h1 className="text-xl font-bold text-white">
               {step === 4 ? 'Welcome to CCIS CodeHub!' : 'Create Account'}
             </h1>
           </div>
