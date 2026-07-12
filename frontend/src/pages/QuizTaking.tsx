@@ -167,9 +167,10 @@ export default function QuizTaking() {
     return (
       <div className="min-h-screen bg-slate-950 p-6">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-8 mb-6">
-            <h1 className="text-4xl font-bold text-white mb-4">{quiz.title}</h1>
-            <p className="text-purple-100 text-lg">{quiz.description}</p>
+          <div className="relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/60 p-8 mb-6">
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-3">{quiz.title}</h1>
+            <p className="text-neutral-400 text-base sm:text-lg max-w-3xl">{quiz.description}</p>
           </div>
 
           <div className="bg-slate-800 rounded-2xl p-8 mb-6">

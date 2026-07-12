@@ -1290,23 +1290,23 @@ function InstructorDashboard() {
           </div>
 
           {/* Quick Actions */}
-          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl p-4 sm:p-6 mb-6">
+          <div className="rounded-xl border border-purple-500/20 bg-gradient-to-r from-purple-600/15 to-transparent p-4 sm:p-6 mb-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg sm:text-xl font-bold text-white mb-1">Quick Actions</h2>
-                <p className="text-purple-100 text-sm">Manage your learning content and students</p>
+                <p className="text-neutral-400 text-sm">Manage your learning content and students</p>
               </div>
               <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
                 <button
                   onClick={() => navigate('/learning-admin')}
-                  className="flex-1 sm:flex-none px-4 py-2 bg-white/20 backdrop-blur text-white rounded-lg hover:bg-white/30 transition flex items-center justify-center gap-2"
+                  className="flex-1 sm:flex-none px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition flex items-center justify-center gap-2 font-medium"
                 >
                   <GraduationCap className="w-4 h-4" />
                   Learning Admin
                 </button>
                 <button
                   onClick={() => setActiveTab('students')}
-                  className="flex-1 sm:flex-none px-4 py-2 bg-white/20 backdrop-blur text-white rounded-lg hover:bg-white/30 transition flex items-center justify-center gap-2"
+                  className="flex-1 sm:flex-none px-4 py-2 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 text-neutral-100 rounded-lg transition flex items-center justify-center gap-2"
                 >
                   <Users className="w-4 h-4" />
                   View Students

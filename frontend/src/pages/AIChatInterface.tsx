@@ -179,12 +179,12 @@ function AIChatInterface() {
       
       <div className="flex-1 max-w-5xl mx-auto w-full px-4 py-6 flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-t-xl p-6">
+        <div className="bg-neutral-900 border-b border-neutral-800 rounded-t-xl p-6">
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <Bot className="h-8 w-8" />
+            <Bot className="h-8 w-8 text-purple-400" />
             AI Coding Mentor
           </h1>
-          <p className="text-blue-100 mt-2">Powered by Advanced AI Models</p>
+          <p className="text-neutral-400 mt-2">Powered by Advanced AI Models</p>
         </div>
 
         {/* Chat Container */}

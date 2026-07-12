@@ -234,21 +234,22 @@ export default function QuestionManagement() {
   return (
     <div className="min-h-screen bg-slate-950 p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 mb-6">
+        {/* Header — clean dark bar with a subtle purple accent line */}
+        <div className="relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/60 p-6 mb-6">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
           <button
             onClick={() => navigate('/learning-admin')}
-            className="mb-3 px-4 py-2 bg-white/20 backdrop-blur text-white rounded-lg hover:bg-white/30 transition flex items-center gap-2"
+            className="mb-3 flex items-center gap-2 text-neutral-400 hover:text-white transition text-sm"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Learning Admin
           </button>
-          
-          <h1 className="text-3xl font-bold text-white mb-2">
+
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-1">
             Question Management
           </h1>
-          <p className="text-purple-100">
-            {quiz?.title} - {questions.length} {questions.length === 1 ? 'question' : 'questions'}
+          <p className="text-neutral-400">
+            {quiz?.title} — {questions.length} {questions.length === 1 ? 'question' : 'questions'}
           </p>
         </div>
 
