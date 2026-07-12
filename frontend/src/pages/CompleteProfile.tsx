@@ -123,11 +123,10 @@ export default function CompleteProfile() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
-            {/* Background decoration */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
-                <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl" />
+        <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
+            {/* Single restrained purple glow — no multi-blob slop */}
+            <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                <div className="absolute left-1/2 top-0 h-80 w-[36rem] -translate-x-1/2 rounded-full bg-purple-600/10 blur-3xl" />
             </div>
 
             <div className="relative w-full max-w-md">
