@@ -31,12 +31,12 @@ const TYPE_LABELS: Record<string, string> = {
 }
 
 const GRADIENTS = [
-  'from-blue-600 to-indigo-700',
-  'from-emerald-600 to-teal-700',
+  'from-purple-500 to-purple-700',
+  'from-green-600 to-green-700',
   'from-purple-600 to-violet-700',
-  'from-rose-600 to-pink-700',
-  'from-amber-600 to-orange-700',
-  'from-cyan-600 to-sky-700',
+  'from-amber-500 to-amber-700',
+  'from-purple-400 to-purple-600',
+  'from-green-500 to-emerald-700',
 ]
 
 // ─── Expanded Modal ──────────────────────────────────────────────────────────

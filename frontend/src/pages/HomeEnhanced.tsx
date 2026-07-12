@@ -269,7 +269,7 @@ export default function HomeEnhanced() {
               title="Community"
               description="Connect with fellow developers and grow together"
               features={["Forums", "Code Sharing", "Mentorship"]}
-              gradient="from-pink-500 to-red-500"
+              gradient="from-purple-500 to-purple-700"
               position="right"
               index={3}
             />

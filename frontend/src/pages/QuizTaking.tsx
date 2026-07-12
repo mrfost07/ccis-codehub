@@ -244,7 +244,7 @@ export default function QuizTaking() {
     return (
       <div className="min-h-screen bg-slate-950 p-6">
         <div className="max-w-4xl mx-auto">
-          <div className={`bg-gradient-to-r ${passed ? 'from-green-600 to-emerald-600' : 'from-red-600 to-pink-600'} rounded-2xl p-8 mb-6`}>
+          <div className={`bg-gradient-to-r ${passed ? 'from-green-600 to-green-700' : 'from-red-600 to-red-700'} rounded-2xl p-8 mb-6`}>
             <div className="text-center">
               {passed ? (
                 <Trophy className="w-20 h-20 text-white mx-auto mb-4" />

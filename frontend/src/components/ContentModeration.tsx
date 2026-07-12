@@ -300,7 +300,7 @@ export default function ContentModeration() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 <StatCard icon={<FileText className="w-5 h-5" />} label="Posts" value={stats?.total_posts || 0} color="from-indigo-500 to-purple-500" />
                 <StatCard icon={<MessageCircle className="w-5 h-5" />} label="Comments" value={stats?.total_comments || 0} color="from-cyan-500 to-blue-500" />
-                <StatCard icon={<Heart className="w-5 h-5" />} label="Likes" value={stats?.total_likes || 0} color="from-pink-500 to-rose-500" />
+                <StatCard icon={<Heart className="w-5 h-5" />} label="Likes" value={stats?.total_likes || 0} color="from-red-500 to-red-600" />
                 <StatCard icon={<Eye className="w-5 h-5" />} label="Views" value={stats?.total_views || 0} color="from-amber-500 to-orange-500" />
                 <StatCard icon={<Building2 className="w-5 h-5" />} label="Groups" value={stats?.total_organizations || 0} color="from-green-500 to-emerald-500" />
                 <StatCard icon={<Hash className="w-5 h-5" />} label="Hashtags" value={hashtags.length} color="from-violet-500 to-purple-500" />
