@@ -1216,7 +1216,7 @@ const LiveQuizSession = () => {
                                     <button
                                         onClick={submitCode}
                                         disabled={isAnswerSubmitted}
-                                        className="flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="flex items-center gap-1.5 px-4 py-1.5 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {isAnswerSubmitted
                                             ? <><CheckCircle className="w-4 h-4" /> Submitted</>
@@ -1436,7 +1436,7 @@ const LiveQuizSession = () => {
                                     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
                                     navigate('/');
                                 }}
-                                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-xl transition"
+                                className="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-xl transition"
                             >
                                 ← Leave Session
                             </button>

@@ -2150,7 +2150,7 @@ function InstructorDashboard() {
                         <button
                           onClick={() => handleGoLive(c)}
                           disabled={goingLive === c.slug}
-                          className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white rounded-lg transition flex items-center gap-1.5 text-xs font-medium"
+                          className="px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-lg transition flex items-center gap-1.5 text-xs font-medium"
                           title="Host a live coding competition with this challenge"
                         >
                           {goingLive === c.slug ? (
@@ -4486,7 +4486,7 @@ function InstructorDashboard() {
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={confirmGoLive}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg font-medium transition flex items-center justify-center gap-2"
+                  className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-lg font-medium transition flex items-center justify-center gap-2"
                 >
                   <Radio className="w-4 h-4" />
                   Launch Live Challenge

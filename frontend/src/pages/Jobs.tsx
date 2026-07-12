@@ -107,7 +107,7 @@ function JobCard({
     >
       {/* Skill match bar */}
       {score > 0 && (
-        <div className="absolute top-0 left-0 h-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-t-xl transition-all"
+        <div className="absolute top-0 left-0 h-0.5 bg-purple-500 rounded-t-xl transition-all"
           style={{ width: `${score}%` }} />
       )}
 

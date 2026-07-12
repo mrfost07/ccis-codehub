@@ -328,7 +328,7 @@ export default function LearningEnhanced() {
                             </div>
                             <div className="w-full bg-slate-800 rounded-full h-1.5">
                               <div
-                                className="bg-gradient-to-r from-emerald-500 to-teal-500 h-1.5 rounded-full transition-all duration-500"
+                                className="bg-purple-500 h-1.5 rounded-full transition-all duration-500"
                                 style={{ width: `${Math.max(progress, 2)}%` }}
                               />
                             </div>
@@ -342,7 +342,7 @@ export default function LearningEnhanced() {
                             e.stopPropagation();
                             navigate(`/learning/paths/${path.id}`);
                           }}
-                          className="w-full py-2.5 rounded-lg font-medium text-sm text-white transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500"
+                          className="w-full py-2.5 rounded-lg font-medium text-sm text-white transition-all flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500"
                         >
                           <span>Continue Learning</span>
                           <ArrowRight className="w-4 h-4" />

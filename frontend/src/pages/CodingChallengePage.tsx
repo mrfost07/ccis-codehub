@@ -610,7 +610,7 @@ export default function CodingChallengePage() {
                             <button
                                 onClick={handleSubmit}
                                 disabled={submitting || running || runningCustom || !currentCode.trim()}
-                                className="flex items-center gap-1.5 px-4 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex items-center gap-1.5 px-4 py-1.5 bg-green-600 hover:bg-green-500 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                                 Submit
@@ -680,7 +680,7 @@ export default function CodingChallengePage() {
                         <div className="flex gap-3">
                             <button
                                 onClick={() => navigate('/learning')}
-                                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-xl transition"
+                                className="flex-1 px-4 py-2.5 bg-green-600 hover:bg-green-500 text-white font-semibold rounded-xl transition"
                             >
                                 ← Back to Learning
                             </button>
