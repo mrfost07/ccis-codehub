@@ -1,12 +1,8 @@
 import { Link } from 'react-router-dom'
-import { useState, useEffect, useRef, memo, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { BookOpen, Code2, Bot, Users, Search, Rocket, Pencil } from 'lucide-react'
-import Hyperspeed from '../components/backgrounds/Hyperspeed'
 import { usePublicStats } from '../hooks/useApiCache'
-
-// Memoized Hyperspeed to prevent re-renders from typewriter
-const MemoizedHyperspeed = memo(Hyperspeed)
 
 // Isolated TypewriterText component to prevent parent re-renders
 function TypewriterText() {
@@ -92,44 +88,21 @@ export default function HomeEnhanced() {
 
   return (
     <div className="min-h-screen overflow-x-hidden">
-      {/* Animated Hyperspeed Background - Optimized */}
-      <div className="fixed inset-0 z-0">
-        <MemoizedHyperspeed
-          effectOptions={{
-            onSpeedUp: () => { },
-            onSlowDown: () => { },
-            distortion: 'turbulentDistortion',
-            length: 300,
-            roadWidth: 9,
-            islandWidth: 2,
-            lanesPerRoad: 2,
-            fov: 90,
-            fovSpeedUp: 120,
-            speedUp: 1.5,
-            carLightsFade: 0.4,
-            totalSideLightSticks: 10,
-            lightPairsPerRoadWay: 20,
-            shoulderLinesWidthPercentage: 0.05,
-            brokenLinesWidthPercentage: 0.1,
-            brokenLinesLengthPercentage: 0.5,
-            lightStickWidth: [0.12, 0.4],
-            lightStickHeight: [1.3, 1.6],
-            movingAwaySpeed: [50, 70],
-            movingCloserSpeed: [-100, -140],
-            carLightsLength: [300 * 0.05, 300 * 0.15],
-            carLightsRadius: [0.05, 0.12],
-            carWidthPercentage: [0.3, 0.5],
-            carShiftX: [-0.6, 0.6],
-            colors: {
-              roadColor: 0x080808,
-              islandColor: 0x0a0a0a,
-              background: 0x000000,
-              shoulderLines: 0x131818,
-              brokenLines: 0x131818,
-              leftCars: [0x6366f1, 0x8b5cf6],
-              rightCars: [0xec4899, 0xf43f5e],
-              sticks: 0x6366f1,
-            },
+      {/* Clean static backdrop — a single restrained purple glow + faint grid
+          on near-black. Replaces the multi-colour WebGL animation. */}
+      <div className="fixed inset-0 z-0 pointer-events-none bg-neutral-950">
+        <div
+          className="absolute inset-0"
+          style={{ background: 'radial-gradient(60% 50% at 50% 0%, rgba(139,92,246,0.16), transparent 70%)' }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)',
+            backgroundSize: '64px 64px',
+            WebkitMaskImage: 'radial-gradient(70% 60% at 50% 0%, #000, transparent 80%)',
+            maskImage: 'radial-gradient(70% 60% at 50% 0%, #000, transparent 80%)',
           }}
         />
       </div>
