@@ -133,7 +133,7 @@ export default function Register() {
       })
 
       if (response.data.tokens) {
-        setAuthData(response.data.tokens.access, response.data.user)
+        setAuthData(response.data.tokens.access, response.data.user, response.data.tokens.refresh)
         setStep(4) // Success step
         setTimeout(() => {
           navigate('/learning')

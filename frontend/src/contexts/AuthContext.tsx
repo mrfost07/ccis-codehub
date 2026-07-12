@@ -21,7 +21,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => void
-  setAuthData: (token: string, user: User) => void
+  setAuthData: (token: string, user: User, refresh?: string) => void
   refreshUser: () => Promise<void>
 }
 
@@ -35,22 +35,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Derived state for authentication status
   const isAuthenticated = Boolean(token && user)
 
-  // Initialize auth state from sessionStorage (per-tab storage to isolate users)
+  // Initialize auth state from sessionStorage. Single source of truth:
+  // sessionStorage gives per-tab isolation AND survives reloads. A one-time
+  // migration pulls any legacy localStorage session in, then clears it so we
+  // never mix the two stores for the same token. (Req 19.)
   useEffect(() => {
-    // Try sessionStorage first (per-tab), then fall back to localStorage for existing sessions
     let storedToken = sessionStorage.getItem('token')
     let storedUser = sessionStorage.getItem('user')
 
-    // If not in sessionStorage, check localStorage (for backward compatibility)
     if (!storedToken && !storedUser) {
-      storedToken = localStorage.getItem('token')
-      storedUser = localStorage.getItem('user')
-
-      // Migrate to sessionStorage if found in localStorage
-      if (storedToken && storedUser) {
-        sessionStorage.setItem('token', storedToken)
-        sessionStorage.setItem('user', storedUser)
+      const legacyToken = localStorage.getItem('token')
+      const legacyUser = localStorage.getItem('user')
+      const legacyRefresh = localStorage.getItem('refresh_token')
+      if (legacyToken && legacyUser) {
+        storedToken = legacyToken
+        storedUser = legacyUser
+        sessionStorage.setItem('token', legacyToken)
+        sessionStorage.setItem('user', legacyUser)
+        if (legacyRefresh) sessionStorage.setItem('refresh_token', legacyRefresh)
       }
+      // Enforce single storage from here on.
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      localStorage.removeItem('refresh_token')
     }
 
     if (storedToken && storedUser) {
@@ -66,35 +73,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }, [])
 
-  const setAuthData = useCallback((newToken: string, newUser: User) => {
+  const setAuthData = useCallback((newToken: string, newUser: User, refresh?: string) => {
     setToken(newToken)
     setUser(newUser)
-    // Store in sessionStorage (per-tab) for user isolation
+    // Single storage — sessionStorage only (Req 19).
     sessionStorage.setItem('token', newToken)
     sessionStorage.setItem('user', JSON.stringify(newUser))
-    // Also update localStorage for persistence across page refreshes
-    localStorage.setItem('token', newToken)
-    localStorage.setItem('user', JSON.stringify(newUser))
+    if (refresh) sessionStorage.setItem('refresh_token', refresh)
   }, [])
 
   const login = useCallback(async (email: string, password: string) => {
     const response = await authAPI.login(email, password)
-    const { access, user: userData } = response.data.tokens ?
-      { access: response.data.tokens.access, user: response.data.user } :
-      { access: response.data.access, user: response.data.user }
-
-    setAuthData(access, userData)
+    const tokens = response.data.tokens || {
+      access: response.data.access,
+      refresh: response.data.refresh,
+    }
+    setAuthData(tokens.access, response.data.user, tokens.refresh)
   }, [setAuthData])
 
   const logout = useCallback(() => {
     setToken(null)
     setUser(null)
 
-    // Clear auth data from both storages
+    // Clear auth data (sessionStorage is the store; also clear any legacy
+    // localStorage copies from before the single-storage migration).
     sessionStorage.removeItem('token')
     sessionStorage.removeItem('user')
+    sessionStorage.removeItem('refresh_token')
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    localStorage.removeItem('refresh_token')
     localStorage.removeItem('userRole')
 
     // Clean up all app-related storage keys

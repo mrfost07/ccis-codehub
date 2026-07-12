@@ -41,11 +41,11 @@ export default function Login() {
 
     try {
       const response = await authAPI.login(email, password, captchaToken, captchaAnswer)
-      const { access, user: userData } = response.data.tokens
-        ? { access: response.data.tokens.access, user: response.data.user }
-        : { access: response.data.access, user: response.data.user }
-
-      setAuthData(access, userData)
+      const tokens = response.data.tokens || {
+        access: response.data.access,
+        refresh: response.data.refresh,
+      }
+      setAuthData(tokens.access, response.data.user, tokens.refresh)
       toast.success('Welcome back!')
       // Redirect to return URL — check query param first, then sessionStorage backup
       const returnUrl = searchParams.get('returnUrl') || sessionStorage.getItem('loginReturnUrl')

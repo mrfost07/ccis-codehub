@@ -1,43 +1,22 @@
 import { Navigate } from 'react-router-dom'
-import { ReactNode, useEffect, useState } from 'react'
-import api from '../services/api'
+import { ReactNode } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 
 interface AdminRouteProps {
   children: ReactNode
   allowInstructor?: boolean
 }
 
+/**
+ * Route guard for admin (and optionally instructor) areas.
+ *
+ * Reads the role from the shared AuthContext rather than re-fetching the
+ * profile on every mount, so there is no async work to leak after unmount and
+ * no redundant network call. AuthContext is the single storage source of truth
+ * (sessionStorage). (Remediation Req 22.)
+ */
 export default function AdminRoute({ children, allowInstructor = false }: AdminRouteProps) {
-  const [loading, setLoading] = useState(true)
-  const [hasAccess, setHasAccess] = useState(false)
-  const [userRole, setUserRole] = useState<string | null>(null)
-  const token = localStorage.getItem('token')
-
-  useEffect(() => {
-    if (token) {
-      checkRole()
-    } else {
-      setLoading(false)
-    }
-  }, [token])
-
-  const checkRole = async () => {
-    try {
-      const response = await api.get('/auth/profile/')
-      const role = response.data.role
-      setUserRole(role)
-
-      // Admin always has access
-      // Instructor has access if allowInstructor is true
-      const canAccess = role === 'admin' || (allowInstructor && role === 'instructor')
-      setHasAccess(canAccess)
-    } catch (error) {
-      console.error('Failed to check role:', error)
-      setHasAccess(false)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { user, token, loading } = useAuth()
 
   if (loading) {
     return (
@@ -47,16 +26,17 @@ export default function AdminRoute({ children, allowInstructor = false }: AdminR
     )
   }
 
-  if (!token) {
+  if (!token || !user) {
     return <Navigate to="/login" replace />
   }
 
-  if (!hasAccess) {
-    // Redirect instructor to instructor dashboard, others to main dashboard
-    const redirectPath = userRole === 'instructor' ? '/instructor' : '/dashboard'
+  const role = user.role
+  const canAccess = role === 'admin' || (allowInstructor && role === 'instructor')
+  if (!canAccess) {
+    // Send instructors to their dashboard, everyone else to the main dashboard.
+    const redirectPath = role === 'instructor' ? '/instructor' : '/dashboard'
     return <Navigate to={redirectPath} replace />
   }
 
   return <>{children}</>
 }
-

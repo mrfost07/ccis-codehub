@@ -100,7 +100,7 @@ export default function CompleteProfile() {
             // Store tokens and user data
             localStorage.removeItem('google_signup_data');
             localStorage.removeItem('google_identity_token');
-            setAuthData(response.data.tokens.access, response.data.user);
+            setAuthData(response.data.tokens.access, response.data.user, response.data.tokens.refresh);
 
             toast.success('🎉 Account created! Welcome to CCIS CodeHub!');
             // Use window.location for fresh page load with auth tokens

@@ -107,7 +107,7 @@ export default function AuthCallback() {
             // ========== LOGIN MODE RESPONSES ==========
             if (data.is_existing_user && data.tokens) {
                 // Existing user logging in - use full page redirect to ensure storage is synced
-                setAuthData(data.tokens.access, data.user);
+                setAuthData(data.tokens.access, data.user, data.tokens.refresh);
                 toast.success(`Welcome back, ${data.user.first_name || data.user.username}!`);
                 // Use window.location for OAuth to ensure fresh page load with auth tokens
                 window.location.href = returnUrl;
@@ -123,7 +123,7 @@ export default function AuthCallback() {
 
             // Fallback for legacy responses
             if (data.tokens && data.user) {
-                setAuthData(data.tokens.access, data.user);
+                setAuthData(data.tokens.access, data.user, data.tokens.refresh);
                 toast.success(`Welcome, ${data.user.first_name || data.user.username}!`);
                 // Use window.location for OAuth to ensure fresh page load with auth tokens
                 window.location.href = '/learning';
