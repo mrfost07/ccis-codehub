@@ -319,16 +319,16 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* Quick Actions - Mobile Responsive */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8">
+          {/* Quick Actions — refined accent card */}
+          <div className="rounded-xl border border-purple-500/20 bg-gradient-to-r from-purple-600/15 to-transparent p-4 sm:p-6 mb-6 sm:mb-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">Ready to learn?</h3>
-                <p className="text-sm sm:text-base text-blue-100">Explore new career paths and expand your skills</p>
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-1">Ready to learn?</h3>
+                <p className="text-sm sm:text-base text-neutral-400">Explore new career paths and expand your skills</p>
               </div>
               <button
                 onClick={() => navigate('/learning')}
-                className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition text-sm sm:text-base whitespace-nowrap"
+                className="w-full sm:w-auto px-5 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-semibold transition text-sm whitespace-nowrap"
               >
                 Explore Paths
               </button>
