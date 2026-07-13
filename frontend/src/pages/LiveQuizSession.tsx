@@ -1303,7 +1303,7 @@ const LiveQuizSession = () => {
                                     const showResult = answerResult !== null && canShowResult;
 
                                     let boxClass = 'bg-slate-800 border-slate-700 hover:bg-slate-700';
-                                    if (isSelected && !showResult) boxClass = 'bg-gradient-to-r from-purple-600 to-indigo-600 border-purple-500 text-white';
+                                    if (isSelected && !showResult) boxClass = 'bg-purple-600 border-purple-500 text-white';
                                     if (isAnswerSubmitted && !isSelected && !showResult) boxClass = 'opacity-50 bg-slate-800 border-slate-700';
 
                                     if (showResult) {

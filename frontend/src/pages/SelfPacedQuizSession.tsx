@@ -1100,7 +1100,7 @@ const SelfPacedQuizSession = () => {
                                         className={`w-full text-left p-4 rounded-xl border transition-all duration-200 ${getOptionStyle(opt.key)}`}
                                     >
                                         <div className="flex items-center gap-3">
-                                            <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 bg-gradient-to-br ${opt.color} text-white`}>
+                                            <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold shrink-0 border transition-colors ${selectedAnswer === opt.key ? 'bg-purple-600 border-purple-500 text-white' : 'bg-neutral-800 border-neutral-700 text-neutral-300'}`}>
                                                 {opt.key}
                                             </span>
                                             <span className="text-white text-sm">{opt.text}</span>
