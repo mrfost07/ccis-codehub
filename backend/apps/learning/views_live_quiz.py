@@ -164,7 +164,6 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
             'require_fullscreen': quiz.require_fullscreen,
             'fullscreen_exit_action': quiz.fullscreen_exit_action,
             'alt_tab_action': quiz.alt_tab_action,
-            'enable_ai_proctor': quiz.enable_ai_proctor,
             'enable_code_execution': quiz.enable_code_execution,
             'show_results_to_students': quiz.show_results_to_students,
             'show_correct_answers': quiz.show_correct_answers,

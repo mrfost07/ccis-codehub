@@ -402,7 +402,6 @@ class CodingChallengeViewSet(viewsets.ModelViewSet):
         time_limit = int(request.data.get('time_limit_seconds', challenge.time_limit_seconds))
         max_participants = int(request.data.get('max_participants', 100))
         require_fullscreen = request.data.get('require_fullscreen', False)
-        enable_ai_proctor = request.data.get('enable_ai_proctor', False)
         fullscreen_exit_action = request.data.get('fullscreen_exit_action', 'pause')
         alt_tab_action = request.data.get('alt_tab_action', 'warn')
         max_violations = int(request.data.get('max_violations', 3))
@@ -418,7 +417,6 @@ class CodingChallengeViewSet(viewsets.ModelViewSet):
                 max_participants=max_participants,
                 enable_code_execution=True,
                 require_fullscreen=require_fullscreen,
-                enable_ai_proctor=enable_ai_proctor,
                 fullscreen_exit_action=fullscreen_exit_action,
                 alt_tab_action=alt_tab_action,
                 max_violations=max_violations,

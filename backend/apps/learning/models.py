@@ -519,7 +519,8 @@ class LiveQuiz(models.Model):
     )
 
     # Feature toggles
-    enable_ai_proctor = models.BooleanField(default=False)
+    # (enable_ai_proctor removed — the server-side CV proctor was retired in
+    #  favour of the in-browser exam lockdown. See core/routing.py. Req 17.)
     enable_code_execution = models.BooleanField(default=True)
     # Controls whether students see per-question results after completing
     # (which questions they got right/wrong). Default OFF — instructors opt-in.
