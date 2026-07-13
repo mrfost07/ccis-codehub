@@ -150,6 +150,15 @@ const LiveQuizSession = () => {
     // ── Anti-cheat state ──────────────────────────────────────────────────────
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [isQuizPaused, setIsQuizPaused] = useState(false);
+
+    // Mirror answer + pause state into refs so the (stable) WebSocket message
+    // handler reads the CURRENT values, not the ones captured when it was
+    // created — otherwise question-end scoring and paused-shuffle guards use
+    // stale state. (Remediation Req 23.)
+    const selectedAnswerRef = useRef(selectedAnswer);
+    selectedAnswerRef.current = selectedAnswer;
+    const isQuizPausedRef = useRef(isQuizPaused);
+    isQuizPausedRef.current = isQuizPaused;
     const [pauseReason, setPauseReason] = useState('');
     const [pauseSource, setPauseSource] = useState<'proctor' | 'fullscreen' | 'tab_switch' | 'server' | ''>('');
     const [isQuizClosed, setIsQuizClosed] = useState(false);
@@ -446,8 +455,10 @@ const LiveQuizSession = () => {
             // ── Phase 2: Question shuffle on alt-tab (instructor's choice) ──
             case 'question_shuffle': {
                 // Don't replace the current question if quiz is paused
-                // (pause already blocks the student — no need to also shuffle)
-                if (isQuizPaused) break;
+                // (pause already blocks the student — no need to also shuffle).
+                // Read the ref so a pause that happened after this handler was
+                // created is respected. (Req 23.2.)
+                if (isQuizPausedRef.current) break;
 
                 const question = applyQuestion(data.question);
                 toast('Question changed — focus was detected elsewhere.', { duration: 3000 });
@@ -564,9 +575,11 @@ const LiveQuizSession = () => {
                 break;
 
             case 'question_end': {
-                // Only do client-side scoring if student never submitted via WS
+                // Only do client-side scoring if student never submitted via WS.
+                // Read selectedAnswerRef so fallback scoring uses the answer the
+                // student actually has selected now, not a stale capture. (Req 23.1.)
                 if (!isAnswerSubmittedRef.current && answerResult === null) {
-                    const isCorrect = data.correctAnswer?.toUpperCase() === selectedAnswer?.toUpperCase();
+                    const isCorrect = data.correctAnswer?.toUpperCase() === selectedAnswerRef.current?.toUpperCase();
                     setAnswerResult(isCorrect ? 'correct' : 'incorrect');
                     if (isCorrect) {
                         const pts = data.points || 100;
