@@ -10,32 +10,17 @@ import HomeEnhanced from './pages/HomeEnhanced'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
-import AdminDashboard from './pages/AdminDashboardNew'
-import InstructorDashboard from './pages/InstructorDashboard'
 import StudentDashboard from './pages/StudentDashboard'
 import StudentLearningDashboard from './pages/StudentLearningDashboard'
 import QuizTaking from './pages/QuizTaking'
 import PathDetailEnhanced from './pages/PathDetailEnhanced'
 import ModuleLearningEnhanced from './pages/ModuleLearningEnhanced'
-import Certificates from './pages/Certificates'
-import Leaderboard from './pages/Leaderboard'
-import QuestionManagement from './pages/QuestionManagement'
 import LearningEnhanced from './pages/LearningEnhanced'
-import ProjectsEnhanced from './pages/ProjectsEnhanced'
-import ProjectDetail from './pages/ProjectDetail'
-import CommunityEnhanced from './pages/CommunityEnhanced'
-import AIChatInterface from './pages/AIChatInterface'
-// Use the enhanced Profile component
-import ProfileEnhanced from './pages/ProfileEnhanced'
-import UserProfileView from './pages/UserProfileView'
 import AuthCallback from './pages/AuthCallback'
 import CompleteProfile from './pages/CompleteProfile'
 import JoinQuiz from './pages/JoinQuiz'
 import QuizLobby from './pages/QuizLobby'
 import QuizResults from './pages/QuizResults'
-import QuizAnalytics from './pages/QuizAnalytics'
-import ResumePage from './pages/ResumePage'
-import FeaturedProjects from './pages/FeaturedProjects'
 // Lazy-load heavy pages so Prism.js + Monaco editor only download when needed.
 // The live/self-paced sessions embed the Monaco editor for coding questions, so
 // keeping them lazy keeps Monaco out of the initial bundle.
@@ -43,6 +28,22 @@ const CodingChallengePage = lazy(() => import('./pages/CodingChallengePage'))
 const VideoCoursePage = lazy(() => import('./pages/VideoCoursePage'))
 const LiveQuizSession = lazy(() => import('./pages/LiveQuizSession'))
 const SelfPacedQuizSession = lazy(() => import('./pages/SelfPacedQuizSession'))
+// Secondary / role-specific pages — kept out of the initial student bundle.
+// The admin/instructor dashboards and community moderation pull in recharts.
+const AdminDashboard = lazy(() => import('./pages/AdminDashboardNew'))
+const InstructorDashboard = lazy(() => import('./pages/InstructorDashboard'))
+const Certificates = lazy(() => import('./pages/Certificates'))
+const Leaderboard = lazy(() => import('./pages/Leaderboard'))
+const QuestionManagement = lazy(() => import('./pages/QuestionManagement'))
+const ProjectsEnhanced = lazy(() => import('./pages/ProjectsEnhanced'))
+const ProjectDetail = lazy(() => import('./pages/ProjectDetail'))
+const CommunityEnhanced = lazy(() => import('./pages/CommunityEnhanced'))
+const AIChatInterface = lazy(() => import('./pages/AIChatInterface'))
+const ProfileEnhanced = lazy(() => import('./pages/ProfileEnhanced'))
+const UserProfileView = lazy(() => import('./pages/UserProfileView'))
+const QuizAnalytics = lazy(() => import('./pages/QuizAnalytics'))
+const ResumePage = lazy(() => import('./pages/ResumePage'))
+const FeaturedProjects = lazy(() => import('./pages/FeaturedProjects'))
 import { Capacitor } from '@capacitor/core'
 import { App as CapApp } from '@capacitor/app'
 
@@ -86,6 +87,7 @@ function App() {
                 },
               }}
             />
+            <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
             <Routes>
               <Route path="/" element={<HomeEnhanced />} />
               <Route path="/login" element={<Login />} />
@@ -338,6 +340,7 @@ function App() {
               />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </Suspense>
             <ConditionalAIMentor />
           </div>
         </Router>
