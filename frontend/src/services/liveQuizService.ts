@@ -30,7 +30,6 @@ export interface LiveQuiz {
     // Phase 2: Anti-cheat action configuration
     fullscreen_exit_action: 'warn' | 'pause' | 'close'
     alt_tab_action: 'warn' | 'shuffle' | 'close'
-    enable_ai_proctor: boolean
     enable_code_execution: boolean
     default_question_time: number
     break_between_questions: number
@@ -131,7 +130,6 @@ export interface CreateLiveQuizData {
     // Phase 2: Anti-cheat action configuration
     fullscreen_exit_action?: 'warn' | 'pause' | 'close'
     alt_tab_action?: 'warn' | 'shuffle' | 'close'
-    enable_ai_proctor?: boolean
     enable_code_execution?: boolean
     // Scheduling fields
     scheduled_start?: string   // ISO datetime string

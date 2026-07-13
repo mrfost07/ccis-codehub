@@ -76,94 +76,28 @@ interface ProctorResult {
     action: string;
 }
 
+// Inert stub. The server-side CV proctor was removed (it opened the server's
+// webcam — broken for multi-user cloud); anti-cheat is now the in-browser exam
+// lockdown below (fullscreen + tab-switch + copy/paste guards). This keeps the
+// old call sites compiling without any camera or WebSocket. (Req 17.)
 function useProctoringCamera(
-    enabled: boolean,
-    participantId: string | undefined,
-    joinCode: string | undefined,
-    nickname: string | undefined,
-    onViolation?: (result: ProctorResult) => void,
-    onStatusUpdate?: (result: ProctorResult) => void,
+    _enabled: boolean,
+    _participantId: string | undefined,
+    _joinCode: string | undefined,
+    _nickname: string | undefined,
+    _onViolation?: (result: ProctorResult) => void,
+    _onStatusUpdate?: (result: ProctorResult) => void,
 ) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const procWsRef = useRef<WebSocket | null>(null);
-    const [cameraActive, setCameraActive] = useState(false);
-    const [proctorLabel, setProctorLabel] = useState<string>('looking_center');
-    const [wsConnected, setWsConnected] = useState(false);
-    const [isCalibrating, setIsCalibrating] = useState(true);
-
-    const onViolationRef = useRef(onViolation);
-    const onStatusRef = useRef(onStatusUpdate);
-    onViolationRef.current = onViolation;
-    onStatusRef.current = onStatusUpdate;
-
-    useEffect(() => {
-        if (!enabled || !participantId) return;
-        console.log('AI Proctor: hook starting (server-side camera mode)');
-
-        let cancelled = false;
-
-        const start = () => {
-            const wsBase = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
-            const procWs = new WebSocket(`${wsBase}/proctor/${participantId}/`);
-            procWsRef.current = procWs;
-
-            procWs.onopen = () => {
-                console.log('AI Proctor: WS connected, telling server to start camera');
-                setWsConnected(true);
-                setCameraActive(true);
-
-                procWs.send(JSON.stringify({
-                    type: 'start_camera',
-                    participant_id: participantId,
-                    join_code: joinCode,
-                    nickname,
-                }));
-            };
-
-            procWs.onerror = (e) => console.error('AI Proctor: WS error', e);
-            procWs.onclose = () => {
-                console.log('AI Proctor: WS closed');
-                setWsConnected(false);
-                setCameraActive(false);
-            };
-
-            procWs.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.type === 'proctor_result') {
-                        const result: ProctorResult = {
-                            label: data.label || 'looking_center',
-                            confidence: data.confidence || 0,
-                            is_violation: data.is_violation || false,
-                            calibrating: data.calibrating || false,
-                            violations: data.violations || 0,
-                            action: data.action || 'none',
-                        };
-
-                        setProctorLabel(result.label);
-                        setIsCalibrating(result.calibrating);
-                        onStatusRef.current?.(result);
-
-                        if (result.is_violation && result.action === 'flag') {
-                            onViolationRef.current?.(result);
-                        }
-                    }
-                } catch (_) { /* ignore parse errors */ }
-            };
-        };
-
-        start();
-
-        return () => {
-            cancelled = true;
-            procWsRef.current?.close();
-            setCameraActive(false);
-            setWsConnected(false);
-        };
-    }, [enabled, participantId, joinCode, nickname]);
-
-    return { videoRef, canvasRef, cameraActive, proctorLabel, wsConnected, isCalibrating };
+    return {
+        videoRef,
+        canvasRef,
+        cameraActive: false as boolean,
+        proctorLabel: 'looking_center' as string,
+        wsConnected: false as boolean,
+        isCalibrating: false as boolean,
+    };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

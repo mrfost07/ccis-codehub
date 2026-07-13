@@ -249,7 +249,6 @@ function InstructorDashboard() {
   const [showGoLiveConfig, setShowGoLiveConfig] = useState(false)
   const [goLiveChallenge, setGoLiveChallenge] = useState<any>(null)
   const [goLiveConfig, setGoLiveConfig] = useState({
-    enable_ai_proctor: false,
     require_fullscreen: true,
     fullscreen_exit_action: 'pause',
     alt_tab_action: 'warn',
@@ -429,7 +428,6 @@ function InstructorDashboard() {
         time_limit_seconds: goLiveConfig.time_limit_seconds,
         max_participants: goLiveConfig.max_participants,
         require_fullscreen: goLiveConfig.require_fullscreen,
-        enable_ai_proctor: goLiveConfig.enable_ai_proctor,
         fullscreen_exit_action: goLiveConfig.fullscreen_exit_action,
         alt_tab_action: goLiveConfig.alt_tab_action,
         max_violations: goLiveConfig.max_violations,
@@ -875,7 +873,6 @@ function InstructorDashboard() {
       // Phase 2: Anti-cheat action configuration
       fullscreen_exit_action: 'pause',
       alt_tab_action: 'warn',
-      enable_ai_proctor: false,
       enable_code_execution: true,
     })
   }
@@ -3470,18 +3467,6 @@ function InstructorDashboard() {
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={(liveQuizForm as any).enable_ai_proctor ?? false}
-                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, enable_ai_proctor: e.target.checked } as any)}
-                      className="w-4 h-4 text-orange-600 bg-slate-800 border-slate-700 rounded focus:ring-orange-500"
-                    />
-                    <div>
-                      <span className="text-sm text-slate-300">Enable AI Proctoring (webcam)</span>
-                      <p className="text-xs text-slate-500">Uses AI to detect suspicious behaviour via webcam</p>
-                    </div>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
                       checked={(liveQuizForm as any).enable_code_execution ?? true}
                       onChange={(e) => setLiveQuizForm({ ...liveQuizForm, enable_code_execution: e.target.checked } as any)}
                       className="w-4 h-4 text-orange-600 bg-slate-800 border-slate-700 rounded focus:ring-orange-500"
@@ -3707,12 +3692,6 @@ function InstructorDashboard() {
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-lg text-xs">
                             <Eye className="w-3 h-3" />
                             Tab: {selectedLiveQuiz.alt_tab_action}
-                          </span>
-                        )}
-                        {selectedLiveQuiz.enable_ai_proctor && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-violet-500/10 text-violet-400 border border-violet-500/20 rounded-lg text-xs">
-                            <Camera className="w-3 h-3" />
-                            AI Proctor
                           </span>
                         )}
                         {selectedLiveQuiz.enable_code_execution && (
@@ -4421,18 +4400,6 @@ function InstructorDashboard() {
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={goLiveConfig.enable_ai_proctor}
-                      onChange={(e) => setGoLiveConfig({ ...goLiveConfig, enable_ai_proctor: e.target.checked })}
-                      className="w-4 h-4 text-emerald-600 bg-slate-800 border-slate-700 rounded focus:ring-emerald-500"
-                    />
-                    <div>
-                      <span className="text-sm text-slate-300">Enable AI Proctoring (webcam)</span>
-                      <p className="text-xs text-slate-500">Uses AI to detect suspicious behaviour via webcam</p>
-                    </div>
-                  </label>
                 </div>
               </div>
 
@@ -4467,7 +4434,7 @@ function InstructorDashboard() {
               )}
 
               {/* Max Violations */}
-              {(goLiveConfig.require_fullscreen || goLiveConfig.enable_ai_proctor) && (
+              {goLiveConfig.require_fullscreen && (
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Max Violations Before Auto-Close</label>
                   <input
