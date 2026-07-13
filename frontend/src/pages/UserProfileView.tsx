@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   User, Mail, Calendar, BookOpen, Code, Trophy, Star,
@@ -8,7 +8,9 @@ import {
 import Navbar from '../components/Navbar'
 import { communityAPI } from '../services/api'
 import toast from 'react-hot-toast'
-import Hyperspeed from '../components/backgrounds/Hyperspeed'
+// three.js-backed background — lazy so it only downloads when this profile
+// actually uses an animated background.
+const Hyperspeed = lazy(() => import('../components/backgrounds/Hyperspeed'))
 import { getMediaUrl } from '../utils/mediaUrl'
 
 type BackgroundType = 'hyperspeed' | 'akira' | 'golden' | 'split' | 'highway' | 'gradient' | 'aurora' | 'cyber'
@@ -406,6 +408,7 @@ export default function UserProfileView() {
 
         {/* Cover Background - Separate Section */}
         <div className="relative h-56 sm:h-72 rounded-2xl overflow-hidden">
+          <Suspense fallback={null}>
           {(() => {
             const bg = (profile.profile?.profile_background || 'gradient') as BackgroundType
             switch (bg) {
@@ -428,6 +431,7 @@ export default function UserProfileView() {
                 return <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 rounded-2xl" />
             }
           })()}
+          </Suspense>
         </div>
 
         {/* Profile Info Card - Overlapping Glass Card */}

@@ -32,15 +32,17 @@ import AuthCallback from './pages/AuthCallback'
 import CompleteProfile from './pages/CompleteProfile'
 import JoinQuiz from './pages/JoinQuiz'
 import QuizLobby from './pages/QuizLobby'
-import LiveQuizSession from './pages/LiveQuizSession'
-import SelfPacedQuizSession from './pages/SelfPacedQuizSession'
 import QuizResults from './pages/QuizResults'
 import QuizAnalytics from './pages/QuizAnalytics'
 import ResumePage from './pages/ResumePage'
 import FeaturedProjects from './pages/FeaturedProjects'
-// Lazy-load heavy pages so Prism.js + Monaco editor only download when needed
+// Lazy-load heavy pages so Prism.js + Monaco editor only download when needed.
+// The live/self-paced sessions embed the Monaco editor for coding questions, so
+// keeping them lazy keeps Monaco out of the initial bundle.
 const CodingChallengePage = lazy(() => import('./pages/CodingChallengePage'))
 const VideoCoursePage = lazy(() => import('./pages/VideoCoursePage'))
+const LiveQuizSession = lazy(() => import('./pages/LiveQuizSession'))
+const SelfPacedQuizSession = lazy(() => import('./pages/SelfPacedQuizSession'))
 import { Capacitor } from '@capacitor/core'
 import { App as CapApp } from '@capacitor/app'
 
@@ -302,7 +304,9 @@ function App() {
                 path="/quiz/live/:joinCode"
                 element={
                   <ProtectedRoute>
-                    <LiveQuizSession />
+                    <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
+                      <LiveQuizSession />
+                    </Suspense>
                   </ProtectedRoute>
                 }
               />
@@ -310,7 +314,9 @@ function App() {
                 path="/quiz/self-paced/:joinCode"
                 element={
                   <ProtectedRoute>
-                    <SelfPacedQuizSession />
+                    <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
+                      <SelfPacedQuizSession />
+                    </Suspense>
                   </ProtectedRoute>
                 }
               />

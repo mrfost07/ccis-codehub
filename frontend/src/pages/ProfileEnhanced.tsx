@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import {
   User, Mail, Award, Calendar, Edit2, Save, X, Camera,
   Github, Linkedin, Globe, MapPin, BookOpen, Code, Trophy,
@@ -8,7 +8,9 @@ import {
 import Navbar from '../components/Navbar'
 import api, { authAPI, communityAPI } from '../services/api'
 import toast from 'react-hot-toast'
-import Hyperspeed from '../components/backgrounds/Hyperspeed'
+// three.js-backed background — lazy so it only downloads when a user actually
+// picks an animated profile background.
+const Hyperspeed = lazy(() => import('../components/backgrounds/Hyperspeed'))
 import { getMediaUrl } from '../utils/mediaUrl'
 
 type BackgroundType = 'hyperspeed' | 'akira' | 'golden' | 'split' | 'highway' | 'gradient' | 'aurora' | 'cyber'
@@ -500,11 +502,13 @@ export default function ProfileEnhanced() {
           {/* Cover Image - Dynamic Background */}
           <div className="h-56 sm:h-72 rounded-2xl relative overflow-hidden">
             {/* Background Options */}
-            {selectedBackground === 'hyperspeed' && <Hyperspeed className="rounded-2xl" />}
-            {selectedBackground === 'akira' && <Hyperspeed className="rounded-2xl" effectOptions={akiraPreset} />}
-            {selectedBackground === 'golden' && <Hyperspeed className="rounded-2xl" effectOptions={goldenPreset} />}
-            {selectedBackground === 'split' && <Hyperspeed className="rounded-2xl" effectOptions={splitPreset} />}
-            {selectedBackground === 'highway' && <Hyperspeed className="rounded-2xl" effectOptions={highwayPreset} />}
+            <Suspense fallback={null}>
+              {selectedBackground === 'hyperspeed' && <Hyperspeed className="rounded-2xl" />}
+              {selectedBackground === 'akira' && <Hyperspeed className="rounded-2xl" effectOptions={akiraPreset} />}
+              {selectedBackground === 'golden' && <Hyperspeed className="rounded-2xl" effectOptions={goldenPreset} />}
+              {selectedBackground === 'split' && <Hyperspeed className="rounded-2xl" effectOptions={splitPreset} />}
+              {selectedBackground === 'highway' && <Hyperspeed className="rounded-2xl" effectOptions={highwayPreset} />}
+            </Suspense>
             {selectedBackground === 'gradient' && (
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 rounded-2xl" />
             )}
