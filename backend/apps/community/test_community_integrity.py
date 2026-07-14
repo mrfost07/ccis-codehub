@@ -18,6 +18,30 @@ def _user(username):
     )
 
 
+@pytest.mark.django_db
+class TestFeedQueryPerformance:
+    """The feed's is_liked must be a single subquery, not one query per post."""
+
+    def test_feed_query_count_is_bounded(self, django_assert_max_num_queries):
+        viewer = _user('viewer')
+        author = _user('author')
+        from apps.community.models import PostLike
+        posts = [Post.objects.create(author=author, content=f'post {i}') for i in range(12)]
+        for p in posts[:6]:
+            PostLike.objects.create(post=p, user=viewer)
+
+        client = APIClient()
+        client.force_authenticate(viewer)
+        # With the N+1, 12 posts would add ~12 is_liked queries. The annotation
+        # keeps it bounded regardless of post count.
+        with django_assert_max_num_queries(12):
+            resp = client.get('/api/community/posts/')
+        assert resp.status_code == 200
+        results = resp.data.get('results', resp.data)
+        liked = {r['id']: r['is_liked'] for r in results}
+        assert sum(1 for v in liked.values() if v) == 6
+
+
 @pytest.fixture
 def alice(db):
     return _user('alice')

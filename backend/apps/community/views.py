@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from django.db.models import Q, F, Value
+from django.db.models import Q, F, Value, Exists, OuterRef
 from django.db.models.functions import Greatest
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -39,8 +39,16 @@ class PostViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Get posts with optional filtering"""
-        queryset = Post.objects.select_related('author').all()
-        
+        queryset = Post.objects.select_related('author', 'organization')
+
+        # Annotate "did the current user like this" as a single subquery instead
+        # of one PostLike query per post in the serializer (N+1 on the feed).
+        user = self.request.user
+        if user.is_authenticated:
+            queryset = queryset.annotate(
+                _is_liked=Exists(PostLike.objects.filter(post=OuterRef('pk'), user=user))
+            )
+
         # Filter by post type
         post_type = self.request.query_params.get('type')
         if post_type:

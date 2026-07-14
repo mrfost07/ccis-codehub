@@ -78,6 +78,11 @@ class PostSerializer(serializers.ModelSerializer):
     
     def get_is_liked(self, obj):
         """Check if current user has liked this post"""
+        # Prefer the queryset annotation (single subquery on the list endpoint);
+        # fall back to a direct query for contexts that don't annotate.
+        annotated = getattr(obj, '_is_liked', None)
+        if annotated is not None:
+            return annotated
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return PostLike.objects.filter(post=obj, user=request.user).exists()
