@@ -3,6 +3,7 @@ import { useEffect, lazy, Suspense } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './contexts/AuthContext'
+import { LoadingState } from './components/ui'
 import FloatingAIMentor from './components/FloatingAIMentor'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
@@ -76,18 +77,26 @@ function App() {
         <Router>
           <div className="min-h-screen bg-slate-950 text-white">
             <AppMobileHandler />
+            {/* Toast theme per DESIGN_SYSTEM.md §10 — neutral surface, icon color is the only status signal */}
             <Toaster
-              position="top-right"
+              position="bottom-right"
               toastOptions={{
-                duration: 3000,
+                duration: 4000,
                 style: {
-                  background: '#1e293b',
-                  color: '#fff',
-                  border: '1px solid #334155',
+                  background: '#18181b',
+                  color: '#fafafa',
+                  border: '1px solid rgba(63,63,70,0.6)',
+                  borderRadius: '0.875rem',
+                  boxShadow: '0 20px 25px -5px rgba(0,0,0,0.4), 0 8px 10px -6px rgba(0,0,0,0.4)',
+                  padding: '12px 16px',
+                  fontSize: '14px',
+                  maxWidth: 'min(92vw, 380px)',
                 },
+                success: { iconTheme: { primary: '#34d399', secondary: '#18181b' } },
+                error: { iconTheme: { primary: '#f87171', secondary: '#18181b' } },
               }}
             />
-            <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
+            <Suspense fallback={<div className="min-h-screen bg-neutral-950 flex items-center justify-center"><LoadingState /></div>}>
             <Routes>
               <Route path="/" element={<HomeEnhanced />} />
               <Route path="/login" element={<Login />} />
@@ -186,7 +195,7 @@ function App() {
                 path="/learning/challenges/:slug"
                 element={
                   <ProtectedRoute>
-                    <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
+                    <Suspense fallback={<div className="min-h-screen bg-neutral-950 flex items-center justify-center"><LoadingState /></div>}>
                       <CodingChallengePage />
                     </Suspense>
                   </ProtectedRoute>
@@ -196,7 +205,7 @@ function App() {
                 path="/learning/videos/:slug"
                 element={
                   <ProtectedRoute>
-                    <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
+                    <Suspense fallback={<div className="min-h-screen bg-neutral-950 flex items-center justify-center"><LoadingState /></div>}>
                       <VideoCoursePage />
                     </Suspense>
                   </ProtectedRoute>
@@ -306,7 +315,7 @@ function App() {
                 path="/quiz/live/:joinCode"
                 element={
                   <ProtectedRoute>
-                    <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
+                    <Suspense fallback={<div className="min-h-screen bg-neutral-950 flex items-center justify-center"><LoadingState /></div>}>
                       <LiveQuizSession />
                     </Suspense>
                   </ProtectedRoute>
@@ -316,7 +325,7 @@ function App() {
                 path="/quiz/self-paced/:joinCode"
                 element={
                   <ProtectedRoute>
-                    <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center"><div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" /></div>}>
+                    <Suspense fallback={<div className="min-h-screen bg-neutral-950 flex items-center justify-center"><LoadingState /></div>}>
                       <SelfPacedQuizSession />
                     </Suspense>
                   </ProtectedRoute>
