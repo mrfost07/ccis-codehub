@@ -349,7 +349,7 @@ export default function StudentLearningDashboard() {
               </div>
               
               <div className="bg-neutral-800/50 backdrop-blur border border-neutral-700 rounded-xl p-4 text-center opacity-50">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-3">
                   <Target className="w-8 h-8 text-white" />
                 </div>
                 <h4 className="text-white font-semibold mb-1">Dedicated Learner</h4>
@@ -357,7 +357,7 @@ export default function StudentLearningDashboard() {
               </div>
               
               <div className="bg-neutral-800/50 backdrop-blur border border-neutral-700 rounded-xl p-4 text-center opacity-50">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                <div className="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-3">
                   <Star className="w-8 h-8 text-white" />
                 </div>
                 <h4 className="text-white font-semibold mb-1">Master</h4>

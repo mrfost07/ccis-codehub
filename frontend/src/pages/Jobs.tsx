@@ -101,7 +101,7 @@ function JobCard({
       onClick={onClick}
       className={`relative p-4 rounded-xl border cursor-pointer transition-all duration-200 group
         ${selected
-          ? 'border-purple-500/60 bg-neutral-800/90 shadow-lg shadow-purple-500/10'
+          ? 'border-purple-500/60 bg-neutral-800/90'
           : 'border-neutral-700/50 bg-neutral-900/60 hover:border-neutral-600 hover:bg-neutral-800/60'
         }`}
     >
@@ -265,7 +265,7 @@ function JobDetail({ job, onClose, onToggleSave }: {
       {/* Footer actions */}
       <div className="p-4 border-t border-neutral-700/50 flex gap-3">
         <a href={job.apply_url} target="_blank" rel="noopener noreferrer"
-          className="flex-1 py-2.5 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white font-semibold rounded-xl transition text-sm flex items-center justify-center gap-2">
+          className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl transition text-sm flex items-center justify-center gap-2">
           <ExternalLink className="w-4 h-4" /> Apply Now
         </a>
         <button
@@ -365,7 +365,7 @@ export default function Jobs() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-black text-white flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
               <Briefcase className="w-6 h-6 text-purple-400" /> Job Board
             </h1>
             <p className="text-sm text-neutral-400 mt-0.5">

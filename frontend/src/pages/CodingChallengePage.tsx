@@ -659,7 +659,7 @@ export default function CodingChallengePage() {
             {/* ── Success Modal Overlay ── */}
             {showSuccessModal && result && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-neutral-900 border border-green-500/30 rounded-2xl p-8 max-w-md w-full mx-4 text-center shadow-2xl shadow-green-500/10">
+                    <div className="bg-neutral-900 border border-green-500/30 rounded-2xl p-8 max-w-md w-full mx-4 text-center shadow-2xl">
                         <div className="text-6xl mb-4">🎉</div>
                         <h2 className="text-2xl font-bold text-green-400 mb-2">All Tests Passed!</h2>
                         <p className="text-neutral-400 mb-4">Congratulations! You solved <span className="text-white font-semibold">{challenge?.title}</span></p>

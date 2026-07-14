@@ -205,7 +205,7 @@ export default function VideoCoursePage() {
                                     {!activeLesson.is_completed && (
                                         <button
                                             onClick={handleMarkComplete}
-                                            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white text-sm font-medium rounded-lg transition flex-shrink-0"
+                                            className="flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm font-medium rounded-lg transition flex-shrink-0"
                                         >
                                             <CheckCircle className="w-4 h-4" />
                                             Mark Complete

@@ -17,6 +17,7 @@ import api from '../services/api'
 import liveQuizService, { LiveQuiz, CreateLiveQuizData } from '../services/liveQuizService'
 import { useCurrentUser } from '../hooks/useApiCache'
 import toast from 'react-hot-toast'
+import { Skeleton, SkeletonCard } from '../components/ui'
 import { getMediaUrl } from '../utils/mediaUrl'
 
 interface CareerPath {
@@ -1196,10 +1197,10 @@ function InstructorDashboard() {
 
 
   const statCards = [
-    { icon: Users, label: 'Total Students', value: stats.total_enrollments || 0, color: 'from-purple-500 to-purple-600' },
-    { icon: BookOpen, label: 'Career Paths', value: stats.total_paths || 0, color: 'from-green-500 to-green-600' },
-    { icon: CheckCircle, label: 'Completions', value: stats.completed_enrollments || 0, color: 'from-purple-500 to-purple-600' },
-    { icon: Award, label: 'Certificates', value: stats.total_certificates || 0, color: 'from-amber-500 to-amber-600' }
+    { icon: Users, label: 'Total Students', value: stats.total_enrollments || 0, color: 'bg-purple-500/10 text-purple-400' },
+    { icon: BookOpen, label: 'Career Paths', value: stats.total_paths || 0, color: 'bg-green-500/10 text-green-400' },
+    { icon: CheckCircle, label: 'Completions', value: stats.completed_enrollments || 0, color: 'bg-purple-500/10 text-purple-400' },
+    { icon: Award, label: 'Certificates', value: stats.total_certificates || 0, color: 'bg-amber-500/10 text-amber-400' }
   ]
 
   const learningAdminSections = [
@@ -1228,14 +1229,14 @@ function InstructorDashboard() {
     <div className="flex flex-wrap gap-2 sm:gap-3 mb-6">
       <button
         onClick={() => { setActiveTab('paths'); setLearningView('paths'); setShowCreatePath(true); }}
-        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm whitespace-nowrap"
+        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors text-sm whitespace-nowrap"
       >
         <PlusCircle className="h-4 w-4" />
         Create Path
       </button>
       <button
         onClick={() => { setActiveTab('modules'); setLearningView('modules'); setShowCreateModule(true); }}
-        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm whitespace-nowrap"
+        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors text-sm whitespace-nowrap"
       >
         <FileText className="h-4 w-4" />
         Create Module
@@ -1273,12 +1274,12 @@ function InstructorDashboard() {
             {statCards.map((stat) => {
               const Icon = stat.icon
               return (
-                <div key={stat.label} className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-3 sm:p-4 md:p-6 shadow-lg hover:border-neutral-600/50 transition-colors">
-                  <div className={`inline-flex p-2 sm:p-2.5 md:p-3 rounded-lg bg-gradient-to-r ${stat.color} mb-2 sm:mb-3 md:mb-4`}>
-                    <Icon className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-white" />
+                <div key={stat.label} className="bg-neutral-900 border border-neutral-800 rounded-xl p-3 sm:p-4 md:p-6 hover:border-neutral-700 transition-colors">
+                  <div className={`inline-flex p-2 sm:p-2.5 md:p-3 rounded-lg ${stat.color} mb-2 sm:mb-3 md:mb-4`}>
+                    <Icon className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
                   </div>
                   <p className="text-neutral-400 text-xs sm:text-sm mb-0.5 sm:mb-1">{stat.label}</p>
-                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
+                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-white tabular-nums">
                     {loading ? '...' : stat.value}
                   </p>
                 </div>
@@ -1314,19 +1315,19 @@ function InstructorDashboard() {
 
           {/* Recent Activity - Real Data */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-4 sm:p-6 shadow-lg">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6 shadow-lg">
               <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
                 <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
                 Recent Enrollments
               </h3>
               {loading ? (
-                <p className="text-neutral-400 text-sm">Loading...</p>
+                <div className="space-y-3">{[0, 1, 2].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
               ) : recentEnrollments.length === 0 ? (
                 <p className="text-neutral-400 text-sm">No recent enrollments</p>
               ) : (
                 <div className="space-y-3">
                   {recentEnrollments.slice(0, 4).map((enrollment) => (
-                    <div key={enrollment.id} className="p-3 bg-neutral-700/50 rounded-lg">
+                    <div key={enrollment.id} className="p-3 bg-neutral-800/60 rounded-lg">
                       <div className="flex justify-between items-start mb-1">
                         <p className="text-white font-medium text-sm sm:text-base">{enrollment.student_name}</p>
                         <span className={`text-xs ${enrollment.status === 'completed' ? 'text-green-400' : 'text-purple-400'}`}>
@@ -1340,19 +1341,19 @@ function InstructorDashboard() {
               )}
             </div>
 
-            <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-4 sm:p-6 shadow-lg">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6 shadow-lg">
               <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
                 <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
                 Your Career Paths
               </h3>
               {loading ? (
-                <p className="text-neutral-400 text-sm">Loading...</p>
+                <div className="space-y-3">{[0, 1, 2].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
               ) : careerPaths.length === 0 ? (
                 <div className="text-center py-4">
                   <p className="text-neutral-400 text-sm mb-3">No career paths yet</p>
                   <button
                     onClick={() => navigate('/learning-admin')}
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm"
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm"
                   >
                     Create First Path
                   </button>
@@ -1360,7 +1361,7 @@ function InstructorDashboard() {
               ) : (
                 <div className="space-y-3">
                   {careerPaths.slice(0, 4).map((path) => (
-                    <div key={path.id} className="p-3 bg-neutral-700/50 rounded-lg flex justify-between items-center">
+                    <div key={path.id} className="p-3 bg-neutral-800/60 rounded-lg flex justify-between items-center">
                       <div>
                         <p className="text-white font-medium text-sm sm:text-base">{path.name}</p>
                         <p className="text-neutral-400 text-xs">{path.enrolled_count} students · {path.total_modules} modules</p>
@@ -1390,7 +1391,7 @@ function InstructorDashboard() {
               {learningView === 'paths' && (
                 <button
                   onClick={() => setShowCreatePath(true)}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition flex items-center gap-2 text-sm"
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition flex items-center gap-2 text-sm"
                 >
                   <PlusCircle className="w-4 h-4" />
                   Create Path
@@ -1399,7 +1400,7 @@ function InstructorDashboard() {
               {learningView === 'modules' && (
                 <button
                   onClick={() => setShowCreateModule(true)}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition flex items-center gap-2 text-sm"
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition flex items-center gap-2 text-sm"
                 >
                   <PlusCircle className="w-4 h-4" />
                   Create Module
@@ -1426,7 +1427,7 @@ function InstructorDashboard() {
               {learningView === 'challenges' && (
                 <button
                   onClick={() => setShowCreateChallenge(true)}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition flex items-center gap-2 text-sm"
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition flex items-center gap-2 text-sm"
                 >
                   <PlusCircle className="w-4 h-4" />
                   Create Challenge
@@ -1435,7 +1436,7 @@ function InstructorDashboard() {
               {learningView === 'videos' && (
                 <button
                   onClick={() => setShowCreateVideoCourse(true)}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition flex items-center gap-2 text-sm"
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition flex items-center gap-2 text-sm"
                 >
                   <PlusCircle className="w-4 h-4" />
                   Create Video Course
@@ -1569,7 +1570,7 @@ function InstructorDashboard() {
                     <p className="text-neutral-400">No career paths yet</p>
                     <button
                       onClick={() => setShowCreatePath(true)}
-                      className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg"
+                      className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg"
                     >
                       Create First Path
                     </button>
@@ -1700,7 +1701,7 @@ function InstructorDashboard() {
                     <p className="text-neutral-400">No modules yet</p>
                     <button
                       onClick={() => setShowCreateModule(true)}
-                      className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg"
+                      className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg"
                     >
                       Create First Module
                     </button>
@@ -1875,7 +1876,7 @@ function InstructorDashboard() {
             <h2 className="text-xl sm:text-2xl font-bold text-white">Career Paths</h2>
             <button
               onClick={() => navigate('/learning-admin')}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition flex items-center gap-2 text-sm"
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition flex items-center gap-2 text-sm"
             >
               <PlusCircle className="w-4 h-4" />
               Create Path
@@ -1883,14 +1884,14 @@ function InstructorDashboard() {
           </div>
 
           {loading ? (
-            <div className="text-center py-12 text-neutral-400">Loading career paths...</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">{[0, 1, 2].map(i => <SkeletonCard key={i} />)}</div>
           ) : careerPaths.length === 0 ? (
             <div className="text-center py-12">
               <BookOpen className="w-12 h-12 mx-auto text-neutral-600 mb-4" />
               <p className="text-neutral-400">No career paths created yet</p>
               <button
                 onClick={() => navigate('/learning-admin')}
-                className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg"
+                className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg"
               >
                 Create Your First Path
               </button>
@@ -1898,7 +1899,7 @@ function InstructorDashboard() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {careerPaths.map((path) => (
-                <div key={path.id} className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-4 sm:p-6 shadow-lg hover:border-neutral-600/50 transition-colors">
+                <div key={path.id} className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6 hover:border-neutral-700 transition-colors">
                   <div className="flex justify-between items-start mb-3 sm:mb-4">
                     <h3 className="text-base sm:text-lg font-semibold text-white">{path.name}</h3>
                     <span className={`px-2 py-1 text-xs rounded-full ${path.is_active
@@ -2018,7 +2019,7 @@ function InstructorDashboard() {
                     <div
                       key={quiz.id}
                       onClick={() => setSelectedLiveQuiz(quiz)}
-                      className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-4 shadow-lg hover:border-amber-500/50 transition-all cursor-pointer group"
+                      className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 shadow-lg hover:border-amber-500/50 transition-all cursor-pointer group"
                     >
                       <div className="flex justify-between items-start mb-3">
                         <h3 className="text-lg font-semibold text-white group-hover:text-amber-400 transition truncate pr-2">{quiz.title}</h3>
@@ -2248,7 +2249,7 @@ function InstructorDashboard() {
 
           {/* Path Selection */}
           {!selectedPathId && (
-            <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-6">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Select a Career Path to View Students</h3>
               {careerPaths.length === 0 ? (
                 <p className="text-neutral-400">No career paths available</p>
@@ -2294,7 +2295,7 @@ function InstructorDashboard() {
                 ← Back to all paths
               </button>
               {/* Search, Filter, Sort Controls */}
-              <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-4 mb-4">
+              <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 mb-4">
                 <div className="flex flex-col sm:flex-row gap-3">
                   {/* Search */}
                   <div className="flex-1">
@@ -2339,9 +2340,9 @@ function InstructorDashboard() {
                 </div>
               </div>
 
-              <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl overflow-hidden shadow-lg">
+              <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden shadow-lg">
                 {loadingStudents ? (
-                  <div className="text-center py-12 text-neutral-400">Loading students...</div>
+                  <div className="space-y-3 py-4">{[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>
                 ) : selectedPathStudents.length === 0 ? (
                   <div className="text-center py-12">
                     <Users className="w-12 h-12 mx-auto text-neutral-600 mb-4" />
@@ -2445,7 +2446,7 @@ function InstructorDashboard() {
                                   <div className="flex items-center gap-2 sm:gap-3">
                                     <div className="w-16 sm:w-24 h-2 bg-neutral-700 rounded-full overflow-hidden">
                                       <div
-                                        className={`h-full ${student.status === 'completed' ? 'bg-green-500' : 'bg-gradient-to-r from-purple-500 to-purple-600'}`}
+                                        className={`h-full ${student.status === 'completed' ? 'bg-green-500' : 'bg-purple-500'}`}
                                         style={{ width: `${student.progress_percentage}%` }}
                                       ></div>
                                     </div>
@@ -2478,11 +2479,11 @@ function InstructorDashboard() {
 
           {/* Recent Enrollments Section */}
           {!selectedPathId && recentEnrollments.length > 0 && (
-            <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-6">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Recent Enrollments</h3>
               <div className="space-y-3">
                 {recentEnrollments.slice(0, 5).map((enrollment) => (
-                  <div key={enrollment.id} className="flex items-center justify-between p-3 bg-neutral-700/50 rounded-lg">
+                  <div key={enrollment.id} className="flex items-center justify-between p-3 bg-neutral-800/60 rounded-lg">
                     <div>
                       <p className="text-white font-medium">{enrollment.student_name}</p>
                       <p className="text-neutral-400 text-sm">{enrollment.career_path_name}</p>
@@ -2514,27 +2515,27 @@ function InstructorDashboard() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-4 sm:p-6 shadow-lg">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6 shadow-lg">
               <p className="text-neutral-400 text-xs sm:text-sm mb-1">Total Career Paths</p>
-              <p className="text-2xl sm:text-3xl font-bold text-white">{loading ? '...' : stats.total_paths}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-white tabular-nums">{loading ? '...' : stats.total_paths}</p>
               <p className="text-xs text-green-400 mt-1">{stats.active_paths} active</p>
             </div>
-            <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-4 sm:p-6 shadow-lg">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6 shadow-lg">
               <p className="text-neutral-400 text-xs sm:text-sm mb-1">Total Modules</p>
-              <p className="text-2xl sm:text-3xl font-bold text-white">{loading ? '...' : stats.total_modules}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-white tabular-nums">{loading ? '...' : stats.total_modules}</p>
             </div>
-            <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-4 sm:p-6 shadow-lg">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6 shadow-lg">
               <p className="text-neutral-400 text-xs sm:text-sm mb-1">Total Quizzes</p>
-              <p className="text-2xl sm:text-3xl font-bold text-white">{loading ? '...' : stats.total_quizzes}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-white tabular-nums">{loading ? '...' : stats.total_quizzes}</p>
             </div>
-            <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-4 sm:p-6 shadow-lg">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6 shadow-lg">
               <p className="text-neutral-400 text-xs sm:text-sm mb-1">Certificates Issued</p>
-              <p className="text-2xl sm:text-3xl font-bold text-white">{loading ? '...' : stats.total_certificates}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-white tabular-nums">{loading ? '...' : stats.total_certificates}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-4 sm:p-6 shadow-lg">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6 shadow-lg">
               <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Enrollment Statistics</h3>
               <div className="space-y-3 sm:space-y-4">
                 <div className="flex justify-between items-center">
@@ -2552,7 +2553,7 @@ function InstructorDashboard() {
               </div>
             </div>
 
-            <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-4 sm:p-6 shadow-lg">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6 shadow-lg">
               <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4">Top Career Paths</h3>
               {careerPaths.length === 0 ? (
                 <p className="text-neutral-400 text-sm">No career paths data available</p>
@@ -2705,7 +2706,7 @@ function InstructorDashboard() {
                   className={`flex-1 px-6 py-3 text-white rounded-lg font-medium flex items-center justify-center gap-2 ${
                     isCreatingPath
                       ? 'bg-purple-600/50 cursor-not-allowed'
-                      : 'bg-purple-600 hover:bg-purple-700'
+                      : 'bg-purple-600 hover:bg-purple-500'
                   }`}
                 >
                   {isCreatingPath ? (
@@ -2849,7 +2850,7 @@ function InstructorDashboard() {
                       e.stopPropagation()
                       setShowQuizEditor(!showQuizEditor)
                     }}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700 text-white rounded-lg transition flex items-center justify-center gap-2 font-semibold"
+                    className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition flex items-center justify-center gap-2 font-semibold"
                   >
                     {showQuizEditor ? 'Hide Question Editor' : 'Create Questions (Multiple Choice, T/F, Essay)'}
                   </button>
@@ -3041,7 +3042,7 @@ function InstructorDashboard() {
                 </div>
 
                 <div className="flex gap-3 pt-4">
-                  <button type="submit" className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium">
+                  <button type="submit" className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium">
                     Update Path
                   </button>
                   <button type="button" onClick={() => setShowEditPath(false)} className="px-6 py-3 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg">
@@ -3180,7 +3181,7 @@ function InstructorDashboard() {
                       e.stopPropagation()
                       setShowQuizEditor(!showQuizEditor)
                     }}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700 text-white rounded-lg transition flex items-center justify-center gap-2 font-semibold"
+                    className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition flex items-center justify-center gap-2 font-semibold"
                   >
                     {showQuizEditor ? 'Hide Question Editor' : 'Edit Questions (Multiple Choice, T/F, Essay)'}
                   </button>
@@ -3201,7 +3202,7 @@ function InstructorDashboard() {
                     type="button"
                     onClick={updateQuiz}
                     disabled={updatingQuiz}
-                    className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-800 disabled:cursor-not-allowed text-white rounded-lg font-medium flex items-center justify-center gap-2"
+                    className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 disabled:cursor-not-allowed text-white rounded-lg font-medium flex items-center justify-center gap-2"
                   >
                     {updatingQuiz ? (
                       <>
@@ -3538,7 +3539,7 @@ function InstructorDashboard() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
           <div className="bg-neutral-900 border border-neutral-700 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-neutral-700 bg-gradient-to-r from-neutral-800 to-neutral-900">
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-neutral-800 bg-neutral-900">
               <div className="flex-1 min-w-0">
                 <h2 className="text-lg sm:text-xl font-bold text-white truncate">{selectedLiveQuiz.title}</h2>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1">
@@ -3722,7 +3723,7 @@ function InstructorDashboard() {
                         </button>
                       </div>
                       {selectedLiveQuiz.questions_count > 0 ? (
-                        <div className="bg-gradient-to-br from-amber-500/10 to-purple-500/10 border border-amber-500/20 rounded-lg p-6 text-center">
+                        <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-6 text-center">
                           <p className="text-3xl font-bold text-white">{selectedLiveQuiz.questions_count}</p>
                           <p className="text-sm text-neutral-400 mt-1">questions ready</p>
                         </div>
@@ -4009,7 +4010,7 @@ function InstructorDashboard() {
 
                   {loadingScores ? (
                     <div className="flex items-center justify-center py-16">
-                      <Loader2 className="w-6 h-6 text-amber-500 animate-spin" />
+                      <Loader2 className="w-6 h-6 text-purple-500 animate-spin" />
                       <span className="ml-2 text-neutral-400">Loading scores...</span>
                     </div>
                   ) : quizScores.length === 0 ? (
@@ -4327,7 +4328,7 @@ function InstructorDashboard() {
               </div>
 
               <div className="flex gap-3 pt-4">
-                <button type="submit" className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition">
+                <button type="submit" className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition">
                   Create Challenge
                 </button>
                 <button type="button" onClick={() => setShowCreateChallenge(false)} className="px-6 py-3 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition">
@@ -4607,7 +4608,7 @@ function InstructorDashboard() {
               </div>
 
               <div className="flex gap-3 pt-4">
-                <button type="submit" className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition">
+                <button type="submit" className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition">
                   Create Course
                 </button>
                 <button type="button" onClick={() => setShowCreateVideoCourse(false)} className="px-6 py-3 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition">

@@ -792,7 +792,7 @@ const LiveQuizSession = () => {
                             <button
                                 onClick={handleProceedToQuiz}
                                 disabled={!onboardingCamActive}
-                                className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 <CheckCircle className="w-5 h-5" />
                                 I'm Ready — Start Quiz
@@ -918,7 +918,7 @@ const LiveQuizSession = () => {
                                     enterFullscreen();
                                 }
                             }}
-                            className="flex items-center gap-2 mx-auto px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white rounded-xl font-bold transition"
+                            className="flex items-center gap-2 mx-auto px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold transition"
                         >
                             <Maximize className="w-5 h-5" />
                             {document.fullscreenElement ? 'Continue Quiz' : 'Re-enter Fullscreen to Continue'}
@@ -951,7 +951,7 @@ const LiveQuizSession = () => {
                     {!isFullscreen && (
                         <button
                             onClick={enterFullscreen}
-                            className="mt-4 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 rounded-lg text-sm font-medium transition flex items-center gap-2 mx-auto"
+                            className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-medium transition flex items-center gap-2 mx-auto"
                         >
                             <Maximize className="w-4 h-4" />
                             Enter Fullscreen
@@ -1329,7 +1329,7 @@ const LiveQuizSession = () => {
                                 {!isAnswerSubmitted && selectedAnswer && (
                                     <button
                                         onClick={() => submitAnswer(selectedAnswer)}
-                                        className="mt-3 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white font-bold rounded-xl transition-all w-full"
+                                        className="mt-3 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition-all w-full"
                                     >
                                         Submit Answer
                                     </button>
@@ -1357,7 +1357,7 @@ const LiveQuizSession = () => {
             {/* ── Code Success Modal Overlay ── */}
             {showCodeSuccessModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" style={{ animation: 'fadeIn 0.3s ease-out' }}>
-                    <div className="bg-neutral-900 border border-green-500/30 rounded-2xl p-8 max-w-md w-full mx-4 text-center shadow-2xl shadow-green-500/10">
+                    <div className="bg-neutral-900 border border-green-500/30 rounded-2xl p-8 max-w-md w-full mx-4 text-center shadow-2xl">
                         <div className="text-6xl mb-4">🎉</div>
                         <h2 className="text-2xl font-bold text-green-400 mb-2">All Tests Passed!</h2>
                         <p className="text-neutral-400 mb-4">Great job! You nailed this coding challenge.</p>

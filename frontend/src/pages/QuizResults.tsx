@@ -99,7 +99,7 @@ const QuizResults = () => {
                     <div className="mt-8 space-y-3">
                         <button
                             onClick={() => navigate('/dashboard')}
-                            className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white rounded-xl font-semibold transition flex items-center justify-center gap-2 group"
+                            className="w-full py-3.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-semibold transition flex items-center justify-center gap-2 group"
                         >
                             <Home className="w-5 h-5" />
                             Back to Dashboard

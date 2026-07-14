@@ -286,7 +286,7 @@ export default function HomeEnhanced() {
                 <div className="inline-block bg-gradient-to-r from-purple-500/10 to-purple-500/10 border border-purple-500/20 rounded-full px-4 py-2 mb-6">
                   <span className="text-sm text-purple-300">Revolutionary AI Technology</span>
                 </div>
-                <h2 className="text-4xl sm:text-5xl font-black text-white mb-6">
+                <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
                   AI That
                   <span className="block bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent">
                     Works For You
@@ -353,7 +353,7 @@ export default function HomeEnhanced() {
         <div className="max-w-7xl mx-auto">
           <ScrollAnimateWrapper>
             <div className="text-center mb-20">
-              <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">
+              <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
                 Loved by
                 <span className="block bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent">
                   SNSU Students
@@ -397,7 +397,7 @@ export default function HomeEnhanced() {
           <div className="max-w-4xl mx-auto text-center">
             <div className="relative">
               <div className="relative bg-neutral-900/50 backdrop-blur-md border border-neutral-700/50 rounded-3xl p-12">
-                <h2 className="text-4xl sm:text-5xl font-black text-white mb-6">
+                <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
                   Ready to Start Your
                   <span className="block bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent">
                     Coding Journey?
@@ -409,7 +409,7 @@ export default function HomeEnhanced() {
                 <div className="flex flex-col sm:flex-row justify-center gap-4">
                   <Link
                     to="/register"
-                    className="inline-flex items-center justify-center space-x-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-600 rounded-xl text-lg font-bold hover:from-purple-500 hover:to-purple-500 transition-all transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/50"
+                    className="inline-flex items-center justify-center space-x-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-600 rounded-xl text-lg font-bold hover:from-purple-500 hover:to-purple-500 transition-all transform hover:scale-105"
                   >
                     <span>Start Learning Now</span>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -521,7 +521,7 @@ function CounterStat({ end, suffix, label }: { end: number; suffix?: string; lab
 
   return (
     <div ref={ref} className="text-center">
-      <div className="text-4xl font-black bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent mb-2">
+      <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent mb-2">
         {count}{suffix}
       </div>
       <div className="text-neutral-400 text-sm">{label}</div>

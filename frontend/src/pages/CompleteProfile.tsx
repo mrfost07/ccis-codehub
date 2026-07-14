@@ -116,7 +116,7 @@ export default function CompleteProfile() {
 
     if (!googleData) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950 flex items-center justify-center">
+            <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
                 <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
             </div>
         );
@@ -138,10 +138,10 @@ export default function CompleteProfile() {
                                 <img
                                     src={googleData.picture}
                                     alt="Profile"
-                                    className="w-16 h-16 rounded-full border-2 border-purple-500 shadow-lg shadow-purple-500/25"
+                                    className="w-16 h-16 rounded-full border-2 border-purple-500"
                                 />
                             ) : (
-                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-2xl font-bold text-white shadow-lg shadow-purple-500/25">
+                                <div className="w-16 h-16 rounded-full bg-purple-600 flex items-center justify-center text-2xl font-bold text-white">
                                     {googleData.first_name?.[0] || '?'}
                                 </div>
                             )}
@@ -317,7 +317,7 @@ export default function CompleteProfile() {
                         {step < 3 ? (
                             <button
                                 onClick={handleNext}
-                                className="flex-1 py-2.5 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-500/25"
+                                className="flex-1 py-2.5 text-sm font-semibold bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all flex items-center justify-center gap-2"
                             >
                                 Continue
                                 <ChevronRight className="w-4 h-4" />
@@ -326,7 +326,7 @@ export default function CompleteProfile() {
                             <button
                                 onClick={handleSubmit}
                                 disabled={loading}
-                                className="flex-1 py-2.5 text-sm font-semibold bg-gradient-to-r from-green-600 to-green-600 hover:from-green-500 hover:to-green-500 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-green-500/25"
+                                className="flex-1 py-2.5 text-sm font-semibold bg-green-600 hover:bg-green-500 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 {loading ? (
                                     <>

@@ -25,7 +25,7 @@ export default function FeaturedProjects() {
               <Star className="w-6 h-6 text-amber-400" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-white">Explore Projects</h1>
+              <h1 className="text-3xl font-bold text-white">Explore Projects</h1>
               <p className="text-neutral-400 text-sm mt-0.5">
                 Public projects from the CCIS-CodeHub community
               </p>

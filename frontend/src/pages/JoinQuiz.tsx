@@ -139,7 +139,7 @@ const JoinQuiz = () => {
                         <button
                             type="submit"
                             disabled={!joinCode.trim() || isJoining}
-                            className="w-full flex items-center justify-center py-4 px-4 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-purple-900/30"
+                            className="w-full flex items-center justify-center py-4 px-4 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-purple-900/30"
                         >
                             {isJoining ? (
                                 <>

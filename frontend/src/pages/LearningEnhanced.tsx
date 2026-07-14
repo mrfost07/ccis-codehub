@@ -174,7 +174,7 @@ export default function LearningEnhanced() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-medium text-sm sm:text-base transition-all whitespace-nowrap ${activeTab === tab.id
-                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20'
+                  ? 'bg-purple-600 text-white'
                   : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
                   }`}
               >
@@ -354,7 +354,7 @@ export default function LearningEnhanced() {
                             e.stopPropagation();
                             handleEnroll(path.id);
                           }}
-                          className="w-full py-2.5 rounded-lg font-medium text-sm text-white transition-all flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500"
+                          className="w-full py-2.5 rounded-lg font-medium text-sm text-white transition-all flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-500"
                         >
                           <span>Start Learning</span>
                           <ChevronRight className="w-4 h-4" />

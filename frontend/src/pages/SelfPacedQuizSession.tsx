@@ -519,7 +519,7 @@ const SelfPacedQuizSession = () => {
                         </p>
                         <button
                             onClick={handleEnterFullscreen}
-                            className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
+                            className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
                         >
                             <Maximize className="w-5 h-5" />
                             Start in Fullscreen
@@ -651,7 +651,7 @@ const SelfPacedQuizSession = () => {
                             <button
                                 onClick={handleProceedToQuiz}
                                 disabled={!onboardingCamActive}
-                                className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 <CheckCircle className="w-5 h-5" />
                                 I'm Ready — Start Quiz
@@ -874,7 +874,7 @@ const SelfPacedQuizSession = () => {
 
                         <button
                             onClick={() => navigate('/dashboard')}
-                            className="w-full py-4 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white font-semibold rounded-xl transition-all"
+                            className="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl transition-all"
                         >
                             Back to Dashboard
                         </button>
@@ -1169,7 +1169,7 @@ const SelfPacedQuizSession = () => {
                                         ? !codeSubmission.trim()
                                         : !selectedAnswer
                                 ) || isSubmitting}
-                                className="px-5 sm:px-8 py-2.5 sm:py-3 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm sm:text-base"
+                                className="px-5 sm:px-8 py-2.5 sm:py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm sm:text-base"
                             >
                                 {isSubmitting ? (
                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1181,7 +1181,7 @@ const SelfPacedQuizSession = () => {
                         ) : (
                             <button
                                 onClick={handleNextQuestion}
-                                className="px-5 sm:px-8 py-2.5 sm:py-3 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white font-semibold rounded-xl transition-all flex items-center gap-2 text-sm sm:text-base"
+                                className="px-5 sm:px-8 py-2.5 sm:py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl transition-all flex items-center gap-2 text-sm sm:text-base"
                             >
                                 {currentIndex < questions.length - 1 ? (
                                     <>Next Question <ChevronRight className="w-5 h-5" /></>
@@ -1246,7 +1246,7 @@ const SelfPacedQuizSession = () => {
                                         enterFullscreen();
                                     }
                                 }}
-                                className="w-full max-w-xs px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
+                                className="w-full max-w-xs px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
                             >
                                 <Expand className="w-5 h-5" />
                                 Resume Quiz

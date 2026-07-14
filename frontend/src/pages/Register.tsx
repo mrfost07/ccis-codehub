@@ -435,7 +435,7 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="flex-1 py-2.5 text-sm font-semibold bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-500/25"
+                  className="flex-1 py-2.5 text-sm font-semibold bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all flex items-center justify-center gap-2"
                 >
                   Continue
                   <ChevronRight className="w-4 h-4" />
@@ -445,7 +445,7 @@ export default function Register() {
                   type="button"
                   onClick={handleSubmit}
                   disabled={loading || !captchaToken}
-                  className="flex-1 py-2.5 text-sm font-semibold bg-gradient-to-r from-green-600 to-green-600 hover:from-green-500 hover:to-green-500 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-green-500/25"
+                  className="flex-1 py-2.5 text-sm font-semibold bg-green-600 hover:bg-green-500 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>

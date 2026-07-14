@@ -120,7 +120,7 @@ function CertificateCardPro({ cert, userName }: { cert: Certificate; userName: s
   const colorIdx = cert.career_path.name.charCodeAt(0) % COLORS.length
 
   return (
-    <div className="group relative rounded-2xl overflow-hidden border border-neutral-700/60 hover:border-purple-500/50 transition-all hover:shadow-xl hover:shadow-purple-500/10 bg-neutral-900">
+    <div className="group relative rounded-2xl overflow-hidden border border-neutral-700/60 hover:border-purple-500/50 transition-all bg-neutral-900">
       {/* Certificate preview header */}
       <div className={`relative h-28 border-b ${COLORS[colorIdx]} flex flex-col items-center justify-center p-4 overflow-hidden`}>
         {/* Subtle corner accents */}
@@ -153,7 +153,7 @@ function CertificateCardPro({ cert, userName }: { cert: Certificate; userName: s
 
         <button
           onClick={() => printCertificate(cert, userName)}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-xl transition group-hover:shadow-lg group-hover:shadow-purple-500/20"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-xl transition"
         >
           <Download className="w-4 h-4" />
           Download PDF
@@ -285,7 +285,7 @@ export default function Certificates() {
               <Award className="w-7 h-7 text-purple-400" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-white">My Certificates</h1>
+              <h1 className="text-3xl font-bold text-white">My Certificates</h1>
               <p className="text-neutral-400 text-sm">Complete learning paths to earn verified certificates</p>
             </div>
           </div>
