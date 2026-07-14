@@ -81,11 +81,8 @@ export default function Dashboard() {
               <span className="text-lg sm:text-xl font-bold">CCIS CodeHub</span>
             </div>
             <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
-              <Link to="/learning" className="text-neutral-300 hover:text-white transition text-sm lg:text-base">📚 Learning</Link>
-              <Link to="/projects" className="text-neutral-300 hover:text-white transition text-sm lg:text-base">💻 Projects</Link>
-              <Link to="/community" className="text-neutral-300 hover:text-white transition text-sm lg:text-base">👥 Community</Link>
-              <div className="border-l border-neutral-700 pl-4 lg:pl-6 flex items-center space-x-2 lg:space-x-4">
-                <Link to="/dashboard" className="text-xs lg:text-sm text-neutral-400 hover:text-white">👤 {user.username || 'User'}</Link>
+              <div className="flex items-center space-x-2 lg:space-x-4">
+                <Link to="/dashboard" className="text-xs lg:text-sm text-neutral-400 hover:text-white">{user.username || 'User'}</Link>
                 <button
                   onClick={() => {
                     localStorage.removeItem('token')

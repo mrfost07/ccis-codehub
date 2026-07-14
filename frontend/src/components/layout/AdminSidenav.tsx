@@ -203,18 +203,6 @@ export default function AdminSidenav({ activeTab, onTabChange, children }: Admin
                             </h1>
                         </div>
 
-                        {/* Quick links */}
-                        <div className="hidden md:flex items-center gap-2 border-l border-neutral-700/50 pl-3 ml-2">
-                            <Link to="/learning" className="px-3 py-1.5 text-sm text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800/50 transition">
-                                📚 Learning
-                            </Link>
-                            <Link to="/projects" className="px-3 py-1.5 text-sm text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800/50 transition">
-                                💻 Projects
-                            </Link>
-                            <Link to="/community" className="px-3 py-1.5 text-sm text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800/50 transition">
-                                👥 Community
-                            </Link>
-                        </div>
                     </div>
                 </header>
 
