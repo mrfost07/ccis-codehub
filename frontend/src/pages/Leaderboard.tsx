@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
 import api from '../services/api'
+import { EmptyState, Skeleton, SkeletonListRow } from '../components/ui'
 
 interface LeaderboardUser {
   id: string
@@ -53,29 +54,15 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'weekly',   label: 'This Week' },
 ]
 
-// Rank badge config — no emojis, pure CSS + icon
+// Medal treatments: gold = amber-400, silver = neutral-300, bronze = amber-600.
+// Neutral surfaces, tinted borders — no colored glows (DESIGN_SYSTEM.md §15).
 const PODIUM_CONFIG: Record<number, {
-  bg: string; border: string; text: string; glow: string
-  Icon: React.FC<{ className?: string }>; iconClass: string; baseGradient: string
+  border: string; text: string
+  Icon: React.FC<{ className?: string }>; iconClass: string
 }> = {
-  1: {
-    bg: 'from-yellow-500/20 to-amber-500/10', border: 'border-yellow-400/60',
-    text: 'text-yellow-400', glow: 'shadow-yellow-500/30',
-    Icon: Crown, iconClass: 'text-yellow-400',
-    baseGradient: 'from-yellow-500/40 to-yellow-600/20',
-  },
-  2: {
-    bg: 'from-slate-400/20 to-slate-500/10', border: 'border-slate-400/60',
-    text: 'text-slate-300', glow: 'shadow-slate-400/20',
-    Icon: Medal, iconClass: 'text-slate-300',
-    baseGradient: 'from-slate-500/30 to-slate-600/20',
-  },
-  3: {
-    bg: 'from-orange-600/20 to-orange-700/10', border: 'border-orange-500/60',
-    text: 'text-orange-400', glow: 'shadow-orange-500/20',
-    Icon: Award, iconClass: 'text-orange-400',
-    baseGradient: 'from-orange-600/30 to-orange-700/20',
-  },
+  1: { border: 'border-amber-400/50',  text: 'text-amber-400',  Icon: Crown, iconClass: 'text-amber-400' },
+  2: { border: 'border-neutral-500/60', text: 'text-neutral-300', Icon: Medal, iconClass: 'text-neutral-300' },
+  3: { border: 'border-amber-600/50',  text: 'text-amber-600',  Icon: Award, iconClass: 'text-amber-600' },
 }
 
 function Avatar({ user, size = 'md' }: { user: LeaderboardUser; size?: 'sm' | 'md' | 'lg' }) {
@@ -85,7 +72,7 @@ function Avatar({ user, size = 'md' }: { user: LeaderboardUser; size?: 'sm' | 'm
     return <img src={user.profile_picture} alt={user.username} className={`${sz} rounded-full object-cover`} />
   }
   return (
-    <div className={`${sz} rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center font-bold text-white flex-shrink-0`}>
+    <div className={`${sz} rounded-full bg-neutral-800 flex items-center justify-center font-medium text-neutral-300 flex-shrink-0`}>
       {initials}
     </div>
   )
@@ -100,22 +87,22 @@ function PodiumCard({ entry, position }: { entry: LeaderboardEntry; position: 1 
   return (
     <div className={`${order[position]} flex flex-col items-center gap-2`}>
       {/* User card above podium */}
-      <div className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border bg-gradient-to-b ${cfg.bg} ${cfg.border} shadow-lg ${cfg.glow} backdrop-blur transition-transform hover:scale-105`}>
+      <div className={`flex flex-col items-center gap-1.5 p-3 rounded-2xl border bg-neutral-900 ${cfg.border} shadow-card`}>
         <div className="relative">
           <Avatar user={entry.user} size="lg" />
           {/* Icon badge overlay */}
-          <div className={`absolute -top-2 -right-2 w-7 h-7 rounded-full bg-slate-950 border-2 ${cfg.border} flex items-center justify-center`}>
+          <div className={`absolute -top-2 -right-2 w-7 h-7 rounded-full bg-neutral-950 border-2 ${cfg.border} flex items-center justify-center`}>
             <Icon className={`w-3.5 h-3.5 ${iconClass}`} />
           </div>
         </div>
         <p className="font-bold text-white text-sm text-center leading-tight">
           {entry.user.first_name || entry.user.username}
         </p>
-        <p className="text-xs text-slate-400">{entry.user.program || 'Student'}</p>
-        <p className={`font-black text-lg ${cfg.text}`}>
+        <p className="text-xs text-neutral-400">{entry.user.program || 'Student'}</p>
+        <p className={`font-bold text-lg tabular-nums ${cfg.text}`}>
           {entry.total_points.toLocaleString()} <span className="text-xs font-normal">pts</span>
         </p>
-        <div className="flex gap-3 text-xs text-slate-500">
+        <div className="flex gap-3 text-xs text-neutral-500 tabular-nums">
           <span className="flex items-center gap-1">
             <BookOpen className="w-3 h-3" /> {entry.modules_completed}
           </span>
@@ -125,8 +112,8 @@ function PodiumCard({ entry, position }: { entry: LeaderboardEntry; position: 1 
         </div>
       </div>
       {/* Podium base */}
-      <div className={`w-24 ${heights[position]} rounded-t-lg bg-gradient-to-b ${cfg.baseGradient} border ${cfg.border} flex items-center justify-center`}>
-        <span className={`text-3xl font-black ${cfg.text}`}>{position}</span>
+      <div className={`w-24 ${heights[position]} rounded-t-lg bg-neutral-900 border ${cfg.border} flex items-center justify-center`}>
+        <span className={`text-3xl font-bold tabular-nums ${cfg.text}`}>{position}</span>
       </div>
     </div>
   )
@@ -134,26 +121,26 @@ function PodiumCard({ entry, position }: { entry: LeaderboardEntry; position: 1 
 
 function RankBadge({ rank }: { rank: number }) {
   if (rank === 1) return (
-    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center shadow-sm shadow-yellow-500/40">
-      <Crown className="w-3.5 h-3.5 text-white" />
+    <div className="w-7 h-7 rounded-full bg-amber-500/15 border border-amber-400/40 flex items-center justify-center">
+      <Crown className="w-3.5 h-3.5 text-amber-400" />
     </div>
   )
   if (rank === 2) return (
-    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 flex items-center justify-center shadow-sm">
-      <Medal className="w-3.5 h-3.5 text-white" />
+    <div className="w-7 h-7 rounded-full bg-neutral-800 border border-neutral-600 flex items-center justify-center">
+      <Medal className="w-3.5 h-3.5 text-neutral-300" />
     </div>
   )
   if (rank === 3) return (
-    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-sm shadow-orange-500/30">
-      <Award className="w-3.5 h-3.5 text-white" />
+    <div className="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-600/40 flex items-center justify-center">
+      <Award className="w-3.5 h-3.5 text-amber-600" />
     </div>
   )
-  return <span className="text-sm font-bold text-slate-500 w-7 text-center">#{rank}</span>
+  return <span className="text-sm font-bold text-neutral-500 w-7 text-center tabular-nums">#{rank}</span>
 }
 
 function ScoreBreakdown({ entry }: { entry: LeaderboardEntry }) {
   return (
-    <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+    <div className="flex items-center gap-3 text-xs text-neutral-500 tabular-nums flex-wrap">
       <span className="flex items-center gap-1" title="Modules completed">
         <BookOpen className="w-3 h-3" /> {entry.modules_completed}
       </span>
@@ -212,46 +199,46 @@ export default function Leaderboard() {
   const rest  = data?.entries.slice(3) ?? []
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/30 to-slate-950">
+    <div className="min-h-screen bg-neutral-950">
       <Navbar />
 
-      <div className="max-w-4xl mx-auto px-4 py-10">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/30 rounded-full px-5 py-2 mb-4">
-            <Trophy className="w-5 h-5 text-yellow-400" />
-            <span className="text-yellow-300 font-semibold text-sm">CCIS-CodeHub Rankings</span>
-          </div>
-          <h1 className="text-4xl font-black text-white mb-2">Leaderboard</h1>
-          <p className="text-slate-400">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+        {/* Page header (DESIGN_SYSTEM.md §11) */}
+        <div className="relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/60 p-6 sm:p-8 mb-8">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-purple-400 mb-2 flex items-center gap-1.5">
+            <Trophy className="w-3.5 h-3.5" /> CCIS-CodeHub Rankings
+          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">Leaderboard</h1>
+          <p className="mt-2 text-neutral-400 max-w-3xl leading-relaxed">
             {data ? `${data.total_users} students competing` : 'Top performers across the platform'}
           </p>
         </div>
 
         {/* My Rank Card */}
         {myRank?.rank && (
-          <div className="mb-8 p-4 bg-purple-600/10 border border-purple-500/30 rounded-2xl flex items-center gap-4 flex-wrap">
+          <div className="mb-8 p-4 rounded-xl border border-purple-500/20 bg-gradient-to-r from-purple-600/15 to-transparent flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center">
                 <BarChart2 className="w-6 h-6 text-purple-400" />
               </div>
               <div>
                 <p className="text-white font-semibold">Your Rank</p>
-                <p className="text-2xl font-black text-purple-400">#{myRank.rank}</p>
+                <p className="text-2xl font-bold text-purple-400 tabular-nums">#{myRank.rank}</p>
               </div>
-              <div className="pl-3 border-l border-slate-700">
-                <p className="text-slate-400 text-sm">Top {100 - myRank.percentile}%</p>
-                <p className="text-white font-semibold">{myRank.total_points.toLocaleString()} pts</p>
+              <div className="pl-3 border-l border-neutral-700">
+                <p className="text-neutral-400 text-sm">Top {100 - myRank.percentile}%</p>
+                <p className="text-white font-semibold tabular-nums">{myRank.total_points.toLocaleString()} pts</p>
               </div>
             </div>
             <div className="flex-1 min-w-32">
-              <div className="flex justify-between text-xs text-slate-500 mb-1">
+              <div className="flex justify-between text-xs text-neutral-500 mb-1">
                 <span>Progress to top</span>
-                <span>{myRank.percentile}th percentile</span>
+                <span className="tabular-nums">{myRank.percentile}th percentile</span>
               </div>
-              <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-2 bg-neutral-800 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-purple-500 to-blue-500 rounded-full transition-all"
+                  className="h-full bg-purple-500 rounded-full transition-[width] duration-300"
                   style={{ width: `${myRank.percentile}%` }}
                 />
               </div>
@@ -259,12 +246,12 @@ export default function Leaderboard() {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-8 bg-slate-900/60 p-1 rounded-xl border border-slate-800 w-fit mx-auto">
+        {/* Tabs — segmented control, purple = selected */}
+        <div className="flex gap-1 mb-8 bg-neutral-900 p-1 rounded-lg border border-neutral-800 w-fit mx-auto">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              className={`px-5 py-2 rounded-lg font-medium text-sm transition ${
-                tab === t.id ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/20' : 'text-slate-400 hover:text-white'
+              className={`px-5 py-2 rounded-md font-medium text-sm transition-colors ${
+                tab === t.id ? 'bg-purple-600 text-white' : 'text-neutral-400 hover:text-white'
               }`}>
               {t.label}
             </button>
@@ -272,9 +259,17 @@ export default function Leaderboard() {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="w-10 h-10 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-          </div>
+          <>
+            {/* Skeletons matching the podium + rankings layout */}
+            <div className="flex items-end justify-center gap-4 mb-10">
+              <Skeleton className="h-48 w-24 rounded-2xl" />
+              <Skeleton className="h-56 w-24 rounded-2xl" />
+              <Skeleton className="h-44 w-24 rounded-2xl" />
+            </div>
+            <div className="rounded-2xl border border-neutral-800 bg-neutral-900/60 divide-y divide-neutral-800/70">
+              {[0, 1, 2, 3, 4].map(i => <SkeletonListRow key={i} />)}
+            </div>
+          </>
         ) : (
           <>
             {/* Top 3 Podium */}
@@ -286,18 +281,18 @@ export default function Leaderboard() {
               </div>
             )}
 
-            {/* Rankings Table — 4th onwards */}
+            {/* Rankings — 4th onwards */}
             {rest.length > 0 && (
-              <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
-                <div className="px-5 py-3 border-b border-slate-800 flex items-center gap-2">
+              <div className="bg-neutral-900/60 border border-neutral-800 rounded-2xl overflow-hidden">
+                <div className="px-5 py-3 border-b border-neutral-800 flex items-center gap-2">
                   <Medal className="w-4 h-4 text-purple-400" />
-                  <span className="text-sm font-semibold text-slate-300">Rankings</span>
+                  <span className="text-sm font-semibold text-neutral-300">Rankings</span>
                 </div>
-                <div className="divide-y divide-slate-800/50">
+                <div className="divide-y divide-neutral-800/50">
                   {rest.map((entry) => (
                     <div
                       key={entry.user.id}
-                      className={`flex items-center gap-4 px-5 py-3 transition hover:bg-slate-800/40 ${
+                      className={`flex items-center gap-4 px-5 py-3 transition-colors hover:bg-neutral-800/40 ${
                         entry.is_me ? 'bg-purple-600/10 border-l-2 border-purple-500' : ''
                       }`}
                     >
@@ -317,8 +312,8 @@ export default function Leaderboard() {
                         <ScoreBreakdown entry={entry} />
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <p className="font-bold text-white">{entry.total_points.toLocaleString()}</p>
-                        <p className="text-xs text-slate-500">points</p>
+                        <p className="font-bold text-white tabular-nums">{entry.total_points.toLocaleString()}</p>
+                        <p className="text-xs text-neutral-500">points</p>
                       </div>
                     </div>
                   ))}
@@ -328,25 +323,25 @@ export default function Leaderboard() {
 
             {/* Empty state */}
             {data?.entries.length === 0 && (
-              <div className="text-center py-16">
-                <Trophy className="w-16 h-16 text-slate-700 mx-auto mb-4" />
-                <p className="text-slate-400">No rankings yet for this period.</p>
-                <p className="text-slate-600 text-sm mt-1">Complete modules and challenges to appear here!</p>
-              </div>
+              <EmptyState
+                icon={<Trophy className="w-12 h-12" />}
+                title="No rankings yet for this period"
+                description="Complete modules and challenges to appear here."
+              />
             )}
 
             {/* Points guide */}
-            <div className="mt-8 p-5 bg-slate-900/40 border border-slate-800 rounded-2xl">
-              <h3 className="text-sm font-bold text-slate-300 mb-4 flex items-center gap-2">
-                <Zap className="w-4 h-4 text-yellow-400" /> How Points Work
+            <div className="mt-8 p-5 bg-neutral-900/40 border border-neutral-800 rounded-2xl">
+              <h3 className="text-sm font-bold text-neutral-300 mb-4 flex items-center gap-2">
+                <Zap className="w-4 h-4 text-amber-400" /> How Points Work
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {POINT_GUIDE.map(({ icon: Icon, label, pts }) => (
-                  <div key={label} className="flex items-center gap-2 text-xs text-slate-500">
-                    <div className="w-6 h-6 rounded-md bg-slate-800 flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-3.5 h-3.5 text-slate-400" />
+                  <div key={label} className="flex items-center gap-2 text-xs text-neutral-500">
+                    <div className="w-6 h-6 rounded-md bg-neutral-800 flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-3.5 h-3.5 text-neutral-400" />
                     </div>
-                    <span>{label} <strong className="text-slate-300">{pts} pts</strong></span>
+                    <span>{label} <strong className="text-neutral-300 tabular-nums">{pts} pts</strong></span>
                   </div>
                 ))}
               </div>

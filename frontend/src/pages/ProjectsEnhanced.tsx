@@ -13,6 +13,7 @@ import {
   UsersRound, Crown, Mail, Check
 } from 'lucide-react'
 import ProfileAvatar from '../components/ProfileAvatar'
+import { SkeletonCard } from '../components/ui'
 
 interface Task {
   id: string
@@ -813,20 +814,20 @@ export default function ProjectsEnhanced() {
     const colors: Record<string, string> = {
       'active': 'text-green-400 bg-green-500/20',
       'in_progress': 'text-blue-400 bg-blue-500/20',
-      'planning': 'text-yellow-400 bg-yellow-500/20',
+      'planning': 'text-amber-400 bg-amber-500/20',
       'completed': 'text-purple-400 bg-purple-500/20',
       'on_hold': 'text-orange-400 bg-orange-500/20'
     }
-    return colors[status] || 'text-slate-400 bg-slate-500/20'
+    return colors[status] || 'text-neutral-400 bg-neutral-500/20'
   }
 
   const getPriorityColor = (priority: string) => {
     const colors: Record<string, string> = {
       'high': 'text-red-400 bg-red-500/20',
-      'medium': 'text-yellow-400 bg-yellow-500/20',
+      'medium': 'text-amber-400 bg-amber-500/20',
       'low': 'text-green-400 bg-green-500/20'
     }
-    return colors[priority] || 'text-slate-400 bg-slate-500/20'
+    return colors[priority] || 'text-neutral-400 bg-neutral-500/20'
   }
 
   const getTaskStatusIcon = (status: string) => {
@@ -834,7 +835,7 @@ export default function ProjectsEnhanced() {
       case 'done': return <CheckCircle2 className="w-4 h-4 text-green-400" />
       case 'in_progress': return <Clock className="w-4 h-4 text-blue-400" />
       case 'review': return <Eye className="w-4 h-4 text-purple-400" />
-      default: return <AlertCircle className="w-4 h-4 text-slate-400" />
+      default: return <AlertCircle className="w-4 h-4 text-neutral-400" />
     }
   }
 
@@ -861,15 +862,15 @@ export default function ProjectsEnhanced() {
         draggable={canDrag}
         onDragStart={() => canDrag && handleDragStart(task)}
         onDragEnd={() => setDraggedTask(null)}
-        className={`bg-slate-900/70 rounded-lg p-3 border transition-all ${isAssignedToMe ? 'border-cyan-500/50' : 'border-slate-700'
-          } ${canDrag ? 'hover:border-cyan-500/30 cursor-grab active:cursor-grabbing' : readOnly ? 'cursor-default' : 'opacity-75 cursor-not-allowed'}
+        className={`bg-neutral-900/70 rounded-lg p-3 border transition-all ${isAssignedToMe ? 'border-purple-500/50' : 'border-neutral-700'
+          } ${canDrag ? 'hover:border-purple-500/30 cursor-grab active:cursor-grabbing' : readOnly ? 'cursor-default' : 'opacity-75 cursor-not-allowed'}
         ${draggedTask?.id === task.id ? 'opacity-50 scale-95' : ''}`}>
         <div className="flex items-start justify-between gap-2 mb-2">
           <h5 className="text-sm font-medium text-white line-clamp-2">{task.title}</h5>
           {canEdit && onDelete && (
             <button
               onClick={() => onDelete(task.id)}
-              className="p-1 text-slate-500 hover:text-red-400 transition"
+              className="p-1 text-neutral-500 hover:text-red-400 transition"
             >
               <Trash2 className="w-3 h-3" />
             </button>
@@ -881,16 +882,16 @@ export default function ProjectsEnhanced() {
             {task.priority}
           </span>
           {task.project_name && (
-            <span className="text-xs text-slate-500 truncate">{task.project_name}</span>
+            <span className="text-xs text-neutral-500 truncate">{task.project_name}</span>
           )}
         </div>
 
-        <div className="text-xs text-slate-400 space-y-1">
+        <div className="text-xs text-neutral-400 space-y-1">
           {task.assigned_to_name && (
             <p className="flex items-center gap-1">
               <Users className="w-3 h-3" />
               {task.assigned_to_name}
-              {isAssignedToMe && <span className="text-cyan-400">(You)</span>}
+              {isAssignedToMe && <span className="text-purple-400">(You)</span>}
             </p>
           )}
           {(task.start_date || task.due_date) && (
@@ -905,11 +906,11 @@ export default function ProjectsEnhanced() {
 
         {/* Quick status change buttons (only if can drag and has handler) */}
         {canDrag && onStatusChange && (
-          <div className="flex gap-1 mt-2 pt-2 border-t border-slate-700/50">
+          <div className="flex gap-1 mt-2 pt-2 border-t border-neutral-700/50">
             {currentIndex > 0 && (
               <button
                 onClick={() => onStatusChange(task.id, statusOptions[currentIndex - 1])}
-                className="flex-1 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded transition"
+                className="flex-1 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded transition"
               >
                 ← {statusOptions[currentIndex - 1].replace('_', ' ')}
               </button>
@@ -917,7 +918,7 @@ export default function ProjectsEnhanced() {
             {currentIndex < statusOptions.length - 1 && (
               <button
                 onClick={() => onStatusChange(task.id, statusOptions[currentIndex + 1])}
-                className="flex-1 py-1 text-xs bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 rounded transition"
+                className="flex-1 py-1 text-xs bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded transition"
               >
                 {statusOptions[currentIndex + 1].replace('_', ' ')} →
               </button>
@@ -929,7 +930,7 @@ export default function ProjectsEnhanced() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-neutral-950">
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -937,10 +938,10 @@ export default function ProjectsEnhanced() {
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2">
                 Projects Hub
               </h1>
-              <p className="text-slate-400">
+              <p className="text-neutral-400">
                 Manage your projects, tasks, and team collaborations
               </p>
             </div>
@@ -949,9 +950,9 @@ export default function ProjectsEnhanced() {
               {(invitations.length > 0 || teamInvitations.length > 0) && (
                 <button
                   onClick={() => setActiveTab('invitations')}
-                  className="relative p-2 bg-slate-800 rounded-lg hover:bg-slate-700 transition"
+                  className="relative p-2 bg-neutral-800 rounded-lg hover:bg-neutral-700 transition"
                 >
-                  <Bell className="w-5 h-5 text-slate-400" />
+                  <Bell className="w-5 h-5 text-neutral-400" />
                   <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
                     {invitations.length + teamInvitations.length}
                   </span>
@@ -959,21 +960,21 @@ export default function ProjectsEnhanced() {
               )}
               <Link
                 to="/projects/explore"
-                className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg font-medium text-white hover:bg-slate-700 transition-all text-sm"
+                className="flex items-center gap-2 px-4 py-2 bg-neutral-800 border border-neutral-600 rounded-lg font-medium text-white hover:bg-neutral-700 transition-all text-sm"
               >
-                <Star className="w-4 h-4 text-yellow-400" />
+                <Star className="w-4 h-4 text-purple-400" />
                 Explore
               </Link>
               <button
                 onClick={() => setShowCreateTeamModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-800 border border-slate-600 rounded-lg font-medium text-white hover:bg-slate-700 transition-all"
+                className="flex items-center gap-2 px-4 py-2 bg-neutral-800 border border-neutral-600 rounded-lg font-medium text-white hover:bg-neutral-700 transition-all"
               >
                 <UsersRound className="w-5 h-5" />
                 New Team
               </button>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-lg font-medium text-white hover:from-cyan-600 hover:to-purple-600 transition-all"
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg font-medium text-white transition-colors"
               >
                 <Plus className="w-5 h-5" />
                 New Project
@@ -983,65 +984,65 @@ export default function ProjectsEnhanced() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-slate-700">
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-cyan-500/20 rounded-lg">
-                  <FolderOpen className="w-5 h-5 text-cyan-400" />
+                <div className="p-2 bg-purple-500/20 rounded-lg">
+                  <FolderOpen className="w-5 h-5 text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{stats.totalProjects}</p>
-                  <p className="text-xs text-slate-400">Total Projects</p>
+                  <p className="text-2xl font-bold text-white tabular-nums">{stats.totalProjects}</p>
+                  <p className="text-xs text-neutral-400">Total Projects</p>
                 </div>
               </div>
             </div>
-            <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-slate-700">
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-500/20 rounded-lg">
                   <Activity className="w-5 h-5 text-green-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{stats.activeProjects}</p>
-                  <p className="text-xs text-slate-400">Active Projects</p>
+                  <p className="text-2xl font-bold text-white tabular-nums">{stats.activeProjects}</p>
+                  <p className="text-xs text-neutral-400">Active Projects</p>
                 </div>
               </div>
             </div>
-            <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-slate-700">
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-purple-500/20 rounded-lg">
                   <ListTodo className="w-5 h-5 text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{stats.totalTasks}</p>
-                  <p className="text-xs text-slate-400">Total Tasks</p>
+                  <p className="text-2xl font-bold text-white tabular-nums">{stats.totalTasks}</p>
+                  <p className="text-xs text-neutral-400">Total Tasks</p>
                 </div>
               </div>
             </div>
-            <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-slate-700">
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-yellow-500/20 rounded-lg">
-                  <Users className="w-5 h-5 text-yellow-400" />
+                <div className="p-2 bg-amber-500/20 rounded-lg">
+                  <Users className="w-5 h-5 text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{stats.totalMembers}</p>
-                  <p className="text-xs text-slate-400">Team Members</p>
+                  <p className="text-2xl font-bold text-white tabular-nums">{stats.totalMembers}</p>
+                  <p className="text-xs text-neutral-400">Team Members</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Progress Bar */}
-          <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4 border border-slate-700">
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-slate-400">Overall Task Completion</span>
+              <span className="text-sm text-neutral-400">Overall Task Completion</span>
               <span className="text-sm font-medium text-white">{taskCompletionRate}%</span>
             </div>
-            <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+            <div className="h-2 bg-neutral-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-cyan-500 to-purple-500 transition-all duration-500"
+                className="h-full bg-purple-500 transition-[width] duration-500"
                 style={{ width: `${taskCompletionRate}%` }}
               />
             </div>
-            <div className="flex justify-between mt-2 text-xs text-slate-500">
+            <div className="flex justify-between mt-2 text-xs text-neutral-500">
               <span>{stats.completedTasks} completed</span>
               <span>{stats.inProgressTasks} in progress</span>
               <span>{stats.totalTasks - stats.completedTasks - stats.inProgressTasks} pending</span>
@@ -1050,7 +1051,7 @@ export default function ProjectsEnhanced() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-slate-700 overflow-x-auto">
+        <div className="flex gap-2 mb-6 border-b border-neutral-700 overflow-x-auto">
           {[
             { id: 'teams', label: 'My Teams', icon: UsersRound },
             { id: 'projects', label: 'Projects', icon: FolderOpen },
@@ -1063,8 +1064,8 @@ export default function ProjectsEnhanced() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id
-                ? 'text-cyan-400 border-b-2 border-cyan-400'
-                : 'text-slate-400 hover:text-white'
+                ? 'text-white border-b-2 border-purple-500'
+                : 'text-neutral-400 hover:text-neutral-200'
                 }`}
             >
               <tab.icon className="w-4 h-4" />
@@ -1080,8 +1081,8 @@ export default function ProjectsEnhanced() {
 
         {/* Content */}
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2, 3, 4, 5].map(i => <SkeletonCard key={i} />)}
           </div>
         ) : (
           <>
@@ -1093,12 +1094,12 @@ export default function ProjectsEnhanced() {
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                      <Crown className="w-5 h-5 text-yellow-400" />
+                      <Crown className="w-5 h-5 text-amber-400" />
                       Teams I Lead
                     </h3>
                     <button
                       onClick={() => setShowCreateTeamModal(true)}
-                      className="flex items-center gap-2 px-3 py-1.5 bg-cyan-500 rounded-lg text-sm font-medium text-white hover:bg-cyan-600 transition"
+                      className="flex items-center gap-2 px-3 py-1.5 bg-purple-500 rounded-lg text-sm font-medium text-white hover:bg-purple-600 transition"
                     >
                       <Plus className="w-4 h-4" />
                       Create Team
@@ -1106,15 +1107,15 @@ export default function ProjectsEnhanced() {
                   </div>
 
                   {teams.filter(t => String(t.leader) === String(user?.id)).length === 0 ? (
-                    <div className="text-center py-10 bg-slate-800/30 rounded-xl border border-slate-700">
-                      <UsersRound className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+                    <div className="text-center py-10 bg-neutral-800/30 rounded-xl border border-neutral-700">
+                      <UsersRound className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
                       <h4 className="text-white font-medium mb-1">No teams yet</h4>
-                      <p className="text-sm text-slate-400 mb-4">
+                      <p className="text-sm text-neutral-400 mb-4">
                         Create a team to invite your followers and start collaborating
                       </p>
                       <button
                         onClick={() => setShowCreateTeamModal(true)}
-                        className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition text-sm"
+                        className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition text-sm"
                       >
                         Create Your First Team
                       </button>
@@ -1125,22 +1126,22 @@ export default function ProjectsEnhanced() {
                         <div
                           key={team.id}
                           onClick={() => openTeamDetail(team)}
-                          className="bg-slate-800/50 backdrop-blur rounded-xl p-5 border border-yellow-500/30 hover:border-yellow-500/50 hover:bg-slate-800/70 transition-all cursor-pointer group"
+                          className="bg-neutral-800/50 backdrop-blur rounded-xl p-5 border border-amber-500/30 hover:border-amber-500/50 hover:bg-neutral-800/70 transition-all cursor-pointer group"
                         >
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-yellow-500 to-orange-500 flex items-center justify-center">
+                              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
                                 <Crown className="w-6 h-6 text-white" />
                               </div>
                               <div>
-                                <h3 className="text-lg font-semibold text-white group-hover:text-yellow-400 transition">{team.name}</h3>
-                                <span className="text-xs text-yellow-400">You are the leader</span>
+                                <h3 className="text-lg font-semibold text-white group-hover:text-amber-400 transition">{team.name}</h3>
+                                <span className="text-xs text-amber-400">You are the leader</span>
                               </div>
                             </div>
-                            <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-yellow-400 transition" />
+                            <ChevronRight className="w-5 h-5 text-neutral-500 group-hover:text-amber-400 transition" />
                           </div>
 
-                          <p className="text-sm text-slate-400 line-clamp-2 mb-4">
+                          <p className="text-sm text-neutral-400 line-clamp-2 mb-4">
                             {team.description || 'No description'}
                           </p>
 
@@ -1148,24 +1149,24 @@ export default function ProjectsEnhanced() {
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex -space-x-2">
                               {/* Leader avatar */}
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 border-2 border-slate-800 flex items-center justify-center z-10 relative" title={team.leader_name}>
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 border-2 border-neutral-800 flex items-center justify-center z-10 relative" title={team.leader_name}>
                                 <span className="text-xs font-bold text-white">
                                   {team.leader_name?.charAt(0)?.toUpperCase() || '?'}
                                 </span>
                               </div>
                               {/* Placeholder for members */}
                               {team.member_count > 1 && (
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 border-2 border-slate-800 flex items-center justify-center z-[9] relative">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 border-2 border-neutral-800 flex items-center justify-center z-[9] relative">
                                   <span className="text-xs font-bold text-white">+{team.member_count - 1}</span>
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-center gap-3 text-xs text-slate-400">
+                            <div className="flex items-center gap-3 text-xs text-neutral-400">
                               <span className="flex items-center gap-1">
                                 <FolderOpen className="w-3 h-3" /> {team.project_count}
                               </span>
                               {team.pending_count > 0 && (
-                                <span className="flex items-center gap-1 text-yellow-400">
+                                <span className="flex items-center gap-1 text-amber-400">
                                   <Clock className="w-3 h-3" /> {team.pending_count} pending
                                 </span>
                               )}
@@ -1178,7 +1179,7 @@ export default function ProjectsEnhanced() {
                                 setSelectedTeam(team)
                                 setShowInviteModal(true)
                               }}
-                              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition text-sm font-medium"
+                              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition text-sm font-medium"
                             >
                               <UserPlus className="w-4 h-4" />
                               Invite
@@ -1204,7 +1205,7 @@ export default function ProjectsEnhanced() {
                 {teams.filter(t => String(t.leader) !== String(user?.id)).length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                      <Users className="w-5 h-5 text-cyan-400" />
+                      <Users className="w-5 h-5 text-purple-400" />
                       Teams I'm In
                     </h3>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -1212,22 +1213,22 @@ export default function ProjectsEnhanced() {
                         <div
                           key={team.id}
                           onClick={() => openTeamDetail(team)}
-                          className="bg-slate-800/50 backdrop-blur rounded-xl p-5 border border-slate-700 hover:border-cyan-500/50 hover:bg-slate-800/70 transition-all cursor-pointer group"
+                          className="bg-neutral-800/50 backdrop-blur rounded-xl p-5 border border-neutral-700 hover:border-purple-500/50 hover:bg-neutral-800/70 transition-all cursor-pointer group"
                         >
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-cyan-500 to-purple-500 flex items-center justify-center">
+                              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-purple-500 flex items-center justify-center">
                                 <UsersRound className="w-6 h-6 text-white" />
                               </div>
                               <div>
-                                <h3 className="text-lg font-semibold text-white group-hover:text-cyan-400 transition">{team.name}</h3>
-                                <span className="text-xs text-slate-400">Led by {team.leader_name}</span>
+                                <h3 className="text-lg font-semibold text-white group-hover:text-purple-400 transition">{team.name}</h3>
+                                <span className="text-xs text-neutral-400">Led by {team.leader_name}</span>
                               </div>
                             </div>
-                            <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-cyan-400 transition" />
+                            <ChevronRight className="w-5 h-5 text-neutral-500 group-hover:text-purple-400 transition" />
                           </div>
 
-                          <p className="text-sm text-slate-400 line-clamp-2 mb-4">
+                          <p className="text-sm text-neutral-400 line-clamp-2 mb-4">
                             {team.description || 'No description'}
                           </p>
 
@@ -1236,7 +1237,7 @@ export default function ProjectsEnhanced() {
                             <div className="flex -space-x-2">
                               {/* Leader avatar */}
                               <div
-                                className="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 border-2 border-slate-800 flex items-center justify-center z-10 relative cursor-pointer hover:scale-110 transition"
+                                className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 border-2 border-neutral-800 flex items-center justify-center z-10 relative cursor-pointer hover:scale-110 transition"
                                 title={team.leader_name}
                                 onClick={(e) => { e.stopPropagation(); navigate(`/user/${team.leader}`); }}
                               >
@@ -1246,12 +1247,12 @@ export default function ProjectsEnhanced() {
                               </div>
                               {/* Members count */}
                               {team.member_count > 1 && (
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-purple-500 border-2 border-slate-800 flex items-center justify-center z-[9] relative">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 border-2 border-neutral-800 flex items-center justify-center z-[9] relative">
                                   <span className="text-xs font-bold text-white">+{team.member_count - 1}</span>
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-center gap-3 text-xs text-slate-400">
+                            <div className="flex items-center gap-3 text-xs text-neutral-400">
                               <span className="flex items-center gap-1">
                                 <FolderOpen className="w-3 h-3" /> {team.project_count}
                               </span>
@@ -1264,9 +1265,9 @@ export default function ProjectsEnhanced() {
                 )}
 
                 {/* Quick Info */}
-                <div className="bg-slate-800/30 rounded-xl p-4 border border-slate-700">
+                <div className="bg-neutral-800/30 rounded-xl p-4 border border-neutral-700">
                   <h4 className="text-white font-medium mb-2">How Teams Work</h4>
-                  <ul className="text-sm text-slate-400 space-y-1">
+                  <ul className="text-sm text-neutral-400 space-y-1">
                     <li>• Create a team and invite your followers to join</li>
                     <li>• As team leader, you can create projects and assign tasks to members</li>
                     <li>• Team members can only update tasks assigned to them</li>
@@ -1282,13 +1283,13 @@ export default function ProjectsEnhanced() {
                 {/* Search and Filter */}
                 <div className="flex flex-col sm:flex-row gap-4 mb-6">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 -tranneutral-y-1/2 w-4 h-4 text-neutral-400" />
                     <input
                       type="text"
                       placeholder="Search projects..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+                      className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder:text-neutral-500 focus:outline-none focus:border-purple-500"
                     />
                   </div>
                   <div className="flex gap-2 overflow-x-auto">
@@ -1297,8 +1298,8 @@ export default function ProjectsEnhanced() {
                         key={status}
                         onClick={() => setFilter(status)}
                         className={`px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${filter === status
-                          ? 'bg-cyan-500 text-white'
-                          : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                          ? 'bg-purple-500 text-white'
+                          : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
                           }`}
                       >
                         {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
@@ -1309,15 +1310,15 @@ export default function ProjectsEnhanced() {
 
                 {/* Projects List */}
                 {filteredProjects.length === 0 ? (
-                  <div className="text-center py-16 bg-slate-800/30 rounded-xl border border-slate-700">
-                    <FolderOpen className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                  <div className="text-center py-16 bg-neutral-800/30 rounded-xl border border-neutral-700">
+                    <FolderOpen className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-white mb-2">No projects found</h3>
-                    <p className="text-slate-400 mb-6">
+                    <p className="text-neutral-400 mb-6">
                       {searchTerm ? 'Try a different search term' : 'Create your first project to get started'}
                     </p>
                     <button
                       onClick={() => setShowCreateModal(true)}
-                      className="px-6 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition"
+                      className="px-6 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition"
                     >
                       Create Project
                     </button>
@@ -1351,20 +1352,20 @@ export default function ProjectsEnhanced() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   {/* Search */}
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 -tranneutral-y-1/2 w-4 h-4 text-neutral-400" />
                     <input
                       type="text"
                       placeholder="Search tasks..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+                      className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder:text-neutral-500 focus:outline-none focus:border-purple-500"
                     />
                   </div>
                   {/* Project Filter */}
                   <select
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
+                    className="px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
                   >
                     <option value="all">All Projects</option>
                     {projects.map(project => (
@@ -1373,7 +1374,7 @@ export default function ProjectsEnhanced() {
                   </select>
                   {/* Status Filter */}
                   <select
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
+                    className="px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
                     onChange={(e) => {
                       // Filter tasks by status - can be enhanced with state
                     }}
@@ -1391,9 +1392,9 @@ export default function ProjectsEnhanced() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold text-white">Task Overview</h3>
-                    <p className="text-sm text-slate-400">{allTasks.length} total tasks from all projects (read-only)</p>
+                    <p className="text-sm text-neutral-400">{allTasks.length} total tasks from all projects (read-only)</p>
                   </div>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-neutral-500">
                     🔒 To update task status, open the project's Kanban board
                   </p>
                 </div>
@@ -1401,12 +1402,12 @@ export default function ProjectsEnhanced() {
                 {/* Kanban Columns - Read Only View */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* To Do Column */}
-                  <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
-                    <div className="p-3 border-b border-slate-700 bg-slate-700/30">
+                  <div className="bg-neutral-800/50 rounded-xl border border-neutral-700 overflow-hidden">
+                    <div className="p-3 border-b border-neutral-700 bg-neutral-700/30">
                       <h4 className="text-sm font-semibold text-white flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                        <div className="w-2 h-2 rounded-full bg-neutral-400"></div>
                         To Do
-                        <span className="ml-auto text-xs text-slate-400">
+                        <span className="ml-auto text-xs text-neutral-400">
                           {allTasks.filter(t => t.status === 'todo').length}
                         </span>
                       </h4>
@@ -1416,7 +1417,7 @@ export default function ProjectsEnhanced() {
                         <TaskCard key={task.id} task={task} readOnly />
                       ))}
                       {allTasks.filter(t => t.status === 'todo').length === 0 && (
-                        <div className="text-center py-8 text-slate-500 text-sm">
+                        <div className="text-center py-8 text-neutral-500 text-sm">
                           No tasks
                         </div>
                       )}
@@ -1424,12 +1425,12 @@ export default function ProjectsEnhanced() {
                   </div>
 
                   {/* In Progress Column */}
-                  <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
-                    <div className="p-3 border-b border-slate-700 bg-blue-500/10">
+                  <div className="bg-neutral-800/50 rounded-xl border border-neutral-700 overflow-hidden">
+                    <div className="p-3 border-b border-neutral-700 bg-blue-500/10">
                       <h4 className="text-sm font-semibold text-white flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                         In Progress
-                        <span className="ml-auto text-xs text-slate-400">
+                        <span className="ml-auto text-xs text-neutral-400">
                           {allTasks.filter(t => t.status === 'in_progress').length}
                         </span>
                       </h4>
@@ -1439,7 +1440,7 @@ export default function ProjectsEnhanced() {
                         <TaskCard key={task.id} task={task} readOnly />
                       ))}
                       {allTasks.filter(t => t.status === 'in_progress').length === 0 && (
-                        <div className="text-center py-8 text-slate-500 text-sm">
+                        <div className="text-center py-8 text-neutral-500 text-sm">
                           No tasks
                         </div>
                       )}
@@ -1447,12 +1448,12 @@ export default function ProjectsEnhanced() {
                   </div>
 
                   {/* Review Column */}
-                  <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
-                    <div className="p-3 border-b border-slate-700 bg-yellow-500/10">
+                  <div className="bg-neutral-800/50 rounded-xl border border-neutral-700 overflow-hidden">
+                    <div className="p-3 border-b border-neutral-700 bg-amber-500/10">
                       <h4 className="text-sm font-semibold text-white flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                        <div className="w-2 h-2 rounded-full bg-amber-500"></div>
                         Review
-                        <span className="ml-auto text-xs text-slate-400">
+                        <span className="ml-auto text-xs text-neutral-400">
                           {allTasks.filter(t => t.status === 'review').length}
                         </span>
                       </h4>
@@ -1462,7 +1463,7 @@ export default function ProjectsEnhanced() {
                         <TaskCard key={task.id} task={task} readOnly />
                       ))}
                       {allTasks.filter(t => t.status === 'review').length === 0 && (
-                        <div className="text-center py-8 text-slate-500 text-sm">
+                        <div className="text-center py-8 text-neutral-500 text-sm">
                           No tasks
                         </div>
                       )}
@@ -1470,12 +1471,12 @@ export default function ProjectsEnhanced() {
                   </div>
 
                   {/* Done Column */}
-                  <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
-                    <div className="p-3 border-b border-slate-700 bg-green-500/10">
+                  <div className="bg-neutral-800/50 rounded-xl border border-neutral-700 overflow-hidden">
+                    <div className="p-3 border-b border-neutral-700 bg-green-500/10">
                       <h4 className="text-sm font-semibold text-white flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-green-500"></div>
                         Done
-                        <span className="ml-auto text-xs text-slate-400">
+                        <span className="ml-auto text-xs text-neutral-400">
                           {allTasks.filter(t => t.status === 'done').length}
                         </span>
                       </h4>
@@ -1485,7 +1486,7 @@ export default function ProjectsEnhanced() {
                         <TaskCard key={task.id} task={task} readOnly />
                       ))}
                       {allTasks.filter(t => t.status === 'done').length === 0 && (
-                        <div className="text-center py-8 text-slate-500 text-sm">
+                        <div className="text-center py-8 text-neutral-500 text-sm">
                           No tasks
                         </div>
                       )}
@@ -1499,24 +1500,24 @@ export default function ProjectsEnhanced() {
             {activeTab === 'analytics' && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Project Status Distribution */}
-                <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+                <div className="bg-neutral-800/50 rounded-xl p-6 border border-neutral-700">
                   <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-cyan-400" />
+                    <BarChart3 className="w-5 h-5 text-purple-400" />
                     Project Status Distribution
                   </h3>
                   <div className="space-y-4">
                     {[
                       { status: 'Active', count: stats.activeProjects, color: 'bg-green-500' },
                       { status: 'Completed', count: stats.completedProjects, color: 'bg-purple-500' },
-                      { status: 'Planning', count: projects.filter(p => p.status === 'planning').length, color: 'bg-yellow-500' },
+                      { status: 'Planning', count: projects.filter(p => p.status === 'planning').length, color: 'bg-amber-500' },
                       { status: 'On Hold', count: projects.filter(p => p.status === 'on_hold').length, color: 'bg-orange-500' }
                     ].map(item => (
                       <div key={item.status}>
                         <div className="flex justify-between text-sm mb-1">
-                          <span className="text-slate-400">{item.status}</span>
+                          <span className="text-neutral-400">{item.status}</span>
                           <span className="text-white font-medium">{item.count}</span>
                         </div>
-                        <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                        <div className="h-2 bg-neutral-700 rounded-full overflow-hidden">
                           <div
                             className={`h-full ${item.color} transition-all`}
                             style={{ width: `${stats.totalProjects > 0 ? (item.count / stats.totalProjects) * 100 : 0}%` }}
@@ -1528,7 +1529,7 @@ export default function ProjectsEnhanced() {
                 </div>
 
                 {/* Task Progress */}
-                <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+                <div className="bg-neutral-800/50 rounded-xl p-6 border border-neutral-700">
                   <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     <TrendingUp className="w-5 h-5 text-purple-400" />
                     Task Progress
@@ -1563,54 +1564,54 @@ export default function ProjectsEnhanced() {
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <span className="text-3xl font-bold text-white">{taskCompletionRate}%</span>
-                        <span className="text-xs text-slate-400">Complete</span>
+                        <span className="text-xs text-neutral-400">Complete</span>
                       </div>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4 mt-4">
                     <div className="text-center">
                       <p className="text-2xl font-bold text-green-400">{stats.completedTasks}</p>
-                      <p className="text-xs text-slate-400">Done</p>
+                      <p className="text-xs text-neutral-400">Done</p>
                     </div>
                     <div className="text-center">
                       <p className="text-2xl font-bold text-blue-400">{stats.inProgressTasks}</p>
-                      <p className="text-xs text-slate-400">In Progress</p>
+                      <p className="text-xs text-neutral-400">In Progress</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-slate-400">
+                      <p className="text-2xl font-bold text-neutral-400">
                         {stats.totalTasks - stats.completedTasks - stats.inProgressTasks}
                       </p>
-                      <p className="text-xs text-slate-400">Pending</p>
+                      <p className="text-xs text-neutral-400">Pending</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Recent Activity */}
-                <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700 lg:col-span-2">
+                <div className="bg-neutral-800/50 rounded-xl p-6 border border-neutral-700 lg:col-span-2">
                   <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     <Activity className="w-5 h-5 text-green-400" />
                     Your Contribution Summary
                   </h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-slate-900/50 rounded-lg p-4 text-center">
-                      <p className="text-3xl font-bold text-cyan-400">
+                    <div className="bg-neutral-900/50 rounded-lg p-4 text-center">
+                      <p className="text-3xl font-bold text-purple-400">
                         {projects.filter(p => p.owner === Number(user?.id)).length}
                       </p>
-                      <p className="text-sm text-slate-400">Projects Owned</p>
+                      <p className="text-sm text-neutral-400">Projects Owned</p>
                     </div>
-                    <div className="bg-slate-900/50 rounded-lg p-4 text-center">
+                    <div className="bg-neutral-900/50 rounded-lg p-4 text-center">
                       <p className="text-3xl font-bold text-purple-400">
                         {allTasks.filter(t => t.status === 'done').length}
                       </p>
-                      <p className="text-sm text-slate-400">Tasks Completed</p>
+                      <p className="text-sm text-neutral-400">Tasks Completed</p>
                     </div>
-                    <div className="bg-slate-900/50 rounded-lg p-4 text-center">
+                    <div className="bg-neutral-900/50 rounded-lg p-4 text-center">
                       <p className="text-3xl font-bold text-green-400">{stats.totalProjects}</p>
-                      <p className="text-sm text-slate-400">Projects Joined</p>
+                      <p className="text-sm text-neutral-400">Projects Joined</p>
                     </div>
-                    <div className="bg-slate-900/50 rounded-lg p-4 text-center">
-                      <p className="text-3xl font-bold text-yellow-400">{stats.activeProjects}</p>
-                      <p className="text-sm text-slate-400">Active Now</p>
+                    <div className="bg-neutral-900/50 rounded-lg p-4 text-center">
+                      <p className="text-3xl font-bold text-amber-400">{stats.activeProjects}</p>
+                      <p className="text-sm text-neutral-400">Active Now</p>
                     </div>
                   </div>
                 </div>
@@ -1624,24 +1625,24 @@ export default function ProjectsEnhanced() {
                 {teamInvitations.length > 0 && (
                   <div>
                     <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                      <UsersRound className="w-5 h-5 text-cyan-400" />
+                      <UsersRound className="w-5 h-5 text-purple-400" />
                       Team Invitations
                     </h3>
                     <div className="space-y-4">
                       {teamInvitations.map(inv => (
-                        <div key={inv.id} className="bg-slate-800/50 rounded-xl p-4 border border-cyan-500/30">
+                        <div key={inv.id} className="bg-neutral-800/50 rounded-xl p-4 border border-purple-500/30">
                           <div className="flex items-start justify-between">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-cyan-500 to-purple-500 flex items-center justify-center">
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-purple-500 flex items-center justify-center">
                                 <UsersRound className="w-5 h-5 text-white" />
                               </div>
                               <div>
                                 <h4 className="text-white font-medium">Team Invitation</h4>
-                                <p className="text-sm text-slate-400">
-                                  {inv.invited_by_name} invited you as <span className="text-cyan-400">{inv.role}</span>
+                                <p className="text-sm text-neutral-400">
+                                  {inv.invited_by_name} invited you as <span className="text-purple-400">{inv.role}</span>
                                 </p>
                                 {inv.message && (
-                                  <p className="text-sm text-slate-300 mt-1 italic">"{inv.message}"</p>
+                                  <p className="text-sm text-neutral-300 mt-1 italic">"{inv.message}"</p>
                                 )}
                               </div>
                             </div>
@@ -1654,7 +1655,7 @@ export default function ProjectsEnhanced() {
                               </button>
                               <button
                                 onClick={() => handleDeclineTeamInvitation(inv.id)}
-                                className="px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition"
+                                className="px-4 py-2 bg-neutral-700 text-neutral-300 rounded-lg hover:bg-neutral-600 transition"
                               >
                                 Decline
                               </button>
@@ -1675,15 +1676,15 @@ export default function ProjectsEnhanced() {
                     </h3>
                     <div className="space-y-4">
                       {invitations.map(inv => (
-                        <div key={inv.id} className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+                        <div key={inv.id} className="bg-neutral-800/50 rounded-xl p-4 border border-neutral-700">
                           <div className="flex items-start justify-between">
                             <div>
                               <h4 className="text-white font-medium">{inv.project_name}</h4>
-                              <p className="text-sm text-slate-400">
-                                Invited by {inv.inviter_name} as <span className="text-cyan-400">{inv.role}</span>
+                              <p className="text-sm text-neutral-400">
+                                Invited by {inv.inviter_name} as <span className="text-purple-400">{inv.role}</span>
                               </p>
                               {inv.message && (
-                                <p className="text-sm text-slate-300 mt-2 italic">"{inv.message}"</p>
+                                <p className="text-sm text-neutral-300 mt-2 italic">"{inv.message}"</p>
                               )}
                             </div>
                             <div className="flex gap-2">
@@ -1695,7 +1696,7 @@ export default function ProjectsEnhanced() {
                               </button>
                               <button
                                 onClick={() => handleDeclineInvitation(inv.id)}
-                                className="px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition"
+                                className="px-4 py-2 bg-neutral-700 text-neutral-300 rounded-lg hover:bg-neutral-600 transition"
                               >
                                 Decline
                               </button>
@@ -1709,10 +1710,10 @@ export default function ProjectsEnhanced() {
 
                 {/* No Invitations */}
                 {invitations.length === 0 && teamInvitations.length === 0 && (
-                  <div className="text-center py-16 bg-slate-800/30 rounded-xl border border-slate-700">
-                    <Bell className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                  <div className="text-center py-16 bg-neutral-800/30 rounded-xl border border-neutral-700">
+                    <Bell className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-white mb-2">No pending invitations</h3>
-                    <p className="text-slate-400">You'll see team and project invitations here when someone invites you.</p>
+                    <p className="text-neutral-400">You'll see team and project invitations here when someone invites you.</p>
                   </div>
                 )}
               </div>
@@ -1726,7 +1727,7 @@ export default function ProjectsEnhanced() {
                   {unreadCount > 0 && (
                     <button
                       onClick={handleMarkAllNotificationsRead}
-                      className="text-sm text-cyan-400 hover:text-cyan-300"
+                      className="text-sm text-purple-400 hover:text-purple-300"
                     >
                       Mark all as read
                     </button>
@@ -1734,10 +1735,10 @@ export default function ProjectsEnhanced() {
                 </div>
 
                 {notifications.length === 0 ? (
-                  <div className="text-center py-16 bg-slate-800/30 rounded-xl border border-slate-700">
-                    <Bell className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                  <div className="text-center py-16 bg-neutral-800/30 rounded-xl border border-neutral-700">
+                    <Bell className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-white mb-2">No notifications yet</h3>
-                    <p className="text-slate-400">You'll see task updates and team activity here.</p>
+                    <p className="text-neutral-400">You'll see task updates and team activity here.</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -1746,34 +1747,34 @@ export default function ProjectsEnhanced() {
                         key={notif.id}
                         onClick={() => !notif.is_read && handleMarkNotificationRead(notif.id)}
                         className={`p-4 rounded-xl border transition-all cursor-pointer ${notif.is_read
-                          ? 'bg-slate-800/30 border-slate-700'
-                          : 'bg-slate-800/70 border-cyan-500/30 hover:border-cyan-500/50'
+                          ? 'bg-neutral-800/30 border-neutral-700'
+                          : 'bg-neutral-800/70 border-purple-500/30 hover:border-purple-500/50'
                           }`}
                       >
                         <div className="flex items-start gap-3">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${notif.notification_type === 'task_assigned' ? 'bg-cyan-500/20' :
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${notif.notification_type === 'task_assigned' ? 'bg-purple-500/20' :
                             notif.notification_type === 'task_status_changed' ? 'bg-blue-500/20' :
                               notif.notification_type === 'task_completed' ? 'bg-green-500/20' :
                                 notif.notification_type === 'team_invite' ? 'bg-purple-500/20' :
-                                  'bg-slate-700'
+                                  'bg-neutral-700'
                             }`}>
-                            {notif.notification_type === 'task_assigned' && <ListTodo className="w-5 h-5 text-cyan-400" />}
+                            {notif.notification_type === 'task_assigned' && <ListTodo className="w-5 h-5 text-purple-400" />}
                             {notif.notification_type === 'task_status_changed' && <Activity className="w-5 h-5 text-blue-400" />}
                             {notif.notification_type === 'task_completed' && <CheckCircle2 className="w-5 h-5 text-green-400" />}
                             {notif.notification_type === 'team_invite' && <UsersRound className="w-5 h-5 text-purple-400" />}
                             {!['task_assigned', 'task_status_changed', 'task_completed', 'team_invite'].includes(notif.notification_type) && (
-                              <Bell className="w-5 h-5 text-slate-400" />
+                              <Bell className="w-5 h-5 text-neutral-400" />
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <h4 className="text-white font-medium">{notif.title}</h4>
                               {!notif.is_read && (
-                                <span className="w-2 h-2 bg-cyan-500 rounded-full"></span>
+                                <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
                               )}
                             </div>
-                            <p className="text-sm text-slate-400 mt-1">{notif.message}</p>
-                            <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
+                            <p className="text-sm text-neutral-400 mt-1">{notif.message}</p>
+                            <div className="flex items-center gap-3 mt-2 text-xs text-neutral-500">
                               {notif.sender_name && <span>From: {notif.sender_name}</span>}
                               <span>{new Date(notif.created_at).toLocaleString()}</span>
                             </div>
@@ -1792,51 +1793,51 @@ export default function ProjectsEnhanced() {
       {/* Create Project Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 pb-24 sm:pb-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-lg border border-slate-700 shadow-2xl max-h-[calc(100vh-120px)] sm:max-h-[85vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-3 sm:p-4 border-b border-slate-700 shrink-0">
+          <div className="bg-neutral-800 rounded-xl w-full max-w-lg border border-neutral-700 shadow-2xl max-h-[calc(100vh-120px)] sm:max-h-[85vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-3 sm:p-4 border-b border-neutral-700 shrink-0">
               <h3 className="text-lg sm:text-xl font-semibold text-white">Create New Project</h3>
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="p-1 text-slate-400 hover:text-white transition"
+                className="p-1 text-neutral-400 hover:text-white transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleCreateProject} className="p-3 sm:p-4 space-y-3 overflow-y-auto flex-1">
               <div>
-                <label className="block text-xs sm:text-sm text-slate-400 mb-1">Project Name *</label>
+                <label className="block text-xs sm:text-sm text-neutral-400 mb-1">Project Name *</label>
                 <input
                   type="text"
                   value={newProject.name}
                   onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
                   placeholder="My Awesome Project"
                   required
                 />
               </div>
               <div>
-                <label className="block text-xs sm:text-sm text-slate-400 mb-1">Description</label>
+                <label className="block text-xs sm:text-sm text-neutral-400 mb-1">Description</label>
                 <textarea
                   value={newProject.description}
                   onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm resize-none focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white text-sm resize-none focus:outline-none focus:border-purple-500"
                   rows={2}
                   placeholder="What is this project about?"
                 />
               </div>
               <div>
-                <label className="block text-xs sm:text-sm text-slate-400 mb-1">Team (optional)</label>
+                <label className="block text-xs sm:text-sm text-neutral-400 mb-1">Team (optional)</label>
                 <select
                   value={newProject.team}
                   onChange={(e) => setNewProject({ ...newProject, team: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
                 >
                   <option value="">No Team (Personal Project)</option>
                   {teams.filter(t => String(t.leader) === String(user?.id)).map(team => (
                     <option key={team.id} value={team.id}>{team.name} (You are leader)</option>
                   ))}
                 </select>
-                <p className="text-[10px] sm:text-xs text-slate-500 mt-1">
+                <p className="text-[10px] sm:text-xs text-neutral-500 mt-1">
                   {teams.filter(t => String(t.leader) === String(user?.id)).length === 0
                     ? 'Create a team first to add team projects'
                     : 'You can only create team projects for teams you lead'}
@@ -1844,11 +1845,11 @@ export default function ProjectsEnhanced() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Type</label>
+                  <label className="block text-sm text-neutral-400 mb-1">Type</label>
                   <select
                     value={newProject.project_type}
                     onChange={(e) => setNewProject({ ...newProject, project_type: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                   >
                     <option value="web_application">Web Application</option>
                     <option value="mobile_app">Mobile App</option>
@@ -1860,11 +1861,11 @@ export default function ProjectsEnhanced() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Language</label>
+                  <label className="block text-sm text-neutral-400 mb-1">Language</label>
                   <select
                     value={newProject.programming_language}
                     onChange={(e) => setNewProject({ ...newProject, programming_language: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                   >
                     <option value="javascript">JavaScript</option>
                     <option value="typescript">TypeScript</option>
@@ -1880,23 +1881,23 @@ export default function ProjectsEnhanced() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Visibility</label>
+                <label className="block text-sm text-neutral-400 mb-1">Visibility</label>
                 <select
                   value={newProject.visibility}
                   onChange={(e) => setNewProject({ ...newProject, visibility: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 >
                   <option value="public">Public - Anyone can see</option>
                   <option value="private">Private - Only members can see</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">GitHub Repository (optional)</label>
+                <label className="block text-sm text-neutral-400 mb-1">GitHub Repository (optional)</label>
                 <input
                   type="url"
                   value={newProject.github_repo}
                   onChange={(e) => setNewProject({ ...newProject, github_repo: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                   placeholder="https://github.com/username/repo"
                 />
               </div>
@@ -1905,7 +1906,7 @@ export default function ProjectsEnhanced() {
                   type="button"
                   disabled={isCreatingProject}
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 bg-neutral-700 text-neutral-300 rounded-lg hover:bg-neutral-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
@@ -1914,8 +1915,8 @@ export default function ProjectsEnhanced() {
                   disabled={isCreatingProject}
                   className={`flex-1 px-4 py-2 text-white rounded-lg transition flex items-center justify-center gap-2 ${
                     isCreatingProject
-                      ? 'bg-gradient-to-r from-cyan-500/50 to-purple-500/50 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600'
+                      ? 'bg-gradient-to-r from-purple-500/50 to-purple-500/50 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-purple-500 to-purple-500 hover:from-purple-600 hover:to-purple-600'
                   }`}
                 >
                   {isCreatingProject ? (
@@ -1939,10 +1940,10 @@ export default function ProjectsEnhanced() {
       {/* Create Team Modal - Enhanced with Member Selection */}
       {showCreateTeamModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-lg border border-slate-700 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-slate-700">
+          <div className="bg-neutral-800 rounded-xl w-full max-w-lg border border-neutral-700 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-neutral-700">
               <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-                <UsersRound className="w-5 h-5 text-cyan-400" />
+                <UsersRound className="w-5 h-5 text-purple-400" />
                 Create New Team
               </h3>
               <button
@@ -1952,29 +1953,29 @@ export default function ProjectsEnhanced() {
                   setUserSearchQuery('')
                   setUserSearchResults([])
                 }}
-                className="p-1 text-slate-400 hover:text-white transition"
+                className="p-1 text-neutral-400 hover:text-white transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleCreateTeam} className="p-4 space-y-4 overflow-y-auto flex-1">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Team Name *</label>
+                <label className="block text-sm text-neutral-400 mb-1">Team Name *</label>
                 <input
                   type="text"
                   value={newTeam.name}
                   onChange={(e) => setNewTeam({ ...newTeam, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                   placeholder="My Awesome Team"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Description</label>
+                <label className="block text-sm text-neutral-400 mb-1">Description</label>
                 <textarea
                   value={newTeam.description}
                   onChange={(e) => setNewTeam({ ...newTeam, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white resize-none focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white resize-none focus:outline-none focus:border-purple-500"
                   rows={2}
                   placeholder="What is this team about?"
                 />
@@ -1982,7 +1983,7 @@ export default function ProjectsEnhanced() {
 
               {/* Member Selection - Search Based */}
               <div>
-                <label className="block text-sm text-slate-400 mb-2">
+                <label className="block text-sm text-neutral-400 mb-2">
                   Invite Members (Optional)
                 </label>
 
@@ -1992,13 +1993,13 @@ export default function ProjectsEnhanced() {
                     {newTeam.selectedMembers.map(member => (
                       <div
                         key={member.id}
-                        className="flex items-center gap-2 bg-cyan-500/20 border border-cyan-500/50 rounded-full px-3 py-1"
+                        className="flex items-center gap-2 bg-purple-500/20 border border-purple-500/50 rounded-full px-3 py-1"
                       >
-                        <span className="text-sm text-cyan-400">{member.username}</span>
+                        <span className="text-sm text-purple-400">{member.username}</span>
                         <button
                           type="button"
                           onClick={() => removeMember(member.id)}
-                          className="text-cyan-400 hover:text-white"
+                          className="text-purple-400 hover:text-white"
                         >
                           <X className="w-3 h-3" />
                         </button>
@@ -2009,26 +2010,26 @@ export default function ProjectsEnhanced() {
 
                 {/* Search Input */}
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -tranneutral-y-1/2 w-4 h-4 text-neutral-400" />
                   <input
                     type="text"
                     value={userSearchQuery}
                     onChange={(e) => searchUsers(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+                    className="w-full pl-10 pr-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white placeholder:text-neutral-500 focus:outline-none focus:border-purple-500"
                     placeholder="Search users by name or email..."
                   />
                   {searchingUsers && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <div className="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="absolute right-3 top-1/2 -tranneutral-y-1/2">
+                      <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
                     </div>
                   )}
                 </div>
 
                 {/* Search Results */}
                 {userSearchQuery.length >= 2 && (
-                  <div className="mt-2 bg-slate-900/50 rounded-lg max-h-40 overflow-y-auto">
+                  <div className="mt-2 bg-neutral-900/50 rounded-lg max-h-40 overflow-y-auto">
                     {userSearchResults.length === 0 ? (
-                      <div className="p-3 text-center text-sm text-slate-400">
+                      <div className="p-3 text-center text-sm text-neutral-400">
                         {searchingUsers ? 'Searching...' : 'No users found'}
                       </div>
                     ) : (
@@ -2041,18 +2042,18 @@ export default function ProjectsEnhanced() {
                               setUserSearchQuery('')
                               setUserSearchResults([])
                             }}
-                            className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-slate-800 transition"
+                            className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-neutral-800 transition"
                           >
-                            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center">
-                              <span className="text-xs font-medium text-slate-300">
+                            <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center">
+                              <span className="text-xs font-medium text-neutral-300">
                                 {searchUser.username?.charAt(0)?.toUpperCase() || '?'}
                               </span>
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-white truncate">{searchUser.username || 'Unknown'}</p>
-                              <p className="text-xs text-slate-400 truncate">{searchUser.email || ''}</p>
+                              <p className="text-xs text-neutral-400 truncate">{searchUser.email || ''}</p>
                             </div>
-                            <Plus className="w-4 h-4 text-cyan-400" />
+                            <Plus className="w-4 h-4 text-purple-400" />
                           </div>
                         ))}
                       </div>
@@ -2060,14 +2061,14 @@ export default function ProjectsEnhanced() {
                   </div>
                 )}
 
-                <p className="text-xs text-slate-500 mt-2">
+                <p className="text-xs text-neutral-500 mt-2">
                   Search and select users to invite. They will receive an invitation and must accept to join.
                 </p>
               </div>
 
-              <div className="bg-slate-900/50 rounded-lg p-3 text-sm text-slate-400">
+              <div className="bg-neutral-900/50 rounded-lg p-3 text-sm text-neutral-400">
                 <p className="flex items-center gap-2">
-                  <Crown className="w-4 h-4 text-yellow-400" />
+                  <Crown className="w-4 h-4 text-amber-400" />
                   You will be the team leader
                 </p>
               </div>
@@ -2082,7 +2083,7 @@ export default function ProjectsEnhanced() {
                     setUserSearchQuery('')
                     setUserSearchResults([])
                   }}
-                  className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 bg-neutral-700 text-neutral-300 rounded-lg hover:bg-neutral-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
@@ -2091,8 +2092,8 @@ export default function ProjectsEnhanced() {
                   disabled={isCreatingTeam}
                   className={`flex-1 px-4 py-2 text-white rounded-lg transition flex items-center justify-center gap-2 ${
                     isCreatingTeam
-                      ? 'bg-gradient-to-r from-cyan-500/50 to-purple-500/50 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600'
+                      ? 'bg-gradient-to-r from-purple-500/50 to-purple-500/50 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-purple-500 to-purple-500 hover:from-purple-600 hover:to-purple-600'
                   }`}
                 >
                   {isCreatingTeam ? (
@@ -2118,10 +2119,10 @@ export default function ProjectsEnhanced() {
       {/* Invite Member Modal */}
       {showInviteModal && selectedTeam && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700 shadow-2xl">
-            <div className="flex items-center justify-between p-4 border-b border-slate-700">
+          <div className="bg-neutral-800 rounded-xl w-full max-w-md border border-neutral-700 shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-neutral-700">
               <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-                <UserPlus className="w-5 h-5 text-cyan-400" />
+                <UserPlus className="w-5 h-5 text-purple-400" />
                 Invite to {selectedTeam.name}
               </h3>
               <button
@@ -2129,18 +2130,18 @@ export default function ProjectsEnhanced() {
                   setShowInviteModal(false)
                   setSelectedTeam(null)
                 }}
-                className="p-1 text-slate-400 hover:text-white transition"
+                className="p-1 text-neutral-400 hover:text-white transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleInviteToTeam} className="p-4 space-y-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Select Follower *</label>
+                <label className="block text-sm text-neutral-400 mb-1">Select Follower *</label>
                 <select
                   value={inviteData.user_id}
                   onChange={(e) => setInviteData({ ...inviteData, user_id: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                   required
                 >
                   <option value="">Choose a follower to invite</option>
@@ -2151,28 +2152,28 @@ export default function ProjectsEnhanced() {
                   ))}
                 </select>
                 {followers.length === 0 && (
-                  <p className="text-xs text-yellow-400 mt-1">
+                  <p className="text-xs text-amber-400 mt-1">
                     You have no followers yet. Only followers can be invited to teams.
                   </p>
                 )}
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Role</label>
+                <label className="block text-sm text-neutral-400 mb-1">Role</label>
                 <select
                   value={inviteData.role}
                   onChange={(e) => setInviteData({ ...inviteData, role: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 >
                   <option value="member">Member</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Message (optional)</label>
+                <label className="block text-sm text-neutral-400 mb-1">Message (optional)</label>
                 <textarea
                   value={inviteData.message}
                   onChange={(e) => setInviteData({ ...inviteData, message: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white resize-none focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white resize-none focus:outline-none focus:border-purple-500"
                   rows={2}
                   placeholder="Add a personal message..."
                 />
@@ -2184,14 +2185,14 @@ export default function ProjectsEnhanced() {
                     setShowInviteModal(false)
                     setSelectedTeam(null)
                   }}
-                  className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition"
+                  className="flex-1 px-4 py-2 bg-neutral-700 text-neutral-300 rounded-lg hover:bg-neutral-600 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={followers.length === 0}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-lg hover:from-cyan-600 hover:to-purple-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-500 text-white rounded-lg hover:from-purple-600 hover:to-purple-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Send Invitation
                 </button>
@@ -2210,14 +2211,14 @@ export default function ProjectsEnhanced() {
           }}
         >
           <div
-            className="bg-slate-800 rounded-xl w-full max-w-2xl border border-slate-700 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col"
+            className="bg-neutral-800 rounded-xl w-full max-w-2xl border border-neutral-700 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between p-4 border-b border-slate-700">
+            <div className="flex items-center justify-between p-4 border-b border-neutral-700">
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${String(selectedTeam.leader) === String(user?.id)
-                  ? 'bg-gradient-to-r from-yellow-500 to-orange-500'
-                  : 'bg-gradient-to-r from-cyan-500 to-purple-500'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500'
+                  : 'bg-gradient-to-r from-purple-500 to-purple-500'
                   }`}>
                   {String(selectedTeam.leader) === String(user?.id)
                     ? <Crown className="w-5 h-5 text-white" />
@@ -2226,14 +2227,14 @@ export default function ProjectsEnhanced() {
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold text-white">{selectedTeam.name}</h3>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-neutral-400">
                     {String(selectedTeam.leader) === String(user?.id) ? 'You are the leader' : `Led by ${selectedTeam.leader_name}`}
                   </p>
                 </div>
               </div>
               <button
                 onClick={closeTeamDetail}
-                className="p-1 text-slate-400 hover:text-white transition"
+                className="p-1 text-neutral-400 hover:text-white transition"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2242,33 +2243,33 @@ export default function ProjectsEnhanced() {
             <div className="p-4 overflow-y-auto flex-1 space-y-6">
               {/* Team Stats */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="bg-slate-900/50 rounded-lg p-3 text-center">
-                  <p className="text-2xl font-bold text-cyan-400">{teamMembers.length}</p>
-                  <p className="text-xs text-slate-400">Members</p>
+                <div className="bg-neutral-900/50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-purple-400">{teamMembers.length}</p>
+                  <p className="text-xs text-neutral-400">Members</p>
                 </div>
-                <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+                <div className="bg-neutral-900/50 rounded-lg p-3 text-center">
                   <p className="text-2xl font-bold text-purple-400">{teamProjects.length}</p>
-                  <p className="text-xs text-slate-400">Projects</p>
+                  <p className="text-xs text-neutral-400">Projects</p>
                 </div>
-                <div className="bg-slate-900/50 rounded-lg p-3 text-center">
-                  <p className="text-2xl font-bold text-yellow-400">
+                <div className="bg-neutral-900/50 rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-amber-400">
                     {teamMembers.filter(m => m.status === 'pending').length}
                   </p>
-                  <p className="text-xs text-slate-400">Pending</p>
+                  <p className="text-xs text-neutral-400">Pending</p>
                 </div>
               </div>
 
               {/* Description */}
               {selectedTeam.description && (
                 <div>
-                  <h4 className="text-sm font-medium text-slate-400 mb-2">About</h4>
+                  <h4 className="text-sm font-medium text-neutral-400 mb-2">About</h4>
                   <p className="text-sm text-white">{selectedTeam.description}</p>
                 </div>
               )}
 
               {/* Members */}
               <div>
-                <h4 className="text-sm font-medium text-slate-400 mb-3">Team Members</h4>
+                <h4 className="text-sm font-medium text-neutral-400 mb-3">Team Members</h4>
 
                 {/* Add Member - Only for Leaders */}
                 {String(selectedTeam.leader) === String(user?.id) && (
@@ -2282,8 +2283,8 @@ export default function ProjectsEnhanced() {
                           setUserSearchResults([])
                         }}
                         className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${inviteMode === 'followers'
-                          ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50'
-                          : 'bg-slate-900 text-slate-400 border border-slate-700 hover:border-slate-600'
+                          ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
+                          : 'bg-neutral-900 text-neutral-400 border border-neutral-700 hover:border-neutral-600'
                           }`}
                       >
                         <Users className="w-4 h-4 inline mr-2" />
@@ -2293,7 +2294,7 @@ export default function ProjectsEnhanced() {
                         onClick={() => setInviteMode('search')}
                         className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition ${inviteMode === 'search'
                           ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
-                          : 'bg-slate-900 text-slate-400 border border-slate-700 hover:border-slate-600'
+                          : 'bg-neutral-900 text-neutral-400 border border-neutral-700 hover:border-neutral-600'
                           }`}
                       >
                         <Search className="w-4 h-4 inline mr-2" />
@@ -2303,9 +2304,9 @@ export default function ProjectsEnhanced() {
 
                     {/* Followers List */}
                     {inviteMode === 'followers' && (
-                      <div className="bg-slate-900 rounded-lg border border-slate-700 max-h-48 overflow-y-auto">
+                      <div className="bg-neutral-900 rounded-lg border border-neutral-700 max-h-48 overflow-y-auto">
                         {followers.length === 0 ? (
-                          <div className="p-3 text-center text-sm text-slate-400">
+                          <div className="p-3 text-center text-sm text-neutral-400">
                             No followers yet
                           </div>
                         ) : (
@@ -2330,7 +2331,7 @@ export default function ProjectsEnhanced() {
                                       toast.error(error.response?.data?.error || 'Failed to invite')
                                     }
                                   }}
-                                  className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-slate-800 transition"
+                                  className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-neutral-800 transition"
                                 >
                                   {/* Profile Picture with error fallback */}
                                   <ProfileAvatar
@@ -2342,9 +2343,9 @@ export default function ProjectsEnhanced() {
                                   />
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium text-white truncate">{follower.username || 'Unknown'}</p>
-                                    <p className="text-xs text-slate-400 truncate">@{follower.username}</p>
+                                    <p className="text-xs text-neutral-400 truncate">@{follower.username}</p>
                                   </div>
-                                  <div className="flex items-center gap-1 text-cyan-400 text-xs">
+                                  <div className="flex items-center gap-1 text-purple-400 text-xs">
                                     <UserPlus className="w-4 h-4" />
                                     Invite
                                   </div>
@@ -2354,13 +2355,13 @@ export default function ProjectsEnhanced() {
                             {followers.filter(f => !teamMembers.find(m => String(m.user) === String(f.id))).length > followerDisplayLimit && (
                               <button
                                 onClick={() => setFollowerDisplayLimit(prev => prev + 5)}
-                                className="w-full py-2 text-center text-xs text-purple-400 hover:text-purple-300 hover:bg-slate-800 rounded-lg transition"
+                                className="w-full py-2 text-center text-xs text-purple-400 hover:text-purple-300 hover:bg-neutral-800 rounded-lg transition"
                               >
                                 Show More ({followers.filter(f => !teamMembers.find(m => String(m.user) === String(f.id))).length - followerDisplayLimit} remaining)
                               </button>
                             )}
                             {followers.filter(f => !teamMembers.find(m => String(m.user) === String(f.id))).length === 0 && (
-                              <div className="p-3 text-center text-sm text-slate-400">
+                              <div className="p-3 text-center text-sm text-neutral-400">
                                 All followers already invited
                               </div>
                             )}
@@ -2373,16 +2374,16 @@ export default function ProjectsEnhanced() {
                     {inviteMode === 'search' && (
                       <>
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <Search className="absolute left-3 top-1/2 -tranneutral-y-1/2 w-4 h-4 text-neutral-400" />
                           <input
                             type="text"
                             value={userSearchQuery}
                             onChange={(e) => searchUsers(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-purple-500"
+                            className="w-full pl-10 pr-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white text-sm placeholder:text-neutral-500 focus:outline-none focus:border-purple-500"
                             placeholder="Search by username or email..."
                           />
                           {searchingUsers && (
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <div className="absolute right-3 top-1/2 -tranneutral-y-1/2">
                               <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
                             </div>
                           )}
@@ -2390,9 +2391,9 @@ export default function ProjectsEnhanced() {
 
                         {/* Search Results */}
                         {userSearchQuery.length >= 2 && (
-                          <div className="mt-2 bg-slate-900 rounded-lg border border-slate-700 max-h-40 overflow-y-auto">
+                          <div className="mt-2 bg-neutral-900 rounded-lg border border-neutral-700 max-h-40 overflow-y-auto">
                             {userSearchResults.length === 0 ? (
-                              <div className="p-3 text-center text-sm text-slate-400">
+                              <div className="p-3 text-center text-sm text-neutral-400">
                                 {searchingUsers ? 'Searching...' : 'No users found'}
                               </div>
                             ) : (
@@ -2418,7 +2419,7 @@ export default function ProjectsEnhanced() {
                                           toast.error(error.response?.data?.error || 'Failed to invite')
                                         }
                                       }}
-                                      className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-slate-800 transition"
+                                      className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-neutral-800 transition"
                                     >
                                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                                         <span className="text-xs font-medium text-white">
@@ -2427,7 +2428,7 @@ export default function ProjectsEnhanced() {
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium text-white truncate">{searchUser.username || 'Unknown'}</p>
-                                        <p className="text-xs text-slate-400 truncate">{searchUser.email || ''}</p>
+                                        <p className="text-xs text-neutral-400 truncate">{searchUser.email || ''}</p>
                                       </div>
                                       <div className="flex items-center gap-1 text-purple-400 text-xs">
                                         <UserPlus className="w-4 h-4" />
@@ -2436,7 +2437,7 @@ export default function ProjectsEnhanced() {
                                     </div>
                                   ))}
                                 {userSearchResults.filter(u => !teamMembers.find(m => String(m.user) === String(u.id))).length === 0 && (
-                                  <div className="p-3 text-center text-sm text-slate-400">
+                                  <div className="p-3 text-center text-sm text-neutral-400">
                                     All found users already invited
                                   </div>
                                 )}
@@ -2445,7 +2446,7 @@ export default function ProjectsEnhanced() {
                           </div>
                         )}
                         {userSearchQuery.length < 2 && userSearchQuery.length > 0 && (
-                          <p className="text-xs text-slate-500 mt-2">Type at least 2 characters to search</p>
+                          <p className="text-xs text-neutral-500 mt-2">Type at least 2 characters to search</p>
                         )}
                       </>
                     )}
@@ -2457,7 +2458,7 @@ export default function ProjectsEnhanced() {
                   {teamMembers && teamMembers.length > 0 ? teamMembers.map((member, index) => (
                     <div
                       key={member?.id || `member-${index}`}
-                      className="flex items-center justify-between p-2 bg-slate-900/50 rounded-lg hover:bg-slate-800/50 transition group"
+                      className="flex items-center justify-between p-2 bg-neutral-900/50 rounded-lg hover:bg-neutral-800/50 transition group"
                     >
                       <div
                         className="flex items-center gap-3 cursor-pointer flex-1"
@@ -2471,12 +2472,12 @@ export default function ProjectsEnhanced() {
                             <img
                               src={member.avatar}
                               alt={member.user_name}
-                              className="w-10 h-10 rounded-full object-cover border-2 border-slate-600 group-hover:border-cyan-500 transition"
+                              className="w-10 h-10 rounded-full object-cover border-2 border-neutral-600 group-hover:border-purple-500 transition"
                             />
                           ) : (
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition ${member.is_leader
-                              ? 'bg-gradient-to-br from-yellow-500 to-orange-500 border-yellow-400'
-                              : 'bg-gradient-to-br from-slate-600 to-slate-700 border-slate-500 group-hover:border-cyan-500'
+                              ? 'bg-gradient-to-br from-amber-500 to-orange-500 border-amber-400'
+                              : 'bg-gradient-to-br from-neutral-600 to-neutral-700 border-neutral-500 group-hover:border-purple-500'
                               }`}>
                               <span className="text-sm font-bold text-white">
                                 {member.user_name?.charAt(0)?.toUpperCase() || '?'}
@@ -2484,29 +2485,29 @@ export default function ProjectsEnhanced() {
                             </div>
                           )}
                           {member.is_leader && (
-                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
+                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center">
                               <Crown className="w-2.5 h-2.5 text-white" />
                             </div>
                           )}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-white group-hover:text-cyan-400 transition">
+                          <p className="text-sm font-medium text-white group-hover:text-purple-400 transition">
                             {member.user_name}
                           </p>
-                          <p className="text-xs text-slate-400">{member.user_email || member.role}</p>
+                          <p className="text-xs text-neutral-400">{member.user_email || member.role}</p>
                         </div>
                       </div>
                       <span className={`text-xs px-2 py-0.5 rounded ${member.status === 'accepted'
                         ? 'bg-green-500/20 text-green-400'
                         : member.status === 'pending'
-                          ? 'bg-yellow-500/20 text-yellow-400'
-                          : 'bg-slate-500/20 text-slate-400'
+                          ? 'bg-amber-500/20 text-amber-400'
+                          : 'bg-neutral-500/20 text-neutral-400'
                         }`}>
                         {member.is_leader ? 'Leader' : member.status}
                       </span>
                     </div>
                   )) : (
-                    <div className="text-center py-4 text-slate-400 text-sm">
+                    <div className="text-center py-4 text-neutral-400 text-sm">
                       Loading members...
                     </div>
                   )}
@@ -2516,7 +2517,7 @@ export default function ProjectsEnhanced() {
               {/* Projects */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-medium text-slate-400">Team Projects</h4>
+                  <h4 className="text-sm font-medium text-neutral-400">Team Projects</h4>
                   {String(selectedTeam.leader) === String(user?.id) && (
                     <button
                       onClick={() => {
@@ -2531,9 +2532,9 @@ export default function ProjectsEnhanced() {
                   )}
                 </div>
                 {teamProjects.length === 0 ? (
-                  <div className="text-center py-6 bg-slate-900/30 rounded-lg">
-                    <FolderOpen className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-                    <p className="text-sm text-slate-400">No projects yet</p>
+                  <div className="text-center py-6 bg-neutral-900/30 rounded-lg">
+                    <FolderOpen className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
+                    <p className="text-sm text-neutral-400">No projects yet</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -2544,15 +2545,15 @@ export default function ProjectsEnhanced() {
                           closeTeamDetail()
                           navigate(`/projects/${project.slug}`)
                         }}
-                        className="flex items-center justify-between p-3 bg-slate-900/50 rounded-lg hover:bg-slate-900/70 cursor-pointer transition"
+                        className="flex items-center justify-between p-3 bg-neutral-900/50 rounded-lg hover:bg-neutral-900/70 cursor-pointer transition"
                       >
                         <div>
                           <p className="text-sm font-medium text-white">{project.name}</p>
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-neutral-400">
                             {project.task_count || 0} tasks • {project.status}
                           </p>
                         </div>
-                        <ChevronRight className="w-4 h-4 text-slate-500" />
+                        <ChevronRight className="w-4 h-4 text-neutral-500" />
                       </div>
                     ))}
                   </div>
@@ -2561,10 +2562,10 @@ export default function ProjectsEnhanced() {
             </div>
 
             {/* Footer Actions */}
-            <div className="p-4 border-t border-slate-700 flex gap-3">
+            <div className="p-4 border-t border-neutral-700 flex gap-3">
               <button
                 onClick={closeTeamDetail}
-                className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition"
+                className="flex-1 px-4 py-2 bg-neutral-700 text-neutral-300 rounded-lg hover:bg-neutral-600 transition"
               >
                 Close
               </button>
@@ -2575,7 +2576,7 @@ export default function ProjectsEnhanced() {
                       setEditingTeam(selectedTeam)
                       setShowEditTeamModal(true)
                     }}
-                    className="px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition flex items-center gap-2"
+                    className="px-4 py-2 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition flex items-center gap-2"
                   >
                     <Edit className="w-4 h-4" />
                     Edit
@@ -2597,36 +2598,36 @@ export default function ProjectsEnhanced() {
       {/* Edit Team Modal */}
       {showEditTeamModal && editingTeam && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-lg border border-slate-700 shadow-2xl">
-            <div className="flex items-center justify-between p-4 border-b border-slate-700">
+          <div className="bg-neutral-800 rounded-xl w-full max-w-lg border border-neutral-700 shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-neutral-700">
               <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-                <Edit className="w-5 h-5 text-cyan-400" />
+                <Edit className="w-5 h-5 text-purple-400" />
                 Edit Team
               </h3>
               <button
                 onClick={() => { setShowEditTeamModal(false); setEditingTeam(null); }}
-                className="p-1 text-slate-400 hover:text-white transition"
+                className="p-1 text-neutral-400 hover:text-white transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleEditTeam} className="p-4 space-y-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Team Name *</label>
+                <label className="block text-sm text-neutral-400 mb-1">Team Name *</label>
                 <input
                   type="text"
                   value={editingTeam.name}
                   onChange={(e) => setEditingTeam({ ...editingTeam, name: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Description</label>
+                <label className="block text-sm text-neutral-400 mb-1">Description</label>
                 <textarea
                   value={editingTeam.description}
                   onChange={(e) => setEditingTeam({ ...editingTeam, description: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500 resize-none"
+                  className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500 resize-none"
                   rows={3}
                 />
               </div>
@@ -2634,13 +2635,13 @@ export default function ProjectsEnhanced() {
                 <button
                   type="button"
                   onClick={() => { setShowEditTeamModal(false); setEditingTeam(null); }}
-                  className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition"
+                  className="flex-1 px-4 py-2 bg-neutral-700 text-neutral-300 rounded-lg hover:bg-neutral-600 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-lg hover:from-cyan-600 hover:to-purple-600 transition"
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-500 text-white rounded-lg hover:from-purple-600 hover:to-purple-600 transition"
                 >
                   Save Changes
                 </button>
@@ -2653,46 +2654,46 @@ export default function ProjectsEnhanced() {
       {/* Edit Project Modal */}
       {showEditProjectModal && editingProject && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-lg border border-slate-700 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-slate-700">
+          <div className="bg-neutral-800 rounded-xl w-full max-w-lg border border-neutral-700 shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-neutral-700">
               <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-                <Edit className="w-5 h-5 text-cyan-400" />
+                <Edit className="w-5 h-5 text-purple-400" />
                 Edit Project
               </h3>
               <button
                 onClick={() => { setShowEditProjectModal(false); setEditingProject(null); }}
-                className="p-1 text-slate-400 hover:text-white transition"
+                className="p-1 text-neutral-400 hover:text-white transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleEditProject} className="p-4 space-y-4 overflow-y-auto flex-1">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Project Name *</label>
+                <label className="block text-sm text-neutral-400 mb-1">Project Name *</label>
                 <input
                   type="text"
                   value={editingProject.name}
                   onChange={(e) => setEditingProject({ ...editingProject, name: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Description</label>
+                <label className="block text-sm text-neutral-400 mb-1">Description</label>
                 <textarea
                   value={editingProject.description}
                   onChange={(e) => setEditingProject({ ...editingProject, description: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500 resize-none"
+                  className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500 resize-none"
                   rows={3}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Status</label>
+                  <label className="block text-sm text-neutral-400 mb-1">Status</label>
                   <select
                     value={editingProject.status}
                     onChange={(e) => setEditingProject({ ...editingProject, status: e.target.value })}
-                    className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                   >
                     <option value="planning">Planning</option>
                     <option value="in_progress">In Progress</option>
@@ -2702,11 +2703,11 @@ export default function ProjectsEnhanced() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Visibility</label>
+                  <label className="block text-sm text-neutral-400 mb-1">Visibility</label>
                   <select
                     value={editingProject.visibility}
                     onChange={(e) => setEditingProject({ ...editingProject, visibility: e.target.value })}
-                    className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                   >
                     <option value="private">Private</option>
                     <option value="team">Team Only</option>
@@ -2715,12 +2716,12 @@ export default function ProjectsEnhanced() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">GitHub Repository URL</label>
+                <label className="block text-sm text-neutral-400 mb-1">GitHub Repository URL</label>
                 <input
                   type="url"
                   value={editingProject.github_repo || ''}
                   onChange={(e) => setEditingProject({ ...editingProject, github_repo: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                   placeholder="https://github.com/..."
                 />
               </div>
@@ -2728,13 +2729,13 @@ export default function ProjectsEnhanced() {
                 <button
                   type="button"
                   onClick={() => { setShowEditProjectModal(false); setEditingProject(null); }}
-                  className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition"
+                  className="flex-1 px-4 py-2 bg-neutral-700 text-neutral-300 rounded-lg hover:bg-neutral-600 transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-lg hover:from-cyan-600 hover:to-purple-600 transition"
+                  className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-500 text-white rounded-lg hover:from-purple-600 hover:to-purple-600 transition"
                 >
                   Save Changes
                 </button>
@@ -2747,52 +2748,52 @@ export default function ProjectsEnhanced() {
       {/* Create Task Modal */}
       {showCreateTaskModal && selectedProject && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start sm:items-center justify-center z-50 p-4 pt-8 sm:pt-4 overflow-y-auto">
-          <div className="bg-slate-800 rounded-xl w-full max-w-lg border border-slate-700 shadow-2xl my-auto max-h-[calc(100vh-6rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-slate-700 shrink-0">
+          <div className="bg-neutral-800 rounded-xl w-full max-w-lg border border-neutral-700 shadow-2xl my-auto max-h-[calc(100vh-6rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-neutral-700 shrink-0">
               <div>
                 <h3 className="text-lg sm:text-xl font-semibold text-white flex items-center gap-2">
-                  <ListTodo className="w-5 h-5 text-cyan-400" />
+                  <ListTodo className="w-5 h-5 text-purple-400" />
                   Add Task
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-400">Project: {selectedProject.name}</p>
+                <p className="text-xs sm:text-sm text-neutral-400">Project: {selectedProject.name}</p>
               </div>
               <button
                 onClick={closeCreateTaskModal}
-                className="p-1 text-slate-400 hover:text-white transition"
+                className="p-1 text-neutral-400 hover:text-white transition"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <form onSubmit={handleCreateTask} className="p-4 space-y-4 overflow-y-auto flex-1 pb-8">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Task Title *</label>
+                <label className="block text-sm text-neutral-400 mb-1">Task Title *</label>
                 <input
                   type="text"
                   value={newTask.title}
                   onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white placeholder:text-neutral-500 focus:outline-none focus:border-purple-500"
                   placeholder="Enter task title"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Description</label>
+                <label className="block text-sm text-neutral-400 mb-1">Description</label>
                 <textarea
                   value={newTask.description}
                   onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 resize-none"
+                  className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white placeholder:text-neutral-500 focus:outline-none focus:border-purple-500 resize-none"
                   rows={2}
                   placeholder="Task description (optional)"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Assign To *</label>
+                <label className="block text-sm text-neutral-400 mb-1">Assign To *</label>
                 <select
                   value={newTask.assigned_to}
                   onChange={(e) => setNewTask({ ...newTask, assigned_to: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                   required
                 >
                   <option value="">Select team member</option>
@@ -2803,11 +2804,11 @@ export default function ProjectsEnhanced() {
               </div>
 
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Priority</label>
+                <label className="block text-sm text-neutral-400 mb-1">Priority</label>
                 <select
                   value={newTask.priority}
                   onChange={(e) => setNewTask({ ...newTask, priority: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -2818,26 +2819,26 @@ export default function ProjectsEnhanced() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Start Date</label>
+                  <label className="block text-sm text-neutral-400 mb-1">Start Date</label>
                   <input
                     type="date"
                     value={newTask.start_date}
                     onChange={(e) => setNewTask({ ...newTask, start_date: e.target.value })}
-                    className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Due Date</label>
+                  <label className="block text-sm text-neutral-400 mb-1">Due Date</label>
                   <input
                     type="date"
                     value={newTask.due_date}
                     onChange={(e) => setNewTask({ ...newTask, due_date: e.target.value })}
-                    className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                   />
                 </div>
               </div>
 
-              <div className="bg-slate-900/50 rounded-lg p-3 text-sm text-slate-400">
+              <div className="bg-neutral-900/50 rounded-lg p-3 text-sm text-neutral-400">
                 <p className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-green-400" />
                   Task will be added to "To Do" column
@@ -2849,7 +2850,7 @@ export default function ProjectsEnhanced() {
                   type="button"
                   disabled={isCreatingTask}
                   onClick={closeCreateTaskModal}
-                  className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 bg-neutral-700 text-neutral-300 rounded-lg hover:bg-neutral-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Cancel
                 </button>
@@ -2858,8 +2859,8 @@ export default function ProjectsEnhanced() {
                   disabled={isCreatingTask}
                   className={`flex-1 px-4 py-2 text-white rounded-lg transition flex items-center justify-center gap-2 ${
                     isCreatingTask
-                      ? 'bg-gradient-to-r from-cyan-500/50 to-purple-500/50 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600'
+                      ? 'bg-gradient-to-r from-purple-500/50 to-purple-500/50 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-purple-500 to-purple-500 hover:from-purple-600 hover:to-purple-600'
                   }`}
                 >
                   {isCreatingTask ? (
@@ -2918,7 +2919,7 @@ function ProjectCard({
   }
 
   return (
-    <div className="bg-slate-800/50 backdrop-blur rounded-xl p-5 border border-slate-700 hover:border-cyan-500/50 transition-all group">
+    <div className="bg-neutral-800/50 backdrop-blur rounded-xl p-5 border border-neutral-700 hover:border-purple-500/50 transition-all group">
       <div
         onClick={onView}
         className="cursor-pointer"
@@ -2927,25 +2928,25 @@ function ProjectCard({
           <div className="flex items-center gap-3">
             <span className="text-2xl">{getTypeIcon(project.project_type)}</span>
             <div>
-              <h3 className="text-lg font-semibold text-white group-hover:text-cyan-400 transition">
+              <h3 className="text-lg font-semibold text-white group-hover:text-purple-400 transition">
                 {project.name}
               </h3>
               <div className="flex items-center gap-2 mt-1">
                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(project.status)}`}>
                   {project.status.replace('_', ' ')}
                 </span>
-                <span className="text-xs text-slate-500">by {project.owner_name}</span>
+                <span className="text-xs text-neutral-500">by {project.owner_name}</span>
               </div>
             </div>
           </div>
-          <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-cyan-400 transition" />
+          <ChevronRight className="w-5 h-5 text-neutral-500 group-hover:text-purple-400 transition" />
         </div>
 
-        <p className="text-sm text-slate-400 line-clamp-2 mb-4">{project.description || 'No description'}</p>
+        <p className="text-sm text-neutral-400 line-clamp-2 mb-4">{project.description || 'No description'}</p>
       </div>
 
       <div className="flex items-center justify-between text-sm">
-        <div className="flex items-center gap-4 text-slate-400">
+        <div className="flex items-center gap-4 text-neutral-400">
           <span className="flex items-center gap-1">
             {getLanguageEmoji(project.programming_language)} {project.programming_language}
           </span>
@@ -2957,22 +2958,22 @@ function ProjectCard({
           </span>
         </div>
         {project.github_repo && (
-          <GitBranch className="w-4 h-4 text-slate-500" />
+          <GitBranch className="w-4 h-4 text-neutral-500" />
         )}
       </div>
 
       {/* Action buttons for leaders */}
       {isLeader && (
-        <div className="flex gap-2 mt-4 pt-3 border-t border-slate-700/50">
+        <div className="flex gap-2 mt-4 pt-3 border-t border-neutral-700/50">
           <button
             onClick={(e) => { e.stopPropagation(); onAddTask?.(); }}
-            className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition text-xs font-medium"
+            className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition text-xs font-medium"
           >
             <Plus className="w-3 h-3" /> Add Task
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onEdit?.(); }}
-            className="px-3 py-1.5 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition text-xs"
+            className="px-3 py-1.5 bg-neutral-700 text-neutral-300 rounded-lg hover:bg-neutral-600 transition text-xs"
           >
             <Edit className="w-3 h-3" />
           </button>
