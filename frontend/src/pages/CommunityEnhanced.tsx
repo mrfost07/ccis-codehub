@@ -1140,8 +1140,8 @@ function GroupDetailView({
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 py-6">
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+          <div className="space-y-4">
+            {[0, 1, 2].map(i => <SkeletonListRow key={i} />)}
           </div>
         ) : (
           <>
@@ -2927,8 +2927,8 @@ export default function CommunityEnhanced() {
             {/* Search Results */}
             <div className="overflow-y-auto max-h-96 p-4">
               {searchLoading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                <div className="space-y-2">
+                  {[0, 1, 2].map(i => <SkeletonListRow key={i} />)}
                 </div>
               ) : searchResults.length > 0 ? (
                 <div className="space-y-2">

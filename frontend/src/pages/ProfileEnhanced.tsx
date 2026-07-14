@@ -12,6 +12,7 @@ import toast from 'react-hot-toast'
 // picks an animated profile background.
 const Hyperspeed = lazy(() => import('../components/backgrounds/Hyperspeed'))
 import { getMediaUrl } from '../utils/mediaUrl'
+import { LoadingState } from '../components/ui'
 
 type BackgroundType = 'hyperspeed' | 'akira' | 'golden' | 'split' | 'highway' | 'gradient' | 'aurora' | 'cyber'
 
@@ -483,17 +484,15 @@ export default function ProfileEnhanced() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950">
+      <div className="min-h-screen bg-neutral-950">
         <Navbar />
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-        </div>
+        <LoadingState label="Loading profile…" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-neutral-950">
       <Navbar />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
@@ -510,13 +509,13 @@ export default function ProfileEnhanced() {
               {selectedBackground === 'highway' && <Hyperspeed className="rounded-2xl" effectOptions={highwayPreset} />}
             </Suspense>
             {selectedBackground === 'gradient' && (
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 rounded-2xl" />
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-purple-600 to-purple-600 rounded-2xl" />
             )}
             {selectedBackground === 'aurora' && (
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 via-cyan-500 to-blue-600 rounded-2xl animate-pulse" />
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500 via-purple-500 to-purple-600 rounded-2xl animate-pulse" />
             )}
             {selectedBackground === 'cyber' && (
-              <div className="absolute inset-0 bg-gradient-to-r from-pink-500 via-purple-600 to-cyan-500 rounded-2xl"
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-purple-600 to-purple-500 rounded-2xl"
                 style={{ backgroundSize: '200% 200%', animation: 'gradient-shift 3s ease infinite' }} />
             )}
 
@@ -531,17 +530,17 @@ export default function ProfileEnhanced() {
 
             {/* Background Picker Dropdown */}
             {showBackgroundPicker && (
-              <div className="absolute top-12 right-3 sm:right-3 left-3 sm:left-auto bg-slate-800/95 backdrop-blur-lg rounded-lg border border-slate-700 p-2 z-20 shadow-xl max-h-64 overflow-y-auto">
-                <div className="text-xs text-slate-400 mb-2 px-2">Select Background</div>
+              <div className="absolute top-12 right-3 sm:right-3 left-3 sm:left-auto bg-neutral-800/95 backdrop-blur-lg rounded-lg border border-neutral-700 p-2 z-20 shadow-xl max-h-64 overflow-y-auto">
+                <div className="text-xs text-neutral-400 mb-2 px-2">Select Background</div>
                 {[
-                  { id: 'hyperspeed' as BackgroundType, name: 'Hyperspeed', icon: <Sparkles className="w-4 h-4" />, color: 'from-purple-500 to-blue-500' },
+                  { id: 'hyperspeed' as BackgroundType, name: 'Hyperspeed', icon: <Sparkles className="w-4 h-4" />, color: 'from-purple-500 to-purple-500' },
                   { id: 'akira' as BackgroundType, name: 'Akira', icon: '🏍️', color: 'from-red-600 to-red-400' },
-                  { id: 'golden' as BackgroundType, name: 'Golden', icon: '✨', color: 'from-amber-500 to-orange-500' },
-                  { id: 'split' as BackgroundType, name: 'Split', icon: '🛤️', color: 'from-pink-500 to-teal-400' },
-                  { id: 'highway' as BackgroundType, name: 'Highway', icon: '🛣️', color: 'from-red-500 to-yellow-200' },
-                  { id: 'gradient' as BackgroundType, name: 'Classic', icon: '🎨', color: 'from-purple-600 to-pink-600' },
-                  { id: 'aurora' as BackgroundType, name: 'Aurora', icon: '🌌', color: 'from-emerald-500 to-cyan-500' },
-                  { id: 'cyber' as BackgroundType, name: 'Cyber', icon: '⚡', color: 'from-pink-500 to-cyan-500' },
+                  { id: 'golden' as BackgroundType, name: 'Golden', icon: '✨', color: 'from-amber-500 to-amber-500' },
+                  { id: 'split' as BackgroundType, name: 'Split', icon: '🛤️', color: 'from-purple-500 to-purple-400' },
+                  { id: 'highway' as BackgroundType, name: 'Highway', icon: '🛣️', color: 'from-red-500 to-amber-200' },
+                  { id: 'gradient' as BackgroundType, name: 'Classic', icon: '🎨', color: 'from-purple-600 to-purple-600' },
+                  { id: 'aurora' as BackgroundType, name: 'Aurora', icon: '🌌', color: 'from-green-500 to-purple-500' },
+                  { id: 'cyber' as BackgroundType, name: 'Cyber', icon: '⚡', color: 'from-purple-500 to-purple-500' },
                 ].map((bg) => (
                   <button
                     key={bg.id}
@@ -552,7 +551,7 @@ export default function ProfileEnhanced() {
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${selectedBackground === bg.id
                       ? 'bg-purple-600/30 text-white'
-                      : 'hover:bg-slate-700/50 text-slate-300'
+                      : 'hover:bg-neutral-700/50 text-neutral-300'
                       }`}
                   >
                     <div className={`w-6 h-6 rounded bg-gradient-to-r ${bg.color} flex items-center justify-center text-xs`}>
@@ -570,11 +569,11 @@ export default function ProfileEnhanced() {
 
           {/* Profile Info Card */}
           <div className="relative -mt-12 sm:-mt-16 mx-4 sm:mx-8">
-            <div className="bg-slate-900/50 backdrop-blur-md border border-slate-700/50 rounded-2xl p-4 sm:p-6">
+            <div className="bg-neutral-900/50 backdrop-blur-md border border-neutral-700/50 rounded-2xl p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6">
                 {/* Avatar */}
                 <div className="relative -mt-16 sm:-mt-20">
-                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-slate-900 overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-neutral-900 overflow-hidden bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center">
                     {getProfilePictureUrl() ? (
                       <img
                         src={getProfilePictureUrl()!}
@@ -606,7 +605,7 @@ export default function ProfileEnhanced() {
                     {profile?.first_name} {profile?.last_name}
                   </h1>
                   <p className="text-purple-400">@{profile?.username}</p>
-                  <div className="flex flex-wrap justify-center sm:justify-start gap-3 mt-2 text-sm text-slate-400">
+                  <div className="flex flex-wrap justify-center sm:justify-start gap-3 mt-2 text-sm text-neutral-400">
                     <span className="flex items-center gap-1">
                       <Shield className="w-4 h-4" />
                       {profile?.role}
@@ -636,7 +635,7 @@ export default function ProfileEnhanced() {
                       </button>
                       <button
                         onClick={() => setEditing(false)}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+                        className="flex items-center gap-2 px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition"
                       >
                         <X className="w-4 h-4" />
                         Cancel
@@ -655,36 +654,36 @@ export default function ProfileEnhanced() {
               </div>
 
               {/* Stats Row */}
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 mt-6 pt-6 border-t border-slate-800">
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 mt-6 pt-6 border-t border-neutral-800">
                 <button
                   onClick={() => setShowFollowersModal(true)}
-                  className="text-center hover:bg-slate-800/50 rounded-lg py-2 transition"
+                  className="text-center hover:bg-neutral-800/50 rounded-lg py-2 transition"
                 >
                   <p className="text-2xl font-bold text-white">{followers.length}</p>
-                  <p className="text-sm text-slate-400">Followers</p>
+                  <p className="text-sm text-neutral-400">Followers</p>
                 </button>
                 <button
                   onClick={() => setShowFollowingModal(true)}
-                  className="text-center hover:bg-slate-800/50 rounded-lg py-2 transition"
+                  className="text-center hover:bg-neutral-800/50 rounded-lg py-2 transition"
                 >
                   <p className="text-2xl font-bold text-white">{following.length}</p>
-                  <p className="text-sm text-slate-400">Following</p>
+                  <p className="text-sm text-neutral-400">Following</p>
                 </button>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-white">{profile?.profile?.total_courses_completed || 0}</p>
-                  <p className="text-sm text-slate-400">Courses</p>
+                  <p className="text-sm text-neutral-400">Courses</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-white">{profile?.profile?.total_projects || 0}</p>
-                  <p className="text-sm text-slate-400">Projects</p>
+                  <p className="text-sm text-neutral-400">Projects</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-white">{profile?.profile?.contribution_points || 0}</p>
-                  <p className="text-sm text-slate-400">Points</p>
+                  <p className="text-sm text-neutral-400">Points</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-bold text-white">{profile?.profile?.certificates_earned || 0}</p>
-                  <p className="text-sm text-slate-400">Certificates</p>
+                  <p className="text-sm text-neutral-400">Certificates</p>
                 </div>
               </div>
             </div>
@@ -712,7 +711,7 @@ export default function ProfileEnhanced() {
               className={`px-4 py-2 rounded-lg font-medium capitalize whitespace-nowrap transition ${
                 activeTab === tab.id
                   ? 'bg-purple-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                  : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
               }`}
             >
               {tab.label}
@@ -727,7 +726,7 @@ export default function ProfileEnhanced() {
             {activeTab === 'overview' && (
               <>
                 {/* About */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
                   <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                     <User className="w-5 h-5 text-purple-400" />
                     About
@@ -738,62 +737,62 @@ export default function ProfileEnhanced() {
                       onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                       placeholder="Tell us about yourself..."
                       rows={4}
-                      className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                   ) : (
-                    <p className="text-slate-300">
+                    <p className="text-neutral-300">
                       {profile?.bio || 'No bio yet. Click Edit Profile to add one!'}
                     </p>
                   )}
                 </div>
 
                 {/* Personal Info */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
                   <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                     <Settings className="w-5 h-5 text-purple-400" />
                     Personal Information
                   </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm text-slate-400 mb-1">First Name</label>
+                      <label className="block text-sm text-neutral-400 mb-1">First Name</label>
                       {editing ? (
                         <input
                           type="text"
                           value={formData.first_name}
                           onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                         />
                       ) : (
                         <p className="text-white font-medium">{profile?.first_name || '-'}</p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm text-slate-400 mb-1">Last Name</label>
+                      <label className="block text-sm text-neutral-400 mb-1">Last Name</label>
                       {editing ? (
                         <input
                           type="text"
                           value={formData.last_name}
                           onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                         />
                       ) : (
                         <p className="text-white font-medium">{profile?.last_name || '-'}</p>
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm text-slate-400 mb-1">Email</label>
+                      <label className="block text-sm text-neutral-400 mb-1">Email</label>
                       <p className="text-white font-medium flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-slate-500" />
+                        <Mail className="w-4 h-4 text-neutral-500" />
                         {profile?.email}
                       </p>
                     </div>
                     <div>
-                      <label className="block text-sm text-slate-400 mb-1">Program</label>
+                      <label className="block text-sm text-neutral-400 mb-1">Program</label>
                       {editing ? (
                         <select
                           value={formData.program}
                           onChange={(e) => setFormData({ ...formData, program: e.target.value })}
-                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                         >
                           <option value="">Select Program</option>
                           <option value="BSCS">BS Computer Science</option>
@@ -805,12 +804,12 @@ export default function ProfileEnhanced() {
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm text-slate-400 mb-1">Year Level</label>
+                      <label className="block text-sm text-neutral-400 mb-1">Year Level</label>
                       {editing ? (
                         <select
                           value={formData.year_level}
                           onChange={(e) => setFormData({ ...formData, year_level: e.target.value })}
-                          className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                         >
                           <option value="">Select Year</option>
                           <option value="1">1st Year</option>
@@ -823,9 +822,9 @@ export default function ProfileEnhanced() {
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm text-slate-400 mb-1">Member Since</label>
+                      <label className="block text-sm text-neutral-400 mb-1">Member Since</label>
                       <p className="text-white font-medium flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-slate-500" />
+                        <Calendar className="w-4 h-4 text-neutral-500" />
                         {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : '-'}
                       </p>
                     </div>
@@ -835,7 +834,7 @@ export default function ProfileEnhanced() {
             )}
 
             {activeTab === 'skills' && (
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+              <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
                 <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                   <Code className="w-5 h-5 text-purple-400" />
                   Skills & Technologies
@@ -849,7 +848,7 @@ export default function ProfileEnhanced() {
                       onChange={(e) => setNewSkill(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && addSkill()}
                       placeholder="Add a skill..."
-                      className="flex-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="flex-1 px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     />
                     <button
                       onClick={addSkill}
@@ -864,7 +863,7 @@ export default function ProfileEnhanced() {
                   {(editing ? formData.skills : profile?.skills || []).map((skill, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1.5 bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/30 text-purple-300 rounded-full text-sm flex items-center gap-2"
+                      className="px-3 py-1.5 bg-gradient-to-r from-purple-600/20 to-purple-600/20 border border-purple-500/30 text-purple-300 rounded-full text-sm flex items-center gap-2"
                     >
                       {skill}
                       {editing && (
@@ -878,38 +877,38 @@ export default function ProfileEnhanced() {
                     </span>
                   ))}
                   {(editing ? formData.skills : profile?.skills || []).length === 0 && (
-                    <p className="text-slate-500">No skills added yet</p>
+                    <p className="text-neutral-500">No skills added yet</p>
                   )}
                 </div>
               </div>
             )}
 
             {activeTab === 'activity' && (
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+              <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
                 <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-purple-400" />
                   Recent Activity
                 </h2>
                 <div className="space-y-4">
-                  <div className="flex items-center gap-4 p-4 bg-slate-800/50 rounded-lg">
+                  <div className="flex items-center gap-4 p-4 bg-neutral-800/50 rounded-lg">
                     <div className="p-2 bg-green-600/20 rounded-lg">
                       <CheckCircle className="w-5 h-5 text-green-400" />
                     </div>
                     <div>
                       <p className="text-white font-medium">Completed a module</p>
-                      <p className="text-sm text-slate-400">Introduction to Programming</p>
+                      <p className="text-sm text-neutral-400">Introduction to Programming</p>
                     </div>
-                    <span className="ml-auto text-sm text-slate-500">2 hours ago</span>
+                    <span className="ml-auto text-sm text-neutral-500">2 hours ago</span>
                   </div>
-                  <div className="flex items-center gap-4 p-4 bg-slate-800/50 rounded-lg">
+                  <div className="flex items-center gap-4 p-4 bg-neutral-800/50 rounded-lg">
                     <div className="p-2 bg-purple-600/20 rounded-lg">
                       <Trophy className="w-5 h-5 text-purple-400" />
                     </div>
                     <div>
                       <p className="text-white font-medium">Earned 50 points</p>
-                      <p className="text-sm text-slate-400">Quiz completion bonus</p>
+                      <p className="text-sm text-neutral-400">Quiz completion bonus</p>
                     </div>
-                    <span className="ml-auto text-sm text-slate-500">Yesterday</span>
+                    <span className="ml-auto text-sm text-neutral-500">Yesterday</span>
                   </div>
                 </div>
               </div>
@@ -920,29 +919,29 @@ export default function ProfileEnhanced() {
               <div className="space-y-6">
                 {/* Stats row */}
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-                    <Zap className="w-6 h-6 text-yellow-400 mx-auto mb-1" />
+                  <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 text-center">
+                    <Zap className="w-6 h-6 text-amber-400 mx-auto mb-1" />
                     <p className="text-2xl font-bold text-white">{achievedSkills?.total ?? 0}</p>
-                    <p className="text-xs text-slate-400">Skills Earned</p>
+                    <p className="text-xs text-neutral-400">Skills Earned</p>
                   </div>
-                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+                  <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 text-center">
                     <Trophy className="w-6 h-6 text-purple-400 mx-auto mb-1" />
                     <p className="text-2xl font-bold text-white">{profile?.profile?.certificates_earned ?? 0}</p>
-                    <p className="text-xs text-slate-400">Certificates</p>
+                    <p className="text-xs text-neutral-400">Certificates</p>
                   </div>
-                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
-                    <Target className="w-6 h-6 text-emerald-400 mx-auto mb-1" />
+                  <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 text-center">
+                    <Target className="w-6 h-6 text-green-400 mx-auto mb-1" />
                     <p className="text-2xl font-bold text-white">{profile?.profile?.total_modules_completed ?? 0}</p>
-                    <p className="text-xs text-slate-400">Modules Done</p>
+                    <p className="text-xs text-neutral-400">Modules Done</p>
                   </div>
                 </div>
 
                 {/* Skills by category */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
                   <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                     <Award className="w-5 h-5 text-purple-400" />
                     Verified Skills
-                    <span className="ml-auto text-xs text-slate-500 font-normal">Earned through learning</span>
+                    <span className="ml-auto text-xs text-neutral-500 font-normal">Earned through learning</span>
                   </h2>
 
                   {skillsLoading ? (
@@ -953,7 +952,7 @@ export default function ProfileEnhanced() {
                     <div className="space-y-5">
                       {Object.entries(achievedSkills.by_category).map(([category, skills]) => (
                         <div key={category}>
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                          <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">
                             {category}
                           </p>
                           <div className="flex flex-wrap gap-2">
@@ -967,10 +966,10 @@ export default function ProfileEnhanced() {
                                 <span className="text-sm text-purple-300">{skill.skill_name}</span>
                                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
                                   skill.proficiency_level === 'advanced'
-                                    ? 'bg-yellow-500/20 text-yellow-400'
+                                    ? 'bg-amber-500/20 text-amber-400'
                                     : skill.proficiency_level === 'intermediate'
-                                    ? 'bg-blue-500/20 text-blue-400'
-                                    : 'bg-emerald-500/20 text-emerald-400'
+                                    ? 'bg-purple-500/20 text-purple-400'
+                                    : 'bg-green-500/20 text-green-400'
                                 }`}>
                                   {skill.proficiency_level}
                                 </span>
@@ -982,9 +981,9 @@ export default function ProfileEnhanced() {
                     </div>
                   ) : (
                     <div className="text-center py-10">
-                      <Star className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                      <p className="text-slate-400 text-sm">No verified skills yet</p>
-                      <p className="text-slate-600 text-xs mt-1">Complete modules to earn skills automatically</p>
+                      <Star className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
+                      <p className="text-neutral-400 text-sm">No verified skills yet</p>
+                      <p className="text-neutral-600 text-xs mt-1">Complete modules to earn skills automatically</p>
                       <a href="/learning" className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition">
                         <BookOpen className="w-4 h-4" /> Go to Learning
                       </a>
@@ -993,12 +992,12 @@ export default function ProfileEnhanced() {
                 </div>
 
                 {/* Badge Showcase */}
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
                   <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-yellow-400" />
+                    <Trophy className="w-5 h-5 text-amber-400" />
                     Badge Showcase
                     {badgeCatalog && (
-                      <span className="ml-auto text-xs text-slate-500 font-normal">
+                      <span className="ml-auto text-xs text-neutral-500 font-normal">
                         {badgeCatalog.filter(b => b.earned).length}/{badgeCatalog.length} earned
                       </span>
                     )}
@@ -1006,7 +1005,7 @@ export default function ProfileEnhanced() {
 
                   {badgesLoading ? (
                     <div className="flex justify-center py-6">
-                      <div className="w-8 h-8 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+                      <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
                     </div>
                   ) : badgeCatalog && badgeCatalog.length > 0 ? (
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
@@ -1017,24 +1016,24 @@ export default function ProfileEnhanced() {
                           className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition ${
                             badge.earned
                               ? badge.rarity === 'legendary'
-                                ? 'bg-yellow-500/10 border-yellow-500/40 shadow-lg shadow-yellow-500/10'
+                                ? 'bg-amber-500/10 border-amber-500/40 shadow-lg shadow-amber-500/10'
                                 : badge.rarity === 'epic'
                                 ? 'bg-purple-500/10 border-purple-500/40'
                                 : badge.rarity === 'rare'
-                                ? 'bg-blue-500/10 border-blue-500/40'
-                                : 'bg-emerald-500/10 border-emerald-500/30'
-                              : 'bg-slate-800/40 border-slate-700/30 opacity-40 grayscale'
+                                ? 'bg-purple-500/10 border-purple-500/40'
+                                : 'bg-green-500/10 border-green-500/30'
+                              : 'bg-neutral-800/40 border-neutral-700/30 opacity-40 grayscale'
                           }`}
                         >
                           <span className="text-2xl">{badge.icon}</span>
                           <p className={`text-[10px] font-semibold leading-tight ${
-                            badge.earned ? 'text-white' : 'text-slate-500'
+                            badge.earned ? 'text-white' : 'text-neutral-500'
                           }`}>{badge.name}</p>
                           <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
-                            badge.rarity === 'legendary' ? 'bg-yellow-500/20 text-yellow-400' :
+                            badge.rarity === 'legendary' ? 'bg-amber-500/20 text-amber-400' :
                             badge.rarity === 'epic' ? 'bg-purple-500/20 text-purple-400' :
-                            badge.rarity === 'rare' ? 'bg-blue-500/20 text-blue-400' :
-                            'bg-slate-700 text-slate-400'
+                            badge.rarity === 'rare' ? 'bg-purple-500/20 text-purple-400' :
+                            'bg-neutral-700 text-neutral-400'
                           }`}>
                             {badge.rarity}
                           </span>
@@ -1042,14 +1041,14 @@ export default function ProfileEnhanced() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-slate-500 text-sm text-center py-4">No badges available yet</p>
+                    <p className="text-neutral-500 text-sm text-center py-4">No badges available yet</p>
                   )}
                 </div>
 
                 {/* Link to full certificates page */}
                 <a
                   href="/certificates"
-                  className="flex items-center justify-between p-4 bg-slate-900 border border-slate-800 hover:border-purple-500/40 rounded-xl transition group"
+                  className="flex items-center justify-between p-4 bg-neutral-900 border border-neutral-800 hover:border-purple-500/40 rounded-xl transition group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-purple-600/20 rounded-lg">
@@ -1057,16 +1056,16 @@ export default function ProfileEnhanced() {
                     </div>
                     <div>
                       <p className="font-medium text-white">View All Certificates</p>
-                      <p className="text-xs text-slate-400">{profile?.profile?.certificates_earned ?? 0} certificates earned</p>
+                      <p className="text-xs text-neutral-400">{profile?.profile?.certificates_earned ?? 0} certificates earned</p>
                     </div>
                   </div>
-                  <Code className="w-5 h-5 text-slate-600 group-hover:text-purple-400 transition" />
+                  <Code className="w-5 h-5 text-neutral-600 group-hover:text-purple-400 transition" />
                 </a>
 
                 {/* Resume Builder shortcut */}
                 <a
                   href="/resume"
-                  className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/30 hover:border-purple-500/60 rounded-xl transition group"
+                  className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-900/30 to-purple-900/30 border border-purple-500/30 hover:border-purple-500/60 rounded-xl transition group"
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-purple-600/30 rounded-lg">
@@ -1074,23 +1073,23 @@ export default function ProfileEnhanced() {
                     </div>
                     <div>
                       <p className="font-medium text-white">Build My Resume</p>
-                      <p className="text-xs text-slate-400">Auto-fill from your profile, skills & certificates</p>
+                      <p className="text-xs text-neutral-400">Auto-fill from your profile, skills & certificates</p>
                     </div>
                   </div>
-                  <Zap className="w-5 h-5 text-purple-400 group-hover:text-yellow-400 transition" />
+                  <Zap className="w-5 h-5 text-purple-400 group-hover:text-amber-400 transition" />
                 </a>
               </div>
             )}
 
             {activeTab === 'settings' && (
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+              <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
                 <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                   <Globe className="w-5 h-5 text-purple-400" />
                   Social Links
                 </h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1 flex items-center gap-2">
+                    <label className="block text-sm text-neutral-400 mb-1 flex items-center gap-2">
                       <Github className="w-4 h-4" /> GitHub Username
                     </label>
                     {editing ? (
@@ -1099,14 +1098,14 @@ export default function ProfileEnhanced() {
                         value={formData.github_username}
                         onChange={(e) => setFormData({ ...formData, github_username: e.target.value })}
                         placeholder="your-github-username"
-                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                       />
                     ) : (
                       <p className="text-white">{profile?.profile?.github_username || 'Not set'}</p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1 flex items-center gap-2">
+                    <label className="block text-sm text-neutral-400 mb-1 flex items-center gap-2">
                       <Linkedin className="w-4 h-4" /> LinkedIn URL
                     </label>
                     {editing ? (
@@ -1115,14 +1114,14 @@ export default function ProfileEnhanced() {
                         value={formData.linkedin_url}
                         onChange={(e) => setFormData({ ...formData, linkedin_url: e.target.value })}
                         placeholder="https://linkedin.com/in/your-profile"
-                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                       />
                     ) : (
                       <p className="text-white">{profile?.profile?.linkedin_url || 'Not set'}</p>
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1 flex items-center gap-2">
+                    <label className="block text-sm text-neutral-400 mb-1 flex items-center gap-2">
                       <Globe className="w-4 h-4" /> Website
                     </label>
                     {editing ? (
@@ -1131,7 +1130,7 @@ export default function ProfileEnhanced() {
                         value={formData.website_url}
                         onChange={(e) => setFormData({ ...formData, website_url: e.target.value })}
                         placeholder="https://your-website.com"
-                        className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                       />
                     ) : (
                       <p className="text-white">{profile?.profile?.website_url || 'Not set'}</p>
@@ -1145,23 +1144,23 @@ export default function ProfileEnhanced() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Quick Stats */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
               <h3 className="text-lg font-bold text-white mb-4">Quick Stats</h3>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400 flex items-center gap-2">
+                  <span className="text-neutral-400 flex items-center gap-2">
                     <Clock className="w-4 h-4" /> Current Streak
                   </span>
                   <span className="text-white font-bold">{profile?.profile?.current_streak || 0} days</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400 flex items-center gap-2">
+                  <span className="text-neutral-400 flex items-center gap-2">
                     <BookOpen className="w-4 h-4" /> Modules Done
                   </span>
                   <span className="text-white font-bold">{profile?.profile?.total_modules_completed || 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400 flex items-center gap-2">
+                  <span className="text-neutral-400 flex items-center gap-2">
                     <Star className="w-4 h-4" /> Total Posts
                   </span>
                   <span className="text-white font-bold">{profile?.profile?.total_posts || 0}</span>
@@ -1170,12 +1169,12 @@ export default function ProfileEnhanced() {
             </div>
 
             {/* Achievements */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-yellow-400" />
+                <Trophy className="w-5 h-5 text-amber-400" />
                 Achievements
                 {badgeCatalog && (
-                  <span className="ml-auto text-xs text-slate-500 font-normal">
+                  <span className="ml-auto text-xs text-neutral-500 font-normal">
                     {badgeCatalog.filter(b => b.earned).length}/{badgeCatalog.length}
                   </span>
                 )}
@@ -1198,8 +1197,8 @@ export default function ProfileEnhanced() {
                       title={badge.earned ? badge.name : `Locked: ${badge.description || badge.name}`}
                       className={`p-3 rounded-lg text-center transition ${
                         badge.earned
-                          ? 'bg-slate-800 hover:bg-slate-700'
-                          : 'bg-slate-800/50 opacity-50'
+                          ? 'bg-neutral-800 hover:bg-neutral-700'
+                          : 'bg-neutral-800/50 opacity-50'
                       }`}
                     >
                       <span className="text-2xl">{badge.earned ? badge.icon : '🔒'}</span>
@@ -1207,7 +1206,7 @@ export default function ProfileEnhanced() {
                   ))}
                 </div>
               ) : (
-                <p className="text-slate-500 text-sm text-center py-4">
+                <p className="text-neutral-500 text-sm text-center py-4">
                   Complete modules and quizzes to earn badges!
                 </p>
               )}
@@ -1219,26 +1218,26 @@ export default function ProfileEnhanced() {
       {/* Followers Modal */}
       {showFollowersModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-slate-700">
+          <div className="bg-neutral-900 rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-neutral-700">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Users className="w-5 h-5 text-purple-400" />
                 Followers ({followers.length})
               </h3>
               <button
                 onClick={() => setShowFollowersModal(false)}
-                className="p-2 hover:bg-slate-800 rounded-lg transition"
+                className="p-2 hover:bg-neutral-800 rounded-lg transition"
               >
-                <X className="w-5 h-5 text-slate-400" />
+                <X className="w-5 h-5 text-neutral-400" />
               </button>
             </div>
             <div className="p-4 overflow-y-auto max-h-[60vh]">
               {followers.length === 0 ? (
-                <p className="text-center text-slate-500 py-8">No followers yet</p>
+                <p className="text-center text-neutral-500 py-8">No followers yet</p>
               ) : (
                 <div className="space-y-3">
                   {followers.map((follow) => (
-                    <div key={follow.id} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
+                    <div key={follow.id} className="flex items-center justify-between p-3 bg-neutral-800/50 rounded-lg">
                       <div className="flex items-center gap-3">
                         {follow.follower.profile_picture ? (
                           <img
@@ -1247,20 +1246,20 @@ export default function ProfileEnhanced() {
                             className="w-10 h-10 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center text-white font-bold">
                             {follow.follower.username[0]?.toUpperCase()}
                           </div>
                         )}
                         <div>
                           <p className="text-white font-medium">{follow.follower.first_name} {follow.follower.last_name}</p>
-                          <p className="text-sm text-slate-400">@{follow.follower.username}</p>
+                          <p className="text-sm text-neutral-400">@{follow.follower.username}</p>
                         </div>
                       </div>
                       {follow.follower.id !== profile?.id && (
                         followingUsers.has(String(follow.follower.id)) ? (
                           <button
                             onClick={() => handleUnfollow(follow.follower.id)}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-slate-700 hover:bg-red-600 text-white text-sm rounded-lg transition"
+                            className="flex items-center gap-1 px-3 py-1.5 bg-neutral-700 hover:bg-red-600 text-white text-sm rounded-lg transition"
                           >
                             <UserMinus className="w-4 h-4" />
                             Unfollow
@@ -1287,26 +1286,26 @@ export default function ProfileEnhanced() {
       {/* Following Modal */}
       {showFollowingModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-slate-700">
+          <div className="bg-neutral-900 rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-neutral-700">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <Users className="w-5 h-5 text-purple-400" />
                 Following ({following.length})
               </h3>
               <button
                 onClick={() => setShowFollowingModal(false)}
-                className="p-2 hover:bg-slate-800 rounded-lg transition"
+                className="p-2 hover:bg-neutral-800 rounded-lg transition"
               >
-                <X className="w-5 h-5 text-slate-400" />
+                <X className="w-5 h-5 text-neutral-400" />
               </button>
             </div>
             <div className="p-4 overflow-y-auto max-h-[60vh]">
               {following.length === 0 ? (
-                <p className="text-center text-slate-500 py-8">Not following anyone yet</p>
+                <p className="text-center text-neutral-500 py-8">Not following anyone yet</p>
               ) : (
                 <div className="space-y-3">
                   {following.map((follow) => (
-                    <div key={follow.id} className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
+                    <div key={follow.id} className="flex items-center justify-between p-3 bg-neutral-800/50 rounded-lg">
                       <div className="flex items-center gap-3">
                         {follow.following.profile_picture ? (
                           <img
@@ -1315,18 +1314,18 @@ export default function ProfileEnhanced() {
                             className="w-10 h-10 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center text-white font-bold">
                             {follow.following.username[0]?.toUpperCase()}
                           </div>
                         )}
                         <div>
                           <p className="text-white font-medium">{follow.following.first_name} {follow.following.last_name}</p>
-                          <p className="text-sm text-slate-400">@{follow.following.username}</p>
+                          <p className="text-sm text-neutral-400">@{follow.following.username}</p>
                         </div>
                       </div>
                       <button
                         onClick={() => handleUnfollow(follow.following.id)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-slate-700 hover:bg-red-600 text-white text-sm rounded-lg transition"
+                        className="flex items-center gap-1 px-3 py-1.5 bg-neutral-700 hover:bg-red-600 text-white text-sm rounded-lg transition"
                       >
                         <UserMinus className="w-4 h-4" />
                         Unfollow

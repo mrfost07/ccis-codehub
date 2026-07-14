@@ -11,6 +11,7 @@ import { projectsAPI, communityAPI, teamsAPI } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import ProfileAvatar from '../components/ProfileAvatar'
+import { Skeleton, SkeletonCard, SkeletonStatCard } from '../components/ui'
 
 interface Task {
   id: string
@@ -112,8 +113,8 @@ interface Project {
 }
 
 const TASK_STATUSES = [
-  { id: 'todo', label: 'To Do', icon: Clock, color: 'text-slate-400', bg: 'bg-slate-500/20' },
-  { id: 'in_progress', label: 'In Progress', icon: AlertCircle, color: 'text-blue-400', bg: 'bg-blue-500/20' },
+  { id: 'todo', label: 'To Do', icon: Clock, color: 'text-neutral-400', bg: 'bg-neutral-500/20' },
+  { id: 'in_progress', label: 'In Progress', icon: AlertCircle, color: 'text-purple-400', bg: 'bg-purple-500/20' },
   { id: 'review', label: 'Review', icon: Eye, color: 'text-purple-400', bg: 'bg-purple-500/20' },
   { id: 'done', label: 'Done', icon: CheckCircle2, color: 'text-green-400', bg: 'bg-green-500/20' }
 ]
@@ -771,10 +772,10 @@ export default function ProjectDetail() {
   const getPriorityColor = (priority: string) => {
     const colors: Record<string, string> = {
       high: 'text-red-400 bg-red-500/20 border-red-500/30',
-      medium: 'text-yellow-400 bg-yellow-500/20 border-yellow-500/30',
+      medium: 'text-amber-400 bg-amber-500/20 border-amber-500/30',
       low: 'text-green-400 bg-green-500/20 border-green-500/30'
     }
-    return colors[priority] || 'text-slate-400 bg-slate-500/20'
+    return colors[priority] || 'text-neutral-400 bg-neutral-500/20'
   }
 
   const isOwnerOrAdmin = project?.user_role === 'owner' || project?.user_role === 'admin' ||
@@ -815,13 +816,15 @@ export default function ProjectDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950">
+      <div className="min-h-screen bg-neutral-950">
         <Navbar />
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <RefreshCw className="w-8 h-8 text-cyan-500 animate-spin mx-auto mb-4" />
-            <p className="text-slate-400">Loading project...</p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+          <Skeleton className="h-8 w-72" />
+          <Skeleton className="h-4 w-96" />
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 mt-6">
+            {[0, 1, 2, 3].map(i => <SkeletonStatCard key={i} />)}
           </div>
+          <SkeletonCard className="mt-6" />
         </div>
       </div>
     )
@@ -829,15 +832,15 @@ export default function ProjectDetail() {
 
   if (!project) {
     return (
-      <div className="min-h-screen bg-slate-950">
+      <div className="min-h-screen bg-neutral-950">
         <Navbar />
         <div className="max-w-7xl mx-auto px-4 py-16 text-center">
-          <FolderOpen className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+          <FolderOpen className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">Project not found</h2>
-          <p className="text-slate-400 mb-6">The project you're looking for doesn't exist or you don't have access.</p>
+          <p className="text-neutral-400 mb-6">The project you're looking for doesn't exist or you don't have access.</p>
           <button
             onClick={() => navigate('/projects')}
-            className="px-6 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition"
+            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition"
           >
             Back to Projects
           </button>
@@ -847,7 +850,7 @@ export default function ProjectDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-neutral-950">
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -856,7 +859,7 @@ export default function ProjectDetail() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/projects')}
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+              className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
@@ -865,52 +868,52 @@ export default function ProjectDetail() {
                 <h1 className="text-2xl font-bold text-white">{project.name}</h1>
                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${project.visibility === 'public'
                   ? 'bg-green-500/20 text-green-400'
-                  : 'bg-yellow-500/20 text-yellow-400'
+                  : 'bg-amber-500/20 text-amber-400'
                   }`}>
                   {project.visibility === 'public' ? <Globe className="w-3 h-3 inline mr-1" /> : <Lock className="w-3 h-3 inline mr-1" />}
                   {project.visibility}
                 </span>
               </div>
-              <p className="text-slate-400 text-sm mt-1">{project.description || 'No description'}</p>
+              <p className="text-neutral-400 text-sm mt-1">{project.description || 'No description'}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${project.status === 'active' ? 'bg-green-500/20 text-green-400' :
-              project.status === 'completed' ? 'bg-blue-500/20 text-blue-400' :
-                project.status === 'planning' ? 'bg-yellow-500/20 text-yellow-400' :
-                  'bg-slate-500/20 text-slate-400'
+              project.status === 'completed' ? 'bg-purple-500/20 text-purple-400' :
+                project.status === 'planning' ? 'bg-amber-500/20 text-amber-400' :
+                  'bg-neutral-500/20 text-neutral-400'
               }`}>
               {project.status}
             </span>
-            <span className="text-sm text-slate-500">{project.programming_language}</span>
+            <span className="text-sm text-neutral-500">{project.programming_language}</span>
           </div>
         </div>
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-            <div className="flex items-center gap-2 text-slate-400 mb-1">
+          <div className="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+            <div className="flex items-center gap-2 text-neutral-400 mb-1">
               <Users className="w-4 h-4" />
               <span className="text-xs">Team</span>
             </div>
             <p className="text-xl font-bold text-white">{project.member_count || allMembers.length}</p>
           </div>
-          <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-            <div className="flex items-center gap-2 text-slate-400 mb-1">
+          <div className="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+            <div className="flex items-center gap-2 text-neutral-400 mb-1">
               <ListTodo className="w-4 h-4" />
               <span className="text-xs">Tasks</span>
             </div>
             <p className="text-xl font-bold text-white">{tasks.length}</p>
           </div>
-          <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-            <div className="flex items-center gap-2 text-slate-400 mb-1">
+          <div className="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+            <div className="flex items-center gap-2 text-neutral-400 mb-1">
               <GitBranch className="w-4 h-4" />
               <span className="text-xs">Branches</span>
             </div>
             <p className="text-xl font-bold text-white">{branches.length}</p>
           </div>
-          <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-            <div className="flex items-center gap-2 text-slate-400 mb-1">
+          <div className="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+            <div className="flex items-center gap-2 text-neutral-400 mb-1">
               <GitPullRequest className="w-4 h-4" />
               <span className="text-xs">Open PRs</span>
             </div>
@@ -919,7 +922,7 @@ export default function ProjectDetail() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 border-b border-slate-700 overflow-x-auto">
+        <div className="flex gap-1 mb-6 border-b border-neutral-700 overflow-x-auto">
           {[
             { id: 'overview', label: 'Overview', icon: Activity },
             { id: 'kanban', label: 'Kanban', icon: ListTodo },
@@ -934,8 +937,8 @@ export default function ProjectDetail() {
                 if (tab.id === 'team') fetchFollowers()
               }}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id
-                ? 'text-cyan-400 border-b-2 border-cyan-400 -mb-px'
-                : 'text-slate-400 hover:text-white'
+                ? 'text-purple-400 border-b-2 border-purple-400 -mb-px'
+                : 'text-neutral-400 hover:text-white'
                 }`}
             >
               <tab.icon className="w-4 h-4" />
@@ -950,30 +953,30 @@ export default function ProjectDetail() {
           {activeTab === 'overview' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Project Info */}
-              <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+              <div className="bg-neutral-800/50 rounded-xl p-6 border border-neutral-700">
                 <h3 className="text-lg font-semibold text-white mb-4">Project Information</h3>
                 <div className="space-y-3">
-                  <div className="flex justify-between py-2 border-b border-slate-700">
-                    <span className="text-slate-400">Type</span>
+                  <div className="flex justify-between py-2 border-b border-neutral-700">
+                    <span className="text-neutral-400">Type</span>
                     <span className="text-white capitalize">{project.project_type.replace('_', ' ')}</span>
                   </div>
-                  <div className="flex justify-between py-2 border-b border-slate-700">
-                    <span className="text-slate-400">Language</span>
+                  <div className="flex justify-between py-2 border-b border-neutral-700">
+                    <span className="text-neutral-400">Language</span>
                     <span className="text-white">{project.programming_language}</span>
                   </div>
-                  <div className="flex justify-between py-2 border-b border-slate-700">
-                    <span className="text-slate-400">Owner</span>
+                  <div className="flex justify-between py-2 border-b border-neutral-700">
+                    <span className="text-neutral-400">Owner</span>
                     <span className="text-white">{project.owner_name}</span>
                   </div>
-                  <div className="flex justify-between py-2 border-b border-slate-700">
-                    <span className="text-slate-400">Created</span>
+                  <div className="flex justify-between py-2 border-b border-neutral-700">
+                    <span className="text-neutral-400">Created</span>
                     <span className="text-white">{new Date(project.created_at).toLocaleDateString()}</span>
                   </div>
                   {project.github_repo && (
                     <div className="flex justify-between py-2">
-                      <span className="text-slate-400">GitHub</span>
+                      <span className="text-neutral-400">GitHub</span>
                       <a href={project.github_repo} target="_blank" rel="noopener noreferrer"
-                        className="text-cyan-400 hover:text-cyan-300 truncate max-w-[200px]">
+                        className="text-purple-400 hover:text-purple-300 truncate max-w-[200px]">
                         {project.github_repo}
                       </a>
                     </div>
@@ -982,7 +985,7 @@ export default function ProjectDetail() {
               </div>
 
               {/* Task Progress */}
-              <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+              <div className="bg-neutral-800/50 rounded-xl p-6 border border-neutral-700">
                 <h3 className="text-lg font-semibold text-white mb-4">Task Progress</h3>
                 <div className="space-y-4">
                   {TASK_STATUSES.map(status => {
@@ -994,7 +997,7 @@ export default function ProjectDetail() {
                           <span className={status.color}>{status.label}</span>
                           <span className="text-white">{count}</span>
                         </div>
-                        <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                        <div className="h-2 bg-neutral-700 rounded-full overflow-hidden">
                           <div
                             className={`h-full ${status.bg.replace('/20', '')} transition-all`}
                             style={{ width: `${percentage}%` }}
@@ -1005,39 +1008,39 @@ export default function ProjectDetail() {
                   })}
                 </div>
                 {tasks.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-slate-700 text-center">
+                  <div className="mt-4 pt-4 border-t border-neutral-700 text-center">
                     <p className="text-2xl font-bold text-green-400">
                       {Math.round((getTasksByStatus('done').length / tasks.length) * 100)}%
                     </p>
-                    <p className="text-xs text-slate-400">Completed</p>
+                    <p className="text-xs text-neutral-400">Completed</p>
                   </div>
                 )}
               </div>
 
               {/* Recent Tasks */}
-              <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700 lg:col-span-2">
+              <div className="bg-neutral-800/50 rounded-xl p-6 border border-neutral-700 lg:col-span-2">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-white">Recent Tasks</h3>
                   <button
                     onClick={() => setActiveTab('kanban')}
-                    className="text-sm text-cyan-400 hover:text-cyan-300"
+                    className="text-sm text-purple-400 hover:text-purple-300"
                   >
                     View all →
                   </button>
                 </div>
                 {tasks.length === 0 ? (
-                  <p className="text-slate-400 text-center py-8">No tasks yet</p>
+                  <p className="text-neutral-400 text-center py-8">No tasks yet</p>
                 ) : (
                   <div className="space-y-2">
                     {tasks.slice(0, 5).map(task => (
                       <div
                         key={task.id}
                         onClick={() => openTaskDetail(task)}
-                        className="flex items-center gap-3 p-3 bg-slate-900/50 rounded-lg hover:bg-slate-900 cursor-pointer transition"
+                        className="flex items-center gap-3 p-3 bg-neutral-900/50 rounded-lg hover:bg-neutral-900 cursor-pointer transition"
                       >
                         <div className={`w-2 h-2 rounded-full ${task.status === 'done' ? 'bg-green-400' :
-                          task.status === 'in_progress' ? 'bg-blue-400' :
-                            task.status === 'review' ? 'bg-purple-400' : 'bg-slate-400'
+                          task.status === 'in_progress' ? 'bg-purple-400' :
+                            task.status === 'review' ? 'bg-purple-400' : 'bg-neutral-400'
                           }`} />
                         <span className="flex-1 text-white truncate">{task.title}</span>
                         <span className={`text-xs px-2 py-0.5 rounded ${getPriorityColor(task.priority)}`}>
@@ -1057,20 +1060,20 @@ export default function ProjectDetail() {
               {/* Toolbar */}
               <div className="flex flex-col sm:flex-row gap-3 mb-4">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -tranneutral-y-1/2 w-4 h-4 text-neutral-400" />
                   <input
                     type="text"
                     placeholder="Search tasks..."
                     value={taskSearch}
                     onChange={e => setTaskSearch(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+                    className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder:text-neutral-500 focus:outline-none focus:border-purple-500"
                   />
                 </div>
                 <div className="flex gap-2">
                   <select
                     value={taskFilter}
                     onChange={e => setTaskFilter(e.target.value)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
+                    className="px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
                   >
                     <option value="all">All Status</option>
                     {TASK_STATUSES.map(s => (
@@ -1080,7 +1083,7 @@ export default function ProjectDetail() {
                   <select
                     value={taskSort}
                     onChange={e => setTaskSort(e.target.value as any)}
-                    className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
+                    className="px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
                   >
                     <option value="newest">Newest First</option>
                     <option value="oldest">Oldest First</option>
@@ -1089,7 +1092,7 @@ export default function ProjectDetail() {
                   {isOwnerOrAdmin && (
                     <button
                       onClick={() => { resetTaskForm(); setEditingTask(null); setShowTaskModal(true) }}
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-500 to-purple-500 text-white rounded-lg hover:from-cyan-600 hover:to-purple-600 transition"
+                      className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition"
                     >
                       <Plus className="w-4 h-4" />
                       <span className="hidden sm:inline">Add Task</span>
@@ -1106,15 +1109,15 @@ export default function ProjectDetail() {
                     data-status={status.id}
                     onDragOver={handleDragOver}
                     onDrop={e => handleDrop(e, status.id)}
-                    className={`bg-slate-800/50 rounded-xl p-4 border border-slate-700 min-h-[300px] ${draggedTask ? 'border-dashed border-cyan-500/50' : ''
-                      } ${touchDragActive ? 'border-cyan-500' : ''}`}
+                    className={`bg-neutral-800/50 rounded-xl p-4 border border-neutral-700 min-h-[300px] ${draggedTask ? 'border-dashed border-purple-500/50' : ''
+                      } ${touchDragActive ? 'border-purple-500' : ''}`}
                   >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <status.icon className={`w-4 h-4 ${status.color}`} />
                         <h4 className="font-medium text-white">{status.label}</h4>
                       </div>
-                      <span className="text-xs text-slate-400 bg-slate-700 px-2 py-0.5 rounded">
+                      <span className="text-xs text-neutral-400 bg-neutral-700 px-2 py-0.5 rounded">
                         {getTasksByStatus(status.id).length}
                       </span>
                     </div>
@@ -1129,45 +1132,45 @@ export default function ProjectDetail() {
                           onTouchEnd={handleTouchEnd}
                           onTouchCancel={handleTouchEnd}
                           onClick={() => !touchDragActive && openTaskDetail(task)}
-                          className={`bg-slate-900/70 rounded-lg p-3 border border-slate-700 cursor-pointer hover:border-slate-600 transition select-none touch-none sm:touch-auto ${draggedTask?.id === task.id ? 'opacity-50' : ''
-                            } ${!task.can_drag && !task.can_edit ? 'cursor-default' : ''} ${touchDragActive && draggedTask?.id === task.id ? 'ring-2 ring-cyan-500' : ''}`}
+                          className={`bg-neutral-900/70 rounded-lg p-3 border border-neutral-700 cursor-pointer hover:border-neutral-600 transition select-none touch-none sm:touch-auto ${draggedTask?.id === task.id ? 'opacity-50' : ''
+                            } ${!task.can_drag && !task.can_edit ? 'cursor-default' : ''} ${touchDragActive && draggedTask?.id === task.id ? 'ring-2 ring-purple-500' : ''}`}
                         >
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <h5 className="text-sm text-white font-medium line-clamp-2">{task.title}</h5>
                             {task.can_edit && (
                               <button
                                 onClick={e => { e.stopPropagation(); openEditTask(task) }}
-                                className="p-1 text-slate-400 hover:text-white shrink-0"
+                                className="p-1 text-neutral-400 hover:text-white shrink-0"
                               >
                                 <Edit className="w-3 h-3" />
                               </button>
                             )}
                           </div>
                           {task.description && (
-                            <p className="text-xs text-slate-400 line-clamp-2 mb-2">{task.description}</p>
+                            <p className="text-xs text-neutral-400 line-clamp-2 mb-2">{task.description}</p>
                           )}
                           <div className="flex items-center justify-between">
                             <span className={`text-xs px-2 py-0.5 rounded border ${getPriorityColor(task.priority)}`}>
                               {task.priority}
                             </span>
                             {task.due_date && (
-                              <span className="text-xs text-slate-500 flex items-center gap-1">
+                              <span className="text-xs text-neutral-500 flex items-center gap-1">
                                 <Calendar className="w-3 h-3" />
                                 {new Date(task.due_date).toLocaleDateString()}
                               </span>
                             )}
                           </div>
                           {task.assigned_to_name && (
-                            <div className="mt-2 pt-2 border-t border-slate-700">
-                              <span className="text-xs text-slate-400">
-                                Assigned to: <span className="text-cyan-400">{task.assigned_to_name}</span>
+                            <div className="mt-2 pt-2 border-t border-neutral-700">
+                              <span className="text-xs text-neutral-400">
+                                Assigned to: <span className="text-purple-400">{task.assigned_to_name}</span>
                               </span>
                             </div>
                           )}
 
                           {/* Mobile-friendly status change buttons - visible on small screens or when can't drag */}
                           {(task.can_drag || task.can_edit) && (
-                            <div className="flex gap-1 mt-2 pt-2 border-t border-slate-700 sm:hidden">
+                            <div className="flex gap-1 mt-2 pt-2 border-t border-neutral-700 sm:hidden">
                               {(() => {
                                 const statusOrder = ['todo', 'in_progress', 'review', 'done']
                                 const currentIndex = statusOrder.indexOf(task.status)
@@ -1176,7 +1179,7 @@ export default function ProjectDetail() {
                                     {currentIndex > 0 && (
                                       <button
                                         onClick={(e) => { e.stopPropagation(); updateTaskStatus(task.id, statusOrder[currentIndex - 1]) }}
-                                        className="flex-1 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-slate-300 rounded transition flex items-center justify-center gap-1"
+                                        className="flex-1 py-1.5 text-xs bg-neutral-700 hover:bg-neutral-600 text-neutral-300 rounded transition flex items-center justify-center gap-1"
                                       >
                                         ← {statusOrder[currentIndex - 1].replace('_', ' ')}
                                       </button>
@@ -1184,7 +1187,7 @@ export default function ProjectDetail() {
                                     {currentIndex < statusOrder.length - 1 && (
                                       <button
                                         onClick={(e) => { e.stopPropagation(); updateTaskStatus(task.id, statusOrder[currentIndex + 1]) }}
-                                        className="flex-1 py-1.5 text-xs bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 rounded transition flex items-center justify-center gap-1"
+                                        className="flex-1 py-1.5 text-xs bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded transition flex items-center justify-center gap-1"
                                       >
                                         {statusOrder[currentIndex + 1].replace('_', ' ')} →
                                       </button>
@@ -1203,28 +1206,28 @@ export default function ProjectDetail() {
 
               {/* Task List View */}
               {taskFilter !== 'all' && (
-                <div className="mt-6 bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
-                  <div className="p-4 border-b border-slate-700">
+                <div className="mt-6 bg-neutral-800/50 rounded-xl border border-neutral-700 overflow-hidden">
+                  <div className="p-4 border-b border-neutral-700">
                     <h3 className="font-semibold text-white">
                       {TASK_STATUSES.find(s => s.id === taskFilter)?.label} Tasks ({filteredTasks.length})
                     </h3>
                   </div>
-                  <div className="divide-y divide-slate-700">
+                  <div className="divide-y divide-neutral-700">
                     {filteredTasks.map(task => (
                       <div
                         key={task.id}
                         onClick={() => openTaskDetail(task)}
-                        className="p-4 hover:bg-slate-800/50 cursor-pointer transition"
+                        className="p-4 hover:bg-neutral-800/50 cursor-pointer transition"
                       >
                         <div className="flex items-center gap-4">
                           <div className={`w-3 h-3 rounded-full ${task.status === 'done' ? 'bg-green-400' :
-                            task.status === 'in_progress' ? 'bg-blue-400' :
-                              task.status === 'review' ? 'bg-purple-400' : 'bg-slate-400'
+                            task.status === 'in_progress' ? 'bg-purple-400' :
+                              task.status === 'review' ? 'bg-purple-400' : 'bg-neutral-400'
                             }`} />
                           <div className="flex-1">
                             <h4 className="text-white font-medium">{task.title}</h4>
                             {task.description && (
-                              <p className="text-sm text-slate-400 line-clamp-1">{task.description}</p>
+                              <p className="text-sm text-neutral-400 line-clamp-1">{task.description}</p>
                             )}
                           </div>
                           <span className={`text-xs px-2 py-1 rounded ${getPriorityColor(task.priority)}`}>
@@ -1234,13 +1237,13 @@ export default function ProjectDetail() {
                             <div className="flex gap-1">
                               <button
                                 onClick={e => { e.stopPropagation(); openEditTask(task) }}
-                                className="p-1 text-slate-400 hover:text-cyan-400"
+                                className="p-1 text-neutral-400 hover:text-purple-400"
                               >
                                 <Edit className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={e => { e.stopPropagation(); deleteTask(task.id) }}
-                                className="p-1 text-slate-400 hover:text-red-400"
+                                className="p-1 text-neutral-400 hover:text-red-400"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
@@ -1260,14 +1263,14 @@ export default function ProjectDetail() {
             <div className="space-y-6">
               {/* GitHub Connection Status */}
               {project.github_repo ? (
-                <div className="bg-gradient-to-r from-purple-900/50 to-slate-800/50 rounded-xl p-4 border border-purple-500/30">
+                <div className="bg-neutral-900 rounded-xl p-4 border border-purple-500/30">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-purple-600/20 rounded-lg flex items-center justify-center">
                         <GitBranch className="w-5 h-5 text-purple-400" />
                       </div>
                       <div>
-                        <p className="text-sm text-slate-400">Connected to GitHub</p>
+                        <p className="text-sm text-neutral-400">Connected to GitHub</p>
                         <a
                           href={project.github_repo}
                           target="_blank"
@@ -1282,7 +1285,7 @@ export default function ProjectDetail() {
                       <button
                         onClick={syncGitHub}
                         disabled={syncing}
-                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition disabled:opacity-50"
                       >
                         <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
                         {syncing ? 'Syncing...' : 'Sync from GitHub'}
@@ -1291,16 +1294,16 @@ export default function ProjectDetail() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700 text-center">
-                  <GitBranch className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+                <div className="bg-neutral-800/50 rounded-xl p-6 border border-neutral-700 text-center">
+                  <GitBranch className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
                   <h3 className="text-lg font-semibold text-white mb-2">Connect to GitHub</h3>
-                  <p className="text-slate-400 mb-4">
+                  <p className="text-neutral-400 mb-4">
                     Link this project to a GitHub repository to sync branches and commits.
                   </p>
                   {isOwnerOrAdmin && (
                     <button
                       onClick={() => setActiveTab('settings')}
-                      className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition"
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition"
                     >
                       Go to Settings →
                     </button>
@@ -1309,19 +1312,19 @@ export default function ProjectDetail() {
               )}
 
               {/* Branches */}
-              <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
-                <div className="flex items-center justify-between p-4 border-b border-slate-700">
+              <div className="bg-neutral-800/50 rounded-xl border border-neutral-700 overflow-hidden">
+                <div className="flex items-center justify-between p-4 border-b border-neutral-700">
                   <div className="flex items-center gap-2">
-                    <GitBranch className="w-5 h-5 text-cyan-400" />
+                    <GitBranch className="w-5 h-5 text-purple-400" />
                     <h3 className="font-semibold text-white">Branches</h3>
-                    <span className="text-xs text-slate-400">({branches.length})</span>
+                    <span className="text-xs text-neutral-400">({branches.length})</span>
                   </div>
                   <div className="flex items-center gap-2">
                     {project.github_repo && canManageTasks && (
                       <button
                         onClick={syncGitHub}
                         disabled={syncing}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 transition disabled:opacity-50"
+                        className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white text-sm rounded hover:bg-purple-500 transition disabled:opacity-50"
                       >
                         <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
                         {syncing ? 'Syncing...' : 'Sync from GitHub'}
@@ -1330,7 +1333,7 @@ export default function ProjectDetail() {
                     {canManageTasks && (
                       <button
                         onClick={() => setShowBranchModal(true)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-slate-700 text-white text-sm rounded hover:bg-slate-600 transition"
+                        className="flex items-center gap-1 px-3 py-1.5 bg-neutral-700 text-white text-sm rounded hover:bg-neutral-600 transition"
                       >
                         <Plus className="w-4 h-4" />
                         New Branch
@@ -1340,31 +1343,31 @@ export default function ProjectDetail() {
                 </div>
                 {branches.length === 0 ? (
                   <div className="p-8 text-center">
-                    <GitBranch className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                    <p className="text-slate-400">No branches yet. Create your first branch.</p>
+                    <GitBranch className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
+                    <p className="text-neutral-400">No branches yet. Create your first branch.</p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-slate-700">
+                  <div className="divide-y divide-neutral-700">
                     {branches.map(branch => (
-                      <div key={branch.id} className="flex items-center justify-between p-4 hover:bg-slate-800/50 transition">
+                      <div key={branch.id} className="flex items-center justify-between p-4 hover:bg-neutral-800/50 transition">
                         <div className="flex items-center gap-3">
-                          <GitBranch className="w-4 h-4 text-cyan-400" />
+                          <GitBranch className="w-4 h-4 text-purple-400" />
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="text-white font-medium">{branch.name}</span>
                               {branch.is_default && (
-                                <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded">default</span>
+                                <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded">default</span>
                               )}
                               {branch.is_protected && (
-                                <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded">protected</span>
+                                <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">protected</span>
                               )}
                             </div>
                             {branch.description && (
-                              <p className="text-xs text-slate-400 mt-1">{branch.description}</p>
+                              <p className="text-xs text-neutral-400 mt-1">{branch.description}</p>
                             )}
                           </div>
                         </div>
-                        <div className="text-sm text-slate-400">
+                        <div className="text-sm text-neutral-400">
                           {branch.commit_count} commits
                         </div>
                       </div>
@@ -1374,12 +1377,12 @@ export default function ProjectDetail() {
               </div>
 
               {/* Pull Requests */}
-              <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
-                <div className="flex items-center justify-between p-4 border-b border-slate-700">
+              <div className="bg-neutral-800/50 rounded-xl border border-neutral-700 overflow-hidden">
+                <div className="flex items-center justify-between p-4 border-b border-neutral-700">
                   <div className="flex items-center gap-2">
                     <GitPullRequest className="w-5 h-5 text-green-400" />
                     <h3 className="font-semibold text-white">Pull Requests</h3>
-                    <span className="text-xs text-slate-400">({pullRequests.length})</span>
+                    <span className="text-xs text-neutral-400">({pullRequests.length})</span>
                   </div>
                   {canManageTasks && branches.length >= 2 && (
                     <button
@@ -1393,16 +1396,16 @@ export default function ProjectDetail() {
                 </div>
                 {pullRequests.length === 0 ? (
                   <div className="p-8 text-center">
-                    <GitPullRequest className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                    <p className="text-slate-400">No pull requests yet.</p>
+                    <GitPullRequest className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
+                    <p className="text-neutral-400">No pull requests yet.</p>
                     {branches.length < 2 && (
-                      <p className="text-xs text-slate-500 mt-2">Create at least 2 branches to open a PR.</p>
+                      <p className="text-xs text-neutral-500 mt-2">Create at least 2 branches to open a PR.</p>
                     )}
                   </div>
                 ) : (
-                  <div className="divide-y divide-slate-700">
+                  <div className="divide-y divide-neutral-700">
                     {pullRequests.map(pr => (
-                      <div key={pr.id} className="p-4 hover:bg-slate-800/50 transition">
+                      <div key={pr.id} className="p-4 hover:bg-neutral-800/50 transition">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex items-start gap-3">
                             <GitPullRequest className={`w-5 h-5 mt-0.5 ${pr.status === 'open' ? 'text-green-400' :
@@ -1410,11 +1413,11 @@ export default function ProjectDetail() {
                               }`} />
                             <div>
                               <h4 className="text-white font-medium">{pr.title}</h4>
-                              <p className="text-xs text-slate-400 mt-1">
+                              <p className="text-xs text-neutral-400 mt-1">
                                 {pr.source_branch_name} → {pr.target_branch_name} • by {pr.author_name}
                               </p>
                               {pr.description && (
-                                <p className="text-sm text-slate-400 mt-2 line-clamp-2">{pr.description}</p>
+                                <p className="text-sm text-neutral-400 mt-2 line-clamp-2">{pr.description}</p>
                               )}
                             </div>
                           </div>
@@ -1429,7 +1432,7 @@ export default function ProjectDetail() {
                               <div className="flex gap-1">
                                 <button
                                   onClick={() => mergePullRequest(pr.id)}
-                                  className="p-1.5 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
+                                  className="p-1.5 bg-purple-600 text-white rounded hover:bg-purple-500 transition"
                                   title="Merge PR"
                                 >
                                   <Merge className="w-4 h-4" />
@@ -1459,19 +1462,19 @@ export default function ProjectDetail() {
               {/* Toolbar */}
               <div className="flex flex-col sm:flex-row gap-3 mb-4">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -tranneutral-y-1/2 w-4 h-4 text-neutral-400" />
                   <input
                     type="text"
                     placeholder="Search team members..."
                     value={teamSearch}
                     onChange={e => setTeamSearch(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+                    className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder:text-neutral-500 focus:outline-none focus:border-purple-500"
                   />
                 </div>
                 {isOwnerOrAdmin && (
                   <button
                     onClick={() => { fetchFollowers(); setShowInviteModal(true) }}
-                    className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition"
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition"
                   >
                     <UserPlus className="w-4 h-4" />
                     Invite Member
@@ -1480,15 +1483,15 @@ export default function ProjectDetail() {
               </div>
 
               {/* Team List */}
-              <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
-                <div className="p-4 border-b border-slate-700">
+              <div className="bg-neutral-800/50 rounded-xl border border-neutral-700 overflow-hidden">
+                <div className="p-4 border-b border-neutral-700">
                   <h3 className="font-semibold text-white">Team Members ({filteredTeam.length})</h3>
                 </div>
-                <div className="divide-y divide-slate-700">
+                <div className="divide-y divide-neutral-700">
                   {filteredTeam.map(member => (
                     <div
                       key={member.id}
-                      className="flex items-center justify-between p-4 hover:bg-slate-800/50 transition cursor-pointer"
+                      className="flex items-center justify-between p-4 hover:bg-neutral-800/50 transition cursor-pointer"
                       onClick={() => navigate(`/user/${member.user}`)}
                     >
                       <div className="flex items-center gap-3">
@@ -1496,22 +1499,22 @@ export default function ProjectDetail() {
                           src={member.user_picture}
                           alt={member.name}
                           size="md"
-                          className="ring-2 ring-slate-700 hover:ring-purple-500 transition-all"
+                          className="ring-2 ring-neutral-700 hover:ring-purple-500 transition-all"
                         />
                         <div>
                           <p className="text-white font-medium hover:text-purple-400 transition">{member.name}</p>
-                          <p className="text-xs text-slate-400 capitalize">{member.role}</p>
+                          <p className="text-xs text-neutral-400 capitalize">{member.role}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-xs px-2 py-1 rounded ${member.role === 'owner' ? 'bg-yellow-500/20 text-yellow-400' :
+                        <span className={`text-xs px-2 py-1 rounded ${member.role === 'owner' ? 'bg-amber-500/20 text-amber-400' :
                           member.role === 'admin' ? 'bg-purple-500/20 text-purple-400' :
-                            member.role === 'developer' ? 'bg-cyan-500/20 text-cyan-400' :
-                              'bg-slate-500/20 text-slate-400'
+                            member.role === 'developer' ? 'bg-purple-500/20 text-purple-400' :
+                              'bg-neutral-500/20 text-neutral-400'
                           }`}>
                           {member.role}
                         </span>
-                        <span className="text-slate-500 text-xs">View Profile →</span>
+                        <span className="text-neutral-500 text-xs">View Profile →</span>
                       </div>
                     </div>
                   ))}
@@ -1523,45 +1526,45 @@ export default function ProjectDetail() {
           {/* SETTINGS TAB */}
           {activeTab === 'settings' && isOwnerOrAdmin && (
             <div className="max-w-2xl">
-              <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
+              <div className="bg-neutral-800/50 rounded-xl p-6 border border-neutral-700">
                 <h3 className="text-lg font-semibold text-white mb-6">Project Settings</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1">Project Name</label>
+                    <label className="block text-sm text-neutral-400 mb-1">Project Name</label>
                     <input
                       type="text"
                       value={projectSettings.name}
                       onChange={e => setProjectSettings(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                      className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1">Description</label>
+                    <label className="block text-sm text-neutral-400 mb-1">Description</label>
                     <textarea
                       value={projectSettings.description}
                       onChange={e => setProjectSettings(prev => ({ ...prev, description: e.target.value }))}
                       rows={3}
-                      className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white resize-none focus:outline-none focus:border-cyan-500"
+                      className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white resize-none focus:outline-none focus:border-purple-500"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm text-slate-400 mb-1">Visibility</label>
+                      <label className="block text-sm text-neutral-400 mb-1">Visibility</label>
                       <select
                         value={projectSettings.visibility}
                         onChange={e => setProjectSettings(prev => ({ ...prev, visibility: e.target.value }))}
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                        className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                       >
                         <option value="public">Public</option>
                         <option value="private">Private</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm text-slate-400 mb-1">Status</label>
+                      <label className="block text-sm text-neutral-400 mb-1">Status</label>
                       <select
                         value={projectSettings.status}
                         onChange={e => setProjectSettings(prev => ({ ...prev, status: e.target.value }))}
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                        className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                       >
                         <option value="planning">Planning</option>
                         <option value="active">Active</option>
@@ -1571,8 +1574,8 @@ export default function ProjectDetail() {
                     </div>
 
                     {/* GitHub Integration */}
-                    <div className="pt-4 border-t border-slate-700">
-                      <label className="block text-sm text-slate-400 mb-1">
+                    <div className="pt-4 border-t border-neutral-700">
+                      <label className="block text-sm text-neutral-400 mb-1">
                         GitHub Repository URL
                       </label>
                       <input
@@ -1580,9 +1583,9 @@ export default function ProjectDetail() {
                         value={projectSettings.github_repo}
                         onChange={e => setProjectSettings(prev => ({ ...prev, github_repo: e.target.value }))}
                         placeholder="https://github.com/username/repo"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+                        className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white placeholder:text-neutral-500 focus:outline-none focus:border-purple-500"
                       />
-                      <p className="text-xs text-slate-500 mt-1">
+                      <p className="text-xs text-neutral-500 mt-1">
                         Connect to GitHub to sync branches and commits in the Repository tab
                       </p>
                     </div>
@@ -1591,7 +1594,7 @@ export default function ProjectDetail() {
                     <button
                       onClick={saveSettings}
                       disabled={savingSettings}
-                      className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition disabled:opacity-50"
                     >
                       <Save className="w-4 h-4" />
                       {savingSettings ? 'Saving...' : 'Save Changes'}
@@ -1603,7 +1606,7 @@ export default function ProjectDetail() {
               {/* Danger Zone */}
               <div className="mt-6 bg-red-500/10 rounded-xl p-6 border border-red-500/30">
                 <h3 className="text-lg font-semibold text-red-400 mb-2">Danger Zone</h3>
-                <p className="text-sm text-slate-400 mb-4">
+                <p className="text-sm text-neutral-400 mb-4">
                   Once you delete a project, there is no going back. Please be certain.
                 </p>
                 <button
@@ -1625,33 +1628,33 @@ export default function ProjectDetail() {
           title={editingTask ? 'Edit Task' : 'Create Task'}>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Title *</label>
+              <label className="block text-sm text-neutral-400 mb-1">Title *</label>
               <input
                 type="text"
                 value={newTask.title}
                 onChange={e => setNewTask(prev => ({ ...prev, title: e.target.value }))}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 placeholder="Task title"
                 autoFocus
               />
             </div>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Description</label>
+              <label className="block text-sm text-neutral-400 mb-1">Description</label>
               <textarea
                 value={newTask.description}
                 onChange={e => setNewTask(prev => ({ ...prev, description: e.target.value }))}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white resize-none focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white resize-none focus:outline-none focus:border-purple-500"
                 rows={3}
                 placeholder="Task description"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Priority</label>
+                <label className="block text-sm text-neutral-400 mb-1">Priority</label>
                 <select
                   value={newTask.priority}
                   onChange={e => setNewTask(prev => ({ ...prev, priority: e.target.value }))}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -1659,11 +1662,11 @@ export default function ProjectDetail() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Status</label>
+                <label className="block text-sm text-neutral-400 mb-1">Status</label>
                 <select
                   value={newTask.status}
                   onChange={e => setNewTask(prev => ({ ...prev, status: e.target.value }))}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 >
                   {TASK_STATUSES.map(s => (
                     <option key={s.id} value={s.id}>{s.label}</option>
@@ -1673,20 +1676,20 @@ export default function ProjectDetail() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Due Date</label>
+                <label className="block text-sm text-neutral-400 mb-1">Due Date</label>
                 <input
                   type="date"
                   value={newTask.due_date}
                   onChange={e => setNewTask(prev => ({ ...prev, due_date: e.target.value }))}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Assign To</label>
+                <label className="block text-sm text-neutral-400 mb-1">Assign To</label>
                 <select
                   value={newTask.assigned_to}
                   onChange={e => setNewTask(prev => ({ ...prev, assigned_to: e.target.value }))}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 >
                   <option value="">Unassigned</option>
                   {allMembers.map(m => (
@@ -1698,13 +1701,13 @@ export default function ProjectDetail() {
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => { setShowTaskModal(false); setEditingTask(null); resetTaskForm() }}
-                className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition"
+                className="flex-1 px-4 py-2 bg-neutral-700 text-neutral-300 rounded-lg hover:bg-neutral-600 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={editingTask ? updateTask : createTask}
-                className="flex-1 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition"
+                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition"
               >
                 {editingTask ? 'Update Task' : 'Create Task'}
               </button>
@@ -1734,13 +1737,13 @@ export default function ProjectDetail() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => { openEditTask(selectedTask); setSelectedTask(null) }}
-                    className="p-2 text-slate-400 hover:text-cyan-400 transition"
+                    className="p-2 text-neutral-400 hover:text-purple-400 transition"
                   >
                     <Edit className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => deleteTask(selectedTask.id)}
-                    className="p-2 text-slate-400 hover:text-red-400 transition"
+                    className="p-2 text-neutral-400 hover:text-red-400 transition"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -1750,18 +1753,18 @@ export default function ProjectDetail() {
 
             {selectedTask.description && (
               <div>
-                <h4 className="text-sm font-medium text-slate-400 mb-1">Description</h4>
-                <p className="text-slate-300">{selectedTask.description}</p>
+                <h4 className="text-sm font-medium text-neutral-400 mb-1">Description</h4>
+                <p className="text-neutral-300">{selectedTask.description}</p>
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4 py-4 border-y border-slate-700">
+            <div className="grid grid-cols-2 gap-4 py-4 border-y border-neutral-700">
               <div>
-                <span className="text-xs text-slate-400">Assigned To</span>
+                <span className="text-xs text-neutral-400">Assigned To</span>
                 <p className="text-white">{selectedTask.assigned_to_name || 'Unassigned'}</p>
               </div>
               <div>
-                <span className="text-xs text-slate-400">Due Date</span>
+                <span className="text-xs text-neutral-400">Due Date</span>
                 <p className="text-white">
                   {selectedTask.due_date ? new Date(selectedTask.due_date).toLocaleDateString() : 'No due date'}
                 </p>
@@ -1771,7 +1774,7 @@ export default function ProjectDetail() {
             {/* Status Change */}
             {canManageTasks && (
               <div>
-                <h4 className="text-sm font-medium text-slate-400 mb-2">Change Status</h4>
+                <h4 className="text-sm font-medium text-neutral-400 mb-2">Change Status</h4>
                 <div className="flex gap-2">
                   {TASK_STATUSES.map(status => (
                     <button
@@ -1779,7 +1782,7 @@ export default function ProjectDetail() {
                       onClick={() => updateTaskStatus(selectedTask.id, status.id)}
                       className={`px-3 py-1.5 text-xs rounded transition ${selectedTask.status === status.id
                         ? `${status.bg} ${status.color} border border-current`
-                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                        : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
                         }`}
                     >
                       {status.label}
@@ -1791,22 +1794,22 @@ export default function ProjectDetail() {
 
             {/* Comments */}
             <div>
-              <h4 className="text-sm font-medium text-slate-400 mb-2">
+              <h4 className="text-sm font-medium text-neutral-400 mb-2">
                 Comments ({taskComments.length})
               </h4>
               <div className="space-y-2 max-h-48 overflow-y-auto mb-3">
                 {taskComments.length === 0 ? (
-                  <p className="text-sm text-slate-500 text-center py-4">No comments yet</p>
+                  <p className="text-sm text-neutral-500 text-center py-4">No comments yet</p>
                 ) : (
                   taskComments.map(comment => (
-                    <div key={comment.id} className="bg-slate-900/50 rounded-lg p-3">
+                    <div key={comment.id} className="bg-neutral-900/50 rounded-lg p-3">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-cyan-400">{comment.author_name}</span>
-                        <span className="text-xs text-slate-500">
+                        <span className="text-sm font-medium text-purple-400">{comment.author_name}</span>
+                        <span className="text-xs text-neutral-500">
                           {new Date(comment.created_at).toLocaleString()}
                         </span>
                       </div>
-                      <p className="text-sm text-slate-300">{comment.content}</p>
+                      <p className="text-sm text-neutral-300">{comment.content}</p>
                     </div>
                   ))
                 )}
@@ -1817,13 +1820,13 @@ export default function ProjectDetail() {
                   value={newComment}
                   onChange={e => setNewComment(e.target.value)}
                   placeholder="Add a comment..."
-                  className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
+                  className="flex-1 px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
                   onKeyDown={e => e.key === 'Enter' && addTaskComment()}
                 />
                 <button
                   onClick={addTaskComment}
                   disabled={!newComment.trim()}
-                  className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition disabled:opacity-50"
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition disabled:opacity-50"
                 >
                   Send
                 </button>
@@ -1838,21 +1841,21 @@ export default function ProjectDetail() {
         <Modal onClose={() => setShowBranchModal(false)} title="Create Branch">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Branch Name *</label>
+              <label className="block text-sm text-neutral-400 mb-1">Branch Name *</label>
               <input
                 type="text"
                 value={newBranch.name}
                 onChange={e => setNewBranch(prev => ({ ...prev, name: e.target.value }))}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 placeholder="feature/my-feature"
               />
             </div>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Description</label>
+              <label className="block text-sm text-neutral-400 mb-1">Description</label>
               <textarea
                 value={newBranch.description}
                 onChange={e => setNewBranch(prev => ({ ...prev, description: e.target.value }))}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white resize-none focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white resize-none focus:outline-none focus:border-purple-500"
                 rows={2}
                 placeholder="What this branch is for"
               />
@@ -1860,13 +1863,13 @@ export default function ProjectDetail() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowBranchModal(false)}
-                className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition"
+                className="flex-1 px-4 py-2 bg-neutral-700 text-neutral-300 rounded-lg hover:bg-neutral-600 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={createBranch}
-                className="flex-1 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition"
+                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition"
               >
                 Create Branch
               </button>
@@ -1880,32 +1883,32 @@ export default function ProjectDetail() {
         <Modal onClose={() => setShowPRModal(false)} title="Create Pull Request">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Title *</label>
+              <label className="block text-sm text-neutral-400 mb-1">Title *</label>
               <input
                 type="text"
                 value={newPR.title}
                 onChange={e => setNewPR(prev => ({ ...prev, title: e.target.value }))}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 placeholder="PR title"
               />
             </div>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Description</label>
+              <label className="block text-sm text-neutral-400 mb-1">Description</label>
               <textarea
                 value={newPR.description}
                 onChange={e => setNewPR(prev => ({ ...prev, description: e.target.value }))}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white resize-none focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white resize-none focus:outline-none focus:border-purple-500"
                 rows={3}
                 placeholder="Describe your changes"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Source Branch *</label>
+                <label className="block text-sm text-neutral-400 mb-1">Source Branch *</label>
                 <select
                   value={newPR.source_branch}
                   onChange={e => setNewPR(prev => ({ ...prev, source_branch: e.target.value }))}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 >
                   <option value="">Select branch</option>
                   {branches.map(b => (
@@ -1914,11 +1917,11 @@ export default function ProjectDetail() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Target Branch *</label>
+                <label className="block text-sm text-neutral-400 mb-1">Target Branch *</label>
                 <select
                   value={newPR.target_branch}
                   onChange={e => setNewPR(prev => ({ ...prev, target_branch: e.target.value }))}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 >
                   <option value="">Select branch</option>
                   {branches.map(b => (
@@ -1930,7 +1933,7 @@ export default function ProjectDetail() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowPRModal(false)}
-                className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition"
+                className="flex-1 px-4 py-2 bg-neutral-700 text-neutral-300 rounded-lg hover:bg-neutral-600 transition"
               >
                 Cancel
               </button>
@@ -1949,15 +1952,15 @@ export default function ProjectDetail() {
       {showInviteModal && (
         <Modal onClose={() => setShowInviteModal(false)} title="Invite Team Member">
           <div className="space-y-4">
-            <p className="text-sm text-slate-400 bg-slate-900/50 p-3 rounded-lg">
+            <p className="text-sm text-neutral-400 bg-neutral-900/50 p-3 rounded-lg">
               You can only invite users who follow you. They will receive an invitation to join the project.
             </p>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Select Follower *</label>
+              <label className="block text-sm text-neutral-400 mb-1">Select Follower *</label>
               <select
                 value={inviteData.invitee}
                 onChange={e => setInviteData(prev => ({ ...prev, invitee: e.target.value }))}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
               >
                 <option value="">Choose a follower</option>
                 {followers.map(f => (
@@ -1965,15 +1968,15 @@ export default function ProjectDetail() {
                 ))}
               </select>
               {followers.length === 0 && (
-                <p className="text-xs text-yellow-400 mt-1">You don't have any followers yet.</p>
+                <p className="text-xs text-amber-400 mt-1">You don't have any followers yet.</p>
               )}
             </div>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Role</label>
+              <label className="block text-sm text-neutral-400 mb-1">Role</label>
               <select
                 value={inviteData.role}
                 onChange={e => setInviteData(prev => ({ ...prev, role: e.target.value }))}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
               >
                 <option value="developer">Developer</option>
                 <option value="admin">Admin</option>
@@ -1981,11 +1984,11 @@ export default function ProjectDetail() {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Message (optional)</label>
+              <label className="block text-sm text-neutral-400 mb-1">Message (optional)</label>
               <textarea
                 value={inviteData.message}
                 onChange={e => setInviteData(prev => ({ ...prev, message: e.target.value }))}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white resize-none focus:outline-none focus:border-cyan-500"
+                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white resize-none focus:outline-none focus:border-purple-500"
                 rows={2}
                 placeholder="Join our awesome project!"
               />
@@ -1993,14 +1996,14 @@ export default function ProjectDetail() {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowInviteModal(false)}
-                className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition"
+                className="flex-1 px-4 py-2 bg-neutral-700 text-neutral-300 rounded-lg hover:bg-neutral-600 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={sendInvitation}
                 disabled={!inviteData.invitee}
-                className="flex-1 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition disabled:opacity-50"
+                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-500 transition disabled:opacity-50"
               >
                 Send Invitation
               </button>
@@ -2030,14 +2033,14 @@ function Modal({
       onClick={onClose}
     >
       <div
-        className={`bg-slate-800 rounded-xl border border-slate-700 shadow-2xl my-4 max-h-[calc(100vh-8rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col ${large ? 'w-full max-w-2xl' : 'w-full max-w-md'}`}
+        className={`bg-neutral-800 rounded-xl border border-neutral-700 shadow-2xl my-4 max-h-[calc(100vh-8rem)] sm:max-h-[calc(100vh-4rem)] flex flex-col ${large ? 'w-full max-w-2xl' : 'w-full max-w-md'}`}
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-4 border-b border-slate-700 shrink-0">
+        <div className="flex items-center justify-between p-4 border-b border-neutral-700 shrink-0">
           <h3 className="text-lg font-semibold text-white">{title}</h3>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white transition"
+            className="p-1 text-neutral-400 hover:text-white transition"
           >
             <X className="w-5 h-5" />
           </button>

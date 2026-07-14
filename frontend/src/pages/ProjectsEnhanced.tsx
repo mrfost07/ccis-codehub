@@ -813,10 +813,10 @@ export default function ProjectsEnhanced() {
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       'active': 'text-green-400 bg-green-500/20',
-      'in_progress': 'text-blue-400 bg-blue-500/20',
+      'in_progress': 'text-purple-400 bg-purple-500/20',
       'planning': 'text-amber-400 bg-amber-500/20',
       'completed': 'text-purple-400 bg-purple-500/20',
-      'on_hold': 'text-orange-400 bg-orange-500/20'
+      'on_hold': 'text-amber-400 bg-amber-500/20'
     }
     return colors[status] || 'text-neutral-400 bg-neutral-500/20'
   }
@@ -833,7 +833,7 @@ export default function ProjectsEnhanced() {
   const getTaskStatusIcon = (status: string) => {
     switch (status) {
       case 'done': return <CheckCircle2 className="w-4 h-4 text-green-400" />
-      case 'in_progress': return <Clock className="w-4 h-4 text-blue-400" />
+      case 'in_progress': return <Clock className="w-4 h-4 text-purple-400" />
       case 'review': return <Eye className="w-4 h-4 text-purple-400" />
       default: return <AlertCircle className="w-4 h-4 text-neutral-400" />
     }
@@ -1130,7 +1130,7 @@ export default function ProjectsEnhanced() {
                         >
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
+                              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-amber-500 flex items-center justify-center">
                                 <Crown className="w-6 h-6 text-white" />
                               </div>
                               <div>
@@ -1149,14 +1149,14 @@ export default function ProjectsEnhanced() {
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex -space-x-2">
                               {/* Leader avatar */}
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 border-2 border-neutral-800 flex items-center justify-center z-10 relative" title={team.leader_name}>
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-amber-500 border-2 border-neutral-800 flex items-center justify-center z-10 relative" title={team.leader_name}>
                                 <span className="text-xs font-bold text-white">
                                   {team.leader_name?.charAt(0)?.toUpperCase() || '?'}
                                 </span>
                               </div>
                               {/* Placeholder for members */}
                               {team.member_count > 1 && (
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 border-2 border-neutral-800 flex items-center justify-center z-[9] relative">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 border-2 border-neutral-800 flex items-center justify-center z-[9] relative">
                                   <span className="text-xs font-bold text-white">+{team.member_count - 1}</span>
                                 </div>
                               )}
@@ -1237,7 +1237,7 @@ export default function ProjectsEnhanced() {
                             <div className="flex -space-x-2">
                               {/* Leader avatar */}
                               <div
-                                className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 border-2 border-neutral-800 flex items-center justify-center z-10 relative cursor-pointer hover:scale-110 transition"
+                                className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-amber-500 border-2 border-neutral-800 flex items-center justify-center z-10 relative cursor-pointer hover:scale-110 transition"
                                 title={team.leader_name}
                                 onClick={(e) => { e.stopPropagation(); navigate(`/user/${team.leader}`); }}
                               >
@@ -1426,9 +1426,9 @@ export default function ProjectsEnhanced() {
 
                   {/* In Progress Column */}
                   <div className="bg-neutral-800/50 rounded-xl border border-neutral-700 overflow-hidden">
-                    <div className="p-3 border-b border-neutral-700 bg-blue-500/10">
+                    <div className="p-3 border-b border-neutral-700 bg-purple-500/10">
                       <h4 className="text-sm font-semibold text-white flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                        <div className="w-2 h-2 rounded-full bg-purple-500"></div>
                         In Progress
                         <span className="ml-auto text-xs text-neutral-400">
                           {allTasks.filter(t => t.status === 'in_progress').length}
@@ -1510,7 +1510,7 @@ export default function ProjectsEnhanced() {
                       { status: 'Active', count: stats.activeProjects, color: 'bg-green-500' },
                       { status: 'Completed', count: stats.completedProjects, color: 'bg-purple-500' },
                       { status: 'Planning', count: projects.filter(p => p.status === 'planning').length, color: 'bg-amber-500' },
-                      { status: 'On Hold', count: projects.filter(p => p.status === 'on_hold').length, color: 'bg-orange-500' }
+                      { status: 'On Hold', count: projects.filter(p => p.status === 'on_hold').length, color: 'bg-amber-500' }
                     ].map(item => (
                       <div key={item.status}>
                         <div className="flex justify-between text-sm mb-1">
@@ -1574,7 +1574,7 @@ export default function ProjectsEnhanced() {
                       <p className="text-xs text-neutral-400">Done</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-2xl font-bold text-blue-400">{stats.inProgressTasks}</p>
+                      <p className="text-2xl font-bold text-purple-400">{stats.inProgressTasks}</p>
                       <p className="text-xs text-neutral-400">In Progress</p>
                     </div>
                     <div className="text-center">
@@ -1753,13 +1753,13 @@ export default function ProjectsEnhanced() {
                       >
                         <div className="flex items-start gap-3">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${notif.notification_type === 'task_assigned' ? 'bg-purple-500/20' :
-                            notif.notification_type === 'task_status_changed' ? 'bg-blue-500/20' :
+                            notif.notification_type === 'task_status_changed' ? 'bg-purple-500/20' :
                               notif.notification_type === 'task_completed' ? 'bg-green-500/20' :
                                 notif.notification_type === 'team_invite' ? 'bg-purple-500/20' :
                                   'bg-neutral-700'
                             }`}>
                             {notif.notification_type === 'task_assigned' && <ListTodo className="w-5 h-5 text-purple-400" />}
-                            {notif.notification_type === 'task_status_changed' && <Activity className="w-5 h-5 text-blue-400" />}
+                            {notif.notification_type === 'task_status_changed' && <Activity className="w-5 h-5 text-purple-400" />}
                             {notif.notification_type === 'task_completed' && <CheckCircle2 className="w-5 h-5 text-green-400" />}
                             {notif.notification_type === 'team_invite' && <UsersRound className="w-5 h-5 text-purple-400" />}
                             {!['task_assigned', 'task_status_changed', 'task_completed', 'team_invite'].includes(notif.notification_type) && (
@@ -2217,7 +2217,7 @@ export default function ProjectsEnhanced() {
             <div className="flex items-center justify-between p-4 border-b border-neutral-700">
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${String(selectedTeam.leader) === String(user?.id)
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500'
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-500'
                   : 'bg-gradient-to-r from-purple-500 to-purple-500'
                   }`}>
                   {String(selectedTeam.leader) === String(user?.id)
@@ -2421,7 +2421,7 @@ export default function ProjectsEnhanced() {
                                       }}
                                       className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-neutral-800 transition"
                                     >
-                                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center">
                                         <span className="text-xs font-medium text-white">
                                           {searchUser.username?.charAt(0)?.toUpperCase() || '?'}
                                         </span>
@@ -2476,7 +2476,7 @@ export default function ProjectsEnhanced() {
                             />
                           ) : (
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition ${member.is_leader
-                              ? 'bg-gradient-to-br from-amber-500 to-orange-500 border-amber-400'
+                              ? 'bg-gradient-to-br from-amber-500 to-amber-500 border-amber-400'
                               : 'bg-gradient-to-br from-neutral-600 to-neutral-700 border-neutral-500 group-hover:border-purple-500'
                               }`}>
                               <span className="text-sm font-bold text-white">
