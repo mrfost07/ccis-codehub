@@ -1,0 +1,21 @@
+CHAPTER 5 FIGURE FILE REFERENCES
+
+Use these file paths when inserting the Chapter 5 figures into the thesis document.
+
+Figure 4. Training Accuracy and Loss of the CCIS Proctoring AI V4 Model
+C:\Users\fosta\OneDrive\Desktop\ccis-codehub-ai-models\CCIS_Proctoring_AI\docs\V4\Screenshot 2026-02-02 194659.png
+
+Figure 5. Advanced Classification Report of the CCIS Proctoring AI V4 Model
+C:\Users\fosta\OneDrive\Desktop\ccis-codehub-ai-models\CCIS_Proctoring_AI\docs\V4\Screenshot 2026-02-02 202341.png
+
+Figure 6. Training Loss Over Time of AI_MentorV3
+C:\Users\fosta\OneDrive\Desktop\ccis-codehub-ai-models\AI_MentorV3\Screenshot 2026-02-05 015134.png
+
+Figure 7. Evaluation Result of AI_MentorV3 with System Prompt
+C:\Users\fosta\OneDrive\Desktop\ccis-codehub-ai-models\AI_MentorV3\Screenshot 2026-02-05 014441.png
+
+Figure 8. Competence Heatmap of AI_MentorV3 by Role and Feature
+C:\Users\fosta\OneDrive\Desktop\ccis-codehub-ai-models\AI_MentorV3\Screenshot 2026-02-05 015152.png
+
+Optional support figure if you want to show the no-prompt comparison separately:
+C:\Users\fosta\OneDrive\Desktop\ccis-codehub-ai-models\AI_MentorV3\Screenshot 2026-02-05 022652.png

@@ -1,0 +1,109 @@
+CHAPTER 4
+METHODOLOGY
+
+4.1 Research Design
+
+This study employed a descriptive-developmental research design with an AI-oriented system implementation perspective. The descriptive component was used to analyze the current academic environment of the College of Computing and Information Sciences, particularly the fragmentation of digital tools used for learning, collaboration, communication, and assessment. The developmental component focused on the structured design, implementation, refinement, deployment preparation, and evaluation planning of CCIS-CodeHub as an integrated AI-driven academic platform.
+
+Because the thesis includes both software-platform development and AI-assisted academic support, the methodology also carries an applied experimental character in selected components. This is especially true in the AI subsystem, where contextual behavior, curriculum-aware guidance, and performance-related system characteristics must be observed and assessed rather than merely described. For that reason, the methodology combines standard system-development logic with AI-aware evaluation and software-quality assessment.
+
+4.2 Research Environment and Intended Evaluators
+
+The study is situated within the College of Computing and Information Sciences at Surigao del Norte State University. The intended environment of deployment is the college's academic setting, where students, instructors, and administrators interact with digital learning and collaboration tools as part of their normal academic activities.
+
+The primary intended end-users of the system are students enrolled in computing-related programs. These students are the main beneficiaries of the platform because the system is designed to reduce tool fragmentation, improve access to structured learning, support project-based collaboration, provide contextual AI guidance, and strengthen integrity-aware assessment.
+
+Instructors are also key intended evaluators because they manage learning content, quizzes, instructional materials, and student progress. Administrators serve as additional evaluators and oversight users because they handle broader role control, monitoring, and governance concerns. If the final thesis implementation includes a formal user survey, the exact number of student and faculty participants may be inserted in this section based on the approved evaluation sample.
+
+4.3 Research Instruments / Tools
+
+The development and evaluation of CCIS-CodeHub relied on both software-development tools and evaluation instruments.
+
+Development Tools
+
+The frontend of the system uses React 18 with TypeScript for interface development. The backend uses Django 4.2 with Django REST Framework for business logic and API handling. PostgreSQL serves as the primary database, while Redis supports asynchronous and event-based operations. WebSocket communication is used for live and monitoring-aware features. Background processing is handled through task-queue mechanisms where needed. External AI services are integrated to support contextual AI mentorship, recommendation generation, and content processing.
+
+AI and Content Tools
+
+Because the thesis is AI-oriented, the system also uses document-processing and context-building mechanisms to extract information from uploaded instructional materials and connect that information to AI-supported flows. This supports the thesis direction toward curriculum-aware AI and fine-tuned academic support.
+
+Evaluation Instruments
+
+For system evaluation, the study adopts ISO/IEC 25010:2023 as the formal reference for software-quality assessment [20]. In addition, performance-related observations may include page responsiveness, API response time, stability of live features, AI response consistency, and reliability of integrity-related event handling. If a user-based evaluation instrument is formally administered, it may be structured around the selected ISO/IEC 25010 quality characteristics using a rating scale appropriate to the institution's approved research design.
+
+4.4 Research Implementation
+
+The implementation of the study follows a staged development procedure aligned with system-development practice and the thesis objectives.
+
+Phase 1: Planning and Problem Analysis
+
+In this phase, the study identifies the core institutional problems addressed by the thesis: fragmented academic tools, weak continuity between learning and practice, uneven access to academic support, the growing influence of AI on programming learning, academic-integrity risks in digital assessment, and the need for overall system-performance evaluation.
+
+Phase 2: Requirements Analysis and Technical Design
+
+The researchers translate these problems into software and academic requirements. This includes defining user roles, feature needs, module relationships, content flows, AI-support expectations, assessment controls, and system-quality targets. During this phase, the conceptual framework, module boundaries, and evaluation direction of the platform are also clarified.
+
+Phase 3: AI Context Preparation and System Structuring
+
+Because the thesis extends beyond a conventional academic system, special attention is given to AI-context preparation. This includes determining how the AI Mentor will provide support, how curriculum materials may be processed for contextual guidance, how provider selection will be handled, and how the system will remain aligned with pedagogical objectives rather than unrestricted answer generation.
+
+Phase 4: Module Development and Integration
+
+The modules of the system are then implemented and integrated. These include the learning environment, project collaboration tools, community layer, AI mentor subsystem, and integrity-aware assessment flows. Integration is important because the thesis problem itself is rooted in fragmentation. Each module must therefore work as part of one coherent platform rather than as an isolated feature.
+
+Phase 5: Testing and Refinement
+
+After initial implementation, the modules undergo iterative testing and refinement. Adjustments are made to improve navigation, consistency across user roles, coherence between modules, AI-context relevance, and the stability of event-aware features. This phase reflects the developmental nature of the study and ensures that the final build is not merely feature-complete but academically and technically defensible.
+
+4.5 Research Deployment (System Testing and User Acceptance)
+
+Deployment in the context of the thesis refers to preparing the system for actual academic use and observing whether it performs acceptably in that environment. This stage may include the following layers of testing.
+
+Alpha Testing
+
+Alpha testing focuses on internal functional validation. It checks whether the modules operate according to the expected flows of the study. This includes account handling, learning access, project management, community interaction, AI support features, assessment controls, and data persistence.
+
+Beta Testing
+
+Beta testing may involve selected end-users from the intended academic context. This stage examines whether students and instructors can use the platform meaningfully in realistic academic scenarios. It also allows observation of usability, clarity of workflows, and operational issues that may not appear during internal development.
+
+User Acceptance Perspective
+
+From a user-acceptance standpoint, the system is considered acceptable when it can support the intended academic activities of the college in a stable, understandable, and relevant way. The platform should not only function technically, but also reflect the educational goals of the thesis by reducing fragmentation, supporting learning continuity, and providing meaningful AI-assisted and integrity-aware workflows.
+
+4.6 Research Evaluation
+
+The evaluation of the study is directly connected to the sixth specific objective: to evaluate system performance. In this thesis, system performance is treated as a multidimensional concept rather than a narrow measurement of speed alone.
+
+Software Quality Evaluation
+
+The main formal framework for evaluation is ISO/IEC 25010:2023 [20]. The most relevant characteristics for the thesis are:
+
+1. Functional suitability, to determine whether the platform satisfies the intended academic and technical requirements.
+2. Usability, to determine whether students, instructors, and administrators can interact with the platform effectively.
+3. Performance efficiency, to determine whether the platform responds appropriately during normal use and time-sensitive activities.
+4. Reliability, to determine whether the platform performs consistently across integrated modules.
+5. Security, to determine whether access control and protected academic workflows are appropriately enforced.
+6. Maintainability, to determine whether the modular structure of the system supports future enhancement and upkeep.
+
+System Performance Indicators
+
+In practical terms, system performance in the thesis may be evaluated through indicators such as response time of API-driven features, page-load responsiveness, stability of live quiz or monitoring flows, turnaround time of coding-related tasks, latency of AI-generated guidance, and consistency of event handling in integrity-aware assessments. These indicators align the sixth objective with observable technical behavior.
+
+AI-Support Evaluation
+
+Because the system is AI-driven, the evaluation must also consider whether the AI layer provides contextually appropriate assistance. This includes checking whether responses are relevant to the user's request, whether recommendations remain academically aligned, and whether the AI behavior supports guidance rather than direct academic substitution. If the final evaluation design includes expert review or rubric-based checking, this section may also incorporate measures for relevance, contextual accuracy, and instructional appropriateness.
+
+Interpretive Basis
+
+If the final implementation includes end-user survey data, the responses may be summarized using institutionally accepted descriptive statistics such as weighted mean and verbal interpretation. However, even without survey-only evaluation, the methodology remains valid because the sixth objective also allows technical system-performance assessment through quality-based observation and structured feature validation.
+
+4.7 Ethical and Data-Privacy Considerations
+
+The thesis includes AI-supported and integrity-aware features, which makes ethical handling essential. The system must respect role-based access boundaries, appropriate academic use of AI, and proportionate handling of monitoring-related data. Uploaded instructional materials should only be used for legitimate academic support and content structuring. Camera-related and integrity-aware features must remain bounded by educational purpose, institutional approval, and responsible user communication.
+
+These considerations are especially important in a thesis that includes both AI and proctoring-related mechanisms. The methodology therefore treats ethics not as an afterthought, but as part of sound system implementation and defensible academic research.
+
+4.8 Chapter Summary
+
+This chapter presented the methodology used in the design, implementation, deployment preparation, and evaluation planning of CCIS-CodeHub. It described the descriptive-developmental research design, the intended research environment, the development tools, the staged implementation procedure, the deployment logic, and the evaluation approach anchored in ISO/IEC 25010 and system-performance indicators. Most importantly, it incorporated the sixth objective of the study by positioning system-performance evaluation as a formal part of the research process. With the methodology established, the succeeding chapter may present the results and discussion of the implemented platform.

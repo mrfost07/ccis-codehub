@@ -186,30 +186,30 @@ export default function SlideBasedModuleEditor({
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-      <div className="min-h-screen bg-slate-900 p-3 sm:p-6">
+      <div className="min-h-screen bg-neutral-900 p-3 sm:p-6">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-4 sm:p-6 mb-4 sm:mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
               <div className="flex items-center gap-3 sm:gap-4">
-                <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400" />
+                <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400" />
                 <div>
                   <h2 className="text-xl sm:text-2xl font-bold text-white">Module Editor</h2>
-                  <p className="text-slate-400 text-sm hidden sm:block">Create engaging slides for your learning module</p>
+                  <p className="text-neutral-400 text-sm hidden sm:block">Create engaging slides for your learning module</p>
                 </div>
               </div>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+                  className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg transition flex items-center gap-2"
+                  className="px-6 py-2 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg transition flex items-center gap-2"
                 >
                   <Save className="w-4 h-4" />
                   Save Module
@@ -218,12 +218,12 @@ export default function SlideBasedModuleEditor({
             </div>
 
             {/* Slide Navigation */}
-            <div className="flex items-center justify-between bg-slate-900/50 rounded-lg p-2 sm:p-4 gap-2">
+            <div className="flex items-center justify-between bg-neutral-900/50 rounded-lg p-2 sm:p-4 gap-2">
               <button
                 type="button"
                 onClick={(e) => navigateSlide('prev', e)}
                 disabled={currentSlideIndex === 0}
-                className="p-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition"
+                className="p-2 bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -235,8 +235,8 @@ export default function SlideBasedModuleEditor({
                     type="button"
                     onClick={(e) => jumpToSlide(index, e)}
                     className={`px-4 py-2 rounded-lg transition ${index === currentSlideIndex
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
                       }`}
                   >
                     {index + 1}
@@ -267,7 +267,7 @@ export default function SlideBasedModuleEditor({
                 type="button"
                 onClick={(e) => navigateSlide('next', e)}
                 disabled={currentSlideIndex === slides.length - 1}
-                className="p-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition"
+                className="p-2 bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -275,13 +275,13 @@ export default function SlideBasedModuleEditor({
           </div>
 
           {/* Slide Editor */}
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-6">
+          <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
               <input
                 type="text"
                 value={currentSlide.title}
                 onChange={(e) => updateSlideTitle(e.target.value)}
-                className="text-2xl font-bold bg-transparent border-none outline-none text-white placeholder-slate-500 flex-1"
+                className="text-2xl font-bold bg-transparent border-none outline-none text-white placeholder-neutral-500 flex-1"
                 placeholder="Slide Title"
               />
               <button
@@ -305,7 +305,7 @@ export default function SlideBasedModuleEditor({
             </div>
 
             {/* Slide Counter */}
-            <div className="flex items-center justify-between text-sm text-slate-400 mt-4">
+            <div className="flex items-center justify-between text-sm text-neutral-400 mt-4">
               <span>
                 Slide {currentSlideIndex + 1} of {slides.length}
               </span>
@@ -316,9 +316,9 @@ export default function SlideBasedModuleEditor({
           </div>
 
           {/* Formatting Tips */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 mt-4">
+          <div className="bg-neutral-800/50 border border-neutral-700 rounded-xl p-4 mt-4">
             <h3 className="text-white font-semibold mb-2">Formatting Tips:</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-slate-400">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-neutral-400">
               <div>• <strong className="text-white">Bold</strong> text for emphasis</div>
               <div>• <em className="text-white">Italic</em> for definitions</div>
               <div>• Bullet points for lists</div>

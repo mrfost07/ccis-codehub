@@ -17,7 +17,9 @@ from .serializers import (
     UserSerializer, UserProfileSerializer,
     UserRegistrationSerializer, UserLoginSerializer
 )
+from .permissions import IsPlatformAdmin
 from .captcha import generate_captcha_challenge, verify_captcha_token
+from .oauth_identity import issue_google_identity_token, verify_google_identity_token
 
 
 class CaptchaChallengeView(APIView):
@@ -309,11 +311,15 @@ class UserViewSet(viewsets.ModelViewSet):
         return UserSerializer
     
     def get_permissions(self):
-        """Allow different permissions for different actions"""
-        if self.action in ['create']:
-            return [AllowAny()]
-        elif self.action in ['destroy', 'update', 'partial_update']:
-            return [IsAdminUser()]
+        """
+        Only platform admins may create, mutate, or delete users through this
+        viewset. Public self-registration has its own gated endpoint
+        (UserRegistrationView at /auth/register/), so `create` here must not be
+        open — an AllowAny create with a role/is_active-writable serializer is a
+        privilege-escalation hole. (Remediation Req 3.)
+        """
+        if self.action in ['create', 'destroy', 'update', 'partial_update']:
+            return [IsPlatformAdmin()]
         return [IsAuthenticated()]
     
     @action(detail=False, methods=['get'])
@@ -583,7 +589,8 @@ class GoogleOAuthCallbackView(APIView):
                     'client_id': client_id,
                     'client_secret': client_secret,
                 },
-                headers={'Content-Type': 'application/x-www-form-urlencoded'}
+                headers={'Content-Type': 'application/x-www-form-urlencoded'},
+                timeout=10,
             )
             
             if not token_response.ok:
@@ -598,7 +605,8 @@ class GoogleOAuthCallbackView(APIView):
             # Get user info from Google
             userinfo_response = requests.get(
                 'https://www.googleapis.com/oauth2/v2/userinfo',
-                headers={'Authorization': f"Bearer {token_data.get('access_token')}"}
+                headers={'Authorization': f"Bearer {token_data.get('access_token')}"},
+                timeout=10,
             )
             
             if not userinfo_response.ok:
@@ -659,14 +667,24 @@ class GoogleOAuthCallbackView(APIView):
                             'error': f'Only institutional emails (@ssct.edu.ph, @snsu.edu.ph) are allowed to sign up.',
                         }, status=status.HTTP_403_FORBIDDEN)
                     
-                    # Return Google data for profile completion (don't create user yet)
+                    # Return Google data for profile completion (don't create user yet).
+                    # identity_token is a server-signed proof of the Google-verified
+                    # email; create-account trusts only this token, not google_data,
+                    # which is display-only and could be tampered with. (Req 2.)
+                    google_id = google_user.get('id') or google_user.get('sub')
                     return Response({
                         'is_new_user': True,
+                        'identity_token': issue_google_identity_token(
+                            email,
+                            google_id,
+                            google_user.get('given_name', ''),
+                            google_user.get('family_name', ''),
+                        ),
                         'google_data': {
                             'email': email,
                             'first_name': google_user.get('given_name', ''),
                             'last_name': google_user.get('family_name', ''),
-                            'google_id': google_user.get('id') or google_user.get('sub'),  # v2 API uses 'id', OIDC uses 'sub'
+                            'google_id': google_id,
                             'picture': google_user.get('picture', ''),
                         }
                     })
@@ -693,29 +711,32 @@ class CreateGoogleAccountView(APIView):
     permission_classes = [AllowAny]
     
     def post(self, request):
-        google_data = request.data.get('google_data', {})
         profile_data = request.data.get('profile_data', {})
-        
-        # Debug logging
-        print(f"CreateGoogleAccountView - google_data: {google_data}")
-        print(f"CreateGoogleAccountView - profile_data: {profile_data}")
-        
-        email = google_data.get('email')
-        google_id = google_data.get('google_id')
-        
-        if not email:
+
+        # Identity comes ONLY from the server-signed token issued by the verified
+        # Google callback — never from client-supplied google_data. This blocks
+        # forging an account for an arbitrary email. (Remediation Req 2.)
+        identity = verify_google_identity_token(request.data.get('identity_token'))
+        if not identity:
             return Response(
-                {'error': 'Email is required in google_data'},
-                status=status.HTTP_400_BAD_REQUEST
+                {'error': 'Google identity could not be verified. Please sign in with Google again.'},
+                status=status.HTTP_401_UNAUTHORIZED
             )
-        
-        # Google ID is optional - if not provided, generate from email hash
-        # This handles stale OAuth data that may not have the ID
+
+        email = identity['email']
+        google_id = identity.get('google_id')
         if not google_id:
             import hashlib
             google_id = f"google_{hashlib.md5(email.encode()).hexdigest()[:16]}"
-            print(f"Generated google_id from email hash: {google_id}")
-        
+
+        # Enforce institutional domain even on the verified email (Req 2.3).
+        ALLOWED_DOMAINS = ['ssct.edu.ph', 'snsu.edu.ph']
+        if email.split('@')[-1].lower() not in ALLOWED_DOMAINS:
+            return Response(
+                {'error': 'Only institutional emails (@ssct.edu.ph, @snsu.edu.ph) are allowed.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         # Validate required profile fields
         program = profile_data.get('program')
         year_level = profile_data.get('year_level')
@@ -742,13 +763,17 @@ class CreateGoogleAccountView(APIView):
                 username = f"{base_username}{counter}"
                 counter += 1
             
-            # Create user
+            # Create user with the Google-verified names; force a non-privileged
+            # student account (identity/role never come from the client here).
             user = User.objects.create(
                 email=email,
                 username=username,
-                first_name=google_data.get('first_name', ''),
-                last_name=google_data.get('last_name', ''),
+                first_name=identity.get('first_name', ''),
+                last_name=identity.get('last_name', ''),
                 is_active=True,
+                is_staff=False,
+                is_superuser=False,
+                role='student',
                 google_id=google_id,
                 program=program,
                 year_level=year_level,

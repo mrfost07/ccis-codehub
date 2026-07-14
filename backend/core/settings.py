@@ -22,7 +22,9 @@ environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = env('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env('DJANGO_DEBUG', default=True)
+# Must parse as a boolean — env('...') returns the raw string, so "False"
+# would be truthy and silently keep DEBUG on (disabling the prod security block).
+DEBUG = env.bool('DJANGO_DEBUG', default=True)
 
 ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['localhost', '127.0.0.1', '.onrender.com', '.vercel.app'])
 
@@ -37,6 +39,14 @@ OPENROUTER_MODEL = env('OPENROUTER_MODEL', default='google/gemini-2.0-flash-exp:
 # GitHub API Configuration
 GITHUB_ACCESS_TOKEN = env('GITHUB_ACCESS_TOKEN', default='')
 
+# JSearch (RapidAPI) — Job Fetcher
+JSEARCH_API_KEY = env('JSEARCH_API_KEY', default='')
+JSEARCH_HOST    = env('JSEARCH_HOST', default='jsearch.p.rapidapi.com')
+
+# ElevenLabs TTS — Voice Chat
+ELEVENLABS_API_KEY = env('ELEVENLABS_API_KEY', default='')
+ELEVENLABS_VOICE_ID = env('ELEVENLABS_VOICE_ID', default='hpp4J3VqNfWAUOO0d1Us')  # Bella
+ELEVENLABS_MODEL_ID = env('ELEVENLABS_MODEL_ID', default='eleven_monolingual_v1')
 
 # Application definition
 
@@ -252,29 +262,48 @@ CORS_ALLOW_METHODS = [
 ]
 
 # Channels (WebSockets)
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [env('REDIS_URL', default='redis://localhost:6379/0')],
+# Use InMemoryChannelLayer in development (no Redis needed).
+# Set REDIS_URL in .env to switch to Redis-backed channels for production.
+_REDIS_URL = env('REDIS_URL', default='')
+if _REDIS_URL:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [_REDIS_URL],
+            },
         },
-    },
-}
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        },
+    }
 
-# Redis Cache
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': env('REDIS_URL', default='redis://localhost:6379/0'),
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+# Redis Cache — falls back to LocMemCache if no Redis configured
+if _REDIS_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': _REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            }
         }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        }
+    }
 
-# Celery Configuration
-CELERY_BROKER_URL = env('CELERY_BROKER_URL', default='redis://localhost:6379/0')
-CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default='redis://localhost:6379/0')
+
+# Celery Configuration — fall back to in-memory when Redis not configured
+CELERY_BROKER_URL = env('CELERY_BROKER_URL', default=_REDIS_URL or 'memory://')
+CELERY_RESULT_BACKEND = env('CELERY_RESULT_BACKEND', default=_REDIS_URL or 'cache+memory://')
+CELERY_TASK_ALWAYS_EAGER = not bool(_REDIS_URL)  # Run tasks synchronously in dev (no Redis)
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'

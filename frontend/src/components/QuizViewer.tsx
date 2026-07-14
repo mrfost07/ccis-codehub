@@ -194,7 +194,7 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
   if (questions.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-slate-400">Loading quiz questions...</p>
+        <p className="text-neutral-400">Loading quiz questions...</p>
       </div>
     )
   }
@@ -203,7 +203,7 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
   if (quizState === 'passed') {
     return (
       <div className="max-w-md mx-auto text-center py-4 sm:py-8">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/30">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/30">
           <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
         </div>
 
@@ -212,19 +212,19 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
         </h2>
         <p className="text-sm sm:text-base text-green-400 mb-4">You passed the quiz!</p>
 
-        <div className="bg-slate-800/50 rounded-xl p-4 mb-4 border border-green-500/30">
+        <div className="bg-neutral-800/50 rounded-xl p-4 mb-4 border border-green-500/30">
           <div className="flex items-center justify-center gap-6">
             <div>
               <p className="text-2xl sm:text-3xl font-bold text-green-400">{score}%</p>
-              <p className="text-xs text-slate-400">Score</p>
+              <p className="text-xs text-neutral-400">Score</p>
             </div>
-            <div className="w-px h-10 bg-slate-600"></div>
+            <div className="w-px h-10 bg-neutral-600"></div>
             <div>
-              <p className="text-2xl sm:text-3xl font-bold text-blue-400">{pointsEarned}/{totalPoints}</p>
-              <p className="text-xs text-slate-400">Points</p>
+              <p className="text-2xl sm:text-3xl font-bold text-purple-400">{pointsEarned}/{totalPoints}</p>
+              <p className="text-xs text-neutral-400">Points</p>
             </div>
           </div>
-          <p className="text-xs text-slate-400 mt-3 pt-3 border-t border-slate-700">
+          <p className="text-xs text-neutral-400 mt-3 pt-3 border-t border-neutral-700">
             Passing: {passingScore}% • Attempts: {attemptsUsed}/{maxAttempts}
           </p>
         </div>
@@ -241,39 +241,39 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
   if (quizState === 'failed') {
     return (
       <div className="max-w-md mx-auto text-center py-4 sm:py-8">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-500/30">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-500/30">
           <XCircle className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
         </div>
 
         <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">Quiz Not Passed</h2>
         <p className="text-sm text-red-400 mb-4">Review and try again.</p>
 
-        <div className="bg-slate-800/50 rounded-xl p-4 mb-4 border border-red-500/30">
+        <div className="bg-neutral-800/50 rounded-xl p-4 mb-4 border border-red-500/30">
           <div className="flex items-center justify-center gap-6">
             <div>
               <p className="text-2xl sm:text-3xl font-bold text-red-400">{score}%</p>
-              <p className="text-xs text-slate-400">Score</p>
+              <p className="text-xs text-neutral-400">Score</p>
             </div>
-            <div className="w-px h-10 bg-slate-600"></div>
+            <div className="w-px h-10 bg-neutral-600"></div>
             <div>
-              <p className="text-2xl sm:text-3xl font-bold text-blue-400">{pointsEarned}/{totalPoints}</p>
-              <p className="text-xs text-slate-400">Points</p>
+              <p className="text-2xl sm:text-3xl font-bold text-purple-400">{pointsEarned}/{totalPoints}</p>
+              <p className="text-xs text-neutral-400">Points</p>
             </div>
           </div>
-          <p className="text-xs text-slate-400 mt-3 pt-3 border-t border-slate-700">
+          <p className="text-xs text-neutral-400 mt-3 pt-3 border-t border-neutral-700">
             Need: {passingScore}% • Attempts: {attemptsUsed}/{maxAttempts}
           </p>
         </div>
 
         {attemptsRemaining > 0 ? (
           <div className="space-y-3">
-            <div className="bg-yellow-600/20 border border-yellow-500/30 rounded-lg p-3 flex items-center gap-2 justify-center">
-              <AlertTriangle className="w-4 h-4 text-yellow-400" />
-              <p className="text-yellow-300 text-sm">{attemptsRemaining} attempt{attemptsRemaining !== 1 ? 's' : ''} left</p>
+            <div className="bg-amber-600/20 border border-amber-500/30 rounded-lg p-3 flex items-center gap-2 justify-center">
+              <AlertTriangle className="w-4 h-4 text-amber-400" />
+              <p className="text-amber-300 text-sm">{attemptsRemaining} attempt{attemptsRemaining !== 1 ? 's' : ''} left</p>
             </div>
             <button
               onClick={handleRetry}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg transition font-medium flex items-center justify-center gap-2"
+              className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700 text-white rounded-lg transition font-medium flex items-center justify-center gap-2"
             >
               <RotateCcw className="w-4 h-4" />
               Retake Quiz
@@ -300,24 +300,24 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
     if (type === 'multiple_choice' && choices && choices.length > 0) {
       return (
         <div className="space-y-3">
-          <p className="text-sm text-slate-400 mb-4">Select all correct answers:</p>
+          <p className="text-sm text-neutral-400 mb-4">Select all correct answers:</p>
           {choices.map((choice, index) => {
             const isSelected = ((userAnswer as string[]) || []).includes(choice.id)
             return (
               <label
                 key={choice.id}
                 className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${isSelected
-                    ? 'bg-blue-600/20 border-blue-500 text-white'
-                    : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:border-slate-600'
+                  ? 'bg-purple-600/20 border-purple-500 text-white'
+                  : 'bg-neutral-800/50 border-neutral-700 text-neutral-300 hover:border-neutral-600'
                   }`}
               >
                 <input
                   type="checkbox"
                   checked={isSelected}
                   onChange={() => handleCheckboxChange(number, choice.id)}
-                  className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-0"
+                  className="w-5 h-5 rounded border-neutral-600 bg-neutral-700 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
                 />
-                <span className="font-medium text-blue-400 mr-2">
+                <span className="font-medium text-purple-400 mr-2">
                   {String.fromCharCode(65 + index)}.
                 </span>
                 <span className="flex-1">{choice.text}</span>
@@ -338,15 +338,15 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
               <label
                 key={option.id}
                 className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${isSelected
-                    ? 'bg-blue-600/20 border-blue-500 text-white'
-                    : 'bg-slate-800/50 border-slate-700 text-slate-300 hover:border-slate-600'
+                  ? 'bg-purple-600/20 border-purple-500 text-white'
+                  : 'bg-neutral-800/50 border-neutral-700 text-neutral-300 hover:border-neutral-600'
                   }`}
               >
                 <input
                   type="checkbox"
                   checked={isSelected}
                   onChange={() => setAnswers({ ...answers, [number]: [option.id] })}
-                  className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-blue-500"
+                  className="w-5 h-5 rounded border-neutral-600 bg-neutral-700 text-purple-600 focus:ring-purple-500"
                 />
                 <span className="font-medium">{option.text}</span>
               </label>
@@ -359,13 +359,13 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
     if (type === 'enumeration' || type === 'short_answer') {
       return (
         <div className="space-y-3">
-          <p className="text-sm text-slate-400 mb-4">Type your answer:</p>
+          <p className="text-sm text-neutral-400 mb-4">Type your answer:</p>
           <input
             type="text"
             value={(userAnswer as string) || ''}
             onChange={(e) => handleTextChange(number, e.target.value)}
             placeholder="Enter your answer..."
-            className="w-full px-4 py-3 bg-slate-800 border-2 border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-blue-500 focus:ring-0 text-lg"
+            className="w-full px-4 py-3 bg-neutral-800 border-2 border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:border-purple-500 focus:ring-0 text-lg"
           />
         </div>
       )
@@ -373,13 +373,13 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
 
     return (
       <div className="space-y-3">
-        <p className="text-sm text-slate-400 mb-4">Write your answer:</p>
+        <p className="text-sm text-neutral-400 mb-4">Write your answer:</p>
         <textarea
           value={(userAnswer as string) || ''}
           onChange={(e) => handleTextChange(number, e.target.value)}
           rows={5}
           placeholder="Type your answer here..."
-          className="w-full px-4 py-3 bg-slate-800 border-2 border-slate-700 rounded-xl text-white placeholder-slate-500 focus:border-blue-500 focus:ring-0 resize-none"
+          className="w-full px-4 py-3 bg-neutral-800 border-2 border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:border-purple-500 focus:ring-0 resize-none"
         />
       </div>
     )
@@ -388,31 +388,31 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
   return (
     <div className="space-y-6">
       {/* Progress Header */}
-      <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+      <div className="bg-neutral-800/50 rounded-xl p-4 border border-neutral-700">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-slate-400">
+          <span className="text-sm text-neutral-400">
             Question {currentQuestionIndex + 1} of {questions.length}
           </span>
-          <span className="text-sm text-slate-400">
+          <span className="text-sm text-neutral-400">
             Answered: {questions.filter(q => isAnswered(q.number)).length}/{questions.length}
           </span>
         </div>
-        <div className="w-full bg-slate-700 rounded-full h-2">
+        <div className="w-full bg-neutral-700 rounded-full h-2">
           <div
-            className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+            className="bg-purple-500 h-2 rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
       {/* Question Card */}
-      <div className="bg-slate-800/50 rounded-xl p-6 sm:p-8 border border-slate-700">
+      <div className="bg-neutral-800/50 rounded-xl p-6 sm:p-8 border border-neutral-700">
         <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="px-3 py-1 bg-blue-600/20 text-blue-400 rounded-lg text-sm font-medium">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="px-2.5 py-1 rounded-full border border-neutral-700 bg-neutral-800 text-neutral-300 text-xs font-medium">
               Question {currentQuestion.number}
             </span>
-            <span className="px-3 py-1 bg-purple-600/20 text-purple-400 rounded-lg text-sm">
+            <span className="px-2.5 py-1 rounded-full border border-purple-500/30 bg-purple-500/10 text-purple-300 text-xs font-medium">
               {currentQuestion.points} {currentQuestion.points === 1 ? 'point' : 'points'}
             </span>
           </div>
@@ -428,7 +428,7 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
         <button
           onClick={() => goToQuestion(currentQuestionIndex - 1)}
           disabled={currentQuestionIndex === 0}
-          className="flex items-center gap-2 px-4 sm:px-6 py-3 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition"
+          className="flex items-center gap-2 px-4 sm:px-6 py-3 bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition"
         >
           <ChevronLeft className="w-5 h-5" />
           <span className="hidden sm:inline">Previous</span>
@@ -440,10 +440,10 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
               key={q.number}
               onClick={() => goToQuestion(index)}
               className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-sm font-medium transition flex-shrink-0 ${index === currentQuestionIndex
-                  ? 'bg-blue-600 text-white'
-                  : isAnswered(q.number)
-                    ? 'bg-green-600/30 text-green-400 border border-green-600/50'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                ? 'bg-purple-600 text-white'
+                : isAnswered(q.number)
+                  ? 'bg-green-600/30 text-green-400 border border-green-600/50'
+                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
                 }`}
             >
               {q.number}
@@ -463,7 +463,7 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
         ) : (
           <button
             onClick={() => goToQuestion(currentQuestionIndex + 1)}
-            className="flex items-center gap-2 px-4 sm:px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+            className="flex items-center gap-2 px-4 sm:px-6 py-3 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition"
           >
             <span className="hidden sm:inline">Next</span>
             <ChevronRight className="w-5 h-5" />

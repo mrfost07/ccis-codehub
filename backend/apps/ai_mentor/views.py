@@ -36,16 +36,13 @@ def get_user_role(user) -> str:
     # Check if user is admin
     if user.is_superuser or user.is_staff:
         return 'admin'
-    
-    # Check if user has instructor role from UserProfile
-    try:
-        from apps.auth_app.models import UserProfile
-        profile = UserProfile.objects.filter(user=user).first()
-        if profile and profile.role in ['instructor', 'teacher', 'faculty']:
-            return 'instructor'
-    except Exception:
-        pass
-    
+
+    # Read the role straight from the User model, where it is defined. The old
+    # code imported a non-existent apps.auth_app.models.UserProfile, so the
+    # lookup always failed and every user was treated as a student. (Req 18.5.)
+    if getattr(user, 'role', None) in ['instructor', 'teacher', 'faculty']:
+        return 'instructor'
+
     return 'student'
 
 
@@ -180,6 +177,12 @@ class ProjectMentorSessionViewSet(viewsets.ModelViewSet):
                 {'error': 'Please select an AI model in settings before chatting.', 'model_required': True},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        # Fetch user's AI preferences (temperature, max_tokens)
+        from .models_settings import UserAISettings
+        user_settings, _ = UserAISettings.objects.get_or_create(user=request.user)
+        ai_temperature = float(user_settings.temperature) if hasattr(user_settings, 'temperature') else 0.7
+        ai_max_tokens = int(user_settings.max_tokens) if hasattr(user_settings, 'max_tokens') else 2000
         
         # Get conversation context (last 10 messages)
         recent_messages = AIMessage.objects.filter(
@@ -198,8 +201,12 @@ class ProjectMentorSessionViewSet(viewsets.ModelViewSet):
         action_service = ActionService(request.user)
         content_generator = ContentGenerator(request.user, model_type=model_type)
         
-        # Check if user is confirming a previous action
-        last_ai_message = recent_messages.first()
+        # Check if user is confirming a previous action. Look up the most recent
+        # AI message explicitly — recent_messages.first() is the user message we
+        # just created, whose metadata is empty. (Remediation Req 18.1.)
+        last_ai_message = AIMessage.objects.filter(
+            session=session, sender='ai'
+        ).order_by('-created_at').first()
         awaiting_confirmation = False
         if last_ai_message and last_ai_message.metadata:
             awaiting_confirmation = last_ai_message.metadata.get('awaiting_confirmation', False)
@@ -222,15 +229,21 @@ class ProjectMentorSessionViewSet(viewsets.ModelViewSet):
                     message=ai_response_text,
                     tokens_used=len(ai_response_text.split())
                 )
-                
+
                 profile.total_interactions += 1
                 profile.save()
-                
+
                 return Response({
                     'user_message': AIMessageSerializer(user_message).data,
                     'ai_response': AIMessageSerializer(ai_response).data,
                     'action': {'type': 'cancelled'}
                 })
+            else:
+                # Ambiguous reply while awaiting confirmation (neither yes nor no).
+                # Deterministically treat it as a fresh message and fall through to
+                # normal intent classification, so pending_intent/pending_data are
+                # never read unset. (Remediation Req 18.2 — was UnboundLocalError.)
+                awaiting_confirmation = False
         
         if not awaiting_confirmation:
             # Classify intent for new message
@@ -344,7 +357,7 @@ Available courses on the platform: {suggestions}
 
 Generate a helpful response suggesting these alternatives or asking to clarify their search."""
             
-            ai_response_text = get_ai_response(ai_prompt, model_type=model_type, user_role=get_user_role(request.user))
+            ai_response_text = get_ai_response(ai_prompt, model_type=model_type, user_role=get_user_role(request.user), temperature=ai_temperature, max_tokens=ai_max_tokens)
             tokens_used = len(ai_response_text.split())
             
             ai_response = AIMessage.objects.create(
@@ -394,7 +407,7 @@ Generate a congratulatory message and suggest they start with the first module."
 
 Generate a helpful response."""
                 
-                ai_response_text = get_ai_response(ai_prompt, model_type=model_type)
+                ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens)
                 tokens_used = len(ai_response_text.split())
                 
                 ai_response = AIMessage.objects.create(
@@ -451,7 +464,7 @@ Generate a helpful response."""
 
 Generate a congratulatory message and suggest next steps."""
                     
-                    ai_response_text = get_ai_response(ai_prompt, model_type=model_type)
+                    ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens)
                     tokens_used = len(ai_response_text.split())
                     
                     ai_response = AIMessage.objects.create(
@@ -519,7 +532,7 @@ Generated details:
 
 Present these details in a friendly way and ask for confirmation to create the project."""
             
-            ai_response_text = get_ai_response(ai_prompt, model_type=model_type)
+            ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens)
             tokens_used = len(ai_response_text.split())
             
             ai_response = AIMessage.objects.create(
@@ -566,7 +579,7 @@ Content: {post_content.get('content','')[:100]}...
 
 Generate a congratulatory message."""
                     
-                    ai_response_text = get_ai_response(ai_prompt, model_type=model_type)
+                    ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens)
                     tokens_used = len(ai_response_text.split())
                     
                     ai_response = AIMessage.objects.create(
@@ -631,7 +644,7 @@ Hashtags: {', '.join(post_content.get('hashtags', []))}
 
 Present this content and ask for confirmation to post it."""
             
-            ai_response_text = get_ai_response(ai_prompt, model_type=model_type)
+            ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens)
             tokens_used = len(ai_response_text.split())
             
             ai_response = AIMessage.objects.create(
@@ -679,7 +692,7 @@ Encourage them to continue learning and suggest they can ask for help with any c
 
 Encourage them to explore available courses and offer to help them find something that matches their interests."""
             
-            ai_response_text = get_ai_response(ai_prompt, model_type=model_type)
+            ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens)
             tokens_used = len(ai_response_text.split())
             
             ai_response = AIMessage.objects.create(
@@ -725,7 +738,7 @@ Ask if they want to work on any of these or create a new project."""
 
 Encourage them to create their first project or join existing ones. Offer to help them get started."""
             
-            ai_response_text = get_ai_response(ai_prompt, model_type=model_type)
+            ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens)
             tokens_used = len(ai_response_text.split())
             
             ai_response = AIMessage.objects.create(
@@ -1040,9 +1053,11 @@ Encourage them to create their first project or join existing ones. Offer to hel
             if not post_id:
                 ai_response_text = "Which post would you like to comment on? Please navigate to the Community page to comment on posts directly."
             else:
-                # Generate a comment based on topic
+                # Generate comment text via an existing generator method.
+                # ContentGenerator has no generate_comment(); generate_post_content
+                # returns a {'content': ...} dict we can reuse. (Req 18.3.)
                 content_generator = ContentGenerator(request.user, model_type=model_type)
-                comment_content = content_generator.generate_comment(topic)
+                comment_content = content_generator.generate_post_content(topic)
                 
                 result = action_service.comment_on_post(int(post_id), comment_content.get('content', topic))
                 ai_response_text = result['message']
@@ -1164,7 +1179,7 @@ class CodeAnalysisViewSet(viewsets.ModelViewSet):
         
         # Get user's preferred model
         profile, _ = AIMentorProfile.objects.get_or_create(user=self.request.user)
-        model_type = profile.preferred_ai_model or 'google_gemini'
+        model_type = profile.preferred_ai_model or 'mistral_direct'
         
         # Analyze code with AI
         try:
@@ -1208,7 +1223,7 @@ class LearningRecommendationViewSet(viewsets.ModelViewSet):
         
         # Get user's preferred model
         profile, _ = AIMentorProfile.objects.get_or_create(user=request.user)
-        model_type = profile.preferred_ai_model or 'google_gemini'
+        model_type = profile.preferred_ai_model or 'mistral_direct'
         
         # Generate recommendations
         prompt = f"""
@@ -1233,10 +1248,71 @@ class LearningRecommendationViewSet(viewsets.ModelViewSet):
                 difficulty_level=level
             )
             
+
             return Response(LearningRecommendationSerializer(recommendation).data)
             
         except Exception as e:
             return Response(
                 {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class GenerateQuizFromPDFView(APIView):
+    """View to generate quiz questions from uploaded PDF"""
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        if 'file' not in request.FILES:
+            return Response(
+                {'error': 'No file uploaded'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        pdf_file = request.FILES['file']
+        
+        # Check file type
+        if not pdf_file.name.lower().endswith('.pdf'):
+            return Response(
+                {'error': 'File must be a PDF'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # 1. Extract text from PDF
+        from .services.pdf_service import PDFService
+        context_text = PDFService.extract_text(pdf_file)
+        
+        if not context_text:
+            return Response(
+                {'error': 'Could not extract text from PDF'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # 2. Generate questions using AI
+        # Get user's preferred model
+        profile, _ = AIMentorProfile.objects.get_or_create(user=request.user)
+        model_type = profile.preferred_ai_model
+        
+        content_generator = ContentGenerator(request.user, model_type=model_type)
+        
+        # Validate before converting so non-numeric input doesn't 500. (Req 18.4.)
+        try:
+            num_questions = int(request.data.get('num_questions', 5))
+        except (TypeError, ValueError):
+            num_questions = 5
+        num_questions = max(1, min(num_questions, 20))
+        difficulty = request.data.get('difficulty', 'intermediate')
+        
+        result = content_generator.generate_quiz_questions(
+            context_text, 
+            num_questions=num_questions,
+            difficulty=difficulty
+        )
+        
+        if result['success']:
+            return Response(result)
+        else:
+            return Response(
+                {'error': result.get('error', 'Failed to generate questions')},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

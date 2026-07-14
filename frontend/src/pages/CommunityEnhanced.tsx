@@ -5,9 +5,11 @@ import CommunityChat from '../components/CommunityChat'
 import FollowRequests from '../components/FollowRequests'
 import toast from 'react-hot-toast'
 import api, { communityAPI } from '../services/api'
+import JobStories from '../components/JobStories'
 import { Heart, MessageCircle, Share2, Image, Send, X, Reply, ChevronDown, ChevronUp, ChevronRight, UserPlus, UserMinus, Bell, Users, Users2, Clock, Building2, Crown, Shield, Lock, Search, Check, ArrowLeft, Settings, Camera, Edit3, Trash2, Globe, MoreVertical } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { getMediaUrl } from '../utils/mediaUrl'
+import { Skeleton, SkeletonListRow } from '../components/ui'
 
 interface Author {
   id: string
@@ -148,21 +150,21 @@ function OrgAdminPanel({ org, onUpdate }: { org: Organization; onUpdate: () => v
 
   if (loading) {
     return (
-      <div className="mt-4 pt-4 border-t border-slate-700 flex justify-center py-4">
+      <div className="mt-4 pt-4 border-t border-neutral-700 flex justify-center py-4">
         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-500"></div>
       </div>
     )
   }
 
   return (
-    <div className="mt-4 pt-4 border-t border-slate-700">
+    <div className="mt-4 pt-4 border-t border-neutral-700">
       {/* Tabs */}
       <div className="flex gap-2 mb-3">
         <button
           onClick={() => setActiveSection('pending')}
           className={`text-xs px-3 py-1 rounded transition ${activeSection === 'pending'
-            ? 'bg-yellow-500/20 text-yellow-400'
-            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+            ? 'bg-amber-500/20 text-amber-400'
+            : 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600'
             }`}
         >
           Pending ({pendingMembers.length})
@@ -171,7 +173,7 @@ function OrgAdminPanel({ org, onUpdate }: { org: Organization; onUpdate: () => v
           onClick={() => setActiveSection('members')}
           className={`text-xs px-3 py-1 rounded transition ${activeSection === 'members'
             ? 'bg-purple-500/20 text-purple-400'
-            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+            : 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600'
             }`}
         >
           Members ({members.length})
@@ -182,7 +184,7 @@ function OrgAdminPanel({ org, onUpdate }: { org: Organization; onUpdate: () => v
       {activeSection === 'pending' && (
         <div className="space-y-2 max-h-48 overflow-y-auto">
           {pendingMembers.length > 0 ? pendingMembers.map(member => (
-            <div key={member.id} className="flex items-center justify-between bg-slate-700/50 rounded-lg p-2">
+            <div key={member.id} className="flex items-center justify-between bg-neutral-700/50 rounded-lg p-2">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-purple-500/30 flex items-center justify-center text-xs font-bold">
                   {member.user.username.charAt(0).toUpperCase()}
@@ -199,7 +201,7 @@ function OrgAdminPanel({ org, onUpdate }: { org: Organization; onUpdate: () => v
               </div>
             </div>
           )) : (
-            <p className="text-slate-500 text-xs text-center py-2">No pending requests</p>
+            <p className="text-neutral-500 text-xs text-center py-2">No pending requests</p>
           )}
         </div>
       )}
@@ -208,17 +210,17 @@ function OrgAdminPanel({ org, onUpdate }: { org: Organization; onUpdate: () => v
       {activeSection === 'members' && (
         <div className="space-y-2 max-h-48 overflow-y-auto">
           {members.map(member => (
-            <div key={member.id} className="flex items-center justify-between bg-slate-700/50 rounded-lg p-2">
+            <div key={member.id} className="flex items-center justify-between bg-neutral-700/50 rounded-lg p-2">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-purple-500/30 flex items-center justify-center text-xs font-bold">
                   {member.user.username.charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <span className="text-white text-sm">{member.user.username}</span>
-                  <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${member.role === 'owner' ? 'bg-yellow-500/20 text-yellow-400' :
+                  <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${member.role === 'owner' ? 'bg-amber-500/20 text-amber-400' :
                     member.role === 'admin' ? 'bg-purple-500/20 text-purple-400' :
-                      member.role === 'moderator' ? 'bg-blue-500/20 text-blue-400' :
-                        'bg-slate-600 text-slate-400'
+                      member.role === 'moderator' ? 'bg-purple-500/20 text-purple-400' :
+                        'bg-neutral-600 text-neutral-400'
                     }`}>
                     {member.role}
                   </span>
@@ -228,7 +230,7 @@ function OrgAdminPanel({ org, onUpdate }: { org: Organization; onUpdate: () => v
                 <select
                   value={member.role}
                   onChange={(e) => handleSetRole(member.user.id, e.target.value)}
-                  className="text-xs bg-slate-800 border border-slate-600 rounded px-2 py-1 text-white"
+                  className="text-xs bg-neutral-800 border border-neutral-600 rounded px-2 py-1 text-white"
                 >
                   <option value="member">Member</option>
                   <option value="moderator">Moderator</option>
@@ -484,7 +486,7 @@ function GroupPostCard({
   }
 
   return (
-    <div className="bg-slate-900 rounded-xl border border-slate-800 p-4" onClick={handleClickOutside}>
+    <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-4" onClick={handleClickOutside}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center text-sm font-bold overflow-hidden">
@@ -496,7 +498,7 @@ function GroupPostCard({
           </div>
           <div>
             <p className="text-white font-medium">{post.author.username}</p>
-            <p className="text-slate-500 text-xs">
+            <p className="text-neutral-500 text-xs">
               {new Date(post.created_at).toLocaleDateString()}
             </p>
           </div>
@@ -507,26 +509,26 @@ function GroupPostCard({
           <div className="relative">
             <button
               onClick={(e) => { e.stopPropagation(); setShowPostMenu(!showPostMenu) }}
-              className="p-1 rounded-full hover:bg-slate-700 transition"
+              className="p-1 rounded-full hover:bg-neutral-700 transition"
             >
-              <MoreVertical className="w-5 h-5 text-slate-400" />
+              <MoreVertical className="w-5 h-5 text-neutral-400" />
             </button>
 
             {showPostMenu && (
               <div
-                className="absolute right-0 mt-1 w-32 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50"
+                className="absolute right-0 mt-1 w-32 bg-neutral-800 border border-neutral-700 rounded-lg shadow-xl z-50"
                 onClick={(e) => e.stopPropagation()}
               >
                 <button
                   onClick={handleEditPost}
-                  className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 flex items-center gap-2 rounded-t-lg"
+                  className="w-full px-3 py-2 text-left text-sm text-neutral-300 hover:bg-neutral-700 flex items-center gap-2 rounded-t-lg"
                 >
                   <Edit3 className="w-4 h-4" />
                   Edit
                 </button>
                 <button
                   onClick={handleDeletePost}
-                  className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-slate-700 flex items-center gap-2 rounded-b-lg"
+                  className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-neutral-700 flex items-center gap-2 rounded-b-lg"
                 >
                   <Trash2 className="w-4 h-4" />
                   Delete
@@ -543,20 +545,20 @@ function GroupPostCard({
           <textarea
             value={editedPostContent}
             onChange={(e) => setEditedPostContent(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:outline-none"
+            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:outline-none"
             rows={4}
           />
           <div className="flex gap-2 mt-2">
             <button
               onClick={handleSavePostEdit}
-              className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg flex items-center gap-1"
+              className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-lg flex items-center gap-1"
             >
               <Check className="w-4 h-4" />
               Save
             </button>
             <button
               onClick={handleCancelPostEdit}
-              className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg flex items-center gap-1"
+              className="px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-white text-sm rounded-lg flex items-center gap-1"
             >
               <X className="w-4 h-4" />
               Cancel
@@ -564,7 +566,7 @@ function GroupPostCard({
           </div>
         </div>
       ) : (
-        <p className="text-slate-300 mb-3 whitespace-pre-wrap">{post.content}</p>
+        <p className="text-neutral-300 mb-3 whitespace-pre-wrap">{post.content}</p>
       )}
 
       {post.image_url && (
@@ -575,17 +577,17 @@ function GroupPostCard({
         />
       )}
 
-      <div className="flex items-center gap-4 pt-3 border-t border-slate-800">
+      <div className="flex items-center gap-4 pt-3 border-t border-neutral-800">
         <button
           onClick={() => onLike(post.id)}
-          className={`flex items-center gap-1 text-sm ${post.is_liked ? 'text-red-500' : 'text-slate-400 hover:text-red-400'}`}
+          className={`flex items-center gap-1 text-sm ${post.is_liked ? 'text-red-500' : 'text-neutral-400 hover:text-red-400'}`}
         >
           <Heart className={`w-4 h-4 ${post.is_liked ? 'fill-current' : ''}`} />
           {post.like_count}
         </button>
         <button
           onClick={handleToggleComments}
-          className="flex items-center gap-1 text-sm text-slate-400 hover:text-purple-400"
+          className="flex items-center gap-1 text-sm text-neutral-400 hover:text-purple-400"
         >
           <MessageCircle className="w-4 h-4" />
           {post.comment_count}
@@ -594,7 +596,7 @@ function GroupPostCard({
 
       {/* Comments Section */}
       {showComments && (
-        <div className="mt-4 pt-4 border-t border-slate-700">
+        <div className="mt-4 pt-4 border-t border-neutral-700">
           {/* Add Comment Form */}
           <form onSubmit={handleAddComment} className="flex gap-2 mb-4">
             <input
@@ -602,12 +604,12 @@ function GroupPostCard({
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Write a comment..."
-              className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
+              className="flex-1 px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
             />
             <button
               type="submit"
               disabled={!newComment.trim()}
-              className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg text-white text-sm"
+              className="px-3 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 rounded-lg text-white text-sm"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -635,37 +637,37 @@ function GroupPostCard({
                         )}
                       </div>
                       <div className="flex-1">
-                        <div className="bg-slate-800 rounded-lg p-2 relative">
+                        <div className="bg-neutral-800 rounded-lg p-2 relative">
                           <div className="flex items-center justify-between">
                             <span className="text-white text-sm font-medium">{comment.author.username}</span>
                             <div className="flex items-center gap-2">
-                              <span className="text-slate-500 text-xs">{new Date(comment.created_at).toLocaleDateString()}</span>
+                              <span className="text-neutral-500 text-xs">{new Date(comment.created_at).toLocaleDateString()}</span>
 
                               {/* 3-dot menu for comment owner */}
                               {isCommentAuthor(comment) && (
                                 <div className="relative">
                                   <button
                                     onClick={(e) => { e.stopPropagation(); setShowCommentMenu({ ...showCommentMenu, [comment.id]: !showCommentMenu[comment.id] }) }}
-                                    className="p-0.5 rounded hover:bg-slate-700 transition"
+                                    className="p-0.5 rounded hover:bg-neutral-700 transition"
                                   >
-                                    <MoreVertical className="w-4 h-4 text-slate-400" />
+                                    <MoreVertical className="w-4 h-4 text-neutral-400" />
                                   </button>
 
                                   {showCommentMenu[comment.id] && (
                                     <div
-                                      className="absolute right-0 mt-1 w-28 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50"
+                                      className="absolute right-0 mt-1 w-28 bg-neutral-700 border border-neutral-600 rounded-lg shadow-xl z-50"
                                       onClick={(e) => e.stopPropagation()}
                                     >
                                       <button
                                         onClick={() => handleEditComment(comment)}
-                                        className="w-full px-2 py-1.5 text-left text-xs text-slate-300 hover:bg-slate-600 flex items-center gap-2 rounded-t-lg"
+                                        className="w-full px-2 py-1.5 text-left text-xs text-neutral-300 hover:bg-neutral-600 flex items-center gap-2 rounded-t-lg"
                                       >
                                         <Edit3 className="w-3 h-3" />
                                         Edit
                                       </button>
                                       <button
                                         onClick={() => handleDeleteComment(comment.id)}
-                                        className="w-full px-2 py-1.5 text-left text-xs text-red-400 hover:bg-slate-600 flex items-center gap-2 rounded-b-lg"
+                                        className="w-full px-2 py-1.5 text-left text-xs text-red-400 hover:bg-neutral-600 flex items-center gap-2 rounded-b-lg"
                                       >
                                         <Trash2 className="w-3 h-3" />
                                         Delete
@@ -684,20 +686,20 @@ function GroupPostCard({
                                 type="text"
                                 value={editedCommentContent}
                                 onChange={(e) => setEditedCommentContent(e.target.value)}
-                                className="w-full px-2 py-1 bg-slate-700 border border-slate-600 rounded text-sm text-white focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                                className="w-full px-2 py-1 bg-neutral-700 border border-neutral-600 rounded text-sm text-white focus:ring-1 focus:ring-purple-500 focus:outline-none"
                                 onKeyPress={(e) => e.key === 'Enter' && handleSaveCommentEdit(comment.id)}
                               />
                               <div className="flex gap-1 mt-1">
                                 <button
                                   onClick={() => handleSaveCommentEdit(comment.id)}
-                                  className="px-2 py-0.5 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded flex items-center gap-1"
+                                  className="px-2 py-0.5 bg-purple-600 hover:bg-purple-500 text-white text-xs rounded flex items-center gap-1"
                                 >
                                   <Check className="w-3 h-3" />
                                   Save
                                 </button>
                                 <button
                                   onClick={handleCancelCommentEdit}
-                                  className="px-2 py-0.5 bg-slate-600 hover:bg-slate-500 text-white text-xs rounded flex items-center gap-1"
+                                  className="px-2 py-0.5 bg-neutral-600 hover:bg-neutral-500 text-white text-xs rounded flex items-center gap-1"
                                 >
                                   <X className="w-3 h-3" />
                                   Cancel
@@ -705,7 +707,7 @@ function GroupPostCard({
                               </div>
                             </div>
                           ) : (
-                            <p className="text-slate-300 text-sm mt-1">{comment.content}</p>
+                            <p className="text-neutral-300 text-sm mt-1">{comment.content}</p>
                           )}
                         </div>
 
@@ -713,14 +715,14 @@ function GroupPostCard({
                         <div className="flex items-center gap-3 mt-1 ml-1">
                           <button
                             onClick={() => handleLikeComment(comment.id)}
-                            className={`flex items-center gap-1 text-xs ${comment.is_liked ? 'text-red-500' : 'text-slate-400 hover:text-red-400'}`}
+                            className={`flex items-center gap-1 text-xs ${comment.is_liked ? 'text-red-500' : 'text-neutral-400 hover:text-red-400'}`}
                           >
                             <Heart className={`w-3 h-3 ${comment.is_liked ? 'fill-current' : ''}`} />
                             {comment.like_count || 0}
                           </button>
                           <button
                             onClick={() => toggleReplyInput(comment.id)}
-                            className="flex items-center gap-1 text-xs text-slate-400 hover:text-purple-400"
+                            className="flex items-center gap-1 text-xs text-neutral-400 hover:text-purple-400"
                           >
                             <Reply className="w-3 h-3" />
                             Reply
@@ -745,7 +747,7 @@ function GroupPostCard({
                               onChange={(e) => setReplyInputs({ ...replyInputs, [comment.id]: e.target.value })}
                               onKeyPress={(e) => e.key === 'Enter' && handleReply(comment.id)}
                               placeholder="Write a reply..."
-                              className="flex-1 px-2 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                              className="flex-1 px-2 py-1.5 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white focus:ring-1 focus:ring-purple-500 focus:outline-none"
                             />
                             <button
                               onClick={() => handleReply(comment.id)}
@@ -772,37 +774,37 @@ function GroupPostCard({
                                       )}
                                     </div>
                                     <div className="flex-1">
-                                      <div className="bg-slate-800/70 rounded-lg p-2 relative">
+                                      <div className="bg-neutral-800/70 rounded-lg p-2 relative">
                                         <div className="flex items-center justify-between">
                                           <span className="text-white text-xs font-medium">{reply.author.username}</span>
                                           <div className="flex items-center gap-2">
-                                            <span className="text-slate-500 text-xs">{new Date(reply.created_at).toLocaleDateString()}</span>
+                                            <span className="text-neutral-500 text-xs">{new Date(reply.created_at).toLocaleDateString()}</span>
 
                                             {/* 3-dot menu for reply owner */}
                                             {isCommentAuthor(reply) && (
                                               <div className="relative">
                                                 <button
                                                   onClick={(e) => { e.stopPropagation(); setShowCommentMenu({ ...showCommentMenu, [reply.id]: !showCommentMenu[reply.id] }) }}
-                                                  className="p-0.5 rounded hover:bg-slate-600 transition"
+                                                  className="p-0.5 rounded hover:bg-neutral-600 transition"
                                                 >
-                                                  <MoreVertical className="w-3 h-3 text-slate-400" />
+                                                  <MoreVertical className="w-3 h-3 text-neutral-400" />
                                                 </button>
 
                                                 {showCommentMenu[reply.id] && (
                                                   <div
-                                                    className="absolute right-0 mt-1 w-24 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50"
+                                                    className="absolute right-0 mt-1 w-24 bg-neutral-700 border border-neutral-600 rounded-lg shadow-xl z-50"
                                                     onClick={(e) => e.stopPropagation()}
                                                   >
                                                     <button
                                                       onClick={() => handleEditComment(reply)}
-                                                      className="w-full px-2 py-1 text-left text-xs text-slate-300 hover:bg-slate-600 flex items-center gap-1 rounded-t-lg"
+                                                      className="w-full px-2 py-1 text-left text-xs text-neutral-300 hover:bg-neutral-600 flex items-center gap-1 rounded-t-lg"
                                                     >
                                                       <Edit3 className="w-3 h-3" />
                                                       Edit
                                                     </button>
                                                     <button
                                                       onClick={() => handleDeleteComment(reply.id)}
-                                                      className="w-full px-2 py-1 text-left text-xs text-red-400 hover:bg-slate-600 flex items-center gap-1 rounded-b-lg"
+                                                      className="w-full px-2 py-1 text-left text-xs text-red-400 hover:bg-neutral-600 flex items-center gap-1 rounded-b-lg"
                                                     >
                                                       <Trash2 className="w-3 h-3" />
                                                       Delete
@@ -821,20 +823,20 @@ function GroupPostCard({
                                               type="text"
                                               value={editedCommentContent}
                                               onChange={(e) => setEditedCommentContent(e.target.value)}
-                                              className="w-full px-2 py-1 bg-slate-700 border border-slate-600 rounded text-xs text-white focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                                              className="w-full px-2 py-1 bg-neutral-700 border border-neutral-600 rounded text-xs text-white focus:ring-1 focus:ring-purple-500 focus:outline-none"
                                               onKeyPress={(e) => e.key === 'Enter' && handleSaveCommentEdit(reply.id)}
                                             />
                                             <div className="flex gap-1 mt-1">
                                               <button
                                                 onClick={() => handleSaveCommentEdit(reply.id)}
-                                                className="px-1.5 py-0.5 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded flex items-center gap-1"
+                                                className="px-1.5 py-0.5 bg-purple-600 hover:bg-purple-500 text-white text-xs rounded flex items-center gap-1"
                                               >
                                                 <Check className="w-3 h-3" />
                                                 Save
                                               </button>
                                               <button
                                                 onClick={handleCancelCommentEdit}
-                                                className="px-1.5 py-0.5 bg-slate-600 hover:bg-slate-500 text-white text-xs rounded flex items-center gap-1"
+                                                className="px-1.5 py-0.5 bg-neutral-600 hover:bg-neutral-500 text-white text-xs rounded flex items-center gap-1"
                                               >
                                                 <X className="w-3 h-3" />
                                                 Cancel
@@ -842,20 +844,20 @@ function GroupPostCard({
                                             </div>
                                           </div>
                                         ) : (
-                                          <p className="text-slate-300 text-xs mt-1">{reply.content}</p>
+                                          <p className="text-neutral-300 text-xs mt-1">{reply.content}</p>
                                         )}
                                       </div>
                                       <div className="flex items-center gap-3 mt-1 ml-1">
                                         <button
                                           onClick={() => handleLikeComment(reply.id)}
-                                          className={`flex items-center gap-1 text-xs ${reply.is_liked ? 'text-red-500' : 'text-slate-400 hover:text-red-400'}`}
+                                          className={`flex items-center gap-1 text-xs ${reply.is_liked ? 'text-red-500' : 'text-neutral-400 hover:text-red-400'}`}
                                         >
                                           <Heart className={`w-3 h-3 ${reply.is_liked ? 'fill-current' : ''}`} />
                                           {reply.like_count || 0}
                                         </button>
                                         <button
                                           onClick={() => toggleReplyInput(reply.id)}
-                                          className="flex items-center gap-1 text-xs text-slate-400 hover:text-purple-400"
+                                          className="flex items-center gap-1 text-xs text-neutral-400 hover:text-purple-400"
                                         >
                                           <Reply className="w-3 h-3" />
                                           Reply
@@ -871,7 +873,7 @@ function GroupPostCard({
                                             onChange={(e) => setReplyInputs({ ...replyInputs, [reply.id]: e.target.value })}
                                             onKeyPress={(e) => e.key === 'Enter' && handleReplyToReply(comment.id, reply.author.username, reply.id)}
                                             placeholder={`Reply to ${reply.author.username}...`}
-                                            className="flex-1 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs text-white focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                                            className="flex-1 px-2 py-1 bg-neutral-800 border border-neutral-700 rounded text-xs text-white focus:ring-1 focus:ring-purple-500 focus:outline-none"
                                           />
                                           <button
                                             onClick={() => handleReplyToReply(comment.id, reply.author.username, reply.id)}
@@ -895,7 +897,7 @@ function GroupPostCard({
               })}
             </div>
           ) : (
-            <p className="text-slate-500 text-sm text-center py-2">No comments yet</p>
+            <p className="text-neutral-500 text-sm text-center py-2">No comments yet</p>
           )}
         </div>
       )}
@@ -1067,9 +1069,9 @@ function GroupDetailView({
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-neutral-950">
       {/* Cover Image */}
-      <div className="relative h-48 sm:h-64 bg-gradient-to-r from-purple-600/40 to-blue-600/40">
+      <div className="relative h-48 sm:h-64 bg-neutral-900 bg-gradient-to-r from-purple-600/20 to-transparent">
         {coverPreview && (
           <img src={coverPreview} alt="" className="w-full h-full object-cover" />
         )}
@@ -1090,23 +1092,23 @@ function GroupDetailView({
       {/* Group Header */}
       <div className="max-w-4xl mx-auto px-4 -mt-16 relative z-10">
         <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
-          <div className="w-24 h-24 bg-slate-800 rounded-2xl flex items-center justify-center text-5xl border-4 border-slate-900 shadow-xl">
+          <div className="w-24 h-24 bg-neutral-800 rounded-2xl flex items-center justify-center text-5xl border-4 border-neutral-900 shadow-xl">
             {org.icon}
           </div>
           <div className="flex-1 pb-2">
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-2xl font-bold text-white">{org.name}</h1>
-              {org.is_official && <Crown className="w-5 h-5 text-yellow-400" />}
-              {org.is_private && <Lock className="w-4 h-4 text-slate-400" />}
+              {org.is_official && <Crown className="w-5 h-5 text-amber-400" />}
+              {org.is_private && <Lock className="w-4 h-4 text-neutral-400" />}
             </div>
-            <p className="text-slate-400 text-sm mt-1">
+            <p className="text-neutral-400 text-sm mt-1">
               {org.member_count} members · {org.post_count} posts · {org.org_type}
             </p>
           </div>
           {isAdmin && (
             <button
               onClick={() => setShowSettings(true)}
-              className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition"
+              className="p-2 bg-neutral-800 hover:bg-neutral-700 rounded-lg transition"
             >
               <Settings className="w-5 h-5 text-white" />
             </button>
@@ -1114,19 +1116,19 @@ function GroupDetailView({
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mt-6 border-b border-slate-800 overflow-x-auto">
+        <div className="flex gap-1 mt-6 border-b border-neutral-800 overflow-x-auto">
           {['posts', 'members', 'about'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab as any)}
               className={`px-4 py-3 text-sm font-medium capitalize whitespace-nowrap transition ${activeTab === tab
                 ? 'text-purple-400 border-b-2 border-purple-400'
-                : 'text-slate-400 hover:text-white'
+                : 'text-neutral-400 hover:text-white'
                 }`}
             >
               {tab}
               {tab === 'members' && pendingMembers.length > 0 && isAdmin && (
-                <span className="ml-2 px-1.5 py-0.5 bg-yellow-500 text-black text-xs rounded-full">
+                <span className="ml-2 px-1.5 py-0.5 bg-amber-500 text-black text-xs rounded-full">
                   {pendingMembers.length}
                 </span>
               )}
@@ -1138,8 +1140,8 @@ function GroupDetailView({
       {/* Content */}
       <div className="max-w-4xl mx-auto px-4 py-6">
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+          <div className="space-y-4">
+            {[0, 1, 2].map(i => <SkeletonListRow key={i} />)}
           </div>
         ) : (
           <>
@@ -1148,7 +1150,7 @@ function GroupDetailView({
               <div className="space-y-6">
                 {/* Create Post */}
                 {org.is_member && (
-                  <form onSubmit={handleCreatePost} className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+                  <form onSubmit={handleCreatePost} className="bg-neutral-900 rounded-xl border border-neutral-800 p-4">
                     <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center text-sm font-bold">
                         {currentUser?.username?.charAt(0).toUpperCase() || 'U'}
@@ -1158,7 +1160,7 @@ function GroupDetailView({
                           value={newPost}
                           onChange={(e) => setNewPost(e.target.value)}
                           placeholder={`Share something with ${org.name}...`}
-                          className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                          className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                           rows={3}
                         />
                         {imagePreview && (
@@ -1174,14 +1176,14 @@ function GroupDetailView({
                           </div>
                         )}
                         <div className="flex items-center justify-between mt-3">
-                          <label className="p-2 hover:bg-slate-700 rounded-lg cursor-pointer transition">
-                            <Image className="w-5 h-5 text-slate-400" />
+                          <label className="p-2 hover:bg-neutral-700 rounded-lg cursor-pointer transition">
+                            <Image className="w-5 h-5 text-neutral-400" />
                             <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
                           </label>
                           <button
                             type="submit"
                             disabled={!newPost.trim() && !postImage}
-                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg text-white text-sm transition"
+                            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 rounded-lg text-white text-sm transition"
                           >
                             Post
                           </button>
@@ -1201,9 +1203,9 @@ function GroupDetailView({
                     currentUser={currentUser}
                   />
                 )) : (
-                  <div className="text-center py-12 bg-slate-900 rounded-xl border border-slate-800">
-                    <MessageCircle className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                    <p className="text-slate-400">No posts yet. Be the first to share!</p>
+                  <div className="text-center py-12 bg-neutral-900 rounded-xl border border-neutral-800">
+                    <MessageCircle className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
+                    <p className="text-neutral-400">No posts yet. Be the first to share!</p>
                   </div>
                 )}
               </div>
@@ -1214,13 +1216,13 @@ function GroupDetailView({
               <div className="space-y-6">
                 {/* Pending Requests (Admin Only) */}
                 {isAdmin && pendingMembers.length > 0 && (
-                  <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
-                    <h3 className="text-lg font-semibold text-yellow-400 mb-3">
+                  <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+                    <h3 className="text-lg font-semibold text-amber-400 mb-3">
                       Pending Requests ({pendingMembers.length})
                     </h3>
                     <div className="space-y-2">
                       {pendingMembers.map(member => (
-                        <div key={member.id} className="flex items-center justify-between bg-slate-800/50 rounded-lg p-3">
+                        <div key={member.id} className="flex items-center justify-between bg-neutral-800/50 rounded-lg p-3">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center font-bold">
                               {member.user.username.charAt(0).toUpperCase()}
@@ -1242,21 +1244,21 @@ function GroupDetailView({
                 )}
 
                 {/* Members List */}
-                <div className="bg-slate-900 rounded-xl border border-slate-800 p-4">
+                <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-4">
                   <h3 className="text-lg font-semibold text-white mb-4">Members ({members.length})</h3>
                   <div className="space-y-2">
                     {members.map(member => (
-                      <div key={member.id} className="flex items-center justify-between bg-slate-800/50 rounded-lg p-3">
+                      <div key={member.id} className="flex items-center justify-between bg-neutral-800/50 rounded-lg p-3">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-purple-500/30 flex items-center justify-center font-bold">
                             {member.user.username.charAt(0).toUpperCase()}
                           </div>
                           <div>
                             <span className="text-white">{member.user.username}</span>
-                            <span className={`ml-2 text-xs px-2 py-0.5 rounded ${member.role === 'owner' ? 'bg-yellow-500/20 text-yellow-400' :
+                            <span className={`ml-2 text-xs px-2 py-0.5 rounded ${member.role === 'owner' ? 'bg-amber-500/20 text-amber-400' :
                               member.role === 'admin' ? 'bg-purple-500/20 text-purple-400' :
-                                member.role === 'moderator' ? 'bg-blue-500/20 text-blue-400' :
-                                  'bg-slate-700 text-slate-400'
+                                member.role === 'moderator' ? 'bg-purple-500/20 text-purple-400' :
+                                  'bg-neutral-700 text-neutral-400'
                               }`}>
                               {member.role}
                             </span>
@@ -1266,7 +1268,7 @@ function GroupDetailView({
                           <select
                             value={member.role}
                             onChange={(e) => handleSetRole(member.user.id, e.target.value)}
-                            className="text-sm bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white"
+                            className="text-sm bg-neutral-700 border border-neutral-600 rounded px-2 py-1 text-white"
                           >
                             <option value="member">Member</option>
                             <option value="moderator">Moderator</option>
@@ -1282,32 +1284,32 @@ function GroupDetailView({
 
             {/* About Tab */}
             {activeTab === 'about' && (
-              <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
+              <div className="bg-neutral-900 rounded-xl border border-neutral-800 p-6">
                 <h3 className="text-lg font-semibold text-white mb-4">About {org.name}</h3>
-                <p className="text-slate-300 mb-6">{org.description || 'No description provided.'}</p>
+                <p className="text-neutral-300 mb-6">{org.description || 'No description provided.'}</p>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-800 rounded-lg p-4">
-                    <p className="text-slate-400 text-sm">Type</p>
+                  <div className="bg-neutral-800 rounded-lg p-4">
+                    <p className="text-neutral-400 text-sm">Type</p>
                     <p className="text-white capitalize">{org.org_type}</p>
                   </div>
-                  <div className="bg-slate-800 rounded-lg p-4">
-                    <p className="text-slate-400 text-sm">Privacy</p>
+                  <div className="bg-neutral-800 rounded-lg p-4">
+                    <p className="text-neutral-400 text-sm">Privacy</p>
                     <p className="text-white">{org.is_private ? 'Private' : 'Public'}</p>
                   </div>
-                  <div className="bg-slate-800 rounded-lg p-4">
-                    <p className="text-slate-400 text-sm">Members</p>
+                  <div className="bg-neutral-800 rounded-lg p-4">
+                    <p className="text-neutral-400 text-sm">Members</p>
                     <p className="text-white">{org.member_count}</p>
                   </div>
-                  <div className="bg-slate-800 rounded-lg p-4">
-                    <p className="text-slate-400 text-sm">Posts</p>
+                  <div className="bg-neutral-800 rounded-lg p-4">
+                    <p className="text-neutral-400 text-sm">Posts</p>
                     <p className="text-white">{org.post_count}</p>
                   </div>
                 </div>
 
                 {org.program && (
-                  <div className="mt-4 bg-slate-800 rounded-lg p-4">
-                    <p className="text-slate-400 text-sm">Program</p>
+                  <div className="mt-4 bg-neutral-800 rounded-lg p-4">
+                    <p className="text-neutral-400 text-sm">Program</p>
                     <p className="text-white">{org.program}</p>
                   </div>
                 )}
@@ -1320,83 +1322,83 @@ function GroupDetailView({
       {/* Settings Modal */}
       {showSettings && isAdmin && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 rounded-2xl border border-slate-700 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-700 flex items-center justify-between">
+          <div className="bg-neutral-900 rounded-2xl border border-neutral-700 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-neutral-700 flex items-center justify-between">
               <h2 className="text-xl font-bold text-white">Group Settings</h2>
-              <button onClick={() => setShowSettings(false)} className="p-2 hover:bg-slate-800 rounded-lg">
-                <X className="w-5 h-5 text-slate-400" />
+              <button onClick={() => setShowSettings(false)} className="p-2 hover:bg-neutral-800 rounded-lg">
+                <X className="w-5 h-5 text-neutral-400" />
               </button>
             </div>
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Group Name</label>
+                <label className="text-sm text-neutral-400 mb-1 block">Group Name</label>
                 <input
                   type="text"
                   value={editForm.name}
                   onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
+                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white"
                 />
               </div>
 
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Icon (emoji)</label>
+                <label className="text-sm text-neutral-400 mb-1 block">Icon (emoji)</label>
                 <input
                   type="text"
                   value={editForm.icon}
                   onChange={(e) => setEditForm({ ...editForm, icon: e.target.value })}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-2xl"
+                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-2xl"
                   maxLength={2}
                 />
               </div>
 
               <div>
-                <label className="text-sm text-slate-400 mb-1 block">Description</label>
+                <label className="text-sm text-neutral-400 mb-1 block">Description</label>
                 <textarea
                   value={editForm.description}
                   onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                   rows={4}
-                  className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white resize-none"
+                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white resize-none"
                 />
               </div>
 
               <div className="flex items-center justify-between py-2">
                 <div>
                   <p className="text-white">Private Group</p>
-                  <p className="text-slate-400 text-sm">Only invited members can join</p>
+                  <p className="text-neutral-400 text-sm">Only invited members can join</p>
                 </div>
                 <button
                   onClick={() => setEditForm({ ...editForm, is_private: !editForm.is_private })}
-                  className={`w-12 h-6 rounded-full transition ${editForm.is_private ? 'bg-purple-600' : 'bg-slate-700'}`}
+                  className={`w-12 h-6 rounded-full transition ${editForm.is_private ? 'bg-purple-600' : 'bg-neutral-700'}`}
                 >
-                  <div className={`w-5 h-5 bg-white rounded-full transition-transform ${editForm.is_private ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                  <div className={`w-5 h-5 bg-white rounded-full transition-transform ${editForm.is_private ? 'tranneutral-x-6' : 'tranneutral-x-0.5'}`} />
                 </button>
               </div>
 
               <div className="flex items-center justify-between py-2">
                 <div>
                   <p className="text-white">Require Approval</p>
-                  <p className="text-slate-400 text-sm">Admins must approve new members</p>
+                  <p className="text-neutral-400 text-sm">Admins must approve new members</p>
                 </div>
                 <button
                   onClick={() => setEditForm({ ...editForm, requires_approval: !editForm.requires_approval })}
-                  className={`w-12 h-6 rounded-full transition ${editForm.requires_approval ? 'bg-purple-600' : 'bg-slate-700'}`}
+                  className={`w-12 h-6 rounded-full transition ${editForm.requires_approval ? 'bg-purple-600' : 'bg-neutral-700'}`}
                 >
-                  <div className={`w-5 h-5 bg-white rounded-full transition-transform ${editForm.requires_approval ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                  <div className={`w-5 h-5 bg-white rounded-full transition-transform ${editForm.requires_approval ? 'tranneutral-x-6' : 'tranneutral-x-0.5'}`} />
                 </button>
               </div>
             </div>
 
-            <div className="p-6 border-t border-slate-700 flex gap-3 justify-end">
+            <div className="p-6 border-t border-neutral-700 flex gap-3 justify-end">
               <button
                 onClick={() => setShowSettings(false)}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white"
+                className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg text-white"
               >
                 Cancel
               </button>
               <button
                 onClick={handleUpdateGroup}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white"
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-white"
               >
                 Save Changes
               </button>
@@ -2027,10 +2029,14 @@ export default function CommunityEnhanced() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950">
+      <div className="min-h-screen bg-neutral-950">
         <Navbar />
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-4">
+          <Skeleton className="h-9 w-56" />
+          <Skeleton className="h-4 w-80" />
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900/60 divide-y divide-neutral-800/70 mt-6">
+            {[0, 1, 2, 3].map(i => <SkeletonListRow key={i} />)}
+          </div>
         </div>
       </div>
     )
@@ -2056,26 +2062,26 @@ export default function CommunityEnhanced() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-neutral-950">
       <Navbar />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">👥 Community</h1>
-            <p className="text-slate-400">Connect, share, and compete with fellow developers</p>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2">Community</h1>
+            <p className="text-neutral-400">Connect, share, and compete with fellow developers</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowSearchModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition"
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition"
             >
               <Search className="w-5 h-5" />
               <span className="hidden sm:inline">Search Coder</span>
             </button>
             <button
               onClick={() => setShowFollowRequests(true)}
-              className="relative flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition"
+              className="relative flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg transition"
             >
               <Bell className="w-5 h-5" />
               <span className="hidden sm:inline">Requests</span>
@@ -2089,12 +2095,12 @@ export default function CommunityEnhanced() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-slate-800 pb-4">
+        <div className="flex gap-2 mb-6 border-b border-neutral-800 pb-4">
           <button
             onClick={() => setActiveTab('feed')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${activeTab === 'feed'
               ? 'bg-purple-600 text-white'
-              : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
               }`}
           >
             <MessageCircle className="w-4 h-4" />
@@ -2104,13 +2110,13 @@ export default function CommunityEnhanced() {
             onClick={() => setActiveTab('groups')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition ${activeTab === 'groups'
               ? 'bg-purple-600 text-white'
-              : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
               }`}
           >
             <Building2 className="w-4 h-4" />
             Groups
             {orgInvitations.length > 0 && (
-              <span className="bg-yellow-500 text-black text-xs px-1.5 py-0.5 rounded-full">
+              <span className="bg-amber-500 text-black text-xs px-1.5 py-0.5 rounded-full">
                 {orgInvitations.length}
               </span>
             )}
@@ -2120,12 +2126,12 @@ export default function CommunityEnhanced() {
         {activeTab === 'feed' && (
           <>
             {/* Create Post Form */}
-            <form onSubmit={handleCreatePost} className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700/50 p-4 sm:p-6 mb-6 shadow-lg">
+            <form onSubmit={handleCreatePost} className="bg-neutral-800/50 backdrop-blur-sm rounded-xl border border-neutral-700/50 p-4 sm:p-6 mb-6 shadow-lg">
               <textarea
                 value={newPost}
                 onChange={(e) => setNewPost(e.target.value)}
                 placeholder="Share your thoughts, code snippets, or ask questions..."
-                className="w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 rows={3}
               />
 
@@ -2147,7 +2153,7 @@ export default function CommunityEnhanced() {
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 gap-3">
                 <div className="flex flex-wrap items-center gap-3">
-                  <label className="flex items-center gap-2 cursor-pointer text-slate-400 hover:text-purple-400">
+                  <label className="flex items-center gap-2 cursor-pointer text-neutral-400 hover:text-purple-400">
                     <Image className="w-5 h-5" />
                     <span className="text-sm">Add Image</span>
                     <input
@@ -2161,11 +2167,11 @@ export default function CommunityEnhanced() {
                   {/* Group Selector */}
                   {myOrgs.length > 0 && (
                     <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4 text-slate-400" />
+                      <Users className="w-4 h-4 text-neutral-400" />
                       <select
                         value={selectedPostOrg}
                         onChange={(e) => setSelectedPostOrg(e.target.value)}
-                        className="bg-slate-800 border border-slate-700 rounded-lg text-sm text-white px-2 py-1.5 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                        className="bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white px-2 py-1.5 focus:ring-2 focus:ring-purple-500 focus:outline-none"
                       >
                         <option value="">Public Post</option>
                         {myOrgs.map(org => (
@@ -2180,26 +2186,29 @@ export default function CommunityEnhanced() {
 
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg font-semibold hover:from-purple-700 hover:to-indigo-700"
+                  className="px-6 py-2 bg-gradient-to-r from-purple-600 to-purple-600 rounded-lg font-semibold hover:from-purple-700 hover:to-purple-700"
                 >
                   Post
                 </button>
               </div>
             </form>
 
+            {/* Job Stories Strip */}
+            <JobStories />
+
             {/* Posts List */}
             <div className="space-y-6">
               {posts.length === 0 ? (
-                <div className="text-center py-12 text-slate-400">
+                <div className="text-center py-12 text-neutral-400">
                   <p className="text-lg">No posts yet. Be the first to share!</p>
                 </div>
               ) : (
                 posts.map((post) => (
-                  <div key={post.id} className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700/50 p-4 sm:p-6 shadow-lg hover:border-slate-600/50 transition">
+                  <div key={post.id} className="bg-neutral-800/50 backdrop-blur-sm rounded-xl border border-neutral-700/50 p-4 sm:p-6 shadow-lg hover:border-neutral-600/50 transition">
                     {/* Group Badge - Shows above post if it's a group post */}
                     {post.organization_data && (
                       <div
-                        className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-800 cursor-pointer hover:bg-slate-800/30 -mx-2 px-2 py-1 rounded transition"
+                        className="flex items-center gap-2 mb-3 pb-2 border-b border-neutral-800 cursor-pointer hover:bg-neutral-800/30 -mx-2 px-2 py-1 rounded transition"
                         onClick={() => {
                           const org = myOrgs.find(o => o.id === post.organization_data?.id)
                           if (org) setViewingGroup(org)
@@ -2207,13 +2216,13 @@ export default function CommunityEnhanced() {
                       >
                         <span className="text-lg">{post.organization_data.icon}</span>
                         <span className="text-purple-400 font-medium text-sm">{post.organization_data.name}</span>
-                        <ChevronRight className="w-3 h-3 text-slate-500" />
+                        <ChevronRight className="w-3 h-3 text-neutral-500" />
                       </div>
                     )}
 
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-500 rounded-full flex items-center justify-center">
                           {post.author.profile_picture ? (
                             <img
                               src={getMediaUrl(post.author.profile_picture) || ''}
@@ -2238,7 +2247,7 @@ export default function CommunityEnhanced() {
                               followingUsers.has(String(post.author.id)) ? (
                                 <button
                                   onClick={() => handleUnfollow(post.author.id)}
-                                  className="flex items-center gap-1 px-2 py-0.5 bg-slate-700 hover:bg-red-600 text-slate-300 hover:text-white text-xs rounded-full transition"
+                                  className="flex items-center gap-1 px-2 py-0.5 bg-neutral-700 hover:bg-red-600 text-neutral-300 hover:text-white text-xs rounded-full transition"
                                 >
                                   <UserMinus className="w-3 h-3" />
                                   Following
@@ -2246,7 +2255,7 @@ export default function CommunityEnhanced() {
                               ) : pendingUsers.has(String(post.author.id)) ? (
                                 <button
                                   onClick={() => handleCancelRequest(post.author.id)}
-                                  className="flex items-center gap-1 px-2 py-0.5 bg-yellow-600/50 hover:bg-red-600 text-yellow-200 hover:text-white text-xs rounded-full transition"
+                                  className="flex items-center gap-1 px-2 py-0.5 bg-amber-600/50 hover:bg-red-600 text-amber-200 hover:text-white text-xs rounded-full transition"
                                 >
                                   <Clock className="w-3 h-3" />
                                   Requested
@@ -2254,7 +2263,7 @@ export default function CommunityEnhanced() {
                               ) : (
                                 <button
                                   onClick={() => handleFollow(post.author.id)}
-                                  className="flex items-center gap-1 px-2 py-0.5 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded-full transition"
+                                  className="flex items-center gap-1 px-2 py-0.5 bg-purple-600 hover:bg-purple-500 text-white text-xs rounded-full transition"
                                 >
                                   <UserPlus className="w-3 h-3" />
                                   Follow
@@ -2262,7 +2271,7 @@ export default function CommunityEnhanced() {
                               )
                             )}
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-slate-400">
+                          <div className="flex items-center gap-2 text-xs text-neutral-400">
                             <span>{new Date(post.created_at).toLocaleDateString()}</span>
                             <span>·</span>
                             {/* Visibility Icon - Based on where post was shared */}
@@ -2272,7 +2281,7 @@ export default function CommunityEnhanced() {
                                 <span className="hidden sm:inline">{post.organization_data.name}</span>
                               </span>
                             ) : (
-                              <span className="flex items-center gap-1 text-blue-400" title="Public post (Visible to all)">
+                              <span className="flex items-center gap-1 text-purple-400" title="Public post (Visible to all)">
                                 <Globe className="w-3 h-3" />
                                 <span className="hidden sm:inline">Public</span>
                               </span>
@@ -2288,23 +2297,23 @@ export default function CommunityEnhanced() {
                           <div className="relative">
                             <button
                               onClick={() => setShowPostMenu({ ...showPostMenu, [post.id]: !showPostMenu[post.id] })}
-                              className="p-1 rounded-full hover:bg-slate-700 transition"
+                              className="p-1 rounded-full hover:bg-neutral-700 transition"
                             >
-                              <MoreVertical className="w-5 h-5 text-slate-400" />
+                              <MoreVertical className="w-5 h-5 text-neutral-400" />
                             </button>
 
                             {showPostMenu[post.id] && (
-                              <div className="absolute right-0 mt-1 w-32 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50">
+                              <div className="absolute right-0 mt-1 w-32 bg-neutral-800 border border-neutral-700 rounded-lg shadow-xl z-50">
                                 <button
                                   onClick={() => handleEditPost(post)}
-                                  className="w-full px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-700 flex items-center gap-2 rounded-t-lg"
+                                  className="w-full px-3 py-2 text-left text-sm text-neutral-300 hover:bg-neutral-700 flex items-center gap-2 rounded-t-lg"
                                 >
                                   <Edit3 className="w-4 h-4" />
                                   Edit
                                 </button>
                                 <button
                                   onClick={() => handleDeletePost(post.id)}
-                                  className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-slate-700 flex items-center gap-2 rounded-b-lg"
+                                  className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-neutral-700 flex items-center gap-2 rounded-b-lg"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                   Delete
@@ -2326,20 +2335,20 @@ export default function CommunityEnhanced() {
                         <textarea
                           value={editedPostContent}
                           onChange={(e) => setEditedPostContent(e.target.value)}
-                          className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                          className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:outline-none"
                           rows={4}
                         />
                         <div className="flex gap-2 mt-2">
                           <button
                             onClick={() => handleSavePostEdit(post.id)}
-                            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg flex items-center gap-1"
+                            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-lg flex items-center gap-1"
                           >
                             <Check className="w-4 h-4" />
                             Save
                           </button>
                           <button
                             onClick={handleCancelPostEdit}
-                            className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded-lg flex items-center gap-1"
+                            className="px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-white text-sm rounded-lg flex items-center gap-1"
                           >
                             <X className="w-4 h-4" />
                             Cancel
@@ -2347,7 +2356,7 @@ export default function CommunityEnhanced() {
                         </div>
                       </div>
                     ) : (
-                      <p className="text-slate-300 mb-4">{post.content}</p>
+                      <p className="text-neutral-300 mb-4">{post.content}</p>
                     )}
 
                     {(post.image_url || post.image) && (
@@ -2359,10 +2368,10 @@ export default function CommunityEnhanced() {
                     )}
 
                     {/* Interaction Buttons */}
-                    <div className="flex items-center gap-6 pt-4 border-t border-slate-800">
+                    <div className="flex items-center gap-6 pt-4 border-t border-neutral-800">
                       <button
                         onClick={() => handleLike(post.id)}
-                        className={`flex items-center gap-2 ${post.is_liked ? 'text-pink-500' : 'text-slate-400 hover:text-pink-500'
+                        className={`flex items-center gap-2 ${post.is_liked ? 'text-purple-500' : 'text-neutral-400 hover:text-purple-500'
                           } transition`}
                       >
                         <Heart className={`w-5 h-5 ${post.is_liked ? 'fill-current' : ''}`} />
@@ -2371,7 +2380,7 @@ export default function CommunityEnhanced() {
 
                       <button
                         onClick={() => toggleComments(post.id)}
-                        className="flex items-center gap-2 text-slate-400 hover:text-blue-500 transition"
+                        className="flex items-center gap-2 text-neutral-400 hover:text-purple-500 transition"
                       >
                         <MessageCircle className="w-5 h-5" />
                         <span className="text-sm">{post.comment_count}</span>
@@ -2379,7 +2388,7 @@ export default function CommunityEnhanced() {
 
                       <button
                         onClick={() => handleShare(post.id)}
-                        className="flex items-center gap-2 text-slate-400 hover:text-green-500 transition"
+                        className="flex items-center gap-2 text-neutral-400 hover:text-green-500 transition"
                       >
                         <Share2 className="w-5 h-5" />
                         <span className="text-sm">Share</span>
@@ -2388,7 +2397,7 @@ export default function CommunityEnhanced() {
 
                     {/* Comments Section */}
                     {showComments[post.id] && (
-                      <div className="mt-4 pt-4 border-t border-slate-800">
+                      <div className="mt-4 pt-4 border-t border-neutral-800">
                         {/* Comment Input */}
                         <div className="flex gap-3 mb-4">
                           <input
@@ -2397,7 +2406,7 @@ export default function CommunityEnhanced() {
                             onChange={(e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
                             onKeyPress={(e) => e.key === 'Enter' && handleComment(post.id)}
                             placeholder="Write a comment..."
-                            className="flex-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="flex-1 px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
                           />
                           <button
                             onClick={() => handleComment(post.id)}
@@ -2415,7 +2424,7 @@ export default function CommunityEnhanced() {
                               <div key={comment.id} className="space-y-2">
                                 {/* Main Comment */}
                                 <div className="flex gap-3">
-                                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
                                     {commentProfilePic ? (
                                       <img src={commentProfilePic} alt="" className="w-full h-full object-cover" />
                                     ) : (
@@ -2425,7 +2434,7 @@ export default function CommunityEnhanced() {
                                     )}
                                   </div>
                                   <div className="flex-1">
-                                    <div className="bg-slate-800 rounded-lg p-3 relative">
+                                    <div className="bg-neutral-800 rounded-lg p-3 relative">
                                       <div className="flex items-center justify-between">
                                         <p className="text-sm font-semibold text-white">
                                           {comment.author.username}
@@ -2436,23 +2445,23 @@ export default function CommunityEnhanced() {
                                           <div className="relative">
                                             <button
                                               onClick={() => setShowCommentMenu({ ...showCommentMenu, [comment.id]: !showCommentMenu[comment.id] })}
-                                              className="p-1 rounded hover:bg-slate-700 transition"
+                                              className="p-1 rounded hover:bg-neutral-700 transition"
                                             >
-                                              <MoreVertical className="w-4 h-4 text-slate-400" />
+                                              <MoreVertical className="w-4 h-4 text-neutral-400" />
                                             </button>
 
                                             {showCommentMenu[comment.id] && (
-                                              <div className="absolute right-0 mt-1 w-28 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50">
+                                              <div className="absolute right-0 mt-1 w-28 bg-neutral-700 border border-neutral-600 rounded-lg shadow-xl z-50">
                                                 <button
                                                   onClick={() => handleEditComment(comment)}
-                                                  className="w-full px-3 py-1.5 text-left text-xs text-slate-300 hover:bg-slate-600 flex items-center gap-2 rounded-t-lg"
+                                                  className="w-full px-3 py-1.5 text-left text-xs text-neutral-300 hover:bg-neutral-600 flex items-center gap-2 rounded-t-lg"
                                                 >
                                                   <Edit3 className="w-3 h-3" />
                                                   Edit
                                                 </button>
                                                 <button
                                                   onClick={() => handleDeleteComment(post.id, comment.id)}
-                                                  className="w-full px-3 py-1.5 text-left text-xs text-red-400 hover:bg-slate-600 flex items-center gap-2 rounded-b-lg"
+                                                  className="w-full px-3 py-1.5 text-left text-xs text-red-400 hover:bg-neutral-600 flex items-center gap-2 rounded-b-lg"
                                                 >
                                                   <Trash2 className="w-3 h-3" />
                                                   Delete
@@ -2470,20 +2479,20 @@ export default function CommunityEnhanced() {
                                             type="text"
                                             value={editedCommentContent}
                                             onChange={(e) => setEditedCommentContent(e.target.value)}
-                                            className="w-full px-3 py-1.5 bg-slate-700 border border-slate-600 rounded text-sm text-white focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                                            className="w-full px-3 py-1.5 bg-neutral-700 border border-neutral-600 rounded text-sm text-white focus:ring-1 focus:ring-purple-500 focus:outline-none"
                                             onKeyPress={(e) => e.key === 'Enter' && handleSaveCommentEdit(post.id, comment.id)}
                                           />
                                           <div className="flex gap-2 mt-2">
                                             <button
                                               onClick={() => handleSaveCommentEdit(post.id, comment.id)}
-                                              className="px-2 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded flex items-center gap-1"
+                                              className="px-2 py-1 bg-purple-600 hover:bg-purple-500 text-white text-xs rounded flex items-center gap-1"
                                             >
                                               <Check className="w-3 h-3" />
                                               Save
                                             </button>
                                             <button
                                               onClick={handleCancelCommentEdit}
-                                              className="px-2 py-1 bg-slate-600 hover:bg-slate-500 text-white text-xs rounded flex items-center gap-1"
+                                              className="px-2 py-1 bg-neutral-600 hover:bg-neutral-500 text-white text-xs rounded flex items-center gap-1"
                                             >
                                               <X className="w-3 h-3" />
                                               Cancel
@@ -2491,19 +2500,19 @@ export default function CommunityEnhanced() {
                                           </div>
                                         </div>
                                       ) : (
-                                        <p className="text-sm text-slate-300 mt-1">{comment.content}</p>
+                                        <p className="text-sm text-neutral-300 mt-1">{comment.content}</p>
                                       )}
                                     </div>
 
                                     {/* Comment Actions */}
                                     <div className="flex items-center gap-4 mt-2 ml-1">
-                                      <span className="text-xs text-slate-500">
+                                      <span className="text-xs text-neutral-500">
                                         {new Date(comment.created_at).toLocaleDateString()}
                                       </span>
 
                                       <button
                                         onClick={() => handleLikeComment(post.id, comment.id)}
-                                        className={`flex items-center gap-1 text-xs ${comment.is_liked ? 'text-pink-500' : 'text-slate-400 hover:text-pink-500'
+                                        className={`flex items-center gap-1 text-xs ${comment.is_liked ? 'text-purple-500' : 'text-neutral-400 hover:text-purple-500'
                                           } transition`}
                                       >
                                         <Heart className={`w-3.5 h-3.5 ${comment.is_liked ? 'fill-current' : ''}`} />
@@ -2512,7 +2521,7 @@ export default function CommunityEnhanced() {
 
                                       <button
                                         onClick={() => toggleReplyInput(comment.id)}
-                                        className="flex items-center gap-1 text-xs text-slate-400 hover:text-blue-400 transition"
+                                        className="flex items-center gap-1 text-xs text-neutral-400 hover:text-purple-400 transition"
                                       >
                                         <Reply className="w-3.5 h-3.5" />
                                         <span>Reply</span>
@@ -2521,7 +2530,7 @@ export default function CommunityEnhanced() {
                                       {comment.replies && comment.replies.length > 0 && (
                                         <button
                                           onClick={() => toggleReplies(comment.id)}
-                                          className="flex items-center gap-1 text-xs text-slate-400 hover:text-purple-400 transition"
+                                          className="flex items-center gap-1 text-xs text-neutral-400 hover:text-purple-400 transition"
                                         >
                                           {showReplies[comment.id] ? (
                                             <ChevronUp className="w-3.5 h-3.5" />
@@ -2542,7 +2551,7 @@ export default function CommunityEnhanced() {
                                           onChange={(e) => setReplyInputs({ ...replyInputs, [comment.id]: e.target.value })}
                                           onKeyPress={(e) => e.key === 'Enter' && handleReply(post.id, comment.id)}
                                           placeholder="Write a reply..."
-                                          className="flex-1 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                          className="flex-1 px-3 py-1.5 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-purple-500"
                                         />
                                         <button
                                           onClick={() => handleReply(post.id, comment.id)}
@@ -2555,13 +2564,13 @@ export default function CommunityEnhanced() {
 
                                     {/* Replies */}
                                     {showReplies[comment.id] && comment.replies && comment.replies.length > 0 && (
-                                      <div className="mt-3 ml-4 space-y-3 border-l-2 border-slate-700 pl-4">
+                                      <div className="mt-3 ml-4 space-y-3 border-l-2 border-neutral-700 pl-4">
                                         {comment.replies.map((reply) => {
                                           const replyProfilePic = getCommentProfilePic(reply.author)
                                           return (
                                             <div key={reply.id} className="space-y-2">
                                               <div className="flex gap-2">
-                                                <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                                <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
                                                   {replyProfilePic ? (
                                                     <img src={replyProfilePic} alt="" className="w-full h-full object-cover" />
                                                   ) : (
@@ -2571,7 +2580,7 @@ export default function CommunityEnhanced() {
                                                   )}
                                                 </div>
                                                 <div className="flex-1">
-                                                  <div className="bg-slate-800/50 rounded-lg p-2 relative">
+                                                  <div className="bg-neutral-800/50 rounded-lg p-2 relative">
                                                     <div className="flex items-center justify-between">
                                                       <p className="text-xs font-semibold text-white">
                                                         {reply.author.username}
@@ -2582,23 +2591,23 @@ export default function CommunityEnhanced() {
                                                         <div className="relative">
                                                           <button
                                                             onClick={() => setShowCommentMenu({ ...showCommentMenu, [reply.id]: !showCommentMenu[reply.id] })}
-                                                            className="p-0.5 rounded hover:bg-slate-700 transition"
+                                                            className="p-0.5 rounded hover:bg-neutral-700 transition"
                                                           >
-                                                            <MoreVertical className="w-3 h-3 text-slate-400" />
+                                                            <MoreVertical className="w-3 h-3 text-neutral-400" />
                                                           </button>
 
                                                           {showCommentMenu[reply.id] && (
-                                                            <div className="absolute right-0 mt-1 w-24 bg-slate-700 border border-slate-600 rounded-lg shadow-xl z-50">
+                                                            <div className="absolute right-0 mt-1 w-24 bg-neutral-700 border border-neutral-600 rounded-lg shadow-xl z-50">
                                                               <button
                                                                 onClick={() => handleEditComment(reply)}
-                                                                className="w-full px-2 py-1 text-left text-[10px] text-slate-300 hover:bg-slate-600 flex items-center gap-1 rounded-t-lg"
+                                                                className="w-full px-2 py-1 text-left text-[10px] text-neutral-300 hover:bg-neutral-600 flex items-center gap-1 rounded-t-lg"
                                                               >
                                                                 <Edit3 className="w-3 h-3" />
                                                                 Edit
                                                               </button>
                                                               <button
                                                                 onClick={() => handleDeleteComment(post.id, reply.id)}
-                                                                className="w-full px-2 py-1 text-left text-[10px] text-red-400 hover:bg-slate-600 flex items-center gap-1 rounded-b-lg"
+                                                                className="w-full px-2 py-1 text-left text-[10px] text-red-400 hover:bg-neutral-600 flex items-center gap-1 rounded-b-lg"
                                                               >
                                                                 <Trash2 className="w-3 h-3" />
                                                                 Delete
@@ -2616,20 +2625,20 @@ export default function CommunityEnhanced() {
                                                           type="text"
                                                           value={editedCommentContent}
                                                           onChange={(e) => setEditedCommentContent(e.target.value)}
-                                                          className="w-full px-2 py-1 bg-slate-700 border border-slate-600 rounded text-xs text-white focus:ring-1 focus:ring-purple-500 focus:outline-none"
+                                                          className="w-full px-2 py-1 bg-neutral-700 border border-neutral-600 rounded text-xs text-white focus:ring-1 focus:ring-purple-500 focus:outline-none"
                                                           onKeyPress={(e) => e.key === 'Enter' && handleSaveCommentEdit(post.id, reply.id)}
                                                         />
                                                         <div className="flex gap-1 mt-1">
                                                           <button
                                                             onClick={() => handleSaveCommentEdit(post.id, reply.id)}
-                                                            className="px-1.5 py-0.5 bg-purple-600 hover:bg-purple-700 text-white text-[10px] rounded flex items-center gap-1"
+                                                            className="px-1.5 py-0.5 bg-purple-600 hover:bg-purple-500 text-white text-[10px] rounded flex items-center gap-1"
                                                           >
                                                             <Check className="w-2.5 h-2.5" />
                                                             Save
                                                           </button>
                                                           <button
                                                             onClick={handleCancelCommentEdit}
-                                                            className="px-1.5 py-0.5 bg-slate-600 hover:bg-slate-500 text-white text-[10px] rounded flex items-center gap-1"
+                                                            className="px-1.5 py-0.5 bg-neutral-600 hover:bg-neutral-500 text-white text-[10px] rounded flex items-center gap-1"
                                                           >
                                                             <X className="w-2.5 h-2.5" />
                                                             Cancel
@@ -2637,10 +2646,10 @@ export default function CommunityEnhanced() {
                                                         </div>
                                                       </div>
                                                     ) : (
-                                                      <p className="text-xs text-slate-300 mt-0.5">
+                                                      <p className="text-xs text-neutral-300 mt-0.5">
                                                         {reply.content.split(/(@\w+)/g).map((part, i) =>
                                                           part.startsWith('@') ? (
-                                                            <span key={i} className="text-blue-400 font-medium">{part}</span>
+                                                            <span key={i} className="text-purple-400 font-medium">{part}</span>
                                                           ) : (
                                                             <span key={i}>{part}</span>
                                                           )
@@ -2649,12 +2658,12 @@ export default function CommunityEnhanced() {
                                                     )}
                                                   </div>
                                                   <div className="flex items-center gap-3 mt-1 ml-1">
-                                                    <span className="text-[10px] text-slate-500">
+                                                    <span className="text-[10px] text-neutral-500">
                                                       {new Date(reply.created_at).toLocaleDateString()}
                                                     </span>
                                                     <button
                                                       onClick={() => handleLikeComment(post.id, reply.id, true, comment.id)}
-                                                      className={`flex items-center gap-1 text-[10px] ${reply.is_liked ? 'text-pink-500' : 'text-slate-400 hover:text-pink-500'
+                                                      className={`flex items-center gap-1 text-[10px] ${reply.is_liked ? 'text-purple-500' : 'text-neutral-400 hover:text-purple-500'
                                                         } transition`}
                                                     >
                                                       <Heart className={`w-3 h-3 ${reply.is_liked ? 'fill-current' : ''}`} />
@@ -2662,7 +2671,7 @@ export default function CommunityEnhanced() {
                                                     </button>
                                                     <button
                                                       onClick={() => toggleReplyInput(reply.id)}
-                                                      className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-blue-400 transition"
+                                                      className="flex items-center gap-1 text-[10px] text-neutral-400 hover:text-purple-400 transition"
                                                     >
                                                       <Reply className="w-3 h-3" />
                                                       <span>Reply</span>
@@ -2678,7 +2687,7 @@ export default function CommunityEnhanced() {
                                                         onChange={(e) => setReplyInputs({ ...replyInputs, [reply.id]: e.target.value })}
                                                         onKeyPress={(e) => e.key === 'Enter' && handleReplyToReply(post.id, comment.id, reply.author.username, reply.id)}
                                                         placeholder={`Reply to ${reply.author.username}...`}
-                                                        className="flex-1 px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                                        className="flex-1 px-2 py-1 bg-neutral-800 border border-neutral-700 rounded text-xs text-white placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-purple-500"
                                                       />
                                                       <button
                                                         onClick={() => handleReplyToReply(post.id, comment.id, reply.author.username, reply.id)}
@@ -2702,7 +2711,7 @@ export default function CommunityEnhanced() {
                           })}
 
                           {(!post.comments || post.comments.length === 0) && (
-                            <p className="text-sm text-slate-500 text-center py-4">No comments yet. Be the first to comment!</p>
+                            <p className="text-sm text-neutral-500 text-center py-4">No comments yet. Be the first to comment!</p>
                           )}
                         </div>
                       </div>
@@ -2719,19 +2728,19 @@ export default function CommunityEnhanced() {
           <div className="space-y-6">
             {/* Pending Invitations */}
             {orgInvitations.length > 0 && (
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4">
-                <h3 className="text-lg font-semibold text-yellow-400 mb-3 flex items-center gap-2">
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+                <h3 className="text-lg font-semibold text-amber-400 mb-3 flex items-center gap-2">
                   <UserPlus className="w-5 h-5" />
                   Pending Invitations ({orgInvitations.length})
                 </h3>
                 <div className="space-y-3">
                   {orgInvitations.map(inv => (
-                    <div key={inv.id} className="flex items-center justify-between bg-slate-800/50 rounded-lg p-3">
+                    <div key={inv.id} className="flex items-center justify-between bg-neutral-800/50 rounded-lg p-3">
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">{inv.organization.icon}</span>
                         <div>
                           <p className="text-white font-medium">{inv.organization.name}</p>
-                          <p className="text-slate-400 text-sm">Invited by {inv.inviter.username}</p>
+                          <p className="text-neutral-400 text-sm">Invited by {inv.inviter.username}</p>
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -2757,17 +2766,17 @@ export default function CommunityEnhanced() {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {myOrgs.map(org => (
-                    <div key={org.id} className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700/50 p-3 sm:p-4 hover:border-purple-500/50 transition cursor-pointer shadow-lg" onClick={() => setViewingGroup(org)}>
+                    <div key={org.id} className="bg-neutral-800/50 backdrop-blur-sm rounded-xl border border-neutral-700/50 p-3 sm:p-4 hover:border-purple-500/50 transition cursor-pointer shadow-lg" onClick={() => setViewingGroup(org)}>
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
                           <span className="text-3xl">{org.icon}</span>
                           <div>
                             <h4 className="text-white font-semibold flex items-center gap-2">
                               {org.name}
-                              {org.is_official && <Crown className="w-3 h-3 text-yellow-400" />}
-                              {org.is_private && <Lock className="w-3 h-3 text-slate-400" />}
+                              {org.is_official && <Crown className="w-3 h-3 text-amber-400" />}
+                              {org.is_private && <Lock className="w-3 h-3 text-neutral-400" />}
                             </h4>
-                            <p className="text-slate-400 text-sm">{org.member_count} members · {org.post_count} posts</p>
+                            <p className="text-neutral-400 text-sm">{org.member_count} members · {org.post_count} posts</p>
                           </div>
                         </div>
                         {org.user_role && ['admin', 'owner'].includes(org.user_role) && (
@@ -2777,13 +2786,13 @@ export default function CommunityEnhanced() {
                           </span>
                         )}
                       </div>
-                      <p className="text-slate-400 text-sm mt-2 line-clamp-2">{org.description}</p>
+                      <p className="text-neutral-400 text-sm mt-2 line-clamp-2">{org.description}</p>
                       <div className="flex justify-between items-center mt-3" onClick={(e) => e.stopPropagation()}>
                         {/* Admin Controls */}
                         {org.user_role && ['admin', 'owner', 'moderator'].includes(org.user_role) && (
                           <button
                             onClick={() => setSelectedOrg(selectedOrg?.id === org.id ? null : org)}
-                            className="text-xs px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded transition flex items-center gap-1"
+                            className="text-xs px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded transition flex items-center gap-1"
                           >
                             <Shield className="w-3 h-3" />
                             Manage
@@ -2791,7 +2800,7 @@ export default function CommunityEnhanced() {
                         )}
                         <button
                           onClick={() => handleLeaveOrg(org)}
-                          className="text-xs px-3 py-1 bg-slate-700 hover:bg-red-600 text-slate-300 hover:text-white rounded transition ml-auto"
+                          className="text-xs px-3 py-1 bg-neutral-700 hover:bg-red-600 text-neutral-300 hover:text-white rounded transition ml-auto"
                         >
                           Leave
                         </button>
@@ -2810,48 +2819,48 @@ export default function CommunityEnhanced() {
             {/* Discover Groups */}
             <div>
               <h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-blue-400" />
+                <Building2 className="w-5 h-5 text-purple-400" />
                 Discover Groups
               </h3>
 
               {/* Search */}
               <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -tranneutral-y-1/2 w-5 h-5 text-neutral-400" />
                 <input
                   type="text"
                   placeholder="Search groups..."
                   value={orgSearchQuery}
                   onChange={(e) => setOrgSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                  className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {filteredOrgs.filter(org => !org.is_member).map(org => (
-                  <div key={org.id} className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4 hover:border-purple-500/30 transition cursor-pointer" onClick={() => !org.is_private && setViewingGroup(org)}>
+                  <div key={org.id} className="bg-neutral-800/50 rounded-xl border border-neutral-700/50 p-4 hover:border-purple-500/30 transition cursor-pointer" onClick={() => !org.is_private && setViewingGroup(org)}>
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <span className="text-3xl">{org.icon}</span>
                         <div>
                           <h4 className="text-white font-semibold flex items-center gap-2">
                             {org.name}
-                            {org.is_official && <Crown className="w-3 h-3 text-yellow-400" />}
-                            {org.is_private && <Lock className="w-3 h-3 text-slate-400" />}
+                            {org.is_official && <Crown className="w-3 h-3 text-amber-400" />}
+                            {org.is_private && <Lock className="w-3 h-3 text-neutral-400" />}
                           </h4>
-                          <p className="text-slate-400 text-sm">{org.member_count} members · {org.post_count} posts</p>
+                          <p className="text-neutral-400 text-sm">{org.member_count} members · {org.post_count} posts</p>
                         </div>
                       </div>
                     </div>
-                    <p className="text-slate-400 text-sm mt-2 line-clamp-2">{org.description}</p>
+                    <p className="text-neutral-400 text-sm mt-2 line-clamp-2">{org.description}</p>
                     <div className="flex justify-end mt-3" onClick={(e) => e.stopPropagation()}>
                       {org.membership_status === 'pending' ? (
-                        <span className="text-xs px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded flex items-center gap-1">
+                        <span className="text-xs px-3 py-1 bg-amber-500/20 text-amber-400 rounded flex items-center gap-1">
                           <Clock className="w-3 h-3" /> Pending
                         </span>
                       ) : (
                         <button
                           onClick={() => handleJoinOrg(org)}
-                          className="text-xs px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded transition flex items-center gap-1"
+                          className="text-xs px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded transition flex items-center gap-1"
                         >
                           <UserPlus className="w-3 h-3" />
                           {org.is_private ? 'Request' : 'Join'}
@@ -2863,7 +2872,7 @@ export default function CommunityEnhanced() {
               </div>
 
               {filteredOrgs.filter(org => !org.is_member).length === 0 && (
-                <div className="text-center py-8 text-slate-400">
+                <div className="text-center py-8 text-neutral-400">
                   <Building2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
                   <p>No groups found. Check back later!</p>
                 </div>
@@ -2879,8 +2888,8 @@ export default function CommunityEnhanced() {
       {/* Search Coder Modal */}
       {showSearchModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg max-h-[80vh] overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-slate-700">
+          <div className="bg-neutral-900 border border-neutral-700 rounded-2xl w-full max-w-lg max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-neutral-700">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Search className="w-5 h-5 text-purple-400" />
                 Search Coder
@@ -2891,35 +2900,35 @@ export default function CommunityEnhanced() {
                   setSearchQuery('')
                   setSearchResults([])
                 }}
-                className="p-1 hover:bg-slate-800 rounded-lg transition"
+                className="p-1 hover:bg-neutral-800 rounded-lg transition"
               >
-                <X className="w-5 h-5 text-slate-400" />
+                <X className="w-5 h-5 text-neutral-400" />
               </button>
             </div>
 
             {/* Search Input */}
-            <div className="p-4 border-b border-slate-800">
+            <div className="p-4 border-b border-neutral-800">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -tranneutral-y-1/2 w-5 h-5 text-neutral-400" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => handleSearchCoders(e.target.value)}
                   placeholder="Search by username, name, or email..."
-                  className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                  className="w-full pl-10 pr-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
                   autoFocus
                 />
               </div>
               {searchQuery.length > 0 && searchQuery.length < 2 && (
-                <p className="text-slate-500 text-sm mt-2">Type at least 2 characters to search</p>
+                <p className="text-neutral-500 text-sm mt-2">Type at least 2 characters to search</p>
               )}
             </div>
 
             {/* Search Results */}
             <div className="overflow-y-auto max-h-96 p-4">
               {searchLoading ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                <div className="space-y-2">
+                  {[0, 1, 2].map(i => <SkeletonListRow key={i} />)}
                 </div>
               ) : searchResults.length > 0 ? (
                 <div className="space-y-2">
@@ -2932,9 +2941,9 @@ export default function CommunityEnhanced() {
                         setSearchQuery('')
                         setSearchResults([])
                       }}
-                      className="flex items-center gap-3 p-3 bg-slate-800/50 hover:bg-slate-800 rounded-xl transition"
+                      className="flex items-center gap-3 p-3 bg-neutral-800/50 hover:bg-neutral-800 rounded-xl transition"
                     >
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center overflow-hidden">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center overflow-hidden">
                         {coder.profile_picture ? (
                           <img
                             src={getMediaUrl(coder.profile_picture) || ''}
@@ -2954,7 +2963,7 @@ export default function CommunityEnhanced() {
                         <p className="text-purple-400 text-sm">@{coder.username}</p>
                       </div>
                       <div className="text-right">
-                        <span className="text-xs px-2 py-1 bg-slate-700 text-slate-300 rounded-full">
+                        <span className="text-xs px-2 py-1 bg-neutral-700 text-neutral-300 rounded-full">
                           {coder.role || 'Student'}
                         </span>
                       </div>
@@ -2962,12 +2971,12 @@ export default function CommunityEnhanced() {
                   ))}
                 </div>
               ) : searchQuery.length >= 2 ? (
-                <div className="text-center py-8 text-slate-400">
+                <div className="text-center py-8 text-neutral-400">
                   <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
                   <p>No coders found for "{searchQuery}"</p>
                 </div>
               ) : (
-                <div className="text-center py-8 text-slate-500">
+                <div className="text-center py-8 text-neutral-500">
                   <Search className="w-12 h-12 mx-auto mb-2 opacity-50" />
                   <p>Start typing to search for coders</p>
                 </div>

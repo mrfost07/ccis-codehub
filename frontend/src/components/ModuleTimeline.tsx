@@ -38,16 +38,16 @@ export default function ModuleTimeline({ modules, onModuleClick }: ModuleTimelin
   const getDifficultyColor = (level: string) => {
     switch (level.toLowerCase()) {
       case 'beginner': return 'text-green-400 border-green-500/40'
-      case 'intermediate': return 'text-yellow-400 border-yellow-500/40'
+      case 'intermediate': return 'text-amber-400 border-amber-500/40'
       case 'advanced': return 'text-red-400 border-red-500/40'
-      default: return 'text-blue-400 border-blue-500/40'
+      default: return 'text-purple-400 border-purple-500/40'
     }
   }
 
   return (
     <div className="relative">
       {/* Progress line - responsive positioning */}
-      <div className="absolute left-4 sm:left-6 top-0 bottom-0 w-0.5 bg-slate-800" />
+      <div className="absolute left-4 sm:left-6 top-0 bottom-0 w-0.5 bg-neutral-800" />
 
       {/* Completed progress overlay */}
       <div
@@ -69,13 +69,13 @@ export default function ModuleTimeline({ modules, onModuleClick }: ModuleTimelin
                 : module.progress_percentage && module.progress_percentage > 0
                   ? 'bg-purple-500 shadow-md shadow-purple-500/30'
                   : module.is_locked
-                    ? 'bg-slate-700'
-                    : 'bg-blue-500 shadow-md shadow-blue-500/30'
+                    ? 'bg-neutral-700'
+                    : 'bg-purple-500 shadow-md shadow-purple-500/30'
               }`}>
               {module.is_completed ? (
                 <CheckCircle className="w-3.5 h-3.5 sm:w-3 sm:h-3 text-white" />
               ) : module.is_locked ? (
-                <Lock className="w-2.5 h-2.5 sm:w-2.5 sm:h-2.5 text-slate-500" />
+                <Lock className="w-2.5 h-2.5 sm:w-2.5 sm:h-2.5 text-neutral-500" />
               ) : (
                 <span className="text-white font-semibold text-[10px] sm:text-xs">{index + 1}</span>
               )}
@@ -84,19 +84,19 @@ export default function ModuleTimeline({ modules, onModuleClick }: ModuleTimelin
             {/* Module Card - Minimal Design */}
             <div
               onClick={() => !module.is_locked && onModuleClick(module)}
-              className={`group bg-slate-900/60 backdrop-blur-sm border rounded-xl p-4 sm:p-5 transition-all duration-300 ${module.is_locked
-                  ? 'border-slate-800/60 opacity-50 cursor-not-allowed'
+              className={`group bg-neutral-900/60 backdrop-blur-sm border rounded-xl p-4 sm:p-5 transition-all duration-300 ${module.is_locked
+                  ? 'border-neutral-800/60 opacity-50 cursor-not-allowed'
                   : module.is_completed
-                    ? 'border-green-500/30 hover:border-green-500/50 cursor-pointer hover:bg-slate-800/60'
+                    ? 'border-green-500/30 hover:border-green-500/50 cursor-pointer hover:bg-neutral-800/60'
                     : module.progress_percentage && module.progress_percentage > 0
-                      ? 'border-purple-500/30 hover:border-purple-500/50 cursor-pointer hover:bg-slate-800/60'
-                      : 'border-blue-500/30 hover:border-blue-500/50 cursor-pointer hover:bg-slate-800/60'
+                      ? 'border-purple-500/30 hover:border-purple-500/50 cursor-pointer hover:bg-neutral-800/60'
+                      : 'border-purple-500/30 hover:border-purple-500/50 cursor-pointer hover:bg-neutral-800/60'
                 }`}
             >
               {/* Header Row */}
               <div className="flex items-start gap-3 sm:gap-4">
                 {/* Icon - visible only on larger screens */}
-                <div className={`hidden sm:flex w-10 h-10 rounded-lg items-center justify-center flex-shrink-0 ${module.is_completed ? 'bg-green-500/15' : module.is_locked ? 'bg-slate-700/50' : 'bg-blue-500/15'
+                <div className={`hidden sm:flex w-10 h-10 rounded-lg items-center justify-center flex-shrink-0 ${module.is_completed ? 'bg-green-500/15' : module.is_locked ? 'bg-neutral-700/50' : 'bg-purple-500/15'
                   }`}>
                   {getModuleIcon(module.module_type)}
                 </div>
@@ -114,12 +114,12 @@ export default function ModuleTimeline({ modules, onModuleClick }: ModuleTimelin
                   </h3>
 
                   {/* Description - truncate on mobile */}
-                  <p className="text-slate-400 text-xs sm:text-sm line-clamp-1 sm:line-clamp-2 mb-3">
+                  <p className="text-neutral-400 text-xs sm:text-sm line-clamp-1 sm:line-clamp-2 mb-3">
                     {module.description}
                   </p>
 
                   {/* Meta Row */}
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-500">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-neutral-500">
                     <span className={`px-2 py-0.5 rounded border text-[10px] sm:text-xs ${getDifficultyColor(module.difficulty_level)}`}>
                       {module.difficulty_level}
                     </span>
@@ -140,11 +140,11 @@ export default function ModuleTimeline({ modules, onModuleClick }: ModuleTimelin
                   {/* Progress Bar - Only show if in progress */}
                   {!module.is_completed && module.current_slide !== undefined && module.total_slides && module.total_slides > 0 && (
                     <div className="mt-3">
-                      <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                      <div className="flex justify-between text-[10px] text-neutral-500 mb-1">
                         <span>Progress</span>
                         <span>{(module.current_slide || 0) + 1} / {module.total_slides}</span>
                       </div>
-                      <div className="w-full bg-slate-800 rounded-full h-1">
+                      <div className="w-full bg-neutral-800 rounded-full h-1">
                         <div
                           className="bg-purple-500 h-1 rounded-full transition-all duration-500"
                           style={{ width: `${Math.round(((module.current_slide || 0) + 1) / module.total_slides * 100)}%` }}
@@ -159,11 +159,11 @@ export default function ModuleTimeline({ modules, onModuleClick }: ModuleTimelin
                   {/* Mobile: Simple chevron */}
                   <div className="sm:hidden">
                     {!module.is_locked && (
-                      <ChevronRight className={`w-5 h-5 transition-transform group-hover:translate-x-0.5 ${module.is_completed ? 'text-green-400' : 'text-blue-400'
+                      <ChevronRight className={`w-5 h-5 transition-transform group-hover:translate-x-0.5 ${module.is_completed ? 'text-green-400' : 'text-purple-400'
                         }`} />
                     )}
                     {module.is_locked && (
-                      <Lock className="w-4 h-4 text-slate-600" />
+                      <Lock className="w-4 h-4 text-neutral-600" />
                     )}
                   </div>
 
@@ -175,12 +175,12 @@ export default function ModuleTimeline({ modules, onModuleClick }: ModuleTimelin
                     }}
                     disabled={module.is_locked}
                     className={`hidden sm:flex px-4 py-2 rounded-lg text-sm font-medium transition-all items-center gap-1.5 ${module.is_locked
-                        ? 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                        ? 'bg-neutral-800 text-neutral-600 cursor-not-allowed'
                         : module.is_completed
-                          ? 'bg-slate-800 hover:bg-slate-700 text-slate-300'
+                          ? 'bg-neutral-800 hover:bg-neutral-700 text-neutral-300'
                           : module.progress_percentage && module.progress_percentage > 0
                             ? 'bg-purple-600 hover:bg-purple-500 text-white'
-                            : 'bg-blue-600 hover:bg-blue-500 text-white'
+                            : 'bg-purple-600 hover:bg-purple-500 text-white'
                       }`}
                   >
                     {module.is_locked ? (

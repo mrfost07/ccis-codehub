@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react'
+import DOMPurify from 'dompurify'
 import api from '../services/api'
 
 interface SlideViewerProps {
@@ -104,7 +105,16 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
 
         // Extract content (everything after title)
         const contentMatch = slideHtml.match(/<div class="slide-content">(.*?)<\/div>/s)
-        const slideContent = contentMatch ? contentMatch[1] : slideHtml
+        let slideContent = contentMatch ? contentMatch[1] : slideHtml
+
+        // Remove duplicate h2 that matches the slide title to avoid triple-showing
+        if (title && title !== `Slide ${slideNumber}`) {
+          const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+          slideContent = slideContent.replace(
+            new RegExp(`<h2[^>]*>\\s*${escapedTitle}\\s*</h2>`, 'i'),
+            ''
+          )
+        }
 
         return {
           number: slideNumber,
@@ -211,7 +221,7 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
   }, [currentSlideIndex, slides.length])
 
   if (slides.length === 0) {
-    return <div className="text-slate-400">Loading slides...</div>
+    return <div className="text-neutral-400">Loading slides...</div>
   }
 
   const currentSlide = slides[currentSlideIndex]
@@ -219,22 +229,22 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
   return (
     <div
       ref={slideRef}
-      className="flex flex-col h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden"
+      className="flex flex-col h-full bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 relative overflow-hidden"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
       {/* Compact Header with Progress */}
-      <div className="bg-slate-900/95 backdrop-blur-sm border-b border-slate-700/30 px-4 md:px-6 py-3">
+      <div className="bg-neutral-900/95 backdrop-blur-sm border-b border-neutral-700/30 px-4 md:px-6 py-3">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
-            <span className="text-xs md:text-sm font-semibold text-blue-400">
+            <span className="text-xs md:text-sm font-semibold text-purple-400">
               {currentSlideIndex + 1} / {slides.length}
             </span>
             {/* Progress Bar */}
-            <div className="hidden sm:block w-32 md:w-48 h-1 bg-slate-700/50 rounded-full overflow-hidden">
+            <div className="hidden sm:block w-32 md:w-48 h-1 bg-neutral-700/50 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-blue-500 to-purple-600 transition-all duration-500"
+                className="h-full bg-gradient-to-r from-purple-500 to-purple-600 transition-all duration-500"
                 style={{ width: `${((currentSlideIndex + 1) / slides.length) * 100}%` }}
               />
             </div>
@@ -243,13 +253,13 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="p-1.5 hover:bg-slate-700/50 rounded-md transition-colors"
+            className="p-1.5 hover:bg-neutral-700/50 rounded-md transition-colors"
             title="Fullscreen"
           >
             {isFullscreen ? (
-              <Minimize2 className="w-4 h-4 text-slate-400" />
+              <Minimize2 className="w-4 h-4 text-neutral-400" />
             ) : (
-              <Maximize2 className="w-4 h-4 text-slate-400" />
+              <Maximize2 className="w-4 h-4 text-neutral-400" />
             )}
           </button>
         </div>
@@ -267,10 +277,10 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
               : 'translate-x-0 opacity-100'
               }`}
           >
-            <div className="h-full bg-slate-800/50 backdrop-blur-sm rounded-none sm:rounded-xl border-0 sm:border border-slate-700/50 shadow-2xl overflow-hidden flex flex-col">
+            <div className="h-full bg-neutral-800/50 backdrop-blur-sm rounded-none sm:rounded-xl border-0 sm:border border-neutral-700/50 shadow-2xl overflow-hidden flex flex-col">
               {/* Clean Slide Header */}
-              <div className="bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-blue-600/10 border-b border-slate-700/30 px-4 sm:px-6 md:px-10 py-3 sm:py-4 md:py-6">
-                <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent leading-tight">
+              <div className="bg-gradient-to-r from-purple-600/10 via-purple-600/10 to-purple-600/10 border-b border-neutral-700/30 px-4 sm:px-6 md:px-10 py-3 sm:py-4 md:py-6">
+                <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent leading-tight">
                   {currentSlide.title}
                 </h2>
               </div>
@@ -279,7 +289,7 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
               <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-10 lg:p-12">
                 <div
                   className="prose prose-invert prose-sm sm:prose-base md:prose-lg max-w-none module-content-display slide-content-view"
-                  dangerouslySetInnerHTML={{ __html: currentSlide.content }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentSlide.content || '') }}
                 />
               </div>
             </div>
@@ -288,14 +298,14 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
       </div>
 
       {/* Clean Navigation Footer */}
-      <div className="bg-slate-900/95 backdrop-blur-sm border-t border-slate-700/30 px-2 sm:px-4 md:px-6 py-3 sm:py-4">
+      <div className="bg-neutral-900/95 backdrop-blur-sm border-t border-neutral-700/30 px-2 sm:px-4 md:px-6 py-3 sm:py-4">
         <div className="flex items-center justify-between max-w-5xl mx-auto gap-2 sm:gap-4">
           {/* Previous Button - Larger touch target on mobile */}
           <button
             type="button"
             onClick={goToPrevSlide}
             disabled={currentSlideIndex === 0 || isAnimating}
-            className="flex items-center justify-center gap-1 sm:gap-2 min-w-[48px] sm:min-w-[80px] md:min-w-[120px] px-3 sm:px-4 md:px-6 py-3 sm:py-2.5 md:py-3 bg-slate-700/80 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 hover:scale-105 disabled:hover:scale-100 shadow-lg"
+            className="flex items-center justify-center gap-1 sm:gap-2 min-w-[48px] sm:min-w-[80px] md:min-w-[120px] px-3 sm:px-4 md:px-6 py-3 sm:py-2.5 md:py-3 bg-neutral-700/80 hover:bg-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 hover:scale-105 disabled:hover:scale-100 shadow-lg"
           >
             <ChevronLeft className="w-5 h-5 sm:w-5 sm:h-5" />
             <span className="hidden sm:inline text-sm font-medium">Prev</span>
@@ -317,10 +327,10 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
                       onClick={() => goToSlide(index)}
                       disabled={isAnimating || !isViewed}
                       className={`w-8 h-8 rounded-md text-sm font-semibold transition-all duration-200 ${isCurrent
-                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white scale-110 shadow-lg'
+                        ? 'bg-gradient-to-r from-purple-600 to-purple-600 text-white scale-110 shadow-lg'
                         : isViewed
                           ? 'bg-green-600/20 text-green-400 hover:bg-green-600/30 cursor-pointer'
-                          : 'bg-slate-700/30 text-slate-600 cursor-not-allowed opacity-50'
+                          : 'bg-neutral-700/30 text-neutral-600 cursor-not-allowed opacity-50'
                         }`}
                       title={isViewed ? `Go to slide ${index + 1}` : `Complete previous slides first`}
                     >
@@ -339,7 +349,7 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
                     Math.abs(index - currentSlideIndex) <= 2
 
                   if (!showNumber && (index === 3 || index === slides.length - 4)) {
-                    return <span key={index} className="text-slate-600 px-1">...</span>
+                    return <span key={index} className="text-neutral-600 px-1">...</span>
                   }
 
                   if (!showNumber) return null
@@ -354,10 +364,10 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
                       onClick={() => goToSlide(index)}
                       disabled={isAnimating || !isViewed}
                       className={`w-8 h-8 rounded-md text-sm font-semibold transition-all duration-200 ${isCurrent
-                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white scale-110 shadow-lg'
+                        ? 'bg-gradient-to-r from-purple-600 to-purple-600 text-white scale-110 shadow-lg'
                         : isViewed
                           ? 'bg-green-600/20 text-green-400 hover:bg-green-600/30 cursor-pointer'
-                          : 'bg-slate-700/30 text-slate-600 cursor-not-allowed opacity-50'
+                          : 'bg-neutral-700/30 text-neutral-600 cursor-not-allowed opacity-50'
                         }`}
                       title={isViewed ? `Go to slide ${index + 1}` : `Complete previous slides first`}
                     >
@@ -378,8 +388,8 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
                     onClick={() => goToSlide(index)}
                     disabled={isAnimating}
                     className={`transition-all duration-200 rounded-full ${index === currentSlideIndex
-                      ? 'w-5 h-2 bg-gradient-to-r from-blue-500 to-purple-600'
-                      : 'w-2 h-2 bg-slate-600 hover:bg-slate-500'
+                      ? 'w-5 h-2 bg-gradient-to-r from-purple-500 to-purple-600'
+                      : 'w-2 h-2 bg-neutral-600 hover:bg-neutral-500'
                       }`}
                   />
                 ))
@@ -391,28 +401,28 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
                     type="button"
                     onClick={() => goToSlide(0)}
                     className={`transition-all duration-200 rounded-full ${currentSlideIndex === 0
-                      ? 'w-5 h-2 bg-gradient-to-r from-blue-500 to-purple-600'
-                      : 'w-2 h-2 bg-slate-600'
+                      ? 'w-5 h-2 bg-gradient-to-r from-purple-500 to-purple-600'
+                      : 'w-2 h-2 bg-neutral-600'
                       }`}
                   />
                   {/* Ellipsis or current area */}
-                  {currentSlideIndex > 1 && <span className="text-slate-500 text-xs px-0.5">•</span>}
+                  {currentSlideIndex > 1 && <span className="text-neutral-500 text-xs px-0.5">•</span>}
                   {currentSlideIndex > 0 && currentSlideIndex < slides.length - 1 && (
                     <div className="flex items-center gap-1">
-                      <span className="text-xs text-white font-medium bg-blue-600 px-2 py-0.5 rounded-full">
+                      <span className="text-xs text-white font-medium bg-purple-600 px-2 py-0.5 rounded-full">
                         {currentSlideIndex + 1}
                       </span>
                     </div>
                   )}
-                  {currentSlideIndex < slides.length - 2 && <span className="text-slate-500 text-xs px-0.5">•</span>}
+                  {currentSlideIndex < slides.length - 2 && <span className="text-neutral-500 text-xs px-0.5">•</span>}
                   {/* Last dot */}
                   <button
                     type="button"
                     onClick={() => goToSlide(slides.length - 1)}
                     disabled={slides.length - 1 > maxViewedSlide}
                     className={`transition-all duration-200 rounded-full ${currentSlideIndex === slides.length - 1
-                      ? 'w-5 h-2 bg-gradient-to-r from-blue-500 to-purple-600'
-                      : 'w-2 h-2 bg-slate-600'
+                      ? 'w-5 h-2 bg-gradient-to-r from-purple-500 to-purple-600'
+                      : 'w-2 h-2 bg-neutral-600'
                       }`}
                   />
                 </>
@@ -425,7 +435,7 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
             type="button"
             onClick={goToNextSlide}
             disabled={currentSlideIndex === slides.length - 1 || isAnimating}
-            className="flex items-center justify-center gap-1 sm:gap-2 min-w-[48px] sm:min-w-[80px] md:min-w-[120px] px-3 sm:px-4 md:px-6 py-3 sm:py-2.5 md:py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 hover:scale-105 disabled:hover:scale-100 shadow-lg"
+            className="flex items-center justify-center gap-1 sm:gap-2 min-w-[48px] sm:min-w-[80px] md:min-w-[120px] px-3 sm:px-4 md:px-6 py-3 sm:py-2.5 md:py-3 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 hover:scale-105 disabled:hover:scale-100 shadow-lg"
           >
             <span className="hidden sm:inline text-sm font-medium">Next</span>
             <ChevronRight className="w-5 h-5 sm:w-5 sm:h-5" />

@@ -12,8 +12,8 @@ const api = axios.create({
 // Request interceptor to add auth token and handle FormData
 api.interceptors.request.use(
   (config) => {
-    // Check sessionStorage first (per-tab), then localStorage (shared fallback)
-    const token = sessionStorage.getItem('token') || localStorage.getItem('token')
+    // Single storage: sessionStorage is the source of truth (see AuthContext).
+    const token = sessionStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -30,23 +30,64 @@ api.interceptors.request.use(
   }
 )
 
-// Response interceptor for error handling
+// Single in-flight refresh shared by all requests that 401 at once.
+let refreshPromise: Promise<string | null> | null = null
+
+async function refreshAccessToken(): Promise<string | null> {
+  const refresh = sessionStorage.getItem('refresh_token')
+  if (!refresh) return null
+  try {
+    // Bare axios call so this request doesn't re-enter the interceptor.
+    const resp = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, { refresh })
+    const newAccess = resp.data?.access
+    if (newAccess) sessionStorage.setItem('token', newAccess)
+    // Rotation (ROTATE_REFRESH_TOKENS) returns a fresh refresh token too.
+    if (resp.data?.refresh) sessionStorage.setItem('refresh_token', resp.data.refresh)
+    return newAccess || null
+  } catch {
+    return null
+  }
+}
+
+function clearSessionAndRedirect() {
+  sessionStorage.removeItem('token')
+  sessionStorage.removeItem('user')
+  sessionStorage.removeItem('refresh_token')
+  const path = window.location.pathname + window.location.search
+  if (!path.includes('/login') && !path.includes('/register')) {
+    // Preserve the originating location so the user returns after login. The
+    // Login page reads ?returnUrl to redirect back. (Req 20.2)
+    window.location.href = `/login?returnUrl=${encodeURIComponent(path)}`
+  }
+}
+
+// Response interceptor: refresh-and-retry on 401; never log out on 403. (Req 20, 21)
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Clear both storage types
-      sessionStorage.removeItem('token')
-      sessionStorage.removeItem('user')
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
+  async (error) => {
+    const original: any = error.config
+    const status = error.response?.status
 
-      // Only redirect to login if not already on login/register page
-      const currentPath = window.location.pathname
-      if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
-        window.location.href = '/login'
+    // 403 is an authorization denial (e.g. a student probing an admin-only
+    // endpoint), NOT an authentication failure — keep the session. (Req 21)
+    if (status === 403) return Promise.reject(error)
+
+    // 401 → try a single refresh, then retry the original request once. The
+    // _retry guard prevents an infinite redirect/refresh loop. (Req 20.1, 20.3)
+    if (status === 401 && original && !original._retry) {
+      original._retry = true
+      if (!refreshPromise) {
+        refreshPromise = refreshAccessToken().finally(() => { refreshPromise = null })
       }
+      const newAccess = await refreshPromise
+      if (newAccess) {
+        original.headers = original.headers || {}
+        original.headers.Authorization = `Bearer ${newAccess}`
+        return api(original)
+      }
+      clearSessionAndRedirect()
     }
+
     return Promise.reject(error)
   }
 )
@@ -180,6 +221,9 @@ export const projectsAPI = {
   getProjectFiles: (projectId: string) => api.get('/projects/files/', { params: { project: projectId } }),
   uploadFile: (data: FormData) => api.post('/projects/files/', data),
   deleteFile: (id: string) => api.delete(`/projects/files/${id}/`),
+
+  // Featured projects (public, with contributor avatars)
+  getFeatured: () => api.get('/projects/projects/featured/'),
 }
 
 // Teams API - Team-first project management
@@ -287,6 +331,24 @@ export const aiAPI = {
   updateSession: (id: string, data: { title?: string }) => api.patch(`/ai/sessions/${id}/`, data),
   analyzeCode: (data: any) => api.post('/ai/code-analysis/', data),
   getRecommendations: () => api.get('/ai/recommendations/'),
+
+  // Voice chat
+  voiceChat: (data: { transcript: string, session_id: string, current_page?: string }) =>
+    api.post('/ai/voice/', data),
+  // Standalone TTS
+  textToSpeech: (text: string) =>
+    api.post('/ai/tts/', { text }),
+}
+
+// Jobs API — Phase 6
+export const jobsAPI = {
+  getJobs: (params?: { q?: string; type?: string; location?: string; page?: number; page_size?: number }) =>
+    api.get('/learning/jobs/', { params }),
+  getJob: (id: string) => api.get(`/learning/jobs/${id}/`),
+  saveJob: (id: string) => api.post(`/learning/jobs/${id}/save/`),
+  unsaveJob: (id: string) => api.post(`/learning/jobs/${id}/unsave/`),
+  getSavedJobs: () => api.get('/learning/jobs/saved/'),
+  syncJobs: () => api.post('/learning/jobs/sync/'),
 }
 
 export default api

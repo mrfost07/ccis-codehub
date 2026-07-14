@@ -40,7 +40,7 @@ export default function CodeHighlight({ code, language }: CodeHighlightProps) {
     highlighted = highlighted.replace(/(["'`])([^"'`]*)\1/g, '<span class="text-green-400">$1$2$1</span>')
 
     // Highlight numbers
-    highlighted = highlighted.replace(/\b(\d+)\b/g, '<span class="text-blue-400">$1</span>')
+    highlighted = highlighted.replace(/\b(\d+)\b/g, '<span class="text-purple-400">$1</span>')
 
     // Highlight comments
     highlighted = highlighted.replace(/(\/\/.*$)/gm, '<span class="text-gray-500">$1</span>')
@@ -60,7 +60,7 @@ export default function CodeHighlight({ code, language }: CodeHighlightProps) {
       <div className="absolute top-2 right-2 z-10">
         <button
           onClick={copyToClipboard}
-          className="flex items-center gap-1 px-2 py-1 bg-slate-800/80 hover:bg-slate-700 rounded text-xs transition-colors"
+          className="flex items-center gap-1 px-2 py-1 bg-neutral-800/80 hover:bg-neutral-700 rounded text-xs transition-colors"
         >
           {copied ? (
             <>
@@ -69,13 +69,13 @@ export default function CodeHighlight({ code, language }: CodeHighlightProps) {
             </>
           ) : (
             <>
-              <Copy className="h-3 w-3 text-slate-400" />
-              <span className="text-slate-400">Copy</span>
+              <Copy className="h-3 w-3 text-neutral-400" />
+              <span className="text-neutral-400">Copy</span>
             </>
           )}
         </button>
       </div>
-      <pre className="bg-slate-950 border border-slate-800 rounded-lg p-4 overflow-x-auto">
+      <pre className="bg-neutral-950 border border-neutral-800 rounded-lg p-4 overflow-x-auto">
         <code 
           className="text-sm text-gray-300 font-mono"
           dangerouslySetInnerHTML={{ __html: highlightCode(code, language) }}

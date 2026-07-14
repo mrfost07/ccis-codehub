@@ -352,7 +352,8 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
     }
 
     try {
-      await api.post('/ai/custom-models/', newCustomModel)
+      const response = await api.post('/ai/custom-models/', newCustomModel)
+      const created = response.data
       toast.success('Model added!')
       fetchCustomModels()
       setShowAddCustom(false)
@@ -365,6 +366,10 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
         response_path: 'response',
         is_active: true
       })
+      // Auto-select the newly added custom model
+      if (created?.id) {
+        setSelectedModel(`custom_${created.id}`)
+      }
     } catch (error) {
       toast.error('Failed to add model')
     }
@@ -384,20 +389,20 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-2 sm:p-4 pb-20 sm:pb-4">
-      <div className="bg-slate-950 border border-slate-800 rounded-xl w-full max-w-md max-h-[calc(100vh-100px)] sm:max-h-[85vh] flex flex-col shadow-2xl">
+      <div className="bg-neutral-950 border border-neutral-800 rounded-xl w-full max-w-md max-h-[calc(100vh-100px)] sm:max-h-[85vh] flex flex-col shadow-2xl">
         {/* Header - Minimal */}
-        <div className="flex items-center justify-between p-4 border-b border-slate-800 shrink-0">
+        <div className="flex items-center justify-between p-4 border-b border-neutral-800 shrink-0">
           <h2 className="text-base font-medium text-white">AI Settings</h2>
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-slate-800 rounded-lg transition"
+            className="p-1.5 hover:bg-neutral-800 rounded-lg transition"
           >
-            <X className="w-4 h-4 text-slate-500" />
+            <X className="w-4 h-4 text-neutral-500" />
           </button>
         </div>
 
         {/* Tabs - Minimal */}
-        <div className="flex border-b border-slate-800 shrink-0">
+        <div className="flex border-b border-neutral-800 shrink-0">
           {[
             { id: 'models', label: 'Models' },
             { id: 'custom', label: 'Custom' },
@@ -407,8 +412,8 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex-1 px-3 py-2.5 text-xs font-medium transition ${activeTab === tab.id
-                ? 'text-white border-b-2 border-purple-500 bg-slate-900'
-                : 'text-slate-500 hover:text-slate-300'
+                ? 'text-white border-b-2 border-purple-500 bg-neutral-900'
+                : 'text-neutral-500 hover:text-neutral-300'
                 }`}
             >
               {tab.label}
@@ -425,7 +430,7 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
                   key={model.id}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition ${selectedModel === model.id
                     ? 'bg-purple-500/15'
-                    : 'hover:bg-slate-800/50'
+                    : 'hover:bg-neutral-800/50'
                     } ${model.status === 'coming_soon' ? 'opacity-40' : ''}`}
                   onClick={() => {
                     if (model.status === 'active') {
@@ -438,18 +443,18 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
                     {selectedModel === model.id ? (
                       <CheckCircle2 className="w-4 h-4 text-purple-400" />
                     ) : (
-                      <Circle className="w-4 h-4 text-slate-600" />
+                      <Circle className="w-4 h-4 text-neutral-600" />
                     )}
                   </div>
 
                   {/* Model Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className={`text-sm truncate ${selectedModel === model.id ? 'text-white font-medium' : 'text-slate-300'}`}>
+                      <span className={`text-sm truncate ${selectedModel === model.id ? 'text-white font-medium' : 'text-neutral-300'}`}>
                         {model.display_name}
                       </span>
                       {model.is_free && (
-                        <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 text-[10px] rounded font-medium">
+                        <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-[10px] rounded font-medium">
                           FREE
                         </span>
                       )}
@@ -459,17 +464,49 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-500 truncate mt-0.5">{model.description}</p>
+                    <p className="text-[11px] text-neutral-500 truncate mt-0.5">{model.description}</p>
                   </div>
                 </div>
               ))}
+              {/* Custom models appear here too */}
+              {customModels.length > 0 && (
+                <>
+                  <div className="px-3 pt-2 pb-1 text-[10px] text-neutral-500 uppercase tracking-wider">Your Custom Models</div>
+                  {customModels.map(model => {
+                    const customId = `custom_${model.id}`
+                    return (
+                      <div
+                        key={customId}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition ${selectedModel === customId ? 'bg-purple-500/15' : 'hover:bg-neutral-800/50'}`}
+                        onClick={() => setSelectedModel(customId)}
+                      >
+                        <div className="shrink-0">
+                          {selectedModel === customId ? (
+                            <CheckCircle2 className="w-4 h-4 text-purple-400" />
+                          ) : (
+                            <Circle className="w-4 h-4 text-neutral-600" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm truncate ${selectedModel === customId ? 'text-white font-medium' : 'text-neutral-300'}`}>{model.name}</span>
+                            <span className="px-1.5 py-0.5 bg-purple-500/20 text-purple-400 text-[10px] rounded font-medium">CUSTOM</span>
+                          </div>
+                          <p className="text-[11px] text-neutral-500 truncate mt-0.5">{model.endpoint_url}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </>
+              )}
             </div>
           )}
+
 
           {activeTab === 'custom' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-slate-400">Custom AI endpoints</p>
+                <p className="text-sm text-neutral-400">Custom AI endpoints</p>
                 <button
                   onClick={() => setShowAddCustom(!showAddCustom)}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600 rounded-lg hover:bg-purple-500 transition text-sm"
@@ -480,27 +517,27 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
               </div>
 
               {showAddCustom && (
-                <div className="border border-slate-700 rounded-xl p-3 sm:p-4 space-y-3 bg-slate-800/30">
+                <div className="border border-neutral-700 rounded-xl p-3 sm:p-4 space-y-3 bg-neutral-800/30">
                   <input
                     type="text"
                     placeholder="Model Name"
                     value={newCustomModel.name}
                     onChange={(e) => setNewCustomModel({ ...newCustomModel, name: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 bg-neutral-900/50 border border-neutral-700 rounded-lg text-white text-sm placeholder-neutral-500 focus:outline-none focus:border-purple-500"
                   />
                   <input
                     type="url"
                     placeholder="API Endpoint URL"
                     value={newCustomModel.endpoint_url}
                     onChange={(e) => setNewCustomModel({ ...newCustomModel, endpoint_url: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 bg-neutral-900/50 border border-neutral-700 rounded-lg text-white text-sm placeholder-neutral-500 focus:outline-none focus:border-purple-500"
                   />
                   <input
                     type="password"
                     placeholder="API Key"
                     value={newCustomModel.api_key}
                     onChange={(e) => setNewCustomModel({ ...newCustomModel, api_key: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                    className="w-full px-3 py-2 bg-neutral-900/50 border border-neutral-700 rounded-lg text-white text-sm placeholder-neutral-500 focus:outline-none focus:border-purple-500"
                   />
                   <div className="flex gap-2">
                     <button
@@ -511,7 +548,7 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
                     </button>
                     <button
                       onClick={() => setShowAddCustom(false)}
-                      className="px-3 py-1.5 bg-slate-700 rounded-lg hover:bg-slate-600 transition text-sm"
+                      className="px-3 py-1.5 bg-neutral-700 rounded-lg hover:bg-neutral-600 transition text-sm"
                     >
                       Cancel
                     </button>
@@ -520,16 +557,16 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
               )}
 
               {customModels.length === 0 && !showAddCustom ? (
-                <div className="text-center py-8 text-slate-500 text-sm">
+                <div className="text-center py-8 text-neutral-500 text-sm">
                   No custom models yet
                 </div>
               ) : (
                 <div className="space-y-2">
                   {customModels.map(model => (
-                    <div key={model.id} className="flex items-center justify-between border border-slate-700 rounded-lg p-3 bg-slate-800/30">
+                    <div key={model.id} className="flex items-center justify-between border border-neutral-700 rounded-lg p-3 bg-neutral-800/30">
                       <div className="min-w-0">
                         <h3 className="font-medium text-white text-sm truncate">{model.name}</h3>
-                        <p className="text-xs text-slate-500 truncate">{model.endpoint_url}</p>
+                        <p className="text-xs text-neutral-500 truncate">{model.endpoint_url}</p>
                       </div>
                       <button
                         onClick={() => model.id && handleDeleteCustomModel(model.id)}
@@ -547,8 +584,8 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
           {activeTab === 'preferences' && (
             <div className="space-y-4">
               {/* Temperature */}
-              <div className="border border-slate-700 rounded-xl p-3 sm:p-4 bg-slate-800/30">
-                <label className="text-sm text-slate-300 mb-3 block">Temperature</label>
+              <div className="border border-neutral-700 rounded-xl p-3 sm:p-4 bg-neutral-800/30">
+                <label className="text-sm text-neutral-300 mb-3 block">Temperature</label>
                 <input
                   type="range"
                   min="0"
@@ -556,9 +593,9 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
                   step="0.1"
                   value={settings.temperature}
                   onChange={(e) => setSettings({ ...settings, temperature: parseFloat(e.target.value) })}
-                  className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+                  className="w-full h-1.5 bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
                 />
-                <div className="flex justify-between text-xs text-slate-500 mt-2">
+                <div className="flex justify-between text-xs text-neutral-500 mt-2">
                   <span>Precise</span>
                   <span className="text-purple-400">{settings.temperature}</span>
                   <span>Creative</span>
@@ -566,36 +603,36 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
               </div>
 
               {/* Max Tokens */}
-              <div className="border border-slate-700 rounded-xl p-3 sm:p-4 bg-slate-800/30">
-                <label className="text-sm text-slate-300 mb-2 block">Max Tokens</label>
+              <div className="border border-neutral-700 rounded-xl p-3 sm:p-4 bg-neutral-800/30">
+                <label className="text-sm text-neutral-300 mb-2 block">Max Tokens</label>
                 <input
                   type="number"
                   value={settings.max_tokens}
                   onChange={(e) => setSettings({ ...settings, max_tokens: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 bg-neutral-900/50 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
                   min="100"
                   max="4000"
                 />
               </div>
 
               {/* Toggles */}
-              <div className="border border-slate-700 rounded-xl p-3 sm:p-4 bg-slate-800/30 space-y-3">
+              <div className="border border-neutral-700 rounded-xl p-3 sm:p-4 bg-neutral-800/30 space-y-3">
                 <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-sm text-slate-300">Stream responses</span>
+                  <span className="text-sm text-neutral-300">Stream responses</span>
                   <input
                     type="checkbox"
                     checked={settings.stream_responses}
                     onChange={(e) => setSettings({ ...settings, stream_responses: e.target.checked })}
-                    className="w-4 h-4 text-purple-600 bg-slate-700 border-slate-600 rounded focus:ring-purple-500"
+                    className="w-4 h-4 text-purple-600 bg-neutral-700 border-neutral-600 rounded focus:ring-purple-500"
                   />
                 </label>
                 <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-sm text-slate-300">Save history</span>
+                  <span className="text-sm text-neutral-300">Save history</span>
                   <input
                     type="checkbox"
                     checked={settings.save_history}
                     onChange={(e) => setSettings({ ...settings, save_history: e.target.checked })}
-                    className="w-4 h-4 text-purple-600 bg-slate-700 border-slate-600 rounded focus:ring-purple-500"
+                    className="w-4 h-4 text-purple-600 bg-neutral-700 border-neutral-600 rounded focus:ring-purple-500"
                   />
                 </label>
               </div>
@@ -604,7 +641,7 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
         </div>
 
         {/* Footer - Minimal */}
-        <div className="border-t border-slate-800 p-3 shrink-0">
+        <div className="border-t border-neutral-800 p-3 shrink-0">
           <button
             onClick={handleSaveSettings}
             disabled={loading}

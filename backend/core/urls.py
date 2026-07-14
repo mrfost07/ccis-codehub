@@ -36,7 +36,9 @@ urlpatterns = [
     path('api/learning/', include('apps.learning.urls')),
     path('api/community/', include('apps.community.urls')),
     path('api/projects/', include('apps.projects.urls')),
-    path('api/competitions/', include('apps.competitions.urls')),
+    # NOTE: apps.competitions has no implemented endpoints. Its route and API-root
+    # advertisement are removed so clients don't hit dead 404s (remediation Req 32).
+    # The app stays in INSTALLED_APPS so its tables and migrations are preserved.
     path('api/ai/', include('apps.ai_mentor.urls')),
 ]
 

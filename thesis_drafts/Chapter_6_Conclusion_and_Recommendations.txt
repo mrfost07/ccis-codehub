@@ -1,0 +1,60 @@
+CHAPTER 6
+SUMMARY OF FINDINGS, CONCLUSIONS, AND RECOMMENDATIONS
+
+This chapter presents the summary of findings, conclusions, and recommendations of the study. It synthesizes the key results of the system evaluation and AI-component assessment, draws the overall conclusions of the research, and outlines recommendations for future development and implementation of CCIS-CodeHub.
+
+6.1 Summary of Findings
+
+Based on the results presented in Chapter 5, the following findings were established:
+
+1. On the integration of learning and practice, the study found that CCIS-CodeHub was able to combine learning management, collaborative project workflows, development-oriented activities, and academic support features in one connected platform environment.
+
+2. On contextual and career-oriented learning, the study found that the platform was able to support structured modules, guided pathways, and targeted academic support features aligned with the intended educational setting of the users.
+
+3. On knowledge sharing and academic collaboration, the study found that CCIS-CodeHub functioned as a connected academic environment that supports participation, interaction, and peer-supported engagement through its integrated community-oriented features.
+
+4. On responsible AI mentorship, the evaluation of the school-focused, curriculum-based, fine-tuned Llama AI_MentorV3 showed that the system-prompt-guided configuration achieved a higher average score of 90.1% compared with 83.9% without the system prompt, indicating that structured prompting and contextual guidance improved response quality and consistency.
+
+5. On vision-based integrity, the proctoring-model experimentation showed that Version 3 achieved the highest peak validation accuracy at 86.98%, while Version 4 was selected as the final thesis model because it offered the most complete evaluation evidence. The selected V4 model achieved 85.80% accuracy, approximately 85.70% F1-score, and strong results in no_face and phone_detected detection, although gaze-direction classes remained less stable.
+
+6. On overall system performance, the system evaluation results showed that CCIS-CodeHub obtained an overall weighted mean of 4.62, verbally interpreted as Highly Acceptable. Functional Suitability, Usability, Security, and Reliability were rated highly acceptable, while Performance Efficiency obtained an acceptable rating of 4.42, indicating that the system performed well overall but still requires further optimization for resource-intensive and real-time operations.
+
+6.2 Conclusions
+
+This study was conducted to design, develop, and evaluate CCIS-CodeHub as an AI-driven academic platform that integrates learning management, collaborative project work, community-based interaction, contextual AI mentorship, and integrity-aware assessment for the College of Computing and Information Sciences. Based on the findings of the study, it is concluded that the platform was able to satisfy its major objectives in a meaningful and academically defensible way.
+
+The study concludes that CCIS-CodeHub successfully addressed the problem of tool fragmentation by integrating multiple academic functions into one platform. Instead of requiring users to move across disconnected systems for learning, assessment, collaboration, communication, and support, the developed platform provided a unified environment in which these functions were structurally connected. This directly supports the objective of unifying learning and practice in one coherent academic ecosystem.
+
+The study further concludes that the platform supported contextual and career-oriented learning by combining structured learning pathways, coding exercises, project workspaces, and academic support features. In this sense, the system did not function merely as a repository of content, but as a broader academic environment that aligns learning activities with practical computing-related tasks and skills.
+
+It is also concluded that the community and collaborative features of the platform strengthened its academic value. Through project collaboration and community-based interaction, the system established a stronger basis for peer-supported knowledge sharing, student engagement, and connected academic participation.
+
+The study additionally concludes that the school-focused, curriculum-based, fine-tuned Llama AI Mentor component is a meaningful academic support feature when guided by structured prompting and contextual design. The improvement in average score from 83.9% to 90.1% supports the position that AI mentorship becomes more effective when it is implemented as guided, curriculum-aware academic assistance rather than as unrestricted answer generation.
+
+Moreover, the study concludes that the AI proctoring component is feasible as part of an integrity-aware assessment framework. Although Version 3 produced the highest peak validation accuracy during experimentation, Version 4 served as the most appropriate final thesis model because it offered more complete and defensible evaluation evidence. The selected V4 model demonstrated that the platform can support selected integrity-monitoring functions, especially in detecting concrete conditions such as no face present and phone detected, even though more nuanced gaze-related interpretation still requires improvement.
+
+Finally, the study concludes that CCIS-CodeHub performed well as a software system based on the ISO/IEC 25010 evaluation. With an overall weighted mean of 4.62, interpreted as Highly Acceptable, the platform showed strong user acceptance in terms of functionality, usability, security, and reliability. Although performance efficiency remained the lowest-rated criterion, it still fell within the acceptable range, which means that the system is viable for academic use while still benefiting from future optimization.
+
+Overall, CCIS-CodeHub is concluded to be a viable integrated academic platform that responds to the identified educational and technical problems of the study. The findings show that it is capable of supporting learning, collaboration, community engagement, AI-guided assistance, and integrity-aware assessment in one connected environment. At the same time, the AI components remain developmental and should be viewed as strong but still improving subsystems whose performance depends heavily on data quality, hardware resources, and continued refinement.
+
+6.3 Recommendations
+
+Based on the findings and limitations of the study, the following recommendations are proposed:
+
+1. The AI proctoring component should be improved through the collection of a larger and more diverse dataset, especially for gaze-direction and subtle behavioral classes where the model still showed weaker performance. Expanding the dataset would improve class balance and help increase generalization capability.
+
+2. The training and evaluation of the AI-driven components should be supported by stronger hardware resources in future development cycles. More capable computational resources would allow broader experimentation, larger batch training, more stable hyperparameter tuning, and more efficient validation of the models.
+
+3. The AI Mentor should be further refined using a more complete domain-specific adaptation pipeline. Future work should prioritize a richer curriculum-grounded training or fine-tuning process, together with stronger reproducible reporting artifacts such as structured metric files, validation logs, and exportable evaluation reports.
+
+4. The AI proctoring model should be fully integrated into the live runtime pipeline of the deployed platform so that the current monitoring flow can move beyond transport and placeholder analysis toward direct model-based behavioral detection during assessment sessions.
+
+5. Future studies should expand the user evaluation to include a larger and more diverse respondent population beyond the current 30 BSCS students. Including more respondents across programs and roles would provide stronger evidence for system acceptability and performance.
+
+6. The platform should undergo further optimization for performance efficiency, especially in modules that involve real-time communication, AI processing, or larger media and assessment workflows. This is necessary to improve responsiveness under wider institutional deployment.
+
+7. Offline-first capability and local synchronization support should be considered in future versions of the system to reduce dependence on continuous network connectivity and improve accessibility in environments with unstable internet access.
+
+8. Additional thesis work may also focus on producing more detailed experimental reporting for both the proctoring and mentor components, including confusion matrices, precision-recall summaries, ablation studies, and deployment benchmarks, so that the AI contributions of the platform become even more rigorous and reproducible.
+
+In summary, CCIS-CodeHub has demonstrated strong potential as an integrated, AI-enhanced academic platform. However, its long-term institutional value will depend on sustained refinement, stronger datasets, better hardware support, fuller deployment of the trained AI models, and more extensive validation in real academic settings.

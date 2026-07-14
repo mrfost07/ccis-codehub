@@ -38,7 +38,12 @@ class Post(models.Model):
     
     class Meta:
         ordering = ['-is_pinned', '-created_at']
-    
+        indexes = [
+            # Serves the default feed ordering and the type-filtered feed.
+            models.Index(fields=['-is_pinned', '-created_at'], name='post_feed_idx'),
+            models.Index(fields=['post_type', '-created_at'], name='post_type_feed_idx'),
+        ]
+
     def __str__(self):
         return self.title or f"Post by {self.author.username}"
 
@@ -134,6 +139,9 @@ class Notification(models.Model):
         ('course_completed', 'Course Completed'),
         ('review_request', 'Review Request'),
         ('announcement', 'Announcement'),
+        ('org_join_request', 'Organization Join Request'),
+        ('org_invitation', 'Organization Invitation'),
+        ('org_approved', 'Organization Approved'),
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

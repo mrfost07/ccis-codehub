@@ -82,7 +82,7 @@ export default function Navbar() {
     <>
       {/* Top Header - Hides on scroll down, shows on scroll up (mobile only) */}
       <nav className={`
-        bg-slate-900/95 backdrop-blur-xl border-b border-slate-800 sticky top-0 z-50
+        bg-neutral-900/95 backdrop-blur-xl border-b border-neutral-800 sticky top-0 z-50
         transition-transform duration-300 ease-out
         ${headerVisible ? 'translate-y-0' : '-translate-y-full md:translate-y-0'}
       `}>
@@ -91,7 +91,7 @@ export default function Navbar() {
             {/* Logo */}
             <Link to="/learning" className="flex items-center space-x-2 flex-shrink-0">
               <img src="/logo/ccis-logo.png" alt="CCIS" className="h-7 w-7 md:h-8 md:w-8" />
-              <span className="text-base md:text-xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+              <span className="text-base md:text-xl font-bold bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent">
                 CodeHub
               </span>
             </Link>
@@ -106,7 +106,7 @@ export default function Navbar() {
                     to={link.to}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg transition ${isActive(link.to)
                       ? 'text-white bg-purple-600/20 border border-purple-500/30'
-                      : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+                      : 'text-neutral-300 hover:text-white hover:bg-neutral-800/50'
                       }`}
                   >
                     <Icon size={18} />
@@ -116,10 +116,10 @@ export default function Navbar() {
               })}
 
               {/* User Dropdown - Desktop */}
-              <div className="relative border-l border-slate-700 pl-3 ml-2" ref={dropdownRef}>
+              <div className="relative border-l border-neutral-700 pl-3 ml-2" ref={dropdownRef}>
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center space-x-2 text-slate-300 hover:text-white transition px-2 py-1.5 rounded-lg hover:bg-slate-800/50"
+                  className="flex items-center space-x-2 text-neutral-300 hover:text-white transition px-2 py-1.5 rounded-lg hover:bg-neutral-800/50"
                 >
                   {profilePicture ? (
                     <img
@@ -128,7 +128,7 @@ export default function Navbar() {
                       className="w-8 h-8 rounded-full object-cover border-2 border-purple-500/50"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
                       {user?.username?.charAt(0).toUpperCase() || 'U'}
                     </div>
                   )}
@@ -138,19 +138,19 @@ export default function Navbar() {
 
                 {/* Desktop Dropdown Menu */}
                 {userDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-50">
-                    <div className="px-4 py-3 bg-slate-700/50 border-b border-slate-700">
+                  <div className="absolute right-0 mt-2 w-56 bg-neutral-800 border border-neutral-700 rounded-xl shadow-xl overflow-hidden z-50">
+                    <div className="px-4 py-3 bg-neutral-700/50 border-b border-neutral-700">
                       <div className="flex items-center gap-3">
                         {profilePicture ? (
                           <img src={profilePicture} alt="" className="w-10 h-10 rounded-full object-cover" />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white font-bold">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white font-bold">
                             {user?.username?.charAt(0).toUpperCase() || 'U'}
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-white font-medium truncate">{user?.username}</p>
-                          <p className="text-slate-400 text-xs truncate">{user?.email}</p>
+                          <p className="text-neutral-400 text-xs truncate">{user?.email}</p>
                         </div>
                       </div>
                     </div>
@@ -159,7 +159,7 @@ export default function Navbar() {
                       <Link
                         to="/profile"
                         onClick={() => setUserDropdownOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-slate-300 hover:text-white hover:bg-slate-700/50 transition"
+                        className="flex items-center gap-3 px-4 py-2.5 text-neutral-300 hover:text-white hover:bg-neutral-700/50 transition"
                       >
                         <User size={16} />
                         <span>Profile</span>
@@ -169,14 +169,14 @@ export default function Navbar() {
                           setUserDropdownOpen(false)
                           navigate('/dashboard')
                         }}
-                        className="flex items-center gap-3 px-4 py-2.5 text-slate-300 hover:text-white hover:bg-slate-700/50 transition w-full"
+                        className="flex items-center gap-3 px-4 py-2.5 text-neutral-300 hover:text-white hover:bg-neutral-700/50 transition w-full"
                       >
                         <LayoutDashboard size={16} />
                         <span>Dashboard</span>
                       </button>
                     </div>
 
-                    <div className="border-t border-slate-700 py-2">
+                    <div className="border-t border-neutral-700 py-2">
                       <button
                         onClick={() => {
                           setUserDropdownOpen(false)
@@ -197,7 +197,7 @@ export default function Navbar() {
             <div className="md:hidden flex items-center gap-2" ref={mobileDropdownRef}>
               <button
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                className="flex items-center space-x-1 text-slate-300 hover:text-white transition p-1.5 rounded-lg hover:bg-slate-800/50"
+                className="flex items-center space-x-1 text-neutral-300 hover:text-white transition p-1.5 rounded-lg hover:bg-neutral-800/50"
               >
                 {profilePicture ? (
                   <img
@@ -206,7 +206,7 @@ export default function Navbar() {
                     className="w-8 h-8 rounded-full object-cover border-2 border-purple-500/50"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center text-white text-sm font-bold">
                     {user?.username?.charAt(0).toUpperCase() || 'U'}
                   </div>
                 )}
@@ -214,17 +214,17 @@ export default function Navbar() {
 
               {/* Mobile Dropdown */}
               {userDropdownOpen && (
-                <div className="absolute right-4 top-14 w-52 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-50">
-                  <div className="px-3 py-2.5 bg-slate-700/50 border-b border-slate-700">
+                <div className="absolute right-4 top-14 w-52 bg-neutral-800 border border-neutral-700 rounded-xl shadow-xl overflow-hidden z-50">
+                  <div className="px-3 py-2.5 bg-neutral-700/50 border-b border-neutral-700">
                     <p className="text-white text-sm font-medium truncate">{user?.username}</p>
-                    <p className="text-slate-400 text-xs truncate">{user?.email}</p>
+                    <p className="text-neutral-400 text-xs truncate">{user?.email}</p>
                   </div>
 
                   <div className="py-1.5">
                     <Link
                       to="/profile"
                       onClick={() => setUserDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/50 transition text-sm"
+                      className="flex items-center gap-2.5 px-3 py-2 text-neutral-300 hover:text-white hover:bg-neutral-700/50 transition text-sm"
                     >
                       <User size={16} />
                       <span>Profile</span>
@@ -234,14 +234,14 @@ export default function Navbar() {
                         setUserDropdownOpen(false)
                         navigate('/dashboard')
                       }}
-                      className="flex items-center gap-2.5 px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-700/50 transition text-sm w-full"
+                      className="flex items-center gap-2.5 px-3 py-2 text-neutral-300 hover:text-white hover:bg-neutral-700/50 transition text-sm w-full"
                     >
                       <LayoutDashboard size={16} />
                       <span>Dashboard</span>
                     </button>
                   </div>
 
-                  <div className="border-t border-slate-700 py-1.5">
+                  <div className="border-t border-neutral-700 py-1.5">
                     <button
                       onClick={() => {
                         setUserDropdownOpen(false)

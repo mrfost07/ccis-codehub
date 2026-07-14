@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   User, Mail, Calendar, BookOpen, Code, Trophy, Star,
@@ -8,8 +8,11 @@ import {
 import Navbar from '../components/Navbar'
 import { communityAPI } from '../services/api'
 import toast from 'react-hot-toast'
-import Hyperspeed from '../components/backgrounds/Hyperspeed'
+// three.js-backed background — lazy so it only downloads when this profile
+// actually uses an animated background.
+const Hyperspeed = lazy(() => import('../components/backgrounds/Hyperspeed'))
 import { getMediaUrl } from '../utils/mediaUrl'
+import { LoadingState, SkeletonListRow } from '../components/ui'
 
 type BackgroundType = 'hyperspeed' | 'akira' | 'golden' | 'split' | 'highway' | 'gradient' | 'aurora' | 'cyber'
 
@@ -364,18 +367,16 @@ export default function UserProfileView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950">
+      <div className="min-h-screen bg-neutral-950">
         <Navbar />
-        <div className="flex items-center justify-center h-96">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-        </div>
+        <LoadingState label="Loading profile…" />
       </div>
     )
   }
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-slate-950">
+      <div className="min-h-screen bg-neutral-950">
         <Navbar />
         <div className="max-w-4xl mx-auto px-4 py-8 text-center">
           <h1 className="text-2xl font-bold text-white mb-4">User Not Found</h1>
@@ -391,14 +392,14 @@ export default function UserProfileView() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-neutral-950">
       <Navbar />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         {/* Back Button */}
         <button
           onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition"
+          className="inline-flex items-center gap-2 text-neutral-400 hover:text-white mb-6 transition"
         >
           <ArrowLeft className="w-4 h-4" />
           Go Back
@@ -406,6 +407,7 @@ export default function UserProfileView() {
 
         {/* Cover Background - Separate Section */}
         <div className="relative h-56 sm:h-72 rounded-2xl overflow-hidden">
+          <Suspense fallback={null}>
           {(() => {
             const bg = (profile.profile?.profile_background || 'gradient') as BackgroundType
             switch (bg) {
@@ -420,23 +422,24 @@ export default function UserProfileView() {
               case 'highway':
                 return <Hyperspeed className="rounded-2xl" effectOptions={highwayPreset} />
               case 'aurora':
-                return <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 via-cyan-500 to-blue-600 rounded-2xl animate-pulse" />
+                return <div className="absolute inset-0 bg-gradient-to-br from-green-500 via-purple-500 to-purple-600 rounded-2xl animate-pulse" />
               case 'cyber':
-                return <div className="absolute inset-0 bg-gradient-to-r from-pink-500 via-purple-600 to-cyan-500 rounded-2xl" style={{ backgroundSize: '200% 200%', animation: 'gradient-shift 3s ease infinite' }} />
+                return <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-purple-600 to-purple-500 rounded-2xl" style={{ backgroundSize: '200% 200%', animation: 'gradient-shift 3s ease infinite' }} />
               case 'gradient':
               default:
-                return <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 rounded-2xl" />
+                return <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-purple-600 to-purple-600 rounded-2xl" />
             }
           })()}
+          </Suspense>
         </div>
 
         {/* Profile Info Card - Overlapping Glass Card */}
         <div className="relative -mt-8 sm:-mt-12 mx-2 sm:mx-8">
-          <div className="bg-slate-900/80 backdrop-blur-md border border-slate-700/50 rounded-2xl p-3 sm:p-6">
+          <div className="bg-neutral-900/80 backdrop-blur-md border border-neutral-700/50 rounded-2xl p-3 sm:p-6">
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-3 sm:gap-6">
               {/* Avatar */}
               <div className="relative -mt-12 sm:-mt-16">
-                <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-slate-900 overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-neutral-900 overflow-hidden bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center">
                   {getProfilePictureUrl() ? (
                     <img src={getProfilePictureUrl()!} alt={profile.username} className="w-full h-full object-cover" />
                   ) : (
@@ -455,7 +458,7 @@ export default function UserProfileView() {
                 <p className="text-purple-400">@{profile.username}</p>
 
                 {profile.is_follower && (
-                  <span className="inline-flex items-center gap-1 text-xs text-slate-400 mt-1">
+                  <span className="inline-flex items-center gap-1 text-xs text-neutral-400 mt-1">
                     <UserCheck className="w-3 h-3" /> Follows you
                   </span>
                 )}
@@ -468,7 +471,7 @@ export default function UserProfileView() {
                     <button
                       onClick={handleUnfollow}
                       disabled={followLoading}
-                      className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-red-600 text-white rounded-lg transition disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2 bg-neutral-700 hover:bg-red-600 text-white rounded-lg transition disabled:opacity-50"
                     >
                       <UserMinus className="w-4 h-4" />
                       {followLoading ? 'Loading...' : 'Following'}
@@ -477,7 +480,7 @@ export default function UserProfileView() {
                     <button
                       onClick={handleCancelRequest}
                       disabled={followLoading}
-                      className="flex items-center gap-2 px-4 py-2 bg-yellow-600/50 hover:bg-red-600 text-yellow-200 hover:text-white rounded-lg transition disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2 bg-amber-600/50 hover:bg-red-600 text-amber-200 hover:text-white rounded-lg transition disabled:opacity-50"
                     >
                       <Clock className="w-4 h-4" />
                       {followLoading ? 'Loading...' : 'Requested'}
@@ -497,28 +500,28 @@ export default function UserProfileView() {
             </div>
 
             {/* Stats - Compact for mobile */}
-            <div className="flex justify-center sm:justify-start gap-4 sm:gap-6 mt-4 pt-3 border-t border-slate-800">
+            <div className="flex justify-center sm:justify-start gap-4 sm:gap-6 mt-4 pt-3 border-t border-neutral-800">
               <button
                 onClick={openFollowersModal}
-                className="text-center hover:bg-slate-800/50 px-2 py-1 sm:px-3 sm:py-2 rounded-lg transition"
+                className="text-center hover:bg-neutral-800/50 px-2 py-1 sm:px-3 sm:py-2 rounded-lg transition"
               >
                 <p className="text-lg sm:text-xl font-bold text-white">{profile.followers_count}</p>
-                <p className="text-xs sm:text-sm text-slate-400">Followers</p>
+                <p className="text-xs sm:text-sm text-neutral-400">Followers</p>
               </button>
               <button
                 onClick={openFollowingModal}
-                className="text-center hover:bg-slate-800/50 px-2 py-1 sm:px-3 sm:py-2 rounded-lg transition"
+                className="text-center hover:bg-neutral-800/50 px-2 py-1 sm:px-3 sm:py-2 rounded-lg transition"
               >
                 <p className="text-lg sm:text-xl font-bold text-white">{profile.following_count}</p>
-                <p className="text-xs sm:text-sm text-slate-400">Following</p>
+                <p className="text-xs sm:text-sm text-neutral-400">Following</p>
               </button>
               <div className="text-center px-2 py-1 sm:px-3 sm:py-2">
                 <p className="text-lg sm:text-xl font-bold text-white">{profile.profile?.total_posts || 0}</p>
-                <p className="text-xs sm:text-sm text-slate-400">Posts</p>
+                <p className="text-xs sm:text-sm text-neutral-400">Posts</p>
               </div>
               <div className="text-center px-2 py-1 sm:px-3 sm:py-2">
                 <p className="text-lg sm:text-xl font-bold text-white">{profile.profile?.contribution_points || 0}</p>
-                <p className="text-xs sm:text-sm text-slate-400">Points</p>
+                <p className="text-xs sm:text-sm text-neutral-400">Points</p>
               </div>
             </div>
           </div>
@@ -527,27 +530,27 @@ export default function UserProfileView() {
         {/* User Info Cards - More spacing on mobile */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-8 sm:mt-6">
           {/* About */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
             <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <User className="w-5 h-5 text-purple-400" />
               About
             </h2>
-            <p className="text-slate-300">{profile.bio || 'No bio available.'}</p>
+            <p className="text-neutral-300">{profile.bio || 'No bio available.'}</p>
 
             <div className="mt-4 space-y-2">
-              <div className="flex items-center gap-2 text-slate-400">
+              <div className="flex items-center gap-2 text-neutral-400">
                 <Shield className="w-4 h-4" />
                 <span>{profile.role}</span>
               </div>
-              <div className="flex items-center gap-2 text-slate-400">
+              <div className="flex items-center gap-2 text-neutral-400">
                 <BookOpen className="w-4 h-4" />
                 <span>{getProgramDisplay(profile.program)}</span>
               </div>
-              <div className="flex items-center gap-2 text-slate-400">
+              <div className="flex items-center gap-2 text-neutral-400">
                 <Calendar className="w-4 h-4" />
                 <span>{getYearDisplay(profile.year_level)}</span>
               </div>
-              <div className="flex items-center gap-2 text-slate-400">
+              <div className="flex items-center gap-2 text-neutral-400">
                 <Clock className="w-4 h-4" />
                 <span>Joined {new Date(profile.created_at).toLocaleDateString()}</span>
               </div>
@@ -555,7 +558,7 @@ export default function UserProfileView() {
           </div>
 
           {/* Skills */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
             <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <Code className="w-5 h-5 text-purple-400" />
               Skills
@@ -571,39 +574,39 @@ export default function UserProfileView() {
                   </span>
                 ))
               ) : (
-                <p className="text-slate-500">No skills listed</p>
+                <p className="text-neutral-500">No skills listed</p>
               )}
             </div>
           </div>
 
           {/* Stats */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
             <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-purple-400" />
               Activity Stats
             </h2>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-slate-400">Courses Completed</span>
+                <span className="text-neutral-400">Courses Completed</span>
                 <span className="text-white font-bold">{profile.profile?.total_courses_completed || 0}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Modules Completed</span>
+                <span className="text-neutral-400">Modules Completed</span>
                 <span className="text-white font-bold">{profile.profile?.total_modules_completed || 0}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Projects</span>
+                <span className="text-neutral-400">Projects</span>
                 <span className="text-white font-bold">{profile.profile?.total_projects || 0}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Certificates</span>
+                <span className="text-neutral-400">Certificates</span>
                 <span className="text-white font-bold">{profile.profile?.certificates_earned || 0}</span>
               </div>
             </div>
           </div>
 
           {/* Social Links */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
             <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <Globe className="w-5 h-5 text-purple-400" />
               Social Links
@@ -614,7 +617,7 @@ export default function UserProfileView() {
                   href={`https://github.com/${profile.profile.github_username}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-slate-400 hover:text-purple-400 transition"
+                  className="flex items-center gap-2 text-neutral-400 hover:text-purple-400 transition"
                 >
                   <Github className="w-4 h-4" />
                   {profile.profile.github_username}
@@ -625,7 +628,7 @@ export default function UserProfileView() {
                   href={profile.profile.linkedin_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-slate-400 hover:text-purple-400 transition"
+                  className="flex items-center gap-2 text-neutral-400 hover:text-purple-400 transition"
                 >
                   <Linkedin className="w-4 h-4" />
                   LinkedIn Profile
@@ -636,14 +639,14 @@ export default function UserProfileView() {
                   href={profile.profile.website_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-slate-400 hover:text-purple-400 transition"
+                  className="flex items-center gap-2 text-neutral-400 hover:text-purple-400 transition"
                 >
                   <Globe className="w-4 h-4" />
                   {profile.profile.website_url}
                 </a>
               )}
               {!profile.profile?.github_username && !profile.profile?.linkedin_url && !profile.profile?.website_url && (
-                <p className="text-slate-500">No social links available</p>
+                <p className="text-neutral-500">No social links available</p>
               )}
             </div>
           </div>
@@ -653,23 +656,23 @@ export default function UserProfileView() {
       {/* Followers Modal */}
       {showFollowersModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-slate-700">
+          <div className="bg-neutral-900 border border-neutral-700 rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-neutral-700">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Users className="w-5 h-5 text-purple-400" />
                 Followers ({profile.followers_count})
               </h2>
               <button
                 onClick={() => setShowFollowersModal(false)}
-                className="p-1 hover:bg-slate-800 rounded-lg transition"
+                className="p-1 hover:bg-neutral-800 rounded-lg transition"
               >
-                <X className="w-5 h-5 text-slate-400" />
+                <X className="w-5 h-5 text-neutral-400" />
               </button>
             </div>
             <div className="overflow-y-auto max-h-96 p-4">
               {loadingFollowers ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                <div className="space-y-3">
+                  {[0, 1, 2].map(i => <SkeletonListRow key={i} />)}
                 </div>
               ) : followers.length > 0 ? (
                 <div className="space-y-3">
@@ -680,9 +683,9 @@ export default function UserProfileView() {
                       <div
                         key={f.id}
                         onClick={() => visitUser(user.id)}
-                        className="flex items-center gap-3 p-3 bg-slate-800/50 hover:bg-slate-800 rounded-xl cursor-pointer transition"
+                        className="flex items-center gap-3 p-3 bg-neutral-800/50 hover:bg-neutral-800 rounded-xl cursor-pointer transition"
                       >
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center overflow-hidden">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center overflow-hidden">
                           {getAvatarUrl(user.profile_picture) ? (
                             <img src={getAvatarUrl(user.profile_picture)!} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -695,14 +698,14 @@ export default function UserProfileView() {
                           <p className="text-white font-medium">
                             {user.first_name} {user.last_name}
                           </p>
-                          <p className="text-slate-400 text-sm">@{user.username}</p>
+                          <p className="text-neutral-400 text-sm">@{user.username}</p>
                         </div>
                       </div>
                     )
                   })}
                 </div>
               ) : (
-                <div className="text-center py-8 text-slate-400">
+                <div className="text-center py-8 text-neutral-400">
                   <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
                   <p>No followers yet</p>
                 </div>
@@ -715,23 +718,23 @@ export default function UserProfileView() {
       {/* Following Modal */}
       {showFollowingModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-slate-700">
+          <div className="bg-neutral-900 border border-neutral-700 rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-neutral-700">
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Users className="w-5 h-5 text-purple-400" />
                 Following ({profile.following_count})
               </h2>
               <button
                 onClick={() => setShowFollowingModal(false)}
-                className="p-1 hover:bg-slate-800 rounded-lg transition"
+                className="p-1 hover:bg-neutral-800 rounded-lg transition"
               >
-                <X className="w-5 h-5 text-slate-400" />
+                <X className="w-5 h-5 text-neutral-400" />
               </button>
             </div>
             <div className="overflow-y-auto max-h-96 p-4">
               {loadingFollowing ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+                <div className="space-y-3">
+                  {[0, 1, 2].map(i => <SkeletonListRow key={i} />)}
                 </div>
               ) : following.length > 0 ? (
                 <div className="space-y-3">
@@ -742,9 +745,9 @@ export default function UserProfileView() {
                       <div
                         key={f.id}
                         onClick={() => visitUser(user.id)}
-                        className="flex items-center gap-3 p-3 bg-slate-800/50 hover:bg-slate-800 rounded-xl cursor-pointer transition"
+                        className="flex items-center gap-3 p-3 bg-neutral-800/50 hover:bg-neutral-800 rounded-xl cursor-pointer transition"
                       >
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center overflow-hidden">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center overflow-hidden">
                           {getAvatarUrl(user.profile_picture) ? (
                             <img src={getAvatarUrl(user.profile_picture)!} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -757,14 +760,14 @@ export default function UserProfileView() {
                           <p className="text-white font-medium">
                             {user.first_name} {user.last_name}
                           </p>
-                          <p className="text-slate-400 text-sm">@{user.username}</p>
+                          <p className="text-neutral-400 text-sm">@{user.username}</p>
                         </div>
                       </div>
                     )
                   })}
                 </div>
               ) : (
-                <div className="text-center py-8 text-slate-400">
+                <div className="text-center py-8 text-neutral-400">
                   <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
                   <p>Not following anyone</p>
                 </div>

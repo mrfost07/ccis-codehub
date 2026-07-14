@@ -186,6 +186,84 @@ Generate the message (plain text, no JSON):"""
             # Fallback message
             return f"Hi! I'm interested in contributing to {project_title}. I'm a {user_info.get('program', 'CCIS')} student and would love to be part of this project. How can I help?"
     
+    
+    def generate_quiz_questions(self, context_text: str, num_questions: int = 5, difficulty: str = 'intermediate') -> Dict[str, Any]:
+        """
+        Generate multiple choice questions from provided text context
+        
+        Args:
+            context_text: The source material text
+            num_questions: Number of questions to generate
+            difficulty: Difficulty level (beginner, intermediate, advanced)
+            
+        Returns:
+            {
+                'success': True,
+                'questions': [
+                    {
+                        'question': str,
+                        'options': [str, str, str, str],
+                        'correct_answer': int (index),
+                        'explanation': str
+                    }
+                ]
+            }
+        """
+        
+        # Truncate context if too long (approx 4000 chars for safety)
+        if len(context_text) > 8000:
+            context_text = context_text[:8000] + "..."
+            
+        prompt = f"""Generate {num_questions} multiple choice questions based on this text.
+        
+        Difficulty: {difficulty}
+        
+        Source Text:
+        {context_text}
+        
+        Requirements:
+        1. Create exactly {num_questions} questions
+        2. Format specific to the text content
+        3. Provide 4 options for each question
+        4. Indicate the correct answer (0-3 index)
+        5. Provide a brief explanation
+        
+        Return JSON format:
+        {{
+            "questions": [
+                {{
+                    "question": "The question text?",
+                    "options": ["Option A", "Option B", "Option C", "Option D"],
+                    "correct_answer": 0,
+                    "explanation": "Why A is correct..."
+                }}
+            ]
+        }}"""
+        
+        try:
+            response = get_ai_response(prompt, model_type=self.model_type)
+            
+            # Clean response
+            response = response.strip()
+            if response.startswith('```'):
+                response = re.sub(r'^```json\s*', '', response)
+                response = re.sub(r'^```\s*', '', response)
+                response = re.sub(r'\s*```$', '', response)
+            
+            result = json.loads(response)
+            
+            return {
+                'success': True,
+                'questions': result.get('questions', [])
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'questions': []
+            }
+            
     def _get_user_progress(self) -> Dict:
         """Get user's current learning progress"""
         try:

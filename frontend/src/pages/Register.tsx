@@ -19,10 +19,10 @@ const PROGRAMS = [
 ]
 
 const YEAR_LEVELS = [
-  { value: '1', label: '1st Year', icon: Sprout, color: 'from-emerald-500 to-green-600' },
-  { value: '2', label: '2nd Year', icon: Flower2, color: 'from-blue-500 to-cyan-600' },
-  { value: '3', label: '3rd Year', icon: TreeDeciduous, color: 'from-purple-500 to-indigo-600' },
-  { value: '4', label: '4th Year', icon: GraduationCap, color: 'from-amber-500 to-orange-600' },
+  { value: '1', label: '1st Year', icon: Sprout, color: 'from-purple-400 to-purple-500' },
+  { value: '2', label: '2nd Year', icon: Flower2, color: 'from-purple-500 to-purple-600' },
+  { value: '3', label: '3rd Year', icon: TreeDeciduous, color: 'from-purple-600 to-purple-700' },
+  { value: '4', label: '4th Year', icon: GraduationCap, color: 'from-purple-700 to-purple-800' },
 ]
 
 export default function Register() {
@@ -133,7 +133,7 @@ export default function Register() {
       })
 
       if (response.data.tokens) {
-        setAuthData(response.data.tokens.access, response.data.user)
+        setAuthData(response.data.tokens.access, response.data.user, response.data.tokens.refresh)
         setStep(4) // Success step
         setTimeout(() => {
           navigate('/learning')
@@ -160,7 +160,7 @@ export default function Register() {
 
   const handleGoogleSignup = async () => {
     const clientId = '1018587300192-m0n93uesm6v33bahs57tatg52v3lurah.apps.googleusercontent.com'
-    const redirectUri = encodeURIComponent('https://ccis-codehub.space/auth/callback')
+    const redirectUri = encodeURIComponent(`${window.location.origin}/auth/callback`)
     const scope = encodeURIComponent('openid email profile')
     const state = btoa(JSON.stringify({ mode: 'signup' }))
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=${state}`
@@ -173,22 +173,21 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl" />
+    <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
+      {/* Single restrained purple glow — no multi-blob slop */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-1/2 top-0 h-80 w-[36rem] -translate-x-1/2 rounded-full bg-purple-600/10 blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
         {/* Card */}
-        <div className="backdrop-blur-xl bg-slate-900/60 border border-slate-700/50 rounded-2xl p-6 sm:p-8 shadow-2xl">
+        <div className="rounded-2xl border border-neutral-800 bg-neutral-900/70 backdrop-blur-sm p-6 sm:p-8 shadow-card">
           {/* Logo & Title */}
           <div className="text-center mb-5">
             <div className="flex justify-center mb-3">
               <img src="/logo/ccis-logo.png" alt="CCIS CodeHub" className="h-12 w-12 sm:h-14 sm:w-14" />
             </div>
-            <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <h1 className="text-xl font-bold text-white">
               {step === 4 ? 'Welcome to CCIS CodeHub!' : 'Create Account'}
             </h1>
           </div>
@@ -200,16 +199,16 @@ export default function Register() {
                 <div key={s} className="flex items-center">
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${s === step
-                      ? 'bg-indigo-600 text-white ring-2 ring-indigo-500/50 ring-offset-2 ring-offset-slate-900'
+                      ? 'bg-purple-600 text-white ring-2 ring-purple-500/50 ring-offset-2 ring-offset-neutral-900'
                       : s < step
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-slate-700 text-slate-400'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-neutral-700 text-neutral-400'
                       }`}
                   >
                     {s < step ? <Check className="w-4 h-4" /> : s}
                   </div>
                   {s < 3 && (
-                    <div className={`w-8 sm:w-12 h-0.5 ${s < step ? 'bg-emerald-600' : 'bg-slate-700'}`} />
+                    <div className={`w-8 sm:w-12 h-0.5 ${s < step ? 'bg-green-600' : 'bg-neutral-700'}`} />
                   )}
                 </div>
               ))}
@@ -219,40 +218,40 @@ export default function Register() {
           {/* Step 1: Name & Username */}
           {step === 1 && (
             <div className="space-y-4">
-              <p className="text-sm text-slate-400 text-center mb-4">Let's start with your name</p>
+              <p className="text-sm text-neutral-400 text-center mb-4">Let's start with your name</p>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">First Name</label>
+                  <label className="block text-xs font-medium text-neutral-300 mb-1.5">First Name</label>
                   <input
                     type="text"
                     value={formData.first_name}
                     onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 transition-all"
+                    className="w-full px-3 py-2.5 text-sm bg-neutral-800/50 border border-neutral-700/50 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:border-purple-500/50 transition-all"
                     placeholder="John"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1.5">Last Name</label>
+                  <label className="block text-xs font-medium text-neutral-300 mb-1.5">Last Name</label>
                   <input
                     type="text"
                     value={formData.last_name}
                     onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                    className="w-full px-3 py-2.5 text-sm bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 transition-all"
+                    className="w-full px-3 py-2.5 text-sm bg-neutral-800/50 border border-neutral-700/50 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:border-purple-500/50 transition-all"
                     placeholder="Doe"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Username</label>
+                <label className="block text-xs font-medium text-neutral-300 mb-1.5">Username</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
                   <input
                     type="text"
                     value={formData.username}
                     onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 text-sm bg-neutral-800/50 border border-neutral-700/50 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:border-purple-500/50 transition-all"
                     placeholder="johndoe"
                   />
                 </div>
@@ -264,21 +263,21 @@ export default function Register() {
           {step === 2 && (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Institutional Email</label>
+                <label className="block text-xs font-medium text-neutral-300 mb-1.5">Institutional Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 text-sm bg-neutral-800/50 border border-neutral-700/50 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:border-purple-500/50 transition-all"
                     placeholder="you@ssct.edu.ph"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-2">Program</label>
+                <label className="block text-xs font-medium text-neutral-300 mb-2">Program</label>
                 <div className="space-y-2">
                   {PROGRAMS.map((program) => {
                     const Icon = program.icon
@@ -288,19 +287,19 @@ export default function Register() {
                         type="button"
                         onClick={() => setFormData({ ...formData, program: program.value })}
                         className={`w-full p-3 rounded-xl border text-left transition-all flex items-center gap-3 ${formData.program === program.value
-                          ? 'border-indigo-500 bg-indigo-500/10'
-                          : 'border-slate-700/50 hover:border-slate-600 bg-slate-800/30'
+                          ? 'border-purple-500 bg-purple-500/10'
+                          : 'border-neutral-700/50 hover:border-neutral-600 bg-neutral-800/30'
                           }`}
                       >
-                        <div className={`p-2 rounded-lg ${formData.program === program.value ? 'bg-indigo-500/20' : 'bg-slate-700/50'}`}>
-                          <Icon className={`w-4 h-4 ${formData.program === program.value ? 'text-indigo-400' : 'text-slate-400'}`} />
+                        <div className={`p-2 rounded-lg ${formData.program === program.value ? 'bg-purple-500/20' : 'bg-neutral-700/50'}`}>
+                          <Icon className={`w-4 h-4 ${formData.program === program.value ? 'text-purple-400' : 'text-neutral-400'}`} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium text-white">{program.label}</div>
-                          <div className="text-xs text-slate-400 truncate">{program.description}</div>
+                          <div className="text-xs text-neutral-400 truncate">{program.description}</div>
                         </div>
                         {formData.program === program.value && (
-                          <Check className="w-4 h-4 text-indigo-400 shrink-0" />
+                          <Check className="w-4 h-4 text-purple-400 shrink-0" />
                         )}
                       </button>
                     )
@@ -309,7 +308,7 @@ export default function Register() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-2">Year Level</label>
+                <label className="block text-xs font-medium text-neutral-300 mb-2">Year Level</label>
                 <div className="grid grid-cols-4 gap-2">
                   {YEAR_LEVELS.map((year) => {
                     const Icon = year.icon
@@ -319,14 +318,14 @@ export default function Register() {
                         type="button"
                         onClick={() => setFormData({ ...formData, year_level: year.value })}
                         className={`p-3 rounded-xl border text-center transition-all ${formData.year_level === year.value
-                          ? 'border-indigo-500 bg-indigo-500/10'
-                          : 'border-slate-700/50 hover:border-slate-600 bg-slate-800/30'
+                          ? 'border-purple-500 bg-purple-500/10'
+                          : 'border-neutral-700/50 hover:border-neutral-600 bg-neutral-800/30'
                           }`}
                       >
                         <div className={`mx-auto w-8 h-8 rounded-lg bg-gradient-to-br ${year.color} flex items-center justify-center mb-1`}>
                           <Icon className="w-4 h-4 text-white" />
                         </div>
-                        <span className="text-xs font-medium text-slate-300">{year.label}</span>
+                        <span className="text-xs font-medium text-neutral-300">{year.label}</span>
                       </button>
                     )
                   })}
@@ -338,23 +337,23 @@ export default function Register() {
           {/* Step 3: Password */}
           {step === 3 && (
             <div className="space-y-4">
-              <p className="text-sm text-slate-400 text-center mb-4">Secure your account</p>
+              <p className="text-sm text-neutral-400 text-center mb-4">Secure your account</p>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Password</label>
+                <label className="block text-xs font-medium text-neutral-300 mb-1.5">Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full pl-10 pr-10 py-2.5 text-sm bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 transition-all"
+                    className="w-full pl-10 pr-10 py-2.5 text-sm bg-neutral-800/50 border border-neutral-700/50 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:border-purple-500/50 transition-all"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -362,20 +361,20 @@ export default function Register() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Confirm Password</label>
+                <label className="block text-xs font-medium text-neutral-300 mb-1.5">Confirm Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="w-full pl-10 pr-10 py-2.5 text-sm bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 transition-all"
+                    className="w-full pl-10 pr-10 py-2.5 text-sm bg-neutral-800/50 border border-neutral-700/50 rounded-xl text-white placeholder:text-neutral-500 focus:outline-none focus:border-purple-500/50 transition-all"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300"
                   >
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -384,7 +383,7 @@ export default function Register() {
 
               {/* Password match indicator */}
               {formData.confirmPassword && (
-                <div className={`flex items-center gap-2 text-xs ${formData.password === formData.confirmPassword ? 'text-emerald-400' : 'text-red-400'}`}>
+                <div className={`flex items-center gap-2 text-xs ${formData.password === formData.confirmPassword ? 'text-green-400' : 'text-red-400'}`}>
                   {formData.password === formData.confirmPassword ? (
                     <>
                       <Check className="w-3 h-3" />
@@ -410,12 +409,12 @@ export default function Register() {
           {/* Step 4: Success */}
           {step === 4 && (
             <div className="text-center py-6">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                <Check className="w-8 h-8 text-emerald-400" />
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/20 flex items-center justify-center">
+                <Check className="w-8 h-8 text-green-400" />
               </div>
               <h2 className="text-lg font-semibold text-white mb-2">Account Created!</h2>
-              <p className="text-sm text-slate-400 mb-4">Redirecting you to the learning platform...</p>
-              <Loader2 className="w-5 h-5 mx-auto text-indigo-400 animate-spin" />
+              <p className="text-sm text-neutral-400 mb-4">Redirecting you to the learning platform...</p>
+              <Loader2 className="w-5 h-5 mx-auto text-purple-400 animate-spin" />
             </div>
           )}
 
@@ -426,7 +425,7 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="flex-1 py-2.5 text-sm font-medium bg-slate-700 hover:bg-slate-600 text-white rounded-xl transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 text-sm font-medium bg-neutral-700 hover:bg-neutral-600 text-white rounded-xl transition-all flex items-center justify-center gap-2"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   Back
@@ -436,7 +435,7 @@ export default function Register() {
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="flex-1 py-2.5 text-sm font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/25"
+                  className="flex-1 py-2.5 text-sm font-semibold bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all flex items-center justify-center gap-2"
                 >
                   Continue
                   <ChevronRight className="w-4 h-4" />
@@ -446,7 +445,7 @@ export default function Register() {
                   type="button"
                   onClick={handleSubmit}
                   disabled={loading || !captchaToken}
-                  className="flex-1 py-2.5 text-sm font-semibold bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25"
+                  className="flex-1 py-2.5 text-sm font-semibold bg-green-600 hover:bg-green-500 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>
@@ -469,10 +468,10 @@ export default function Register() {
             <>
               <div className="relative my-5">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-700/50" />
+                  <div className="w-full border-t border-neutral-700/50" />
                 </div>
                 <div className="relative flex justify-center">
-                  <span className="px-3 text-xs text-slate-500 bg-slate-900/60">or continue with</span>
+                  <span className="px-3 text-xs text-neutral-500 bg-neutral-900/60">or continue with</span>
                 </div>
               </div>
 
@@ -497,13 +496,13 @@ export default function Register() {
           {/* Footer Links */}
           {step < 4 && (
             <div className="mt-5 text-center space-y-2">
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-neutral-400">
                 Already have an account?{' '}
-                <Link to="/login" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
+                <Link to="/login" className="text-purple-400 hover:text-purple-300 font-medium transition-colors">
                   Sign in
                 </Link>
               </p>
-              <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors">
+              <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors">
                 <ArrowLeft className="w-3 h-3" />
                 Back to Home
               </Link>

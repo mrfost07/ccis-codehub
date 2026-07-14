@@ -7,6 +7,7 @@ import {
   Users, ArrowLeft, Crown, Shield, UserPlus, Settings,
   Lock, Clock, Check, X, MoreVertical, MessageSquare, Heart
 } from 'lucide-react'
+import { LoadingState } from '../components/ui'
 
 interface Organization {
   id: string
@@ -147,24 +148,24 @@ export default function OrganizationDetail() {
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'owner': return <Crown className="w-4 h-4 text-yellow-400" />
+      case 'owner': return <Crown className="w-4 h-4 text-amber-400" />
       case 'admin': return <Shield className="w-4 h-4 text-purple-400" />
-      case 'moderator': return <Shield className="w-4 h-4 text-blue-400" />
+      case 'moderator': return <Shield className="w-4 h-4 text-purple-400" />
       default: return null
     }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      <div className="min-h-screen bg-neutral-950">
+        <LoadingState label="Loading organization…" />
       </div>
     )
   }
 
   if (!org) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl text-white mb-4">Organization not found</h2>
           <Link to="/organizations" className="text-purple-400 hover:text-purple-300">
@@ -176,10 +177,10 @@ export default function OrganizationDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-neutral-950">
       {/* Cover & Header */}
       <div className="relative">
-        <div className="h-48 bg-gradient-to-r from-purple-600/40 to-blue-600/40">
+        <div className="h-48 bg-gradient-to-r from-purple-600/40 to-purple-600/40">
           {org.cover_image_url && (
             <img src={org.cover_image_url} alt="" className="w-full h-full object-cover" />
           )}
@@ -187,7 +188,7 @@ export default function OrganizationDetail() {
 
         <div className="max-w-5xl mx-auto px-4">
           <div className="relative -mt-16 flex flex-col sm:flex-row items-start sm:items-end gap-4">
-            <div className="w-24 h-24 bg-slate-700 rounded-2xl flex items-center justify-center text-5xl border-4 border-slate-900">
+            <div className="w-24 h-24 bg-neutral-700 rounded-2xl flex items-center justify-center text-5xl border-4 border-neutral-900">
               {org.icon}
             </div>
 
@@ -195,16 +196,16 @@ export default function OrganizationDetail() {
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-2xl font-bold text-white">{org.name}</h1>
                 {org.is_official && (
-                  <span className="bg-yellow-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <Crown className="w-3 h-3 text-yellow-400" />
-                    <span className="text-xs text-yellow-400">Official</span>
+                  <span className="bg-amber-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Crown className="w-3 h-3 text-amber-400" />
+                    <span className="text-xs text-amber-400">Official</span>
                   </span>
                 )}
                 {org.is_private && (
-                  <Lock className="w-4 h-4 text-slate-400" />
+                  <Lock className="w-4 h-4 text-neutral-400" />
                 )}
               </div>
-              <p className="text-slate-400 mt-1">{org.member_count} members · {org.post_count} posts</p>
+              <p className="text-neutral-400 mt-1">{org.member_count} members · {org.post_count} posts</p>
             </div>
 
             <div className="flex items-center gap-2 pb-4">
@@ -213,20 +214,20 @@ export default function OrganizationDetail() {
                   {isAdmin && (
                     <Link
                       to={`/organizations/${org.slug}/settings`}
-                      className="p-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+                      className="p-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition"
                     >
                       <Settings className="w-5 h-5" />
                     </Link>
                   )}
                   <button
                     onClick={handleLeave}
-                    className="px-4 py-2 bg-slate-700 hover:bg-red-600 text-white rounded-lg transition"
+                    className="px-4 py-2 bg-neutral-700 hover:bg-red-600 text-white rounded-lg transition"
                   >
                     Leave
                   </button>
                 </>
               ) : org.membership_status === 'pending' ? (
-                <span className="px-4 py-2 bg-yellow-500/20 text-yellow-400 rounded-lg flex items-center gap-2">
+                <span className="px-4 py-2 bg-amber-500/20 text-amber-400 rounded-lg flex items-center gap-2">
                   <Clock className="w-4 h-4" />
                   Request Pending
                 </span>
@@ -243,20 +244,20 @@ export default function OrganizationDetail() {
           </div>
 
           {org.description && (
-            <p className="text-slate-300 mt-4 max-w-2xl">{org.description}</p>
+            <p className="text-neutral-300 mt-4 max-w-2xl">{org.description}</p>
           )}
         </div>
       </div>
 
       {/* Navigation */}
-      <div className="border-b border-slate-700 mt-6">
+      <div className="border-b border-neutral-700 mt-6">
         <div className="max-w-5xl mx-auto px-4">
           <div className="flex gap-4 overflow-x-auto">
             <button
               onClick={() => setActiveTab('posts')}
               className={`px-4 py-3 border-b-2 transition whitespace-nowrap ${activeTab === 'posts'
                 ? 'border-purple-500 text-white'
-                : 'border-transparent text-slate-400 hover:text-white'
+                : 'border-transparent text-neutral-400 hover:text-white'
                 }`}
             >
               Posts
@@ -265,7 +266,7 @@ export default function OrganizationDetail() {
               onClick={() => setActiveTab('members')}
               className={`px-4 py-3 border-b-2 transition whitespace-nowrap ${activeTab === 'members'
                 ? 'border-purple-500 text-white'
-                : 'border-transparent text-slate-400 hover:text-white'
+                : 'border-transparent text-neutral-400 hover:text-white'
                 }`}
             >
               Members ({members.length})
@@ -275,11 +276,11 @@ export default function OrganizationDetail() {
                 onClick={() => setActiveTab('pending')}
                 className={`px-4 py-3 border-b-2 transition whitespace-nowrap flex items-center gap-2 ${activeTab === 'pending'
                   ? 'border-purple-500 text-white'
-                  : 'border-transparent text-slate-400 hover:text-white'
+                  : 'border-transparent text-neutral-400 hover:text-white'
                   }`}
               >
                 Pending
-                <span className="bg-yellow-500 text-black text-xs px-2 py-0.5 rounded-full">
+                <span className="bg-amber-500 text-black text-xs px-2 py-0.5 rounded-full">
                   {pendingRequests.length}
                 </span>
               </button>
@@ -294,16 +295,16 @@ export default function OrganizationDetail() {
         {activeTab === 'posts' && (
           <div className="space-y-4">
             {!org.is_member && org.is_private ? (
-              <div className="text-center py-12 bg-slate-800/50 rounded-xl">
-                <Lock className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+              <div className="text-center py-12 bg-neutral-800/50 rounded-xl">
+                <Lock className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
                 <h3 className="text-xl text-white mb-2">Private Organization</h3>
-                <p className="text-slate-400">Join this organization to see posts</p>
+                <p className="text-neutral-400">Join this organization to see posts</p>
               </div>
             ) : posts.length > 0 ? (
               posts.map(post => (
-                <div key={post.id} className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4">
+                <div key={post.id} className="bg-neutral-800/50 rounded-xl border border-neutral-700/50 p-4">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center">
                       {post.author.profile_picture ? (
                         <img src={post.author.profile_picture} alt="" className="w-full h-full rounded-full object-cover" />
                       ) : (
@@ -314,16 +315,16 @@ export default function OrganizationDetail() {
                       <Link to={`/user/${post.author.id}`} className="text-white font-semibold hover:text-purple-400">
                         {post.author.username}
                       </Link>
-                      <p className="text-slate-400 text-xs">
+                      <p className="text-neutral-400 text-xs">
                         {new Date(post.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
-                  <p className="text-slate-300 mb-3">{post.content}</p>
+                  <p className="text-neutral-300 mb-3">{post.content}</p>
                   {post.image_url && (
                     <img src={post.image_url} alt="" className="rounded-lg max-h-96 w-full object-cover mb-3" />
                   )}
-                  <div className="flex items-center gap-4 text-slate-400">
+                  <div className="flex items-center gap-4 text-neutral-400">
                     <span className="flex items-center gap-1">
                       <Heart className="w-4 h-4" /> {post.like_count}
                     </span>
@@ -334,10 +335,10 @@ export default function OrganizationDetail() {
                 </div>
               ))
             ) : (
-              <div className="text-center py-12 bg-slate-800/50 rounded-xl">
-                <MessageSquare className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+              <div className="text-center py-12 bg-neutral-800/50 rounded-xl">
+                <MessageSquare className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
                 <h3 className="text-xl text-white mb-2">No posts yet</h3>
-                <p className="text-slate-400">Be the first to post in this organization</p>
+                <p className="text-neutral-400">Be the first to post in this organization</p>
               </div>
             )}
           </div>
@@ -347,9 +348,9 @@ export default function OrganizationDetail() {
         {activeTab === 'members' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {members.map(member => (
-              <div key={member.id} className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4 flex items-center justify-between">
+              <div key={member.id} className="bg-neutral-800/50 rounded-xl border border-neutral-700/50 p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center">
                     {member.user.profile_picture ? (
                       <img src={member.user.profile_picture} alt="" className="w-full h-full rounded-full object-cover" />
                     ) : (
@@ -361,33 +362,33 @@ export default function OrganizationDetail() {
                       {member.user.username}
                       {getRoleIcon(member.role)}
                     </Link>
-                    <p className="text-slate-400 text-xs capitalize">{member.role}</p>
+                    <p className="text-neutral-400 text-xs capitalize">{member.role}</p>
                   </div>
                 </div>
 
                 {isAdmin && String(member.user.id) !== String(user?.id) && member.role !== 'owner' && (
                   <div className="relative group">
-                    <button className="p-2 hover:bg-slate-700 rounded-lg transition">
-                      <MoreVertical className="w-4 h-4 text-slate-400" />
+                    <button className="p-2 hover:bg-neutral-700 rounded-lg transition">
+                      <MoreVertical className="w-4 h-4 text-neutral-400" />
                     </button>
-                    <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition z-10 min-w-[150px]">
+                    <div className="absolute right-0 top-full mt-1 bg-neutral-800 border border-neutral-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition z-10 min-w-[150px]">
                       {org.user_role === 'owner' && (
                         <>
                           <button
                             onClick={() => handleSetRole(String(member.user.id), 'admin')}
-                            className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700"
+                            className="w-full px-4 py-2 text-left text-sm text-neutral-300 hover:bg-neutral-700"
                           >
                             Make Admin
                           </button>
                           <button
                             onClick={() => handleSetRole(String(member.user.id), 'moderator')}
-                            className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700"
+                            className="w-full px-4 py-2 text-left text-sm text-neutral-300 hover:bg-neutral-700"
                           >
                             Make Moderator
                           </button>
                           <button
                             onClick={() => handleSetRole(String(member.user.id), 'member')}
-                            className="w-full px-4 py-2 text-left text-sm text-slate-300 hover:bg-slate-700"
+                            className="w-full px-4 py-2 text-left text-sm text-neutral-300 hover:bg-neutral-700"
                           >
                             Set as Member
                           </button>
@@ -406,9 +407,9 @@ export default function OrganizationDetail() {
           <div className="space-y-4">
             {pendingRequests.length > 0 ? (
               pendingRequests.map(member => (
-                <div key={member.id} className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4 flex items-center justify-between">
+                <div key={member.id} className="bg-neutral-800/50 rounded-xl border border-neutral-700/50 p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center">
                       {member.user.profile_picture ? (
                         <img src={member.user.profile_picture} alt="" className="w-full h-full rounded-full object-cover" />
                       ) : (
@@ -419,7 +420,7 @@ export default function OrganizationDetail() {
                       <Link to={`/user/${member.user.id}`} className="text-white font-semibold hover:text-purple-400">
                         {member.user.username}
                       </Link>
-                      <p className="text-slate-400 text-xs">
+                      <p className="text-neutral-400 text-xs">
                         Requested {new Date(member.joined_at).toLocaleDateString()}
                       </p>
                     </div>
@@ -441,8 +442,8 @@ export default function OrganizationDetail() {
                 </div>
               ))
             ) : (
-              <div className="text-center py-12 bg-slate-800/50 rounded-xl">
-                <Clock className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+              <div className="text-center py-12 bg-neutral-800/50 rounded-xl">
+                <Clock className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
                 <h3 className="text-xl text-white mb-2">No pending requests</h3>
               </div>
             )}
@@ -454,7 +455,7 @@ export default function OrganizationDetail() {
       <div className="fixed bottom-6 left-6">
         <Link
           to="/organizations"
-          className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg shadow-lg transition"
+          className="flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg shadow-lg transition"
         >
           <ArrowLeft className="w-4 h-4" />
           Back

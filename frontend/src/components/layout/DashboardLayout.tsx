@@ -82,7 +82,7 @@ export default function DashboardLayout({
     const sidenavWidth = isCollapsed ? 'w-16' : 'w-60'
 
     return (
-        <div className="min-h-screen bg-slate-950 flex">
+        <div className="min-h-screen bg-neutral-950 flex">
             {/* Mobile Overlay */}
             {sidenavOpen && (
                 <div
@@ -98,17 +98,17 @@ export default function DashboardLayout({
           ${sidenavWidth}
           ${sidenavOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           transition-all duration-300 ease-in-out
-          bg-slate-900/95 backdrop-blur-xl
-          border-r border-slate-700/50
+          bg-neutral-900/95 backdrop-blur-xl
+          border-r border-neutral-700/50
           flex flex-col
         `}
             >
                 {/* Logo & Collapse Toggle */}
-                <div className="flex items-center justify-between p-4 border-b border-slate-700/50">
+                <div className="flex items-center justify-between p-4 border-b border-neutral-700/50">
                     {!isCollapsed && (
                         <Link to="/dashboard" className="flex items-center gap-2">
                             <img src="/logo/ccis-logo.png" alt="CCIS" className="h-8 w-8" />
-                            <span className="text-lg font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+                            <span className="text-lg font-bold bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent">
                                 CodeHub
                             </span>
                         </Link>
@@ -122,7 +122,7 @@ export default function DashboardLayout({
                     {/* Collapse button (desktop only) */}
                     <button
                         onClick={() => setIsCollapsed(!isCollapsed)}
-                        className="hidden md:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition"
+                        className="hidden md:flex p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800/50 transition"
                     >
                         {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
                     </button>
@@ -130,7 +130,7 @@ export default function DashboardLayout({
                     {/* Close button (mobile only) */}
                     <button
                         onClick={() => setSidenavOpen(false)}
-                        className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition"
+                        className="md:hidden p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800/50 transition"
                     >
                         <X size={20} />
                     </button>
@@ -152,8 +152,8 @@ export default function DashboardLayout({
                   py-2.5 rounded-xl
                   transition-all duration-200
                   ${isActive
-                                        ? 'bg-gradient-to-r from-purple-600/30 to-indigo-600/30 text-white border border-purple-500/30'
-                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                                        ? 'bg-gradient-to-r from-purple-600/30 to-purple-600/30 text-white border border-purple-500/30'
+                                        : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
                                     }
                 `}
                                 title={isCollapsed ? item.label : undefined}
@@ -176,7 +176,7 @@ export default function DashboardLayout({
                 </nav>
 
                 {/* Back to CodeHub */}
-                <div className="p-3 border-t border-slate-700/50">
+                <div className="p-3 border-t border-neutral-700/50">
                     <button
                         onClick={() => navigate('/learning')}
                         className={`
@@ -196,12 +196,12 @@ export default function DashboardLayout({
             {/* Main Content Area */}
             <main className="flex-1 min-w-0 flex flex-col">
                 {/* Header Bar - Minimal */}
-                <header className="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-xl border-b border-slate-700/50">
+                <header className="sticky top-0 z-30 bg-neutral-900/80 backdrop-blur-xl border-b border-neutral-700/50">
                     <div className="flex items-center justify-between h-14 px-4 md:px-6">
                         {/* Mobile Menu Toggle */}
                         <button
                             onClick={() => setSidenavOpen(true)}
-                            className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition"
+                            className="md:hidden p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800/50 transition"
                         >
                             <Menu size={24} />
                         </button>
@@ -210,35 +210,13 @@ export default function DashboardLayout({
                         <div className="flex-1 min-w-0 ml-3 md:ml-0">
                             <h1 className="text-lg md:text-xl font-bold text-white truncate">{title}</h1>
                             {subtitle && (
-                                <p className="text-xs text-slate-400 truncate hidden sm:block">{subtitle}</p>
+                                <p className="text-xs text-neutral-400 truncate hidden sm:block">{subtitle}</p>
                             )}
                         </div>
 
                         {/* Header Actions */}
                         <div className="flex items-center gap-2">
                             {headerActions}
-
-                            {/* Quick Links - Desktop Only */}
-                            <div className="hidden lg:flex items-center gap-1 border-l border-slate-700/50 pl-3 ml-2">
-                                <Link
-                                    to="/learning"
-                                    className="px-3 py-1.5 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/50 transition"
-                                >
-                                    📚 Learning
-                                </Link>
-                                <Link
-                                    to="/projects"
-                                    className="px-3 py-1.5 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/50 transition"
-                                >
-                                    💻 Projects
-                                </Link>
-                                <Link
-                                    to="/community"
-                                    className="px-3 py-1.5 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/50 transition"
-                                >
-                                    👥 Community
-                                </Link>
-                            </div>
                         </div>
                     </div>
                 </header>

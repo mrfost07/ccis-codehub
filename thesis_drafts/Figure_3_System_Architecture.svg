@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="920" viewBox="0 0 1400 920">
+  <defs>
+    <style>
+      .title { font: 700 28px Arial, sans-serif; fill: #7c2d12; }
+      .label { font: 700 18px Arial, sans-serif; fill: #ffffff; }
+      .layer { font: 700 18px Arial, sans-serif; fill: #9a3412; }
+      .body { font: 500 14px Arial, sans-serif; fill: #431407; }
+      .caption { font: 600 14px Arial, sans-serif; fill: #7c2d12; }
+    </style>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#7c2d12" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto">
+      <polygon points="0,0 14,7 0,14" fill="#c2410c"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1400" height="920" fill="#fffaf5"/>
+  <text x="700" y="42" text-anchor="middle" class="title">Figure 3. System Architecture of CCIS-CodeHub</text>
+
+  <rect x="80" y="95" rx="14" ry="14" width="1240" height="90" fill="#ea580c" filter="url(#shadow)"/>
+  <text x="700" y="128" text-anchor="middle" class="label">USER ACCESS LAYER</text>
+  <text x="220" y="160" class="body" fill="#ffffff">Students</text>
+  <text x="650" y="160" class="body" fill="#ffffff">Instructors</text>
+  <text x="1080" y="160" class="body" fill="#ffffff">Administrators</text>
+
+  <rect x="170" y="230" rx="14" ry="14" width="1060" height="120" fill="#ffffff" stroke="#fb923c" stroke-width="3" filter="url(#shadow)"/>
+  <text x="700" y="260" text-anchor="middle" class="layer">PRESENTATION LAYER</text>
+  <text x="220" y="292" class="body">React 18 + TypeScript Frontend</text>
+  <text x="220" y="316" class="body">Dashboards, Learning, Projects, Community</text>
+  <text x="220" y="340" class="body">AI Mentor UI, Live Quiz, Coding, Video Pages</text>
+  <text x="830" y="292" class="body">Browser / Mobile-accessible Interface</text>
+  <text x="830" y="316" class="body">Axios-based API Communication</text>
+  <text x="830" y="340" class="body">Camera Capture for Proctoring Flow</text>
+
+  <rect x="170" y="395" rx="14" ry="14" width="1060" height="200" fill="#ffffff" stroke="#fb923c" stroke-width="3" filter="url(#shadow)"/>
+  <text x="700" y="425" text-anchor="middle" class="layer">APPLICATION LAYER</text>
+  <text x="215" y="458" class="body">Django 4.2 + Django REST Framework</text>
+  <text x="215" y="482" class="body">Accounts Module: authentication, RBAC, profiles</text>
+  <text x="215" y="506" class="body">Learning Module: paths, modules, quizzes, coding, videos</text>
+  <text x="215" y="530" class="body">Projects Module: teams, tasks, branches, commits, pull requests</text>
+  <text x="215" y="554" class="body">Community Module: posts, comments, follows, chat, organizations</text>
+  <text x="760" y="458" class="body">AI Mentor Module: sessions, recommendations, code analysis</text>
+  <text x="760" y="482" class="body">AI Proctor Module: proctoring consumer and analysis pipeline</text>
+  <text x="760" y="506" class="body">PDF / DOCX extraction and curriculum-aware content processing</text>
+  <text x="760" y="530" class="body">JWT-secured API endpoints and role-based access control</text>
+  <text x="760" y="554" class="body">System analytics and administrative controls</text>
+
+  <rect x="90" y="640" rx="14" ry="14" width="380" height="150" fill="#ffffff" stroke="#fdba74" stroke-width="3" filter="url(#shadow)"/>
+  <text x="280" y="670" text-anchor="middle" class="layer">REAL-TIME AND ASYNC LAYER</text>
+  <text x="120" y="702" class="body">Django Channels + Daphne</text>
+  <text x="120" y="726" class="body">WebSockets: notifications, live quiz, proctoring</text>
+  <text x="120" y="750" class="body">Celery Worker / Celery Beat</text>
+  <text x="120" y="774" class="body">Redis channel layer, cache, and broker</text>
+
+  <rect x="510" y="640" rx="14" ry="14" width="380" height="150" fill="#ffffff" stroke="#fdba74" stroke-width="3" filter="url(#shadow)"/>
+  <text x="700" y="670" text-anchor="middle" class="layer">DATA LAYER</text>
+  <text x="540" y="702" class="body">PostgreSQL primary relational database</text>
+  <text x="540" y="726" class="body">Users, learning, projects, community, AI, quiz records</text>
+  <text x="540" y="750" class="body">SQLite fallback in development</text>
+  <text x="540" y="774" class="body">Media and uploaded instructional files</text>
+
+  <rect x="930" y="640" rx="14" ry="14" width="380" height="150" fill="#ffffff" stroke="#fdba74" stroke-width="3" filter="url(#shadow)"/>
+  <text x="1120" y="670" text-anchor="middle" class="layer">EXTERNAL SERVICES LAYER</text>
+  <text x="960" y="702" class="body">LLM Providers: Gemini, OpenRouter, OpenAI, Mistral</text>
+  <text x="960" y="726" class="body">Google OAuth for authentication</text>
+  <text x="960" y="750" class="body">GitHub API for repository synchronization</text>
+  <text x="960" y="774" class="body">Embedded video sources and document inputs</text>
+
+  <line x1="700" y1="185" x2="700" y2="225" stroke="#c2410c" stroke-width="4" marker-end="url(#arrow)"/>
+  <line x1="700" y1="350" x2="700" y2="390" stroke="#c2410c" stroke-width="4" marker-end="url(#arrow)"/>
+  <line x1="330" y1="595" x2="280" y2="635" stroke="#c2410c" stroke-width="4" marker-end="url(#arrow)"/>
+  <line x1="700" y1="595" x2="700" y2="635" stroke="#c2410c" stroke-width="4" marker-end="url(#arrow)"/>
+  <line x1="1070" y1="595" x2="1120" y2="635" stroke="#c2410c" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <text x="700" y="845" text-anchor="middle" class="caption">Caption: The system architecture of CCIS-CodeHub shows how users access the React-based interface, which communicates with the Django application layer, real-time services, data storage, and external AI and integration services to support learning, collaboration, mentorship, and integrity-aware assessment.</text>
+</svg>

@@ -1,8 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { useEffect, lazy, Suspense } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './contexts/AuthContext'
+import { LoadingState } from './components/ui'
 import FloatingAIMentor from './components/FloatingAIMentor'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
@@ -10,29 +11,40 @@ import HomeEnhanced from './pages/HomeEnhanced'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
-import AdminDashboard from './pages/AdminDashboardNew'
-import InstructorDashboard from './pages/InstructorDashboard'
 import StudentDashboard from './pages/StudentDashboard'
 import StudentLearningDashboard from './pages/StudentLearningDashboard'
 import QuizTaking from './pages/QuizTaking'
-import PathDetail from './pages/PathDetail'
 import PathDetailEnhanced from './pages/PathDetailEnhanced'
-import ModuleLearning from './pages/ModuleLearning'
 import ModuleLearningEnhanced from './pages/ModuleLearningEnhanced'
-import Certificates from './pages/Certificates'
-import Leaderboard from './pages/Leaderboard'
-import QuestionManagement from './pages/QuestionManagement'
 import LearningEnhanced from './pages/LearningEnhanced'
-import Learning from './pages/Learning'
-import ProjectsEnhanced from './pages/ProjectsEnhanced'
-import ProjectDetail from './pages/ProjectDetail'
-import CommunityEnhanced from './pages/CommunityEnhanced'
-import AIChatInterface from './pages/AIChatInterface'
-// Use the enhanced Profile component
-import ProfileEnhanced from './pages/ProfileEnhanced'
-import UserProfileView from './pages/UserProfileView'
 import AuthCallback from './pages/AuthCallback'
 import CompleteProfile from './pages/CompleteProfile'
+import JoinQuiz from './pages/JoinQuiz'
+import QuizLobby from './pages/QuizLobby'
+import QuizResults from './pages/QuizResults'
+// Lazy-load heavy pages so Prism.js + Monaco editor only download when needed.
+// The live/self-paced sessions embed the Monaco editor for coding questions, so
+// keeping them lazy keeps Monaco out of the initial bundle.
+const CodingChallengePage = lazy(() => import('./pages/CodingChallengePage'))
+const VideoCoursePage = lazy(() => import('./pages/VideoCoursePage'))
+const LiveQuizSession = lazy(() => import('./pages/LiveQuizSession'))
+const SelfPacedQuizSession = lazy(() => import('./pages/SelfPacedQuizSession'))
+// Secondary / role-specific pages — kept out of the initial student bundle.
+// The admin/instructor dashboards and community moderation pull in recharts.
+const AdminDashboard = lazy(() => import('./pages/AdminDashboardNew'))
+const InstructorDashboard = lazy(() => import('./pages/InstructorDashboard'))
+const Certificates = lazy(() => import('./pages/Certificates'))
+const Leaderboard = lazy(() => import('./pages/Leaderboard'))
+const QuestionManagement = lazy(() => import('./pages/QuestionManagement'))
+const ProjectsEnhanced = lazy(() => import('./pages/ProjectsEnhanced'))
+const ProjectDetail = lazy(() => import('./pages/ProjectDetail'))
+const CommunityEnhanced = lazy(() => import('./pages/CommunityEnhanced'))
+const AIChatInterface = lazy(() => import('./pages/AIChatInterface'))
+const ProfileEnhanced = lazy(() => import('./pages/ProfileEnhanced'))
+const UserProfileView = lazy(() => import('./pages/UserProfileView'))
+const QuizAnalytics = lazy(() => import('./pages/QuizAnalytics'))
+const ResumePage = lazy(() => import('./pages/ResumePage'))
+const FeaturedProjects = lazy(() => import('./pages/FeaturedProjects'))
 import { Capacitor } from '@capacitor/core'
 import { App as CapApp } from '@capacitor/app'
 
@@ -49,6 +61,15 @@ const queryClient = new QueryClient({
   },
 })
 
+/** Hide the AI Mentor on immersive pages like quizzes and coding challenges */
+function ConditionalAIMentor() {
+  const { pathname } = useLocation()
+  const hideOnRoutes = ['/quiz/live/', '/quiz/self-paced/', '/quiz/lobby/', '/challenges/']
+  const shouldHide = hideOnRoutes.some(r => pathname.startsWith(r))
+  if (shouldHide) return null
+  return <FloatingAIMentor />
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -56,17 +77,26 @@ function App() {
         <Router>
           <div className="min-h-screen bg-slate-950 text-white">
             <AppMobileHandler />
+            {/* Toast theme per DESIGN_SYSTEM.md §10 — neutral surface, icon color is the only status signal */}
             <Toaster
-              position="top-right"
+              position="bottom-right"
               toastOptions={{
-                duration: 3000,
+                duration: 4000,
                 style: {
-                  background: '#1e293b',
-                  color: '#fff',
-                  border: '1px solid #334155',
+                  background: '#18181b',
+                  color: '#fafafa',
+                  border: '1px solid rgba(63,63,70,0.6)',
+                  borderRadius: '0.875rem',
+                  boxShadow: '0 20px 25px -5px rgba(0,0,0,0.4), 0 8px 10px -6px rgba(0,0,0,0.4)',
+                  padding: '12px 16px',
+                  fontSize: '14px',
+                  maxWidth: 'min(92vw, 380px)',
                 },
+                success: { iconTheme: { primary: '#34d399', secondary: '#18181b' } },
+                error: { iconTheme: { primary: '#f87171', secondary: '#18181b' } },
               }}
             />
+            <Suspense fallback={<div className="min-h-screen bg-neutral-950 flex items-center justify-center"><LoadingState /></div>}>
             <Routes>
               <Route path="/" element={<HomeEnhanced />} />
               <Route path="/login" element={<Login />} />
@@ -162,10 +192,38 @@ function App() {
                 }
               />
               <Route
+                path="/learning/challenges/:slug"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<div className="min-h-screen bg-neutral-950 flex items-center justify-center"><LoadingState /></div>}>
+                      <CodingChallengePage />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/learning/videos/:slug"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<div className="min-h-screen bg-neutral-950 flex items-center justify-center"><LoadingState /></div>}>
+                      <VideoCoursePage />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/projects"
                 element={
                   <ProtectedRoute>
                     <ProjectsEnhanced />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/projects/explore"
+                element={
+                  <ProtectedRoute>
+                    <FeaturedProjects />
                   </ProtectedRoute>
                 }
               />
@@ -196,6 +254,15 @@ function App() {
               />
 
               <Route
+                path="/resume"
+                element={
+                  <ProtectedRoute>
+                    <ResumePage />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
                 path="/user/:userId"
                 element={
                   <ProtectedRoute>
@@ -220,9 +287,70 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/join"
+                element={
+                  <ProtectedRoute>
+                    <JoinQuiz />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/join-quiz/:code"
+                element={
+                  <ProtectedRoute>
+                    <JoinQuiz />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quiz/lobby/:joinCode"
+                element={
+                  <ProtectedRoute>
+                    <QuizLobby />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quiz/live/:joinCode"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<div className="min-h-screen bg-neutral-950 flex items-center justify-center"><LoadingState /></div>}>
+                      <LiveQuizSession />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quiz/self-paced/:joinCode"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={<div className="min-h-screen bg-neutral-950 flex items-center justify-center"><LoadingState /></div>}>
+                      <SelfPacedQuizSession />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quiz/results"
+                element={
+                  <ProtectedRoute>
+                    <QuizResults />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quiz/analytics/:quizId"
+                element={
+                  <ProtectedRoute>
+                    <QuizAnalytics />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-            <FloatingAIMentor />
+            </Suspense>
+            <ConditionalAIMentor />
           </div>
         </Router>
       </AuthProvider>

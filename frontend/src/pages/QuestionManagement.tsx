@@ -225,30 +225,31 @@ export default function QuestionManagement() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
         <div className="text-white text-xl">Loading...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 p-6">
+    <div className="min-h-screen bg-neutral-950 p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 mb-6">
+        {/* Header — clean dark bar with a subtle purple accent line */}
+        <div className="relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/60 p-6 mb-6">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
           <button
             onClick={() => navigate('/learning-admin')}
-            className="mb-3 px-4 py-2 bg-white/20 backdrop-blur text-white rounded-lg hover:bg-white/30 transition flex items-center gap-2"
+            className="mb-3 flex items-center gap-2 text-neutral-400 hover:text-white transition text-sm"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Learning Admin
           </button>
-          
-          <h1 className="text-3xl font-bold text-white mb-2">
+
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-1">
             Question Management
           </h1>
-          <p className="text-purple-100">
-            {quiz?.title} - {questions.length} {questions.length === 1 ? 'question' : 'questions'}
+          <p className="text-neutral-400">
+            {quiz?.title} — {questions.length} {questions.length === 1 ? 'question' : 'questions'}
           </p>
         </div>
 
@@ -268,7 +269,7 @@ export default function QuestionManagement() {
 
         {/* Question Form */}
         {showForm && (
-          <div className="bg-slate-800 rounded-2xl p-6 mb-6">
+          <div className="bg-neutral-800 rounded-2xl p-6 mb-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-white">
                 {editingQuestion ? 'Edit Question' : 'Add New Question'}
@@ -278,7 +279,7 @@ export default function QuestionManagement() {
                   setShowForm(false)
                   resetForm()
                 }}
-                className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition"
+                className="p-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg transition"
               >
                 <X className="w-5 h-5 text-white" />
               </button>
@@ -287,13 +288,13 @@ export default function QuestionManagement() {
             <div className="space-y-4">
               {/* Question Text */}
               <div>
-                <label className="block text-sm text-slate-400 mb-1">
+                <label className="block text-sm text-neutral-400 mb-1">
                   Question Text <span className="text-red-400">*</span>
                 </label>
                 <textarea
                   value={questionForm.question_text}
                   onChange={(e) => setQuestionForm({ ...questionForm, question_text: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-700 text-white rounded-lg border-2 border-slate-600 focus:border-purple-600 outline-none"
+                  className="w-full px-4 py-3 bg-neutral-700 text-white rounded-lg border-2 border-neutral-600 focus:border-purple-600 outline-none"
                   rows={3}
                   placeholder="Enter your question..."
                 />
@@ -302,11 +303,11 @@ export default function QuestionManagement() {
               <div className="grid grid-cols-2 gap-4">
                 {/* Question Type */}
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Question Type</label>
+                  <label className="block text-sm text-neutral-400 mb-1">Question Type</label>
                   <select
                     value={questionForm.question_type}
                     onChange={(e) => setQuestionForm({ ...questionForm, question_type: e.target.value })}
-                    className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg"
+                    className="w-full px-4 py-2 bg-neutral-700 text-white rounded-lg"
                   >
                     <option value="multiple_choice">Multiple Choice</option>
                     <option value="true_false">True/False</option>
@@ -316,12 +317,12 @@ export default function QuestionManagement() {
 
                 {/* Points */}
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Points</label>
+                  <label className="block text-sm text-neutral-400 mb-1">Points</label>
                   <input
                     type="number"
                     value={questionForm.points}
                     onChange={(e) => setQuestionForm({ ...questionForm, points: parseInt(e.target.value) || 1 })}
-                    className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg"
+                    className="w-full px-4 py-2 bg-neutral-700 text-white rounded-lg"
                     min="1"
                   />
                 </div>
@@ -331,7 +332,7 @@ export default function QuestionManagement() {
               {questionForm.question_type === 'multiple_choice' && (
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm text-slate-400">
+                    <label className="block text-sm text-neutral-400">
                       Answer Choices <span className="text-red-400">*</span>
                     </label>
                     <button
@@ -350,10 +351,10 @@ export default function QuestionManagement() {
                           type="text"
                           value={choice.choice_text}
                           onChange={(e) => handleChoiceChange(index, 'choice_text', e.target.value)}
-                          className="flex-1 px-4 py-2 bg-slate-700 text-white rounded-lg"
+                          className="flex-1 px-4 py-2 bg-neutral-700 text-white rounded-lg"
                           placeholder={`Choice ${index + 1}`}
                         />
-                        <label className="flex items-center gap-2 px-4 py-2 bg-slate-700 rounded-lg cursor-pointer">
+                        <label className="flex items-center gap-2 px-4 py-2 bg-neutral-700 rounded-lg cursor-pointer">
                           <input
                             type="radio"
                             checked={choice.is_correct}
@@ -379,11 +380,11 @@ export default function QuestionManagement() {
               {/* True/False */}
               {questionForm.question_type === 'true_false' && (
                 <div>
-                  <label className="block text-sm text-slate-400 mb-2">
+                  <label className="block text-sm text-neutral-400 mb-2">
                     Correct Answer <span className="text-red-400">*</span>
                   </label>
                   <div className="flex gap-4">
-                    <label className="flex items-center gap-2 px-6 py-3 bg-slate-700 rounded-lg cursor-pointer">
+                    <label className="flex items-center gap-2 px-6 py-3 bg-neutral-700 rounded-lg cursor-pointer">
                       <input
                         type="radio"
                         checked={questionForm.correct_answer === 'true'}
@@ -392,7 +393,7 @@ export default function QuestionManagement() {
                       />
                       <span className="text-white">True</span>
                     </label>
-                    <label className="flex items-center gap-2 px-6 py-3 bg-slate-700 rounded-lg cursor-pointer">
+                    <label className="flex items-center gap-2 px-6 py-3 bg-neutral-700 rounded-lg cursor-pointer">
                       <input
                         type="radio"
                         checked={questionForm.correct_answer === 'false'}
@@ -408,14 +409,14 @@ export default function QuestionManagement() {
               {/* Short Answer */}
               {questionForm.question_type === 'short_answer' && (
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">
+                  <label className="block text-sm text-neutral-400 mb-1">
                     Expected Answer <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="text"
                     value={questionForm.correct_answer}
                     onChange={(e) => setQuestionForm({ ...questionForm, correct_answer: e.target.value })}
-                    className="w-full px-4 py-2 bg-slate-700 text-white rounded-lg"
+                    className="w-full px-4 py-2 bg-neutral-700 text-white rounded-lg"
                     placeholder="Enter the expected answer..."
                   />
                 </div>
@@ -423,13 +424,13 @@ export default function QuestionManagement() {
 
               {/* Explanation */}
               <div>
-                <label className="block text-sm text-slate-400 mb-1">
+                <label className="block text-sm text-neutral-400 mb-1">
                   Explanation (Optional)
                 </label>
                 <textarea
                   value={questionForm.explanation}
                   onChange={(e) => setQuestionForm({ ...questionForm, explanation: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-700 text-white rounded-lg border-2 border-slate-600 focus:border-purple-600 outline-none"
+                  className="w-full px-4 py-3 bg-neutral-700 text-white rounded-lg border-2 border-neutral-600 focus:border-purple-600 outline-none"
                   rows={2}
                   placeholder="Explain the correct answer (shown after submission)..."
                 />
@@ -442,7 +443,7 @@ export default function QuestionManagement() {
                     setShowForm(false)
                     resetForm()
                   }}
-                  className="flex-1 px-6 py-3 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition"
+                  className="flex-1 px-6 py-3 bg-neutral-700 text-white rounded-lg hover:bg-neutral-600 transition"
                 >
                   Cancel
                 </button>
@@ -461,14 +462,14 @@ export default function QuestionManagement() {
         {/* Questions List */}
         <div className="space-y-4">
           {questions.length === 0 ? (
-            <div className="bg-slate-800 rounded-2xl p-12 text-center">
-              <AlertCircle className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+            <div className="bg-neutral-800 rounded-2xl p-12 text-center">
+              <AlertCircle className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-white mb-2">No Questions Yet</h3>
-              <p className="text-slate-400">Add your first question to get started!</p>
+              <p className="text-neutral-400">Add your first question to get started!</p>
             </div>
           ) : (
             questions.map((question, index) => (
-              <div key={question.id} className="bg-slate-800 rounded-xl p-6">
+              <div key={question.id} className="bg-neutral-800 rounded-xl p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
@@ -478,7 +479,7 @@ export default function QuestionManagement() {
                       <span className="px-3 py-1 bg-purple-600/20 text-purple-400 text-xs rounded-full">
                         {question.question_type.replace('_', ' ')}
                       </span>
-                      <span className="px-3 py-1 bg-blue-600/20 text-blue-400 text-xs rounded-full">
+                      <span className="px-3 py-1 bg-purple-600/20 text-purple-400 text-xs rounded-full">
                         {question.points} {question.points === 1 ? 'point' : 'points'}
                       </span>
                     </div>
@@ -493,7 +494,7 @@ export default function QuestionManagement() {
                           <div
                             key={idx}
                             className={`flex items-center gap-2 p-2 rounded ${
-                              choice.is_correct ? 'bg-green-600/20 text-green-400' : 'text-slate-400'
+                              choice.is_correct ? 'bg-green-600/20 text-green-400' : 'text-neutral-400'
                             }`}
                           >
                             {choice.is_correct && <CheckCircle className="w-4 h-4" />}
@@ -506,7 +507,7 @@ export default function QuestionManagement() {
                     {/* Show answer for other types */}
                     {question.question_type !== 'multiple_choice' && (
                       <div className="ml-11 mt-2">
-                        <span className="text-sm text-slate-500">Correct Answer: </span>
+                        <span className="text-sm text-neutral-500">Correct Answer: </span>
                         <span className="text-green-400">
                           {question.question_type === 'true_false' 
                             ? (question.correct_answer ? 'True' : 'False')
@@ -516,9 +517,9 @@ export default function QuestionManagement() {
                     )}
 
                     {question.explanation && (
-                      <div className="ml-11 mt-2 p-3 bg-slate-700/50 rounded-lg">
-                        <span className="text-sm text-slate-500">Explanation: </span>
-                        <span className="text-slate-300">{question.explanation}</span>
+                      <div className="ml-11 mt-2 p-3 bg-neutral-700/50 rounded-lg">
+                        <span className="text-sm text-neutral-500">Explanation: </span>
+                        <span className="text-neutral-300">{question.explanation}</span>
                       </div>
                     )}
                   </div>
@@ -526,7 +527,7 @@ export default function QuestionManagement() {
                   <div className="flex gap-2 ml-4">
                     <button
                       onClick={() => handleEdit(question)}
-                      className="p-2 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 rounded-lg transition"
+                      className="p-2 bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 rounded-lg transition"
                     >
                       <Edit className="w-4 h-4" />
                     </button>

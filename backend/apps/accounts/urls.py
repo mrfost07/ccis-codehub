@@ -3,6 +3,7 @@ URL configuration for accounts app
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     UserRegistrationView, UserLoginView, UserProfileView,
     UserViewSet, UserStatsAPIView, PublicUserProfileView, PublicStatsView,
@@ -23,6 +24,10 @@ urlpatterns = [
     path('captcha/', CaptchaChallengeView.as_view(), name='captcha-challenge'),
     path('register/', UserRegistrationView.as_view(), name='register'),
     path('login/', UserLoginView.as_view(), name='login'),
+    # JWT refresh — lets the client swap a valid refresh token for a fresh
+    # access token instead of forcing a logout every 15 minutes. With rotation
+    # enabled, the response also returns a new refresh token. (Req 20.)
+    path('token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
     path('profile/', UserProfileView.as_view(), name='profile'),
     path('stats/', UserStatsAPIView.as_view(), name='user-stats'),
     path('public-stats/', PublicStatsView.as_view(), name='public-stats'),

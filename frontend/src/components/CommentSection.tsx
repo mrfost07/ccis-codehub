@@ -117,7 +117,7 @@ export default function CommentSection({
                 className="w-8 h-8 rounded-full object-cover"
               />
             ) : (
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-500 rounded-full flex items-center justify-center">
                 <span className="text-white text-xs font-semibold">
                   {comment.author.username.charAt(0).toUpperCase()}
                 </span>
@@ -127,23 +127,23 @@ export default function CommentSection({
 
           {/* Comment Content */}
           <div className="flex-1">
-            <div className="bg-slate-800 rounded-lg p-3">
+            <div className="bg-neutral-800 rounded-lg p-3">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-sm font-semibold text-white">
                   {comment.author.username}
                 </span>
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-neutral-500">
                   {new Date(comment.created_at).toLocaleString()}
                 </span>
               </div>
-              <p className="text-sm text-slate-300">{comment.content}</p>
+              <p className="text-sm text-neutral-300">{comment.content}</p>
             </div>
 
             {/* Actions */}
             <div className="flex items-center gap-4 mt-2">
               <button
                 onClick={() => handleLikeComment(comment.id)}
-                className={`flex items-center gap-1 text-xs ${comment.is_liked ? 'text-pink-500' : 'text-slate-400 hover:text-pink-500'
+                className={`flex items-center gap-1 text-xs ${comment.is_liked ? 'text-purple-500' : 'text-neutral-400 hover:text-purple-500'
                   } transition`}
               >
                 <Heart className={`w-3 h-3 ${comment.is_liked ? 'fill-current' : ''}`} />
@@ -152,7 +152,7 @@ export default function CommentSection({
 
               <button
                 onClick={() => setReplyingTo(comment.id)}
-                className="flex items-center gap-1 text-xs text-slate-400 hover:text-blue-500 transition"
+                className="flex items-center gap-1 text-xs text-neutral-400 hover:text-purple-500 transition"
               >
                 <MessageCircle className="w-3 h-3" />
                 <span>Reply</span>
@@ -161,7 +161,7 @@ export default function CommentSection({
               {hasReplies && (
                 <button
                   onClick={() => toggleReplies(comment.id)}
-                  className="flex items-center gap-1 text-xs text-slate-400 hover:text-purple-500 transition"
+                  className="flex items-center gap-1 text-xs text-neutral-400 hover:text-purple-500 transition"
                 >
                   {isExpanded ? (
                     <>
@@ -191,7 +191,7 @@ export default function CommentSection({
                     }
                   }}
                   placeholder={`Reply to ${comment.author.username}...`}
-                  className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="flex-1 px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   autoFocus
                 />
                 <button
@@ -206,7 +206,7 @@ export default function CommentSection({
                     setReplyingTo(null)
                     setReplyText('')
                   }}
-                  className="p-2 bg-slate-700 rounded-lg hover:bg-slate-600 transition"
+                  className="p-2 bg-neutral-700 rounded-lg hover:bg-neutral-600 transition"
                 >
                   <X className="w-4 h-4 text-white" />
                 </button>
@@ -234,7 +234,7 @@ export default function CommentSection({
           value={commentText}
           onChange={(e) => setCommentText(e.target.value)}
           placeholder="Write a comment..."
-          className="flex-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          className="flex-1 px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
         />
         <button
           type="submit"

@@ -46,10 +46,6 @@ def api_root(request):
                 'recommendations': '/api/ai/recommendations/',
                 'models': '/api/ai/models/',
             },
-            'competitions': {
-                'list': '/api/competitions/competitions/',
-                'leaderboard': '/api/competitions/leaderboard/',
-            },
             'documentation': {
                 'swagger': '/api/schema/swagger-ui/',
                 'redoc': '/api/schema/redoc/',
@@ -95,7 +91,7 @@ def admin_analytics(request):
     Returns all database metrics for charts and graphs
     """
     from rest_framework.permissions import IsAuthenticated
-    from django.db.models import Count, Avg, Q
+    from django.db.models import Count, Avg, Q, Sum
     from django.db.models.functions import TruncMonth, TruncDate
     from django.utils import timezone
     from datetime import timedelta
@@ -244,7 +240,8 @@ def admin_analytics(request):
         'total_posts': posts.count(),
         'total_comments': Comment.objects.count(),
         'total_likes': PostLike.objects.count(),
-        'total_views': posts.aggregate(total=Count('view_count'))['total'] or 0,
+        # Sum the per-post view counts, not the number of posts. (Req 28.)
+        'total_views': posts.aggregate(total=Sum('view_count'))['total'] or 0,
         'recent_posts': posts.filter(created_at__gte=thirty_days_ago).count(),
     }
     

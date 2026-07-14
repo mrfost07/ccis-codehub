@@ -1,0 +1,46 @@
+UPDATED MASTER REFERENCES
+ACM-STYLE NUMBERING FOR CHAPTERS 1 TO 4
+
+[1] Xiaoyu Sun, Xiao Chen, Yonghui Liu, John Grundy, and Li Li. 2023. LazyCow: A Lightweight Crowdsourced Testing Tool for Taming Android Fragmentation. In Proceedings of the 31st ACM Joint European Software Engineering Conference and Symposium on the Foundations of Software Engineering (ESEC/FSE '23). Association for Computing Machinery, New York, NY, USA, 2127-2131. https://doi.org/10.1145/3611643.3613098
+
+[2] Brenda Ping Ping Yong and Ying-Leh Ling. 2023. Skills Gap: The Importance of Soft Skills in Graduate Employability as Perceived by Employers and Graduates. Online Journal for TVET Practitioners 8, 1 (2023), 25-42. https://doi.org/10.30880/ojtp.2023.08.01.003
+
+[3] Sadat Shanto Shakib, Zishan Ahmed, and Akinul Islam Jony. 2024. Generative AI for Programming Education: Can ChatGPT Facilitate the Acquisition of Fundamental Programming Skills for Novices? In Proceedings of the 3rd International Conference on Computing Advancements (ICCA 2024). Association for Computing Machinery, New York, NY, USA, 685-692. https://doi.org/10.1145/3723178.3723268
+
+[4] Dan Sun, Azzeddine Boudouaia, Chengcong Zhu, and Yan Li. 2024. Would ChatGPT-facilitated programming mode impact college students' programming behaviors, performances, and perceptions? An empirical study. International Journal of Educational Technology in Higher Education 21, 14 (2024). https://doi.org/10.1186/s41239-024-00446-5
+
+[5] Lucian Jose Goncales, Kleinner Farias, and Bruno C. da Silva. 2021. Measuring the cognitive load of software developers: An extended Systematic Mapping Study. Information and Software Technology 136 (2021), 106563. https://doi.org/10.1016/j.infsof.2021.106563
+
+[6] Borka Jerman Blazic. 2021. Cybersecurity Skills in EU: New Educational Concept for Closing the Missing Workforce Gap. In Cybersecurity Threats with New Perspectives. IntechOpen. https://doi.org/10.5772/intechopen.97094
+
+[7] Maylin Suleny Bojorquez-Roque, Antonio Garcia-Cabot, Eva Garcia-Lopez, and Luis Magdiel Oliva Cordova. 2024. Digital competence learning ecosystem in higher education: A mapping and systematic review of the literature. IEEE Access 12 (2024), 87596-87614. https://doi.org/10.1109/ACCESS.2024.3416906
+
+[8] Larian M. Nkomo, Ben K. Daniel, and Russell J. Butson. 2021. Synthesis of student engagement with digital technologies: a systematic review of the literature. International Journal of Educational Technology in Higher Education 18, 34 (2021). https://doi.org/10.1186/s41239-021-00270-1
+
+[9] Alexander Skulmowski and Kate Man Xu. 2022. Understanding Cognitive Load in Digital and Online Learning: A New Perspective on Extraneous Cognitive Load. Educational Psychology Review 34 (2022), 171-196. https://doi.org/10.1007/s10648-021-09624-7
+
+[10] Huong-Giang Le, Sarin Sok, and Kimkong Heng. 2024. The benefits of peer mentoring in higher education: findings from a systematic review. Journal of Learning Development in Higher Education 31 (2024). https://doi.org/10.47408/jldhe.vi31.1159
+
+[11] Laura Poe and Lionel Mew. 2022. The effects of using the agile methodology as an instructional format for software development courses. Industry and Higher Education 36, 5 (2022), 638-646. https://doi.org/10.1177/09504222211058658
+
+[12] Tung Phung, Victor-Alexandru Padurean, Jose Cambronero, Sumit Gulwani, Tobias Kohn, Rupak Majumdar, Adish Singla, and Gustavo Soares. 2023. Generative AI for Programming Education: Benchmarking ChatGPT, GPT-4, and Human Tutors. In Proceedings of the 2023 ACM Conference on International Computing Education Research - Volume 2 (ICER '23). Association for Computing Machinery, New York, NY, USA, 41-42. https://doi.org/10.1145/3568812.3603476
+
+[13] Suqing Liu, Zezhu Yu, Feiran Huang, Yousef Bulbulia, Andreas Bergen, and Michael Liut. 2024. Can Small Language Models With Retrieval-Augmented Generation Replace Large Language Models When Learning Computer Science? In Proceedings of the 2024 Innovation and Technology in Computer Science Education V. 1 (ITiCSE 2024). Association for Computing Machinery, New York, NY, USA, 388-393. https://doi.org/10.1145/3649217.3653554
+
+[14] Zongxi Li, Zijian Wang, Weiming Wang, Kevin Hung, Haoran Xie, and Fu Lee Wang. 2025. Retrieval-augmented generation for educational application: A systematic survey. Computers and Education: Artificial Intelligence 8 (2025), 100417. https://doi.org/10.1016/j.caeai.2025.100417
+
+[15] Ali Ateeq, Mohammed Alzoraiki, Marwan Milhem, and Ranyia Ali Ateeq. 2024. Artificial intelligence in education: implications for academic integrity and the shift toward holistic assessment. Frontiers in Education 9 (2024), 1470979. https://doi.org/10.3389/feduc.2024.1470979
+
+[16] Olivia L. Holden, Meghan E. Norris, and Valerie A. Kuhlmeier. 2021. Academic Integrity in Online Assessment: A Research Review. Frontiers in Education 6 (2021), 639814. https://doi.org/10.3389/feduc.2021.639814
+
+[17] Maite Alguacil, Noemi Herranz-Zarzoso, Jose C. Pernias, and Gerardo Sabater-Grande. 2024. Academic dishonesty and monitoring in online exams: a randomized field experiment. Journal of Computing in Higher Education 36 (2024), 835-851. https://doi.org/10.1007/s12528-023-09378-x
+
+[18] Aditya Nigam, Rhitvik Pasricha, Tarishi Singh, and Prathamesh Churi. 2021. A Systematic Review on AI-based Proctoring Systems: Past, Present and Future. Education and Information Technologies 26, 5 (2021), 6421-6445. https://doi.org/10.1007/s10639-021-10597-x
+
+[19] Ken Schwaber and Jeff Sutherland. 2020. The Scrum Guide: The Definitive Guide to Scrum: The Rules of the Game. Scrum Guides. https://scrumguides.org/docs/scrumguide/v2020/2020-Scrum-Guide-US.pdf
+
+[20] ISO/IEC 25010. 2023. Systems and software engineering - Systems and software Quality Requirements and Evaluation (SQuaRE) - Product quality model. International Organization for Standardization. https://committee.iso.org/ru/standard/78176.html
+
+[21] John Gerard Scott Goldie. 2016. Connectivism: A knowledge learning theory for the digital age? Medical Teacher 38, 10 (2016), 1064-1069. https://doi.org/10.3109/0142159X.2016.1173661
+
+[22] Amine Abbad-Andaloussi. 2023. On the relationship between source-code metrics and cognitive load: A systematic tertiary review. Journal of Systems and Software 198 (2023), 111619. https://doi.org/10.1016/j.jss.2023.111619

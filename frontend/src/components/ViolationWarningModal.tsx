@@ -39,7 +39,7 @@ const ViolationWarningModal: React.FC<ViolationWarningModalProps> = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-in fade-in">
-            <div className="bg-slate-900 border border-red-500/30 rounded-2xl w-full max-w-md mx-4 shadow-2xl shadow-red-900/20 overflow-hidden">
+            <div className="bg-neutral-900 border border-red-500/30 rounded-2xl w-full max-w-md mx-4 shadow-2xl shadow-red-900/20 overflow-hidden">
                 {/* Red gradient header */}
                 <div className="bg-gradient-to-r from-red-600 to-red-800 px-6 py-4 flex items-center gap-3">
                     <AlertTriangle className="w-6 h-6 text-white" />
@@ -53,17 +53,17 @@ const ViolationWarningModal: React.FC<ViolationWarningModalProps> = ({
                     <p className="text-white text-center">{getViolationMessage()}</p>
 
                     {/* Violation Counter */}
-                    <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-center">
+                    <div className="bg-neutral-800/50 border border-neutral-700 rounded-xl p-4 text-center">
                         <div className="flex items-center justify-center gap-2 mb-2">
                             <Shield className="w-5 h-5 text-red-400" />
-                            <span className="text-sm text-slate-400">Violations</span>
+                            <span className="text-sm text-neutral-400">Violations</span>
                         </div>
                         <div className="flex items-baseline justify-center gap-1">
                             <span className={`text-3xl font-bold ${isNearLimit || isFlagged ? 'text-red-400' : 'text-amber-400'}`}>
                                 {totalViolations}
                             </span>
                             {maxViolations > 0 && (
-                                <span className="text-slate-500 text-lg">/ {maxViolations}</span>
+                                <span className="text-neutral-500 text-lg">/ {maxViolations}</span>
                             )}
                         </div>
                     </div>
@@ -96,7 +96,7 @@ const ViolationWarningModal: React.FC<ViolationWarningModalProps> = ({
                     {/* Dismiss */}
                     <button
                         onClick={onClose}
-                        className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-medium transition text-sm"
+                        className="w-full py-3 bg-neutral-800 hover:bg-neutral-700 text-white rounded-xl font-medium transition text-sm"
                     >
                         I Understand — Continue Quiz
                     </button>

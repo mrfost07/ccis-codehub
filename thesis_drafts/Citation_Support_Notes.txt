@@ -1,0 +1,93 @@
+CITATION SUPPORT NOTES
+
+Purpose:
+This file maps the references to the thesis claims they are most suited to support. It is intended for verification before you paste the text into the thesis document.
+
+[1]
+Supports claims about fragmentation in software ecosystems and the overhead created by fragmented environments.
+Link: https://doi.org/10.1145/3611643.3613098
+
+[2]
+Supports claims about graduate employability and the importance of soft skills.
+Link: https://doi.org/10.30880/ojtp.2023.08.01.003
+
+[3]
+Supports claims that generative AI can help novice programmers when used as guided educational support.
+Link: https://doi.org/10.1145/3723178.3723268
+
+[4]
+Supports claims that ChatGPT changes programming behaviors, perceptions, and learning interaction patterns in measurable ways.
+Link: https://doi.org/10.1186/s41239-024-00446-5
+
+[5]
+Supports broader Chapter 1 and Chapter 2 claims about cognitive load in software-development work.
+Link: https://doi.org/10.1016/j.infsof.2021.106563
+
+[6]
+Supports claims about technology-sector skills shortages and the need for stronger educational preparation.
+Link: https://doi.org/10.5772/intechopen.97094
+
+[7]
+Supports claims that higher education benefits from integrated digital learning ecosystems.
+Link: https://doi.org/10.1109/ACCESS.2024.3416906
+
+[8]
+Supports claims about student engagement in digital learning environments.
+Link: https://doi.org/10.1186/s41239-021-00270-1
+
+[9]
+Supports claims about extraneous cognitive load in digital and online learning.
+Link: https://doi.org/10.1007/s10648-021-09624-7
+
+[10]
+Supports claims that peer mentoring improves academic performance, retention, and social integration.
+Link: https://doi.org/10.47408/jldhe.vi31.1159
+
+[11]
+Supports claims about Agile as an instructional format in software-development education.
+Link: https://doi.org/10.1177/09504222211058658
+
+[12]
+Supports claims that generative AI can act as tutor, explainer, and repair assistant in programming education, while still having limitations.
+Link: https://doi.org/10.1145/3568812.3603476
+
+[13]
+Supports claims about retrieval-augmented or locally deployable AI support in computer-science learning.
+Link: https://doi.org/10.1145/3649217.3653554
+
+[14]
+Supports claims that retrieval-augmented generation improves grounding and contextual educational AI applications.
+Link: https://doi.org/10.1016/j.caeai.2025.100417
+
+[15]
+Supports claims about AI in education, academic integrity, and the need to rethink assessment design.
+Link: https://doi.org/10.3389/feduc.2024.1470979
+
+[16]
+Supports claims that online assessment requires deliberate integrity safeguards.
+Link: https://doi.org/10.3389/feduc.2021.639814
+
+[17]
+Supports claims that monitoring conditions in online exams can affect dishonest behavior and outcomes.
+Link: https://doi.org/10.1007/s12528-023-09378-x
+
+[18]
+Supports claims about AI-based proctoring architectures, their capabilities, and their limitations.
+Link: https://doi.org/10.1007/s10639-021-10597-x
+
+[19]
+Supports the methodological use of Agile Scrum.
+Link: https://scrumguides.org/docs/scrumguide/v2020/2020-Scrum-Guide-US.pdf
+
+[20]
+Supports the use of ISO/IEC 25010 for formal software-quality and performance evaluation.
+Link: https://committee.iso.org/ru/standard/78176.html
+
+[21]
+Supports the use of connectivism as a foundational digital-learning theory.
+Link: https://doi.org/10.3109/0142159X.2016.1173661
+Note: retained as a foundational-theory exception.
+
+[22]
+Supports claims about the relationship between technical artifact complexity, source-code metrics, and cognitive load.
+Link: https://doi.org/10.1016/j.jss.2023.111619

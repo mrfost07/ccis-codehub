@@ -167,28 +167,28 @@ function AIChatInterface() {
           </span>
         ))}
         {index < message.split('[CODE_BLOCK]').length - 1 && (
-          <div className="my-2 text-xs text-blue-400">[See code below]</div>
+          <div className="my-2 text-xs text-purple-400">[See code below]</div>
         )}
       </span>
     ))
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col">
+    <div className="min-h-screen bg-neutral-950 flex flex-col">
       <Navbar />
       
       <div className="flex-1 max-w-5xl mx-auto w-full px-4 py-6 flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-t-xl p-6">
+        <div className="bg-neutral-900 border-b border-neutral-800 rounded-t-xl p-6">
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-            <Bot className="h-8 w-8" />
+            <Bot className="h-8 w-8 text-purple-400" />
             AI Coding Mentor
           </h1>
-          <p className="text-blue-100 mt-2">Powered by Advanced AI Models</p>
+          <p className="text-neutral-400 mt-2">Powered by Advanced AI Models</p>
         </div>
 
         {/* Chat Container */}
-        <div className="flex-1 bg-slate-900 overflow-hidden flex flex-col">
+        <div className="flex-1 bg-neutral-900 overflow-hidden flex flex-col">
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
             {messages.map((msg) => (
@@ -200,8 +200,8 @@ function AIChatInterface() {
                   {/* Avatar */}
                   <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
                     msg.sender === 'user' 
-                      ? 'bg-blue-600' 
-                      : 'bg-gradient-to-br from-purple-600 to-pink-600'
+                      ? 'bg-purple-600' 
+                      : 'bg-gradient-to-br from-purple-600 to-purple-600'
                   }`}>
                     {msg.sender === 'user' ? <User className="h-5 w-5 text-white" /> : <Bot className="h-5 w-5 text-white" />}
                   </div>
@@ -210,8 +210,8 @@ function AIChatInterface() {
                   <div className="flex flex-col gap-2">
                     <div className={`rounded-2xl p-4 ${
                       msg.sender === 'user' 
-                        ? 'bg-blue-600/20 border border-blue-600/30' 
-                        : 'bg-slate-800 border border-slate-700'
+                        ? 'bg-purple-600/20 border border-purple-600/30' 
+                        : 'bg-neutral-800 border border-neutral-700'
                     }`}>
                       <div className="text-white">
                         {msg.isStreaming ? (
@@ -227,15 +227,15 @@ function AIChatInterface() {
                     
                     {/* Code Block if exists */}
                     {msg.code && !msg.isStreaming && (
-                      <div className="bg-slate-950 rounded-lg overflow-hidden border border-slate-800">
-                        <div className="flex justify-between items-center px-4 py-2 bg-slate-900 border-b border-slate-800">
+                      <div className="bg-neutral-950 rounded-lg overflow-hidden border border-neutral-800">
+                        <div className="flex justify-between items-center px-4 py-2 bg-neutral-900 border-b border-neutral-800">
                           <div className="flex items-center gap-2">
-                            <Code className="h-4 w-4 text-blue-400" />
-                            <span className="text-sm text-slate-400">{msg.code.language}</span>
+                            <Code className="h-4 w-4 text-purple-400" />
+                            <span className="text-sm text-neutral-400">{msg.code.language}</span>
                           </div>
                           <button
                             onClick={() => copyCode(msg.code!.content, msg.id)}
-                            className="flex items-center gap-1 px-2 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded transition-colors"
+                            className="flex items-center gap-1 px-2 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 rounded transition-colors"
                           >
                             {copiedCode === msg.id ? (
                               <>
@@ -244,8 +244,8 @@ function AIChatInterface() {
                               </>
                             ) : (
                               <>
-                                <Copy className="h-3 w-3 text-slate-400" />
-                                <span className="text-slate-400">Copy</span>
+                                <Copy className="h-3 w-3 text-neutral-400" />
+                                <span className="text-neutral-400">Copy</span>
                               </>
                             )}
                           </button>
@@ -260,7 +260,7 @@ function AIChatInterface() {
                     )}
                     
                     {/* Timestamp */}
-                    <span className="text-xs text-slate-500 px-2">
+                    <span className="text-xs text-neutral-500 px-2">
                       {new Date(msg.timestamp).toLocaleTimeString()}
                     </span>
                   </div>
@@ -270,14 +270,14 @@ function AIChatInterface() {
             {isLoading && (
               <div className="flex justify-start animate-fadeIn">
                 <div className="flex gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-purple-600 flex items-center justify-center">
                     <Bot className="h-5 w-5 text-white" />
                   </div>
-                  <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
+                  <div className="bg-neutral-800 rounded-2xl p-4 border border-neutral-700">
                     <div className="flex gap-2">
-                      <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                       <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                     </div>
                   </div>
                 </div>
@@ -287,20 +287,20 @@ function AIChatInterface() {
           </div>
 
           {/* Input Area */}
-          <div className="border-t border-slate-800 p-4">
+          <div className="border-t border-neutral-800 p-4">
             <form onSubmit={(e) => { e.preventDefault(); sendMessage(); }} className="flex gap-3">
               <input
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 placeholder="Ask me anything about coding..."
-                className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
+                className="flex-1 bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-3 text-white placeholder-neutral-400 focus:outline-none focus:border-purple-500 transition-colors"
                 disabled={isLoading || isStreaming}
               />
               <button
                 type="submit"
                 disabled={!inputMessage.trim() || isLoading || isStreaming}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 active:scale-95"
+                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 active:scale-95"
               >
                 {isLoading || isStreaming ? (
                   <Loader className="h-5 w-5 animate-spin" />
@@ -314,7 +314,7 @@ function AIChatInterface() {
                 <button
                   key={suggestion}
                   onClick={() => setInputMessage(suggestion)}
-                  className="px-3 py-1 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-full text-slate-400 hover:text-white transition-colors"
+                  className="px-3 py-1 text-xs bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-full text-neutral-400 hover:text-white transition-colors"
                   disabled={isLoading || isStreaming}
                 >
                   {suggestion}

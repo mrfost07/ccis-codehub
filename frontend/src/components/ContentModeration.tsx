@@ -246,10 +246,10 @@ export default function ContentModeration() {
     }
 
     const SortIcon = ({ field }: { field: SortField }) => {
-        if (sortField !== field) return <ArrowUpDown className="w-4 h-4 text-slate-500" />
+        if (sortField !== field) return <ArrowUpDown className="w-4 h-4 text-neutral-500" />
         return sortDirection === 'asc'
-            ? <ChevronUp className="w-4 h-4 text-indigo-400" />
-            : <ChevronDown className="w-4 h-4 text-indigo-400" />
+            ? <ChevronUp className="w-4 h-4 text-purple-400" />
+            : <ChevronDown className="w-4 h-4 text-purple-400" />
     }
 
     const formatLabel = (label: string) => {
@@ -259,9 +259,9 @@ export default function ContentModeration() {
     const CustomTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length) {
             return (
-                <div className="bg-slate-800 border border-slate-700 rounded-lg p-3 shadow-xl">
+                <div className="bg-neutral-800 border border-neutral-700 rounded-lg p-3 shadow-xl">
                     <p className="text-white font-semibold">{payload[0].name || payload[0].dataKey}</p>
-                    <p className="text-indigo-400">{payload[0].value}</p>
+                    <p className="text-purple-400">{payload[0].value}</p>
                 </div>
             )
         }
@@ -272,8 +272,8 @@ export default function ContentModeration() {
         return (
             <div className="flex items-center justify-center min-h-[400px]">
                 <div className="text-center">
-                    <RefreshCw className="w-12 h-12 text-indigo-500 animate-spin mx-auto mb-4" />
-                    <p className="text-slate-400">Loading content analytics...</p>
+                    <RefreshCw className="w-12 h-12 text-purple-500 animate-spin mx-auto mb-4" />
+                    <p className="text-neutral-400">Loading content analytics...</p>
                 </div>
             </div>
         )
@@ -285,11 +285,11 @@ export default function ContentModeration() {
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold text-white">Content Moderation</h2>
-                    <p className="text-slate-400">Manage and analyze community content</p>
+                    <p className="text-neutral-400">Manage and analyze community content</p>
                 </div>
                 <button
                     onClick={fetchContentData}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition flex items-center gap-2"
+                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition flex items-center gap-2"
                 >
                     <RefreshCw className="w-4 h-4" />
                     Refresh
@@ -298,20 +298,20 @@ export default function ContentModeration() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                <StatCard icon={<FileText className="w-5 h-5" />} label="Posts" value={stats?.total_posts || 0} color="from-indigo-500 to-purple-500" />
-                <StatCard icon={<MessageCircle className="w-5 h-5" />} label="Comments" value={stats?.total_comments || 0} color="from-cyan-500 to-blue-500" />
-                <StatCard icon={<Heart className="w-5 h-5" />} label="Likes" value={stats?.total_likes || 0} color="from-pink-500 to-rose-500" />
-                <StatCard icon={<Eye className="w-5 h-5" />} label="Views" value={stats?.total_views || 0} color="from-amber-500 to-orange-500" />
-                <StatCard icon={<Building2 className="w-5 h-5" />} label="Groups" value={stats?.total_organizations || 0} color="from-green-500 to-emerald-500" />
-                <StatCard icon={<Hash className="w-5 h-5" />} label="Hashtags" value={hashtags.length} color="from-violet-500 to-purple-500" />
+                <StatCard icon={<FileText className="w-5 h-5" />} label="Posts" value={stats?.total_posts || 0} color="from-purple-500 to-purple-500" />
+                <StatCard icon={<MessageCircle className="w-5 h-5" />} label="Comments" value={stats?.total_comments || 0} color="from-purple-500 to-purple-500" />
+                <StatCard icon={<Heart className="w-5 h-5" />} label="Likes" value={stats?.total_likes || 0} color="from-red-500 to-red-600" />
+                <StatCard icon={<Eye className="w-5 h-5" />} label="Views" value={stats?.total_views || 0} color="from-amber-500 to-amber-500" />
+                <StatCard icon={<Building2 className="w-5 h-5" />} label="Groups" value={stats?.total_organizations || 0} color="from-green-500 to-green-500" />
+                <StatCard icon={<Hash className="w-5 h-5" />} label="Hashtags" value={hashtags.length} color="from-purple-500 to-purple-500" />
             </div>
 
             {/* Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Posts by Type Pie Chart */}
-                <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
+                <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-6">
                     <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <MessageSquare className="w-5 h-5 text-indigo-400" />
+                        <MessageSquare className="w-5 h-5 text-purple-400" />
                         Posts by Type
                     </h3>
                     {stats?.posts_by_type && stats.posts_by_type.length > 0 ? (
@@ -339,22 +339,22 @@ export default function ContentModeration() {
                             </PieChart>
                         </ResponsiveContainer>
                     ) : (
-                        <div className="h-[220px] flex items-center justify-center text-slate-400">No post data</div>
+                        <div className="h-[220px] flex items-center justify-center text-neutral-400">No post data</div>
                     )}
                     <div className="flex flex-wrap gap-2 mt-2 justify-center">
                         {stats?.posts_by_type?.map((entry, index) => (
                             <div key={entry.post_type} className="flex items-center gap-1 text-xs">
                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: TYPE_COLORS[entry.post_type] || COLORS[index % COLORS.length] }} />
-                                <span className="text-slate-300">{formatLabel(entry.post_type)}</span>
+                                <span className="text-neutral-300">{formatLabel(entry.post_type)}</span>
                             </div>
                         ))}
                     </div>
                 </div>
 
                 {/* Activity Trend */}
-                <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
+                <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-6">
                     <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-cyan-400" />
+                        <TrendingUp className="w-5 h-5 text-purple-400" />
                         Activity Trend (7 Days)
                     </h3>
                     <ResponsiveContainer width="100%" height={220}>
@@ -382,7 +382,7 @@ export default function ContentModeration() {
             </div>
 
             {/* Top Contributors */}
-            <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
+            <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-6">
                 <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                     <Users className="w-5 h-5 text-green-400" />
                     Top Contributors
@@ -400,19 +400,19 @@ export default function ContentModeration() {
                         </BarChart>
                     </ResponsiveContainer>
                 ) : (
-                    <div className="h-[180px] flex items-center justify-center text-slate-400">No author data</div>
+                    <div className="h-[180px] flex items-center justify-center text-neutral-400">No author data</div>
                 )}
             </div>
 
             {/* View Tabs */}
-            <div className="flex gap-2 border-b border-slate-700 pb-2">
+            <div className="flex gap-2 border-b border-neutral-700 pb-2">
                 {(['posts', 'organizations', 'hashtags'] as const).map(view => (
                     <button
                         key={view}
                         onClick={() => setActiveView(view)}
                         className={`px-4 py-2 rounded-t-lg transition ${activeView === view
-                                ? 'bg-slate-700 text-white'
-                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                                ? 'bg-neutral-700 text-white'
+                                : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
                             }`}
                     >
                         {view === 'posts' && <><FileText className="w-4 h-4 inline mr-2" />Posts ({posts.length})</>}
@@ -424,25 +424,25 @@ export default function ContentModeration() {
 
             {/* Posts Table */}
             {activeView === 'posts' && (
-                <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
+                <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-6">
                     {/* Filters */}
                     <div className="flex flex-wrap gap-4 mb-4">
                         <div className="flex-1 min-w-[200px]">
                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
                                 <input
                                     type="text"
                                     placeholder="Search posts..."
                                     value={searchTerm}
                                     onChange={e => setSearchTerm(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500"
+                                    className="w-full pl-10 pr-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white placeholder-neutral-400 focus:outline-none focus:border-purple-500"
                                 />
                             </div>
                         </div>
                         <select
                             value={typeFilter}
                             onChange={e => setTypeFilter(e.target.value)}
-                            className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                            className="px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
                         >
                             <option value="all">All Types</option>
                             <option value="text">Text</option>
@@ -455,32 +455,32 @@ export default function ContentModeration() {
 
                     {/* Table */}
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left text-slate-300">
-                            <thead className="text-xs uppercase bg-slate-700/50">
+                        <table className="w-full text-sm text-left text-neutral-300">
+                            <thead className="text-xs uppercase bg-neutral-700/50">
                                 <tr>
-                                    <th className="px-4 py-3 cursor-pointer hover:bg-slate-600/50" onClick={() => handleSort('title')}>
+                                    <th className="px-4 py-3 cursor-pointer hover:bg-neutral-600/50" onClick={() => handleSort('title')}>
                                         <div className="flex items-center gap-1">Title <SortIcon field="title" /></div>
                                     </th>
-                                    <th className="px-4 py-3 cursor-pointer hover:bg-slate-600/50" onClick={() => handleSort('author')}>
+                                    <th className="px-4 py-3 cursor-pointer hover:bg-neutral-600/50" onClick={() => handleSort('author')}>
                                         <div className="flex items-center gap-1">Author <SortIcon field="author" /></div>
                                     </th>
-                                    <th className="px-4 py-3 cursor-pointer hover:bg-slate-600/50" onClick={() => handleSort('post_type')}>
+                                    <th className="px-4 py-3 cursor-pointer hover:bg-neutral-600/50" onClick={() => handleSort('post_type')}>
                                         <div className="flex items-center gap-1">Type <SortIcon field="post_type" /></div>
                                     </th>
-                                    <th className="px-4 py-3 cursor-pointer hover:bg-slate-600/50" onClick={() => handleSort('like_count')}>
+                                    <th className="px-4 py-3 cursor-pointer hover:bg-neutral-600/50" onClick={() => handleSort('like_count')}>
                                         <div className="flex items-center gap-1">Likes <SortIcon field="like_count" /></div>
                                     </th>
-                                    <th className="px-4 py-3 cursor-pointer hover:bg-slate-600/50" onClick={() => handleSort('comment_count')}>
+                                    <th className="px-4 py-3 cursor-pointer hover:bg-neutral-600/50" onClick={() => handleSort('comment_count')}>
                                         <div className="flex items-center gap-1">Comments <SortIcon field="comment_count" /></div>
                                     </th>
-                                    <th className="px-4 py-3 cursor-pointer hover:bg-slate-600/50" onClick={() => handleSort('created_at')}>
+                                    <th className="px-4 py-3 cursor-pointer hover:bg-neutral-600/50" onClick={() => handleSort('created_at')}>
                                         <div className="flex items-center gap-1">Date <SortIcon field="created_at" /></div>
                                     </th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredPosts.slice(0, 20).map(post => (
-                                    <tr key={post.id} className="border-b border-slate-700 hover:bg-slate-700/30">
+                                    <tr key={post.id} className="border-b border-neutral-700 hover:bg-neutral-700/30">
                                         <td className="px-4 py-3 font-medium text-white max-w-[200px] truncate">{post.title || 'Untitled'}</td>
                                         <td className="px-4 py-3">{post.author?.username || 'Unknown'}</td>
                                         <td className="px-4 py-3">
@@ -491,29 +491,29 @@ export default function ContentModeration() {
                                                 {formatLabel(post.post_type || 'text')}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3"><Heart className="w-4 h-4 inline text-pink-400 mr-1" />{post.like_count || 0}</td>
-                                        <td className="px-4 py-3"><MessageCircle className="w-4 h-4 inline text-cyan-400 mr-1" />{post.comment_count || 0}</td>
-                                        <td className="px-4 py-3 text-slate-400">{post.created_at ? new Date(post.created_at).toLocaleDateString() : 'N/A'}</td>
+                                        <td className="px-4 py-3"><Heart className="w-4 h-4 inline text-purple-400 mr-1" />{post.like_count || 0}</td>
+                                        <td className="px-4 py-3"><MessageCircle className="w-4 h-4 inline text-purple-400 mr-1" />{post.comment_count || 0}</td>
+                                        <td className="px-4 py-3 text-neutral-400">{post.created_at ? new Date(post.created_at).toLocaleDateString() : 'N/A'}</td>
                                     </tr>
                                 ))}
                                 {filteredPosts.length === 0 && (
-                                    <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">No posts found</td></tr>
+                                    <tr><td colSpan={6} className="px-4 py-8 text-center text-neutral-400">No posts found</td></tr>
                                 )}
                             </tbody>
                         </table>
                     </div>
                     {filteredPosts.length > 20 && (
-                        <p className="text-sm text-slate-400 mt-4 text-center">Showing 20 of {filteredPosts.length} posts</p>
+                        <p className="text-sm text-neutral-400 mt-4 text-center">Showing 20 of {filteredPosts.length} posts</p>
                     )}
                 </div>
             )}
 
             {/* Organizations Table */}
             {activeView === 'organizations' && (
-                <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
+                <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-6">
                     <div className="overflow-x-auto">
-                        <table className="w-full text-sm text-left text-slate-300">
-                            <thead className="text-xs uppercase bg-slate-700/50">
+                        <table className="w-full text-sm text-left text-neutral-300">
+                            <thead className="text-xs uppercase bg-neutral-700/50">
                                 <tr>
                                     <th className="px-4 py-3">Name</th>
                                     <th className="px-4 py-3">Type</th>
@@ -525,23 +525,23 @@ export default function ContentModeration() {
                             </thead>
                             <tbody>
                                 {organizations.map(org => (
-                                    <tr key={org.id} className="border-b border-slate-700 hover:bg-slate-700/30">
+                                    <tr key={org.id} className="border-b border-neutral-700 hover:bg-neutral-700/30">
                                         <td className="px-4 py-3 font-medium text-white">{org.name}</td>
                                         <td className="px-4 py-3">{formatLabel(org.org_type || 'club')}</td>
                                         <td className="px-4 py-3"><Users className="w-4 h-4 inline text-green-400 mr-1" />{org.member_count || 0}</td>
-                                        <td className="px-4 py-3"><FileText className="w-4 h-4 inline text-indigo-400 mr-1" />{org.post_count || 0}</td>
+                                        <td className="px-4 py-3"><FileText className="w-4 h-4 inline text-purple-400 mr-1" />{org.post_count || 0}</td>
                                         <td className="px-4 py-3">
                                             {org.is_official ? (
                                                 <span className="px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs">Official</span>
                                             ) : (
-                                                <span className="px-2 py-1 bg-slate-500/20 text-slate-400 rounded-full text-xs">Community</span>
+                                                <span className="px-2 py-1 bg-neutral-500/20 text-neutral-400 rounded-full text-xs">Community</span>
                                             )}
                                         </td>
-                                        <td className="px-4 py-3 text-slate-400">{org.created_at ? new Date(org.created_at).toLocaleDateString() : 'N/A'}</td>
+                                        <td className="px-4 py-3 text-neutral-400">{org.created_at ? new Date(org.created_at).toLocaleDateString() : 'N/A'}</td>
                                     </tr>
                                 ))}
                                 {organizations.length === 0 && (
-                                    <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">No organizations found</td></tr>
+                                    <tr><td colSpan={6} className="px-4 py-8 text-center text-neutral-400">No organizations found</td></tr>
                                 )}
                             </tbody>
                         </table>
@@ -551,16 +551,16 @@ export default function ContentModeration() {
 
             {/* Hashtags Table */}
             {activeView === 'hashtags' && (
-                <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-6">
+                <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                         {hashtags.slice(0, 30).map((tag: any) => (
-                            <div key={tag.id} className="bg-slate-700/50 rounded-lg p-3 text-center hover:bg-slate-600/50 transition">
-                                <p className="text-indigo-400 font-semibold">#{tag.tag}</p>
-                                <p className="text-xs text-slate-400 mt-1">{tag.usage_count || 0} uses</p>
+                            <div key={tag.id} className="bg-neutral-700/50 rounded-lg p-3 text-center hover:bg-neutral-600/50 transition">
+                                <p className="text-purple-400 font-semibold">#{tag.tag}</p>
+                                <p className="text-xs text-neutral-400 mt-1">{tag.usage_count || 0} uses</p>
                             </div>
                         ))}
                         {hashtags.length === 0 && (
-                            <div className="col-span-full text-center py-8 text-slate-400">No hashtags found</div>
+                            <div className="col-span-full text-center py-8 text-neutral-400">No hashtags found</div>
                         )}
                     </div>
                 </div>
@@ -571,12 +571,12 @@ export default function ContentModeration() {
 
 function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number; color: string }) {
     return (
-        <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4 hover:border-slate-600/50 transition">
+        <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-4 hover:border-neutral-600/50 transition">
             <div className={`inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br ${color} text-white mb-2`}>
                 {icon}
             </div>
             <p className="text-2xl font-bold text-white">{value}</p>
-            <p className="text-xs text-slate-400">{label}</p>
+            <p className="text-xs text-neutral-400">{label}</p>
         </div>
     )
 }

@@ -97,6 +97,7 @@ export default function AdminDashboard() {
     const [showQuizEditor, setShowQuizEditor] = useState(false)
     const [creatingQuiz, setCreatingQuiz] = useState(false)
     const [updatingQuiz, setUpdatingQuiz] = useState(false)
+    const [isCreatingPath, setIsCreatingPath] = useState(false)
     const [isUserDeleteEnabled, setIsUserDeleteEnabled] = useState(false)
 
     // Initial data fetch
@@ -293,6 +294,8 @@ export default function AdminDashboard() {
     const resetPathForm = () => setPathForm(defaultPathForm)
 
     const createCareerPath = async () => {
+        if (isCreatingPath) return
+        setIsCreatingPath(true)
         try {
             let response
             if (certificateFile) {
@@ -317,6 +320,8 @@ export default function AdminDashboard() {
             } else {
                 toast.error(error.response?.data?.detail || 'Failed to create career path')
             }
+        } finally {
+            setIsCreatingPath(false)
         }
     }
 
@@ -484,7 +489,7 @@ export default function AdminDashboard() {
                     <div className="space-y-6">
                         <div className="flex items-center justify-between">
                             <h2 className="text-2xl font-bold text-white">Learning Analytics</h2>
-                            <p className="text-sm text-slate-400">Manage learning content in Instructor Dashboard</p>
+                            <p className="text-sm text-neutral-400">Manage learning content in Instructor Dashboard</p>
                         </div>
                         <LearningAnalytics />
                     </div>
@@ -492,7 +497,7 @@ export default function AdminDashboard() {
 
                 {/* Projects Tab */}
                 {activeTab === 'projects' && (
-                    <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4 sm:p-6 shadow-lg">
+                    <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-4 sm:p-6 shadow-lg">
                         <h2 className="text-2xl font-bold text-white mb-6">Project Admin</h2>
                         <ProjectAdmin />
                     </div>
@@ -520,10 +525,11 @@ export default function AdminDashboard() {
                 isOpen={showCreatePath}
                 pathForm={pathForm}
                 certificateFile={certificateFile}
+                isSubmitting={isCreatingPath}
                 onFormChange={handlePathFormChange}
                 onCertificateChange={setCertificateFile}
                 onSubmit={createCareerPath}
-                onClose={() => setShowCreatePath(false)}
+                onClose={() => !isCreatingPath && setShowCreatePath(false)}
             />
 
             <EditPathModal

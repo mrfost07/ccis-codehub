@@ -1,0 +1,33 @@
+<mxfile host="app.diagrams.net" modified="2026-04-06T10:40:00.000Z" agent="Codex" version="24.7.17">
+  <diagram id="arch1" name="Page-1">
+    <mxGraphModel dx="1200" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="850" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="2" value="USER ACCESS LAYER&#xa;Students | Instructors | Administrators" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ea580c;strokeColor=#ea580c;fontColor=#ffffff;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="70" y="70" width="960" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="3" value="PRESENTATION LAYER&#xa;React 18 + TypeScript Frontend&#xa;Dashboards, Learning, Projects, Community, AI Mentor, Live Quiz, Coding, Video Pages&#xa;Browser / Mobile-accessible Interface | Camera Capture for Proctoring Flow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fb923c;strokeWidth=3;fontColor=#431407;" vertex="1" parent="1">
+          <mxGeometry x="140" y="185" width="820" height="105" as="geometry"/>
+        </mxCell>
+        <mxCell id="4" value="APPLICATION LAYER&#xa;Django 4.2 + Django REST Framework&#xa;Accounts | Learning | Projects | Community | AI Mentor | AI Proctor&#xa;PDF / DOCX extraction, curriculum-aware processing, JWT APIs, analytics, admin controls" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fb923c;strokeWidth=3;fontColor=#431407;" vertex="1" parent="1">
+          <mxGeometry x="140" y="340" width="820" height="145" as="geometry"/>
+        </mxCell>
+        <mxCell id="5" value="REAL-TIME AND ASYNC LAYER&#xa;Django Channels + Daphne&#xa;WebSockets: notifications, live quiz, proctoring&#xa;Celery Worker / Beat | Redis broker / cache / channel layer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fdba74;strokeWidth=3;fontColor=#431407;" vertex="1" parent="1">
+          <mxGeometry x="70" y="565" width="280" height="135" as="geometry"/>
+        </mxCell>
+        <mxCell id="6" value="DATA LAYER&#xa;PostgreSQL primary database&#xa;Users, learning, projects, community, AI, quiz records&#xa;SQLite fallback | media / uploaded files" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fdba74;strokeWidth=3;fontColor=#431407;" vertex="1" parent="1">
+          <mxGeometry x="410" y="565" width="280" height="135" as="geometry"/>
+        </mxCell>
+        <mxCell id="7" value="EXTERNAL SERVICES LAYER&#xa;Gemini / OpenRouter / OpenAI / Mistral&#xa;Google OAuth | GitHub API&#xa;Embedded video sources and document inputs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fdba74;strokeWidth=3;fontColor=#431407;" vertex="1" parent="1">
+          <mxGeometry x="750" y="565" width="280" height="135" as="geometry"/>
+        </mxCell>
+        <mxCell id="10" style="endArrow=block;html=1;strokeColor=#c2410c;strokeWidth=3;" edge="1" parent="1" source="2" target="3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="11" style="endArrow=block;html=1;strokeColor=#c2410c;strokeWidth=3;" edge="1" parent="1" source="3" target="4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="12" style="endArrow=block;html=1;strokeColor=#c2410c;strokeWidth=3;" edge="1" parent="1" source="4" target="5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="13" style="endArrow=block;html=1;strokeColor=#c2410c;strokeWidth=3;" edge="1" parent="1" source="4" target="6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="14" style="endArrow=block;html=1;strokeColor=#c2410c;strokeWidth=3;" edge="1" parent="1" source="4" target="7"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

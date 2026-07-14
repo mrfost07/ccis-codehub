@@ -3,6 +3,7 @@ from rest_framework import views, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from .permissions import IsPlatformAdmin
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
 from django.utils import timezone
@@ -18,17 +19,10 @@ User = get_user_model()
 
 class AdminDashboardView(views.APIView):
     """Admin dashboard statistics"""
-    permission_classes = [IsAuthenticated]
-    
+    permission_classes = [IsAuthenticated, IsPlatformAdmin]
+
     def get(self, request):
         """Get dashboard statistics"""
-        # Check if user is admin
-        if not request.user.role == 'admin':
-            return Response(
-                {'error': 'Admin access required'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
         # User statistics
         total_users = User.objects.count()
         total_students = User.objects.filter(role='student').count()
@@ -115,16 +109,10 @@ class AdminDashboardView(views.APIView):
 class AdminUsersView(viewsets.ModelViewSet):
     """Admin user management"""
     queryset = User.objects.all()
-    permission_classes = [IsAuthenticated]
-    
+    permission_classes = [IsAuthenticated, IsPlatformAdmin]
+
     def list(self, request):
         """Get all users with statistics"""
-        if not request.user.role == 'admin':
-            return Response(
-                {'error': 'Admin access required'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
         # Get query parameters for filtering
         role_filter = request.query_params.get('role', None)
         search = request.query_params.get('search', None)
@@ -171,12 +159,6 @@ class AdminUsersView(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def toggle_status(self, request, pk=None):
         """Toggle user active status"""
-        if not request.user.role == 'admin':
-            return Response(
-                {'error': 'Admin access required'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
         try:
             user = User.objects.get(pk=pk)
             user.is_active = not user.is_active
@@ -194,25 +176,24 @@ class AdminUsersView(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def update_role(self, request, pk=None):
         """Update user role"""
-        if not request.user.role == 'admin':
-            return Response(
-                {'error': 'Admin access required'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
         try:
             user = User.objects.get(pk=pk)
             new_role = request.data.get('role')
-            
+
             if new_role not in ['student', 'instructor', 'admin']:
                 return Response(
-                    {'error': 'Invalid role'}, 
+                    {'error': 'Invalid role'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             user.role = new_role
-            user.save()
-            
+            # Keep the Django staff flag in lock-step with the admin role so
+            # authorization (which now checks is_staff) stays coherent. Never
+            # demote an existing superuser's staff flag.
+            if not user.is_superuser:
+                user.is_staff = (new_role == 'admin')
+            user.save(update_fields=['role', 'is_staff'])
+
             return Response({
                 'status': 'success',
                 'role': user.role
@@ -226,16 +207,10 @@ class AdminUsersView(viewsets.ModelViewSet):
 
 class AdminContentView(views.APIView):
     """Admin content moderation"""
-    permission_classes = [IsAuthenticated]
-    
+    permission_classes = [IsAuthenticated, IsPlatformAdmin]
+
     def get(self, request):
         """Get content for moderation"""
-        if not request.user.role == 'admin':
-            return Response(
-                {'error': 'Admin access required'}, 
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
         # Get recent posts
         recent_posts = Post.objects.select_related('author').order_by('-created_at')[:20]
         recent_comments = Comment.objects.select_related('author', 'post').order_by('-created_at')[:20]

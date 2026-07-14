@@ -76,7 +76,7 @@ export default function AdminSidenav({ activeTab, onTabChange, children }: Admin
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 flex">
+        <div className="min-h-screen bg-neutral-950 flex">
             {/* Mobile Overlay */}
             {sidenavOpen && (
                 <div
@@ -92,21 +92,21 @@ export default function AdminSidenav({ activeTab, onTabChange, children }: Admin
           ${isCollapsed ? 'w-16' : 'w-60'}
           ${sidenavOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           transition-all duration-300 ease-in-out
-          bg-slate-900/95 backdrop-blur-xl
-          border-r border-slate-700/50
+          bg-neutral-900/95 backdrop-blur-xl
+          border-r border-neutral-700/50
           flex flex-col
         `}
             >
                 {/* Logo & Toggle */}
-                <div className="flex items-center justify-between p-4 border-b border-slate-700/50">
+                <div className="flex items-center justify-between p-4 border-b border-neutral-700/50">
                     {!isCollapsed ? (
                         <div className="flex items-center gap-3">
                             <img src="/logo/ccis-logo.png" alt="CCIS" className="h-9 w-9" />
                             <div className="flex flex-col">
-                                <span className="text-sm font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent leading-tight">
+                                <span className="text-sm font-bold bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent leading-tight">
                                     CCIS CodeHub
                                 </span>
-                                <span className="text-xs text-slate-400 font-medium">
+                                <span className="text-xs text-neutral-400 font-medium">
                                     Admin
                                 </span>
                             </div>
@@ -120,7 +120,7 @@ export default function AdminSidenav({ activeTab, onTabChange, children }: Admin
                     {/* Desktop collapse button */}
                     <button
                         onClick={() => setIsCollapsed(!isCollapsed)}
-                        className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition"
+                        className="hidden lg:flex p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800/50 transition"
                     >
                         {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
                     </button>
@@ -128,7 +128,7 @@ export default function AdminSidenav({ activeTab, onTabChange, children }: Admin
                     {/* Mobile close button */}
                     <button
                         onClick={() => setSidenavOpen(false)}
-                        className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition"
+                        className="lg:hidden p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800/50 transition"
                     >
                         <X size={20} />
                     </button>
@@ -150,8 +150,8 @@ export default function AdminSidenav({ activeTab, onTabChange, children }: Admin
                   py-2.5 rounded-xl
                   transition-all duration-200
                   ${isActive
-                                        ? 'bg-gradient-to-r from-purple-600/30 to-indigo-600/30 text-white border border-purple-500/30'
-                                        : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                                        ? 'bg-gradient-to-r from-purple-600/30 to-purple-600/30 text-white border border-purple-500/30'
+                                        : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
                                     }
                 `}
                                 title={isCollapsed ? item.label : undefined}
@@ -166,14 +166,14 @@ export default function AdminSidenav({ activeTab, onTabChange, children }: Admin
                 </nav>
 
                 {/* Quick Links */}
-                <div className="px-2 py-3 border-t border-slate-700/50">
+                <div className="px-2 py-3 border-t border-neutral-700/50">
                     <Link
                         to="/learning"
                         className={`
               w-full flex items-center gap-3
               ${isCollapsed ? 'justify-center px-2' : 'px-3'}
               py-2.5 rounded-xl
-              text-slate-400 hover:text-white hover:bg-slate-800/50 transition
+              text-neutral-400 hover:text-white hover:bg-neutral-800/50 transition
             `}
                         title={isCollapsed ? 'Back to CodeHub' : undefined}
                     >
@@ -186,12 +186,12 @@ export default function AdminSidenav({ activeTab, onTabChange, children }: Admin
             {/* Main Content */}
             <main className="flex-1 min-w-0 flex flex-col">
                 {/* Top Header */}
-                <header className="sticky top-0 z-30 bg-slate-900/80 backdrop-blur-xl border-b border-slate-700/50">
+                <header className="sticky top-0 z-30 bg-neutral-900/80 backdrop-blur-xl border-b border-neutral-700/50">
                     <div className="flex items-center justify-between h-14 px-4 md:px-6">
                         {/* Mobile menu button */}
                         <button
                             onClick={() => setSidenavOpen(true)}
-                            className="lg:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/50 transition"
+                            className="lg:hidden p-2 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800/50 transition"
                         >
                             <Menu size={24} />
                         </button>
@@ -203,18 +203,6 @@ export default function AdminSidenav({ activeTab, onTabChange, children }: Admin
                             </h1>
                         </div>
 
-                        {/* Quick links */}
-                        <div className="hidden md:flex items-center gap-2 border-l border-slate-700/50 pl-3 ml-2">
-                            <Link to="/learning" className="px-3 py-1.5 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/50 transition">
-                                📚 Learning
-                            </Link>
-                            <Link to="/projects" className="px-3 py-1.5 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/50 transition">
-                                💻 Projects
-                            </Link>
-                            <Link to="/community" className="px-3 py-1.5 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/50 transition">
-                                👥 Community
-                            </Link>
-                        </div>
                     </div>
                 </header>
 

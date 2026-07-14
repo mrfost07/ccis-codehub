@@ -10,6 +10,10 @@ const NEON_AUTH_URL = import.meta.env.VITE_NEON_AUTH_URL ||
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ||
     '1018587300192-m0n93uesm6v33bahs57tatg52v3lurah.apps.googleusercontent.com';
 
+// Backend API base URL from configuration — a relative '/api/...' path breaks in
+// production where the frontend and backend are on different origins. (Req 25.)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+
 // Get the current origin for redirect
 const getRedirectUri = () => {
     return `${window.location.origin}/auth/callback`;
@@ -62,8 +66,9 @@ export const handleOAuthCallback = async (code: string, state: string) => {
     // Clear stored state
     localStorage.removeItem('oauth_state');
 
-    // Exchange code for tokens with backend
-    const response = await fetch('/api/auth/google/callback/', {
+    // Exchange code for tokens with backend (configured base URL, not a
+    // same-origin relative path).
+    const response = await fetch(`${API_BASE_URL}/auth/google/callback/`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

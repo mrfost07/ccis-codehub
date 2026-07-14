@@ -61,19 +61,19 @@ export default function Dashboard() {
   // Show loading while checking role
   if (profileLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin text-4xl sm:text-6xl mb-4">⏳</div>
-          <p className="text-slate-400">Loading your dashboard...</p>
+          <p className="text-neutral-400">Loading your dashboard...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-neutral-950">
       {/* Navigation */}
-      <nav className="bg-slate-900 border-b border-slate-800">
+      <nav className="bg-neutral-900 border-b border-neutral-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-2">
@@ -81,11 +81,8 @@ export default function Dashboard() {
               <span className="text-lg sm:text-xl font-bold">CCIS CodeHub</span>
             </div>
             <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
-              <Link to="/learning" className="text-slate-300 hover:text-white transition text-sm lg:text-base">📚 Learning</Link>
-              <Link to="/projects" className="text-slate-300 hover:text-white transition text-sm lg:text-base">💻 Projects</Link>
-              <Link to="/community" className="text-slate-300 hover:text-white transition text-sm lg:text-base">👥 Community</Link>
-              <div className="border-l border-slate-700 pl-4 lg:pl-6 flex items-center space-x-2 lg:space-x-4">
-                <Link to="/dashboard" className="text-xs lg:text-sm text-slate-400 hover:text-white">👤 {user.username || 'User'}</Link>
+              <div className="flex items-center space-x-2 lg:space-x-4">
+                <Link to="/dashboard" className="text-xs lg:text-sm text-neutral-400 hover:text-white">{user.username || 'User'}</Link>
                 <button
                   onClick={() => {
                     localStorage.removeItem('token')
@@ -110,7 +107,7 @@ export default function Dashboard() {
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin text-4xl sm:text-6xl">⏳</div>
-            <p className="mt-4 text-sm sm:text-base text-slate-400">Loading your dashboard...</p>
+            <p className="mt-4 text-sm sm:text-base text-neutral-400">Loading your dashboard...</p>
           </div>
         ) : (
           <>
@@ -155,10 +152,10 @@ export default function Dashboard() {
 
 function StatCard({ icon, title, value, color }: any) {
   const colors = {
-    indigo: 'from-indigo-600 to-indigo-700',
-    pink: 'from-pink-600 to-pink-700',
+    indigo: 'from-purple-600 to-purple-700',
+    pink: 'from-purple-600 to-purple-700',
     purple: 'from-purple-600 to-purple-700',
-    blue: 'from-blue-600 to-blue-700',
+    blue: 'from-purple-600 to-purple-700',
   }
 
   return (
@@ -176,19 +173,19 @@ function StatCard({ icon, title, value, color }: any) {
 
 function QuickActionCard({ icon, title, description, link, color }: any) {
   const colors = {
-    indigo: 'border-indigo-500/50 hover:border-indigo-500',
-    pink: 'border-pink-500/50 hover:border-pink-500',
+    indigo: 'border-purple-500/50 hover:border-purple-500',
+    pink: 'border-purple-500/50 hover:border-purple-500',
     purple: 'border-purple-500/50 hover:border-purple-500',
   }
 
   return (
     <Link
       to={link}
-      className={`bg-slate-900 border ${colors[color as keyof typeof colors]} rounded-lg sm:rounded-xl p-4 sm:p-6 transition hover:transform hover:scale-105 active:scale-95`}
+      className={`bg-neutral-900 border ${colors[color as keyof typeof colors]} rounded-lg sm:rounded-xl p-4 sm:p-6 transition hover:transform hover:scale-105 active:scale-95`}
     >
       <div className="text-3xl sm:text-4xl mb-3 sm:mb-4">{icon}</div>
       <h3 className="text-lg sm:text-xl font-semibold mb-1 sm:mb-2">{title}</h3>
-      <p className="text-sm sm:text-base text-slate-400">{description}</p>
+      <p className="text-sm sm:text-base text-neutral-400">{description}</p>
     </Link>
   )
 }

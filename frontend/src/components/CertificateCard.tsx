@@ -34,10 +34,10 @@ export default function CertificateCard({ certificate, onUpdate }: CertificateCa
 
   const getProgramColor = (programType: string) => {
     switch (programType.toLowerCase()) {
-      case 'bsit': return 'from-blue-600 to-blue-800'
+      case 'bsit': return 'from-purple-600 to-purple-800'
       case 'bscs': return 'from-purple-600 to-purple-800'
       case 'bsis': return 'from-green-600 to-green-800'
-      default: return 'from-slate-600 to-slate-800'
+      default: return 'from-neutral-600 to-neutral-800'
     }
   }
 
@@ -132,7 +132,7 @@ export default function CertificateCard({ certificate, onUpdate }: CertificateCa
             <button
               onClick={handleDownload}
               disabled={downloading}
-              className="flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-white/90 transition-all shadow-lg disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 bg-white text-purple-600 rounded-lg font-semibold hover:bg-white/90 transition-all shadow-lg disabled:opacity-50"
             >
               {downloading ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -145,7 +145,7 @@ export default function CertificateCard({ certificate, onUpdate }: CertificateCa
             <button
               onClick={handleClaim}
               disabled={claiming}
-              className="flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 bg-yellow-400 text-yellow-900 rounded-lg font-semibold hover:bg-yellow-300 transition-all shadow-lg disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 bg-amber-400 text-amber-900 rounded-lg font-semibold hover:bg-amber-300 transition-all shadow-lg disabled:opacity-50"
             >
               {claiming ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />

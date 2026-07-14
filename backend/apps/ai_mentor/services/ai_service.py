@@ -338,7 +338,7 @@ class MistralService(BaseAIService):
         if not self.api_key:
             logger.warning("Mistral API key not configured")
     
-    def generate_response(self, prompt: str, context: Optional[List[Dict]] = None, user_role: str = 'student') -> str:
+    def generate_response(self, prompt: str, context: Optional[List[Dict]] = None, user_role: str = 'student', temperature: float = 0.7, max_tokens: int = 4096, json_mode: bool = False) -> str:
         """Generate response using Mistral API"""
         if not self.api_key:
             return "Please configure your MISTRAL_API_KEY in the .env file. Get your key at: https://admin.mistral.ai/"
@@ -371,21 +371,28 @@ Format: Short paragraphs. Bullet points for lists. Code blocks for code."""}
             
             messages.append({"role": "user", "content": prompt})
             
+            # Build request payload
+            payload = {
+                "model": self.model_name,
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "temperature": temperature
+            }
+            
+            # Enable JSON mode when requested - forces Mistral to output valid JSON
+            if json_mode:
+                payload["response_format"] = {"type": "json_object"}
+            
             # Make request to Mistral API
-            logger.info(f"Mistral API request: model={self.model_name}")
+            logger.info(f"Mistral API request: model={self.model_name}, json_mode={json_mode}")
             response = requests.post(
                 f"{self.base_url}/chat/completions",
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
                     "Content-Type": "application/json"
                 },
-                json={
-                    "model": self.model_name,
-                    "messages": messages,
-                    "max_tokens": 4096,
-                    "temperature": 0.7
-                },
-                timeout=60
+                json=payload,
+                timeout=120
             )
             
             logger.info(f"Mistral response status: {response.status_code}")
@@ -530,7 +537,7 @@ Format: Direct answers, bullet points for clarity.""",
         
         return role_prompts.get(user_role, role_prompts['student'])
     
-    def generate_response(self, prompt: str, context: Optional[List[Dict]] = None, user_role: str = 'student') -> str:
+    def generate_response(self, prompt: str, context: Optional[List[Dict]] = None, user_role: str = 'student', temperature: float = 0.7, max_tokens: int = 4096) -> str:
         """Generate response using OpenRouter API with retries and fallback"""
         if not self.api_key:
             return "Please configure your OPENROUTER_API_KEY in the .env file. Get your free key at: https://openrouter.ai/"
@@ -603,8 +610,8 @@ Format: Direct answers, bullet points for clarity.""",
                             json={
                                 "model": model,
                                 "messages": messages,
-                                "max_tokens": 4096,
-                                "temperature": 0.7
+                                "max_tokens": max_tokens,
+                                "temperature": temperature
                             },
                             timeout=120
                         )
@@ -724,6 +731,82 @@ Format: Direct answers, bullet points for clarity.""",
         }
 
 
+class CustomModelService(BaseAIService):
+    """Service for user-defined custom AI endpoints stored in CustomAIModel DB"""
+
+    def __init__(self, custom_model_id: str):
+        self.custom_model_id = custom_model_id
+        self._model = None
+        self._load_model()
+
+    def _load_model(self):
+        try:
+            from apps.ai_mentor.models_settings import CustomAIModel
+            self._model = CustomAIModel.objects.get(id=self.custom_model_id)
+        except Exception as e:
+            logger.error(f"CustomModelService: could not load model {self.custom_model_id}: {e}")
+
+    def generate_response(self, prompt: str, context: Optional[List[Dict]] = None, temperature: float = 0.7, max_tokens: int = 2000) -> str:
+        if not self._model:
+            return "Custom model not found. Please re-add it in AI Settings > Custom."
+        try:
+            import requests as req
+
+            headers = dict(self._model.headers or {})
+            headers['Authorization'] = f'Bearer {self._model.api_key}'
+            headers.setdefault('Content-Type', 'application/json')
+
+            body = dict(self._model.request_format or {})
+            if body:
+                # Replace {prompt} placeholder if present
+                for key, value in body.items():
+                    if isinstance(value, str) and '{prompt}' in value:
+                        body[key] = value.replace('{prompt}', prompt)
+            else:
+                # Default: OpenAI-compatible chat format
+                messages = []
+                if context:
+                    for msg in context:
+                        role = "user" if msg.get('sender') == 'user' else "assistant"
+                        messages.append({"role": role, "content": msg.get('message', '')})
+                messages.append({"role": "user", "content": prompt})
+                body = {"messages": messages, "temperature": temperature, "max_tokens": max_tokens}
+
+            response = req.post(self._model.endpoint_url, json=body, headers=headers, timeout=60)
+
+            if response.status_code == 200:
+                data = response.json()
+                result = data
+                for key in self._model.response_path.split('.'):
+                    if isinstance(result, list):
+                        result = result[int(key)]
+                    elif isinstance(result, dict):
+                        result = result.get(key, '')
+                return str(result)
+            else:
+                return f"Custom model API error {response.status_code}: {response.text[:200]}"
+        except Exception as e:
+            logger.error(f"CustomModelService error: {e}")
+            return f"Custom model error: {str(e)}"
+
+    def analyze_code(self, code: str, language: str = "python") -> Dict[str, Any]:
+        response = self.generate_response(f"Analyze this {language} code:\n```{language}\n{code}\n```")
+        return {"analysis": response, "complexity_score": 5}
+
+    def get_model_info(self) -> Dict[str, Any]:
+        name = self._model.name if self._model else "Custom Model"
+        url = self._model.endpoint_url if self._model else "N/A"
+        return {
+            "provider": "Custom",
+            "model": name,
+            "name": name,
+            "description": f"Custom endpoint: {url}",
+            "max_tokens": 2000,
+            "free_tier": False,
+            "configured": bool(self._model)
+        }
+
+
 class AIServiceFactory:
     """Factory class to get appropriate AI service"""
     
@@ -795,6 +878,12 @@ class AIServiceFactory:
                 return OpenRouterService(model='google/gemini-2.0-flash-exp:free')
             return service
         
+        # Handle custom user-defined models (format: "custom_<uuid>")
+        if model_type and model_type.startswith('custom_'):
+            custom_id = model_type[len('custom_'):]
+            logger.info(f"AIServiceFactory: Using CustomModelService for id={custom_id}")
+            return CustomModelService(custom_model_id=custom_id)
+
         service_class = cls._services.get(model_type, OpenRouterService)
         logger.info(f"AIServiceFactory: Using service class: {service_class.__name__}")
         return service_class()
@@ -833,12 +922,17 @@ class AIServiceFactory:
 
 
 # Helper function for views
-def get_ai_response(prompt: str, model_type: str = None, context: List[Dict] = None, user_role: str = 'student') -> str:
-    """Helper function to get AI response with role-based prompts"""
+def get_ai_response(prompt: str, model_type: str = None, context: List[Dict] = None, user_role: str = 'student', temperature: float = 0.7, max_tokens: int = 4096, json_mode: bool = False) -> str:
+    """Helper function to get AI response with role-based prompts and user prefs"""
     service = AIServiceFactory.get_service(model_type)
-    # Check if service supports user_role (OpenRouterService does)
+    # Check if service supports json_mode (MistralService does)
+    if hasattr(service.generate_response, '__code__') and 'json_mode' in service.generate_response.__code__.co_varnames:
+        return service.generate_response(prompt, context, user_role=user_role, temperature=temperature, max_tokens=max_tokens, json_mode=json_mode)
+    # Check if service supports user_role (OpenRouterService and MistralService do)
     if hasattr(service.generate_response, '__code__') and 'user_role' in service.generate_response.__code__.co_varnames:
-        return service.generate_response(prompt, context, user_role=user_role)
+        return service.generate_response(prompt, context, user_role=user_role, temperature=temperature, max_tokens=max_tokens)
+    if hasattr(service.generate_response, '__code__') and 'temperature' in service.generate_response.__code__.co_varnames:
+        return service.generate_response(prompt, context, temperature=temperature, max_tokens=max_tokens)
     return service.generate_response(prompt, context)
 
 

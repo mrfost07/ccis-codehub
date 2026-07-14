@@ -1,0 +1,29 @@
+FIGURE 1. IPO CONCEPTUAL FRAMEWORK OF CCIS-CODEHUB
+
++-------------------------------+     +----------------------------------+     +----------------------------------+
+|             INPUT             | --> |             PROCESS              | --> |              OUTPUT              |
++-------------------------------+     +----------------------------------+     +----------------------------------+
+| Core Academic Problems        |     | Analysis and Design              |     | Integrated Learning Ecosystem    |
+| - Tool fragmentation          |     | - Requirements analysis          |     | - Structured learning environment|
+| - Employability gaps          |     | - Platform and interface design  |     | - Coding and video-based content |
+| - AI dependence               |     | - Database and API modeling      |     | - Connected academic workflows   |
+|                               |     |                                  |     |                                  |
+| Integrity and Evaluation      |     | Core System Development          |     | Collaborative and Community      |
+| - Academic-integrity risks    |     | - Frontend and backend dev       |     | - Project workspace              |
+| - System-performance eval     |     | - Community and collaboration    |     | - Community-based support layer  |
+| - Quality/accountability      |     | - Real-time event handling       |     | - Peer interaction and sharing   |
+|                               |     |                                  |     |                                  |
+| Stakeholders and Content      |     | AI and Integrity Integration     |     | AI and Integrity Outputs         |
+| - Students, instructors,      |     | - Contextual AI integration      |     | - Contextual AI mentor           |
+|   administrators              |     | - Curriculum-aware extraction    |     | - Integrity-aware assessment     |
+| - Curriculum materials        |     | - Camera-assisted assessment     |     | - Proctoring-ready monitoring    |
+| - Project/assessment needs    |     |                                  |     |                                  |
+|                               |     | Testing and Evaluation Planning  |     | Evaluation-Oriented Output       |
+| Technical Resources           |     | - Iterative testing/refinement   |     | - Basis for performance eval     |
+| - AI model providers/APIs     |     | - Software-quality planning      |     | - Measurable quality indicators  |
+| - Camera-enabled devices      |     | - Responsiveness/reliability     |     | - Connected accountable platform |
+| - Selected software stack     |     | - AI-support relevance           |     |                                  |
++-------------------------------+     +----------------------------------+     +----------------------------------+
+
+Caption:
+The IPO conceptual framework shows how the academic needs, technical resources, and AI-related components of the study are transformed through analysis, development, integration, and evaluation planning into CCIS-CodeHub as an integrated AI-driven academic ecosystem.

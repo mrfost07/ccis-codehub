@@ -7,8 +7,8 @@ import './styles/global.css'
 // Ensure the root element has proper styles
 const rootElement = document.getElementById('root')
 if (rootElement) {
-  rootElement.style.backgroundColor = '#0f172a'
-  rootElement.style.color = 'white'
+  rootElement.style.backgroundColor = '#0a0a0b' // neutral-950 (DESIGN_SYSTEM.md surface.DEFAULT)
+  rootElement.style.color = '#fafafa'
   rootElement.style.minHeight = '100vh'
 }
 

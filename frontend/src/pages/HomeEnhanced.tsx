@@ -1,12 +1,8 @@
 import { Link } from 'react-router-dom'
-import { useState, useEffect, useRef, memo, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { BookOpen, Code2, Bot, Users, Search, Rocket, Pencil } from 'lucide-react'
-import Hyperspeed from '../components/backgrounds/Hyperspeed'
 import { usePublicStats } from '../hooks/useApiCache'
-
-// Memoized Hyperspeed to prevent re-renders from typewriter
-const MemoizedHyperspeed = memo(Hyperspeed)
 
 // Isolated TypewriterText component to prevent parent re-renders
 function TypewriterText() {
@@ -45,7 +41,7 @@ function TypewriterText() {
 
   return (
     <motion.span
-      className="block bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent relative"
+      className="block bg-gradient-to-r from-purple-400 via-purple-400 to-purple-400 bg-clip-text text-transparent relative"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -92,50 +88,27 @@ export default function HomeEnhanced() {
 
   return (
     <div className="min-h-screen overflow-x-hidden">
-      {/* Animated Hyperspeed Background - Optimized */}
-      <div className="fixed inset-0 z-0">
-        <MemoizedHyperspeed
-          effectOptions={{
-            onSpeedUp: () => { },
-            onSlowDown: () => { },
-            distortion: 'turbulentDistortion',
-            length: 300,
-            roadWidth: 9,
-            islandWidth: 2,
-            lanesPerRoad: 2,
-            fov: 90,
-            fovSpeedUp: 120,
-            speedUp: 1.5,
-            carLightsFade: 0.4,
-            totalSideLightSticks: 10,
-            lightPairsPerRoadWay: 20,
-            shoulderLinesWidthPercentage: 0.05,
-            brokenLinesWidthPercentage: 0.1,
-            brokenLinesLengthPercentage: 0.5,
-            lightStickWidth: [0.12, 0.4],
-            lightStickHeight: [1.3, 1.6],
-            movingAwaySpeed: [50, 70],
-            movingCloserSpeed: [-100, -140],
-            carLightsLength: [300 * 0.05, 300 * 0.15],
-            carLightsRadius: [0.05, 0.12],
-            carWidthPercentage: [0.3, 0.5],
-            carShiftX: [-0.6, 0.6],
-            colors: {
-              roadColor: 0x080808,
-              islandColor: 0x0a0a0a,
-              background: 0x000000,
-              shoulderLines: 0x131818,
-              brokenLines: 0x131818,
-              leftCars: [0x6366f1, 0x8b5cf6],
-              rightCars: [0xec4899, 0xf43f5e],
-              sticks: 0x6366f1,
-            },
+      {/* Clean static backdrop — a single restrained purple glow + faint grid
+          on near-black. Replaces the multi-colour WebGL animation. */}
+      <div className="fixed inset-0 z-0 pointer-events-none bg-neutral-950">
+        <div
+          className="absolute inset-0"
+          style={{ background: 'radial-gradient(60% 50% at 50% 0%, rgba(139,92,246,0.16), transparent 70%)' }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)',
+            backgroundSize: '64px 64px',
+            WebkitMaskImage: 'radial-gradient(70% 60% at 50% 0%, #000, transparent 80%)',
+            maskImage: 'radial-gradient(70% 60% at 50% 0%, #000, transparent 80%)',
           }}
         />
       </div>
 
       {/* Navigation - Minimal */}
-      <nav className="fixed top-0 w-full z-50 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/50">
+      <nav className="fixed top-0 w-full z-50 bg-neutral-950/90 backdrop-blur-md border-b border-neutral-800/50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center space-x-2">
@@ -144,7 +117,7 @@ export default function HomeEnhanced() {
             </Link>
             <Link
               to="/login"
-              className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+              className="px-4 py-2 text-sm text-neutral-400 hover:text-white transition-colors"
             >
               Login
             </Link>
@@ -163,7 +136,7 @@ export default function HomeEnhanced() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mb-8"
           >
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-sm text-slate-300">SNSU CCIS Learning Platform</span>
+            <span className="text-sm text-neutral-300">SNSU CCIS Learning Platform</span>
           </motion.div>
 
           {/* Main Heading - Clean & Minimal */}
@@ -174,14 +147,14 @@ export default function HomeEnhanced() {
             transition={{ duration: 0.6, delay: 0.1 }}
           >
             <span className="block text-white">Learn. Build.</span>
-            <span className="block bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <span className="block bg-gradient-to-r from-purple-400 via-purple-400 to-purple-400 bg-clip-text text-transparent">
               Grow.
             </span>
           </motion.h1>
 
           {/* Subtitle - Simple & Clean */}
           <motion.p
-            className="text-lg sm:text-xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed"
+            className="text-lg sm:text-xl text-neutral-400 mb-10 max-w-2xl mx-auto leading-relaxed"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -199,14 +172,14 @@ export default function HomeEnhanced() {
           >
             <Link
               to="/register"
-              className="px-8 py-3.5 text-base font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-500 transition-colors"
+              className="px-8 py-3.5 text-base font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-500 transition-colors"
             >
               Get Started — It's Free
             </Link>
 
             <Link
               to="/learning"
-              className="px-8 py-3.5 text-base font-medium text-slate-300 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
+              className="px-8 py-3.5 text-base font-medium text-neutral-300 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
             >
               Browse Courses
             </Link>
@@ -221,15 +194,15 @@ export default function HomeEnhanced() {
           >
             <div className="text-center">
               <div className="text-3xl sm:text-4xl font-bold text-white">{stats.total_users}+</div>
-              <div className="text-sm text-slate-500 mt-1">Students</div>
+              <div className="text-sm text-neutral-500 mt-1">Students</div>
             </div>
             <div className="text-center">
               <div className="text-3xl sm:text-4xl font-bold text-white">{stats.total_courses}+</div>
-              <div className="text-sm text-slate-500 mt-1">Courses</div>
+              <div className="text-sm text-neutral-500 mt-1">Courses</div>
             </div>
             <div className="text-center">
               <div className="text-3xl sm:text-4xl font-bold text-white">{stats.total_projects}+</div>
-              <div className="text-sm text-slate-500 mt-1">Projects</div>
+              <div className="text-sm text-neutral-500 mt-1">Projects</div>
             </div>
           </motion.div>
         </div>
@@ -239,9 +212,9 @@ export default function HomeEnhanced() {
           <motion.div
             animate={{ y: [0, 8, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            className="w-6 h-10 rounded-full border-2 border-slate-700 flex justify-center pt-2"
+            className="w-6 h-10 rounded-full border-2 border-neutral-700 flex justify-center pt-2"
           >
-            <div className="w-1 h-2 bg-slate-500 rounded-full" />
+            <div className="w-1 h-2 bg-neutral-500 rounded-full" />
           </motion.div>
         </div>
       </section >
@@ -254,7 +227,7 @@ export default function HomeEnhanced() {
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3">
               Everything you need
             </h2>
-            <p className="text-lg text-slate-400">
+            <p className="text-lg text-neutral-400">
               Tools and features designed for CCIS students
             </p>
           </div>
@@ -262,21 +235,21 @@ export default function HomeEnhanced() {
           {/* Features Grid */}
           <div className="grid sm:grid-cols-2 gap-6">
             <MilestoneCard
-              icon={<BookOpen className="w-8 h-8 text-indigo-400" />}
+              icon={<BookOpen className="w-8 h-8 text-purple-400" />}
               title="Learning Paths"
               description="Structured courses for BSIT, BSCS, and BSIS with real-world projects"
               features={["40+ Courses", "Certificates", "Progress Tracking"]}
-              gradient="from-blue-500 to-indigo-500"
+              gradient="from-purple-500 to-purple-500"
               position="left"
               index={0}
             />
 
             <MilestoneCard
-              icon={<Code2 className="w-8 h-8 text-cyan-400" />}
+              icon={<Code2 className="w-8 h-8 text-purple-400" />}
               title="Live Projects"
               description="Collaborate on real projects and build your portfolio"
               features={["GitHub Integration", "Team Work", "Peer Review"]}
-              gradient="from-indigo-500 to-purple-500"
+              gradient="from-purple-500 to-purple-500"
               position="right"
               index={1}
             />
@@ -286,17 +259,17 @@ export default function HomeEnhanced() {
               title="AI Mentor"
               description="Get instant help with code and learn concepts faster"
               features={["24/7 Available", "Code Analysis", "Smart Suggestions"]}
-              gradient="from-purple-500 to-pink-500"
+              gradient="from-purple-500 to-purple-500"
               position="left"
               index={2}
             />
 
             <MilestoneCard
-              icon={<Users className="w-8 h-8 text-pink-400" />}
+              icon={<Users className="w-8 h-8 text-purple-400" />}
               title="Community"
               description="Connect with fellow developers and grow together"
               features={["Forums", "Code Sharing", "Mentorship"]}
-              gradient="from-pink-500 to-red-500"
+              gradient="from-purple-500 to-purple-700"
               position="right"
               index={3}
             />
@@ -310,22 +283,22 @@ export default function HomeEnhanced() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <ScrollAnimateWrapper animateFrom="left">
               <div>
-                <div className="inline-block bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-full px-4 py-2 mb-6">
-                  <span className="text-sm text-indigo-300">Revolutionary AI Technology</span>
+                <div className="inline-block bg-gradient-to-r from-purple-500/10 to-purple-500/10 border border-purple-500/20 rounded-full px-4 py-2 mb-6">
+                  <span className="text-sm text-purple-300">Revolutionary AI Technology</span>
                 </div>
-                <h2 className="text-4xl sm:text-5xl font-black text-white mb-6">
+                <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
                   AI That
-                  <span className="block bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                  <span className="block bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent">
                     Works For You
                   </span>
                 </h2>
-                <p className="text-xl text-slate-300 mb-8 leading-relaxed">
+                <p className="text-xl text-neutral-300 mb-8 leading-relaxed">
                   Our AI Mentor doesn't just answer questions—it automates your entire learning workflow.
                   Search courses, enroll, create projects, and post updates with simple natural language commands.
                 </p>
                 <div className="space-y-4">
                   <AIFeature
-                    icon={<Search className="w-7 h-7 text-indigo-400" />}
+                    icon={<Search className="w-7 h-7 text-purple-400" />}
                     title="Smart Search"
                     description="'Find React courses' → AI finds, displays, and enrolls you instantly"
                   />
@@ -335,7 +308,7 @@ export default function HomeEnhanced() {
                     description="'Create a todo app' → AI generates and creates your project"
                   />
                   <AIFeature
-                    icon={<Pencil className="w-7 h-7 text-pink-400" />}
+                    icon={<Pencil className="w-7 h-7 text-purple-400" />}
                     title="Content Generation"
                     description="'Write a post' → AI writes and publishes for you"
                   />
@@ -345,7 +318,7 @@ export default function HomeEnhanced() {
 
             <ScrollAnimateWrapper animateFrom="right">
               <div className="relative">
-                <div className="relative bg-slate-950/80 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-8">
+                <div className="relative bg-neutral-950/80 backdrop-blur-xl border border-neutral-800/50 rounded-2xl p-8">
                   <div className="space-y-4">
                     <ChatMessage
                       type="user"
@@ -380,9 +353,9 @@ export default function HomeEnhanced() {
         <div className="max-w-7xl mx-auto">
           <ScrollAnimateWrapper>
             <div className="text-center mb-20">
-              <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">
+              <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
                 Loved by
-                <span className="block bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent">
                   SNSU Students
                 </span>
               </h2>
@@ -423,20 +396,20 @@ export default function HomeEnhanced() {
         <ScrollAnimateWrapper>
           <div className="max-w-4xl mx-auto text-center">
             <div className="relative">
-              <div className="relative bg-slate-900/50 backdrop-blur-md border border-slate-700/50 rounded-3xl p-12">
-                <h2 className="text-4xl sm:text-5xl font-black text-white mb-6">
+              <div className="relative bg-neutral-900/50 backdrop-blur-md border border-neutral-700/50 rounded-3xl p-12">
+                <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
                   Ready to Start Your
-                  <span className="block bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                  <span className="block bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent">
                     Coding Journey?
                   </span>
                 </h2>
-                <p className="text-xl text-slate-300 mb-8">
+                <p className="text-xl text-neutral-300 mb-8">
                   Join {stats.total_users > 0 ? `${stats.total_users}+` : ''} SNSU CCIS students already learning smarter with AI
                 </p>
                 <div className="flex flex-col sm:flex-row justify-center gap-4">
                   <Link
                     to="/register"
-                    className="inline-flex items-center justify-center space-x-2 px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl text-lg font-bold hover:from-indigo-500 hover:to-purple-500 transition-all transform hover:scale-105 hover:shadow-2xl hover:shadow-indigo-500/50"
+                    className="inline-flex items-center justify-center space-x-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-600 rounded-xl text-lg font-bold hover:from-purple-500 hover:to-purple-500 transition-all transform hover:scale-105"
                   >
                     <span>Start Learning Now</span>
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -446,7 +419,7 @@ export default function HomeEnhanced() {
                   <a
                     href="/app/ccis-codehub.apk"
                     download
-                    className="inline-flex items-center justify-center space-x-2 px-8 py-4 bg-white/5 border border-white/10 rounded-xl text-lg font-bold text-slate-300 hover:bg-white/10 hover:text-white transition-all transform hover:scale-105"
+                    className="inline-flex items-center justify-center space-x-2 px-8 py-4 bg-white/5 border border-white/10 rounded-xl text-lg font-bold text-neutral-300 hover:bg-white/10 hover:text-white transition-all transform hover:scale-105"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -464,53 +437,53 @@ export default function HomeEnhanced() {
       </section >
 
       {/* Footer */}
-      < footer className="relative z-10 border-t border-slate-800 py-12 px-4" >
+      < footer className="relative z-10 border-t border-neutral-800 py-12 px-4" >
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
                 <img src="/logo/ccis-logo.png" alt="CCIS" className="w-6 h-6" />
-                <span className="text-xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+                <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent">
                   CCIS CodeHub
                 </span>
               </div>
-              <p className="text-slate-400 text-sm">
+              <p className="text-neutral-400 text-sm">
                 Empowering SNSU CCIS students with AI-powered learning
               </p>
             </div>
 
             <div>
               <h3 className="font-semibold text-white mb-3">Platform</h3>
-              <ul className="space-y-2 text-slate-400 text-sm">
-                <li><Link to="/learning" className="hover:text-indigo-400 transition">Learning</Link></li>
-                <li><Link to="/projects" className="hover:text-indigo-400 transition">Projects</Link></li>
-                <li><Link to="/community" className="hover:text-indigo-400 transition">Community</Link></li>
+              <ul className="space-y-2 text-neutral-400 text-sm">
+                <li><Link to="/learning" className="hover:text-purple-400 transition">Learning</Link></li>
+                <li><Link to="/projects" className="hover:text-purple-400 transition">Projects</Link></li>
+                <li><Link to="/community" className="hover:text-purple-400 transition">Community</Link></li>
               </ul>
             </div>
 
             <div>
               <h3 className="font-semibold text-white mb-3">Resources</h3>
-              <ul className="space-y-2 text-slate-400 text-sm">
-                <li><a href="#" className="hover:text-indigo-400 transition">Documentation</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition">Tutorials</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition">API</a></li>
+              <ul className="space-y-2 text-neutral-400 text-sm">
+                <li><a href="#" className="hover:text-purple-400 transition">Documentation</a></li>
+                <li><a href="#" className="hover:text-purple-400 transition">Tutorials</a></li>
+                <li><a href="#" className="hover:text-purple-400 transition">API</a></li>
               </ul>
             </div>
 
             <div>
               <h3 className="font-semibold text-white mb-3">Connect</h3>
               <div className="flex space-x-4">
-                <a href="#" className="text-slate-400 hover:text-indigo-400 transition">
+                <a href="#" className="text-neutral-400 hover:text-purple-400 transition">
                   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z" /></svg>
                 </a>
-                <a href="#" className="text-slate-400 hover:text-indigo-400 transition">
+                <a href="#" className="text-neutral-400 hover:text-purple-400 transition">
                   <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
                 </a>
               </div>
             </div>
           </div>
 
-          <div className="border-t border-slate-800 pt-8 text-center text-slate-400 text-sm">
+          <div className="border-t border-neutral-800 pt-8 text-center text-neutral-400 text-sm">
             <p>&copy; 2025 CCIS CodeHub. Built with ❤️ for SNSU Students.</p>
           </div>
         </div>
@@ -548,10 +521,10 @@ function CounterStat({ end, suffix, label }: { end: number; suffix?: string; lab
 
   return (
     <div ref={ref} className="text-center">
-      <div className="text-4xl font-black bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent mb-2">
+      <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent mb-2">
         {count}{suffix}
       </div>
-      <div className="text-slate-400 text-sm">{label}</div>
+      <div className="text-neutral-400 text-sm">{label}</div>
     </div>
   )
 }
@@ -588,22 +561,22 @@ function MilestoneCard({ icon, title, description, features, index }: {
       className={`transition-all duration-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
         }`}
     >
-      <div className="bg-slate-900/40 border border-slate-800/50 rounded-xl p-6 hover:border-slate-700/50 transition-colors">
+      <div className="bg-neutral-900/40 border border-neutral-800/50 rounded-xl p-6 hover:border-neutral-700/50 transition-colors">
         {/* Icon & Title Row */}
         <div className="flex items-center gap-4 mb-4">
-          <div className="p-2 bg-slate-800/50 rounded-lg">{icon}</div>
+          <div className="p-2 bg-neutral-800/50 rounded-lg">{icon}</div>
           <h3 className="text-xl font-semibold text-white">{title}</h3>
         </div>
 
         {/* Description */}
-        <p className="text-slate-400 mb-5 leading-relaxed">{description}</p>
+        <p className="text-neutral-400 mb-5 leading-relaxed">{description}</p>
 
         {/* Features */}
         <div className="flex flex-wrap gap-2">
           {features.map((feature, idx) => (
             <span
               key={idx}
-              className="px-3 py-1 text-xs font-medium text-slate-300 bg-slate-800/50 rounded-full"
+              className="px-3 py-1 text-xs font-medium text-neutral-300 bg-neutral-800/50 rounded-full"
             >
               {feature}
             </span>
@@ -616,11 +589,11 @@ function MilestoneCard({ icon, title, description, features, index }: {
 
 function AIFeature({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
-    <div className="flex items-start space-x-4 p-4 bg-slate-900/50 backdrop-blur-md rounded-xl border border-slate-700/50 hover:border-slate-500/50 transition-colors">
-      <div className="p-2 bg-slate-800/50 rounded-lg shrink-0">{icon}</div>
+    <div className="flex items-start space-x-4 p-4 bg-neutral-900/50 backdrop-blur-md rounded-xl border border-neutral-700/50 hover:border-neutral-500/50 transition-colors">
+      <div className="p-2 bg-neutral-800/50 rounded-lg shrink-0">{icon}</div>
       <div>
         <h4 className="font-semibold text-white mb-1">{title}</h4>
-        <p className="text-sm text-slate-400">{description}</p>
+        <p className="text-sm text-neutral-400">{description}</p>
       </div>
     </div>
   )
@@ -639,8 +612,8 @@ function ChatMessage({ type, message, delay }: { type: 'user' | 'ai'; message: s
   return (
     <div className={`flex ${type === 'user' ? 'justify-end' : 'justify-start'} animate-slide-in`}>
       <div className={`max-w-[80%] p-4 rounded-2xl backdrop-blur-md ${type === 'user'
-        ? 'bg-slate-900/50 border border-slate-700/50'
-        : 'bg-slate-900/50 border border-slate-700/50'
+        ? 'bg-neutral-900/50 border border-neutral-700/50'
+        : 'bg-neutral-900/50 border border-neutral-700/50'
         }`}>
         <p className="text-sm">{message}</p>
       </div>
@@ -684,12 +657,12 @@ function TestimonialCard({ name, role, message, avatar }: {
   avatar: string;
 }) {
   return (
-    <div className="group bg-slate-900/50 backdrop-blur-md border border-slate-700/50 rounded-2xl p-8 hover:border-slate-500/50 transition-all transform hover:-translate-y-2">
+    <div className="group bg-neutral-900/50 backdrop-blur-md border border-neutral-700/50 rounded-2xl p-8 hover:border-neutral-500/50 transition-all transform hover:-translate-y-2">
       <div className="text-5xl mb-4">{avatar}</div>
-      <p className="text-slate-300 mb-6 leading-relaxed italic">"{message}"</p>
+      <p className="text-neutral-300 mb-6 leading-relaxed italic">"{message}"</p>
       <div>
         <div className="font-semibold text-white">{name}</div>
-        <div className="text-sm text-indigo-400">{role}</div>
+        <div className="text-sm text-purple-400">{role}</div>
       </div>
     </div>
   )

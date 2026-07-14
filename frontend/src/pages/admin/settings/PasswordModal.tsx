@@ -48,9 +48,9 @@ export default function PasswordModal({ isOpen, onClose, onVerify }: PasswordMod
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-slate-800 border border-slate-700 rounded-xl max-w-md w-full shadow-2xl">
+            <div className="bg-neutral-800 border border-neutral-700 rounded-xl max-w-md w-full shadow-2xl">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-slate-700">
+                <div className="flex items-center justify-between p-6 border-b border-neutral-700">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-purple-500/10 rounded-lg">
                             <Lock className="w-5 h-5 text-purple-400" />
@@ -59,7 +59,7 @@ export default function PasswordModal({ isOpen, onClose, onVerify }: PasswordMod
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-slate-400 hover:text-white transition-colors"
+                        className="text-neutral-400 hover:text-white transition-colors"
                     >
                         <X className="w-5 h-5" />
                     </button>
@@ -67,7 +67,7 @@ export default function PasswordModal({ isOpen, onClose, onVerify }: PasswordMod
 
                 {/* Body */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <p className="text-slate-300 text-sm">
+                    <p className="text-neutral-300 text-sm">
                         Enter the system settings key to access configuration
                     </p>
 
@@ -78,7 +78,7 @@ export default function PasswordModal({ isOpen, onClose, onVerify }: PasswordMod
                             onChange={(e) => setKey(e.target.value)}
                             placeholder="Enter settings key"
                             autoFocus
-                            className="w-full px-4 py-3 bg-slate-900/50 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all"
+                            className="w-full px-4 py-3 bg-neutral-900/50 border border-neutral-600 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all"
                             disabled={isVerifying}
                         />
                     </div>
@@ -94,7 +94,7 @@ export default function PasswordModal({ isOpen, onClose, onVerify }: PasswordMod
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors font-medium"
+                            className="flex-1 px-4 py-2.5 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition-colors font-medium"
                             disabled={isVerifying}
                         >
                             Cancel
@@ -102,7 +102,7 @@ export default function PasswordModal({ isOpen, onClose, onVerify }: PasswordMod
                         <button
                             type="submit"
                             disabled={!key || isVerifying}
-                            className="flex-1 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:bg-slate-700 disabled:text-slate-500 text-white rounded-lg transition-colors font-medium"
+                            className="flex-1 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:bg-neutral-700 disabled:text-neutral-500 text-white rounded-lg transition-colors font-medium"
                         >
                             {isVerifying ? 'Verifying...' : 'Verify'}
                         </button>

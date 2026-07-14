@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import api from '../services/api'
 import toast from 'react-hot-toast'
+import { LoadingState } from '../components/ui'
 
 interface Module {
   id: string
@@ -262,46 +263,41 @@ export default function PathDetailEnhanced() {
   const getDifficultyColor = (level: string) => {
     switch (level.toLowerCase()) {
       case 'beginner': return 'text-green-400 bg-green-600/20'
-      case 'intermediate': return 'text-yellow-400 bg-yellow-600/20'
+      case 'intermediate': return 'text-amber-400 bg-amber-600/20'
       case 'advanced': return 'text-red-400 bg-red-600/20'
-      default: return 'text-slate-400 bg-slate-600/20'
+      default: return 'text-neutral-400 bg-neutral-600/20'
     }
   }
 
   const getModuleIcon = (type: string) => {
     switch (type) {
-      case 'video': return <Video className="w-5 h-5 text-blue-400" />
+      case 'video': return <Video className="w-5 h-5 text-purple-400" />
       case 'text': return <BookOpen className="w-5 h-5 text-green-400" />
       case 'interactive': return <Target className="w-5 h-5 text-purple-400" />
-      case 'project': return <Award className="w-5 h-5 text-yellow-400" />
-      case 'quiz': return <Trophy className="w-5 h-5 text-orange-400" />
-      default: return <FileText className="w-5 h-5 text-slate-400" />
+      case 'project': return <Award className="w-5 h-5 text-amber-400" />
+      case 'quiz': return <Trophy className="w-5 h-5 text-amber-400" />
+      default: return <FileText className="w-5 h-5 text-neutral-400" />
     }
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950">
+      <div className="min-h-screen bg-neutral-950">
         <Navbar />
-        <div className="flex items-center justify-center h-screen">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-white">Loading path details...</p>
-          </div>
-        </div>
+        <LoadingState label="Loading path details…" />
       </div>
     )
   }
 
   if (!path) {
     return (
-      <div className="min-h-screen bg-slate-950">
+      <div className="min-h-screen bg-neutral-950">
         <Navbar />
         <div className="flex flex-col items-center justify-center h-screen text-white">
           <h1 className="text-2xl font-bold mb-4">Path Not Found</h1>
           <button
             onClick={() => navigate('/learning')}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition"
+            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition"
           >
             Back to Learning
           </button>
@@ -314,14 +310,14 @@ export default function PathDetailEnhanced() {
   const progressPercentage = modules.length > 0 ? Math.round((completedModules / modules.length) * 100) : 0
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-neutral-950">
       <Navbar />
 
       {/* Back Button */}
       <div className="max-w-6xl mx-auto px-6 pt-6">
         <button
           onClick={() => navigate('/learning')}
-          className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors group"
+          className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors group"
         >
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
           <span>Back to Learning</span>
@@ -329,8 +325,8 @@ export default function PathDetailEnhanced() {
       </div>
 
       {/* Hero Section - Dark Glass */}
-      <div className="relative bg-slate-900/80 backdrop-blur-xl px-6 py-12 border-b border-slate-800/50">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-blue-600/5"></div>
+      <div className="relative bg-neutral-900/80 backdrop-blur-xl px-6 py-12 border-b border-neutral-800/50">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/5 via-purple-600/5 to-purple-600/5"></div>
         <div className="max-w-6xl mx-auto relative z-10">
           <div className="grid md:grid-cols-3 gap-8">
             {/* Main Info */}
@@ -343,7 +339,7 @@ export default function PathDetailEnhanced() {
                   {path.program_type.toUpperCase()}
                 </span>
                 {path.is_featured && (
-                  <span className="px-3 py-1 bg-yellow-500/20 backdrop-blur rounded-full text-sm font-medium text-yellow-300 flex items-center gap-1">
+                  <span className="px-3 py-1 bg-amber-500/20 backdrop-blur rounded-full text-sm font-medium text-amber-300 flex items-center gap-1">
                     <Zap className="w-4 h-4" />
                     Featured
                   </span>
@@ -351,23 +347,23 @@ export default function PathDetailEnhanced() {
               </div>
 
               <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{path.name}</h1>
-              <p className="text-slate-400 text-lg mb-6">{path.description}</p>
+              <p className="text-neutral-400 text-lg mb-6">{path.description}</p>
 
               {/* Stats */}
               <div className="flex flex-wrap gap-4 mb-6">
-                <div className="flex items-center gap-2 text-slate-300">
-                  <BookOpen className="w-5 h-5 text-blue-400" />
+                <div className="flex items-center gap-2 text-neutral-300">
+                  <BookOpen className="w-5 h-5 text-purple-400" />
                   <span>{modules.length} modules</span>
                 </div>
-                <div className="flex items-center gap-2 text-slate-300">
+                <div className="flex items-center gap-2 text-neutral-300">
                   <Clock className="w-5 h-5 text-green-400" />
                   <span>{path.estimated_duration} weeks</span>
                 </div>
-                <div className="flex items-center gap-2 text-slate-300">
+                <div className="flex items-center gap-2 text-neutral-300">
                   <Award className="w-5 h-5 text-amber-400" />
                   <span>{path.points_reward} points</span>
                 </div>
-                <div className="flex items-center gap-2 text-slate-300">
+                <div className="flex items-center gap-2 text-neutral-300">
                   <Calendar className="w-5 h-5 text-purple-400" />
                   <span>{modules.reduce((acc, m) => acc + m.duration_minutes, 0)} min total</span>
                 </div>
@@ -376,12 +372,12 @@ export default function PathDetailEnhanced() {
               {/* Required Skills */}
               {path.required_skills && path.required_skills.length > 0 && (
                 <div className="mb-6">
-                  <h3 className="text-blue-100 font-semibold mb-2">Required Skills:</h3>
+                  <h3 className="text-purple-100 font-semibold mb-2">Required Skills:</h3>
                   <div className="flex flex-wrap gap-2">
                     {path.required_skills.map((skill, index) => (
                       <span
                         key={index}
-                        className="px-3 py-1 bg-white/10 backdrop-blur rounded-full text-sm text-blue-100"
+                        className="px-3 py-1 bg-white/10 backdrop-blur rounded-full text-sm text-purple-100"
                       >
                         {skill}
                       </span>
@@ -415,7 +411,7 @@ export default function PathDetailEnhanced() {
                     <CheckCircle className="w-5 h-5" />
                     Enrolled
                   </div>
-                  <span className="text-blue-100">
+                  <span className="text-purple-100">
                     Enrolled on {new Date(enrollment.enrolled_at).toLocaleDateString()}
                   </span>
                 </div>
@@ -423,7 +419,7 @@ export default function PathDetailEnhanced() {
             </div>
 
             {/* Progress Card - Dark Glass */}
-            <div className="bg-slate-800/50 backdrop-blur-lg rounded-xl p-6 border border-slate-700/50 shadow-xl h-fit">
+            <div className="bg-neutral-800/50 backdrop-blur-lg rounded-xl p-6 border border-neutral-700/50 shadow-xl h-fit">
               <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5" />
                 Your Progress
@@ -432,11 +428,11 @@ export default function PathDetailEnhanced() {
               {enrollment ? (
                 <>
                   <div className="mb-4">
-                    <div className="flex justify-between text-sm text-slate-300 mb-2">
+                    <div className="flex justify-between text-sm text-neutral-300 mb-2">
                       <span>Completion</span>
                       <span className="font-semibold">{progressPercentage}%</span>
                     </div>
-                    <div className="w-full bg-slate-700/50 rounded-full h-3">
+                    <div className="w-full bg-neutral-700/50 rounded-full h-3">
                       <div
                         className="bg-gradient-to-r from-green-500 to-green-600 h-3 rounded-full transition-all duration-500"
                         style={{ width: `${progressPercentage}%` }}
@@ -445,17 +441,17 @@ export default function PathDetailEnhanced() {
                   </div>
 
                   <div className="space-y-3">
-                    <div className="flex justify-between text-slate-300">
+                    <div className="flex justify-between text-neutral-300">
                       <span>Modules Completed</span>
                       <span className="font-semibold text-white">{completedModules} / {modules.length}</span>
                     </div>
-                    <div className="flex justify-between text-slate-300">
+                    <div className="flex justify-between text-neutral-300">
                       <span>Points Earned</span>
                       <span className="font-semibold text-amber-400">
                         {modules.filter(m => m.is_completed).reduce((acc, m) => acc + m.points_reward, 0)} pts
                       </span>
                     </div>
-                    <div className="flex justify-between text-slate-300">
+                    <div className="flex justify-between text-neutral-300">
                       <span>Status</span>
                       <span className="font-semibold capitalize text-green-400">{enrollment.status}</span>
                     </div>
@@ -463,7 +459,7 @@ export default function PathDetailEnhanced() {
                 </>
               ) : (
                 <div className="text-center py-6">
-                  <p className="text-slate-400 mb-4">Enroll to track your progress</p>
+                  <p className="text-neutral-400 mb-4">Enroll to track your progress</p>
                   <button
                     onClick={handleEnroll}
                     disabled={enrolling}
@@ -483,11 +479,11 @@ export default function PathDetailEnhanced() {
         <div className="flex items-center justify-between mb-12">
           <div>
             <h2 className="text-3xl font-bold text-white mb-2">Learning Path</h2>
-            <p className="text-slate-400">Follow the timeline to complete your journey</p>
+            <p className="text-neutral-400">Follow the timeline to complete your journey</p>
           </div>
           <div className="text-right">
             <div className="text-3xl font-bold text-white">{completedModules}/{modules.length}</div>
-            <div className="text-sm text-slate-400">Modules Completed</div>
+            <div className="text-sm text-neutral-400">Modules Completed</div>
           </div>
         </div>
 
@@ -496,9 +492,9 @@ export default function PathDetailEnhanced() {
         {/* Empty State */}
         {modules.length === 0 && (
           <div className="text-center py-16">
-            <BookOpen className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+            <BookOpen className="w-16 h-16 text-neutral-600 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">No Modules Yet</h3>
-            <p className="text-slate-400">Modules for this path haven't been added yet.</p>
+            <p className="text-neutral-400">Modules for this path haven't been added yet.</p>
           </div>
         )}
       </div>

@@ -12,19 +12,25 @@ body {
 }
 
 body {
-  background-color: transparent;
-  color: white !important;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  background-color: #0a0a0b; /* neutral-950 — single app background */
+  color: #fafafa;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+    'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 #root {
   min-height: 100vh;
-  background-color: transparent;
-  color: white !important;
+  background-color: #0a0a0b;
+  color: #fafafa;
+}
+
+/* Purple text selection — the single accent */
+::selection {
+  background-color: rgba(139, 92, 246, 0.35);
+  color: #fff;
 }
 
 /* Ensure all divs have proper color inheritance */
@@ -64,14 +70,13 @@ label {
   color: inherit;
 }
 
-/* Fix for white backgrounds */
+/* Legacy pages that misused bg-white expecting a dark surface */
 .bg-white {
-  background-color: #1e293b !important;
+  background-color: #18181b !important; /* neutral-900 card surface */
 }
 
-/* Dark theme for pages that need it - not homepage */
 .dark-bg {
-  background-color: #0f172a !important;
+  background-color: #0a0a0b !important; /* neutral-950 */
 }
 
 /* ===========================================
@@ -137,4 +142,64 @@ label {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* ===========================================
+   REFINED MONOCHROME SCROLLBAR
+   =========================================== */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3f3f46 transparent; /* neutral-700 thumb */
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #3f3f46; /* neutral-700 */
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8b5cf6; /* purple accent on hover */
+  background-clip: content-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Consistent heading rhythm */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fafafa;
+}
+
+/* Accessible focus ring in the accent color */
+:focus-visible {
+  outline: 2px solid #8b5cf6;
+  outline-offset: 2px;
+}
+
+/* Honor OS-level reduced-motion preference (DESIGN_SYSTEM.md §8) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
 }

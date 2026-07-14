@@ -38,7 +38,7 @@ taskkill /F /IM node.exe /FI "WINDOWTITLE eq *CCIS*" >nul 2>&1
 REM Start Backend (Django)
 echo [1/2] Starting Backend...
 cd backend
-start "CCIS Backend" cmd /c "color 0B && title CCIS Backend && python manage.py runserver"
+start "CCIS Backend" cmd /c "color 0B && title CCIS Backend && call venv\Scripts\activate && python manage.py runserver"
 cd ..
 
 REM Wait for backend
@@ -56,14 +56,14 @@ timeout /t 5 /nobreak >nul
 REM Open browser
 echo.
 echo [*] Opening browser...
-start http://localhost:5173
+start http://localhost:3000
 
 echo.
 echo ========================================================
 echo   READY! Application opened in browser
 echo ========================================================
 echo.
-echo   Frontend: http://localhost:5173
+echo   Frontend: http://localhost:3000
 echo   Backend:  http://localhost:8000
 echo   Admin:    http://localhost:8000/admin
 echo.

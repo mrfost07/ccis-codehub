@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { authAPI } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
-import { Mail, Lock, ArrowLeft, Loader2 } from 'lucide-react'
+import { Mail, Lock, ArrowLeft } from 'lucide-react'
 import CaptchaCheckbox from '../components/CaptchaCheckbox'
+import { Button, Input } from '../components/ui'
 import { Capacitor } from '@capacitor/core'
 import { Browser } from '@capacitor/browser'
 
@@ -14,7 +15,9 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [captchaToken, setCaptchaToken] = useState('')
   const [captchaAnswer, setCaptchaAnswer] = useState<number | null>(null)
+  const [captchaResetKey, setCaptchaResetKey] = useState(0)
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { setAuthData } = useAuth()
 
   const handleCaptchaVerified = (token: string, answer: number) => {
@@ -39,17 +42,21 @@ export default function Login() {
 
     try {
       const response = await authAPI.login(email, password, captchaToken, captchaAnswer)
-      const { access, user: userData } = response.data.tokens
-        ? { access: response.data.tokens.access, user: response.data.user }
-        : { access: response.data.access, user: response.data.user }
-
-      setAuthData(access, userData)
+      const tokens = response.data.tokens || {
+        access: response.data.access,
+        refresh: response.data.refresh,
+      }
+      setAuthData(tokens.access, response.data.user, tokens.refresh)
       toast.success('Welcome back!')
-      navigate('/learning')
+      // Redirect to return URL — check query param first, then sessionStorage backup
+      const returnUrl = searchParams.get('returnUrl') || sessionStorage.getItem('loginReturnUrl')
+      sessionStorage.removeItem('loginReturnUrl') // Clean up
+      window.location.href = returnUrl || '/learning'
     } catch (error: any) {
       console.error('Login error:', error.response?.data)
-      // Reset CAPTCHA on failure
+      // Reset CAPTCHA on failure so user can re-verify
       handleCaptchaExpired()
+      setCaptchaResetKey(k => k + 1)
       if (error.response?.data?.error) {
         toast.error(error.response.data.error)
       } else if (error.response?.data?.detail) {
@@ -64,9 +71,10 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     const clientId = '1018587300192-m0n93uesm6v33bahs57tatg52v3lurah.apps.googleusercontent.com'
-    const redirectUri = encodeURIComponent('https://ccis-codehub.space/auth/callback')
+    const redirectUri = encodeURIComponent(`${window.location.origin}/auth/callback`)
     const scope = encodeURIComponent('openid email profile')
-    const state = btoa(JSON.stringify({ mode: 'login' }))
+    const returnUrl = searchParams.get('returnUrl') || '/learning'
+    const state = btoa(JSON.stringify({ mode: 'login', returnUrl }))
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=${state}`
 
     if (Capacitor.isNativePlatform()) {
@@ -80,91 +88,63 @@ export default function Login() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl" />
+    <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
+      {/* Single restrained purple glow — no multi-blob slop */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-1/2 top-0 h-80 w-[36rem] -translate-x-1/2 rounded-full bg-purple-600/10 blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-sm">
         {/* Card */}
-        <div className="backdrop-blur-xl bg-slate-900/60 border border-slate-700/50 rounded-2xl p-6 sm:p-8 shadow-2xl">
+        <div className="rounded-2xl border border-neutral-800 bg-neutral-900/70 backdrop-blur-sm p-6 sm:p-8 shadow-card">
           {/* Logo & Title */}
           <div className="text-center mb-6">
             <div className="flex justify-center mb-3">
               <img src="/logo/ccis-logo.png" alt="CCIS CodeHub" className="h-14 w-14 sm:h-16 sm:w-16" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Welcome Back
-            </h1>
-            <p className="text-slate-400 text-sm mt-1">Sign in to continue learning</p>
+            <h1 className="text-2xl font-bold text-white">Welcome back</h1>
+            <p className="text-neutral-400 text-sm mt-1">Sign in to continue learning</p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 transition-all"
-                  placeholder="your.email@ssct.edu.ph"
-                  required
-                />
-              </div>
-            </div>
+            <Input
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              icon={<Mail className="w-4 h-4" />}
+              placeholder="your.email@ssct.edu.ph"
+              required
+            />
+            <Input
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              icon={<Lock className="w-4 h-4" />}
+              placeholder="••••••••"
+              required
+            />
 
-            {/* Password */}
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-800/50 border border-slate-700/50 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 transition-all"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* CAPTCHA */}
             <CaptchaCheckbox
               onVerified={handleCaptchaVerified}
               onExpired={handleCaptchaExpired}
+              resetKey={captchaResetKey}
             />
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading || !captchaToken}
-              className="w-full py-2.5 text-sm font-semibold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/25"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                'Sign In'
-              )}
-            </button>
+            <Button type="submit" fullWidth size="lg" loading={loading} disabled={loading || !captchaToken}>
+              {loading ? 'Signing in…' : 'Sign In'}
+            </Button>
           </form>
 
           {/* Divider */}
           <div className="relative my-5">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-700/50" />
+              <div className="w-full border-t border-neutral-800" />
             </div>
             <div className="relative flex justify-center">
-              <span className="px-3 text-xs text-slate-500 bg-slate-900/60">or continue with</span>
+              <span className="px-3 text-xs text-neutral-500 bg-neutral-900">or continue with</span>
             </div>
           </div>
 
@@ -186,13 +166,13 @@ export default function Login() {
 
           {/* Footer Links */}
           <div className="mt-5 text-center space-y-2">
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-neutral-400">
               Don't have an account?{' '}
-              <Link to="/register" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
+              <Link to="/register" className="text-purple-400 hover:text-purple-300 font-medium transition-colors">
                 Sign up
               </Link>
             </p>
-            <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors">
+            <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors">
               <ArrowLeft className="w-3 h-3" />
               Back to Home
             </Link>
