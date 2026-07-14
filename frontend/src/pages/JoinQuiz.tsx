@@ -105,29 +105,29 @@ const JoinQuiz = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-950 to-slate-950" />
+        <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-neutral-950 to-neutral-950" />
 
             <div className="relative w-full max-w-md">
                 <div className="text-center mb-10">
                     <h1 className="text-4xl font-bold text-white mb-2">Join Quiz</h1>
-                    <p className="text-slate-400">Enter the code provided by your instructor</p>
+                    <p className="text-neutral-400">Enter the code provided by your instructor</p>
                 </div>
 
-                <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-2xl p-8 shadow-2xl shadow-purple-900/10">
+                <div className="bg-neutral-900/50 backdrop-blur-xl border border-neutral-800 rounded-2xl p-8 shadow-2xl shadow-purple-900/10">
                     <form onSubmit={handleJoin} className="space-y-6">
                         <div>
                             <label htmlFor="join-code" className="sr-only">Join Code</label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <Hash className="h-5 w-5 text-slate-500 group-focus-within:text-purple-500 transition-colors" />
+                                    <Hash className="h-5 w-5 text-neutral-500 group-focus-within:text-purple-500 transition-colors" />
                                 </div>
                                 <input
                                     id="join-code"
                                     type="text"
                                     value={joinCode}
                                     onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                                    className="block w-full pl-11 pr-4 py-4 bg-slate-800/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all text-center text-2xl font-mono tracking-widest uppercase"
+                                    className="block w-full pl-11 pr-4 py-4 bg-neutral-800/50 border border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all text-center text-2xl font-mono tracking-widest uppercase"
                                     placeholder="CODE"
                                     maxLength={8}
                                     autoComplete="off"
@@ -139,7 +139,7 @@ const JoinQuiz = () => {
                         <button
                             type="submit"
                             disabled={!joinCode.trim() || isJoining}
-                            className="w-full flex items-center justify-center py-4 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-purple-900/30"
+                            className="w-full flex items-center justify-center py-4 px-4 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-purple-900/30"
                         >
                             {isJoining ? (
                                 <>
@@ -159,7 +159,7 @@ const JoinQuiz = () => {
                 <div className="mt-8 text-center">
                     <button
                         onClick={() => navigate('/dashboard')}
-                        className="text-slate-500 hover:text-slate-300 text-sm font-medium transition-colors"
+                        className="text-neutral-500 hover:text-neutral-300 text-sm font-medium transition-colors"
                     >
                         Back to Dashboard
                     </button>

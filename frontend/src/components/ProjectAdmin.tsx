@@ -99,13 +99,13 @@ const COLORS = {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-    'planning': 'bg-blue-500/20 text-blue-400',
-    'in_progress': 'bg-yellow-500/20 text-yellow-400',
+    'planning': 'bg-purple-500/20 text-purple-400',
+    'in_progress': 'bg-amber-500/20 text-amber-400',
     'active': 'bg-green-500/20 text-green-400',
     'completed': 'bg-green-500/20 text-green-400',
-    'on_hold': 'bg-orange-500/20 text-orange-400',
+    'on_hold': 'bg-amber-500/20 text-amber-400',
     'cancelled': 'bg-red-500/20 text-red-400',
-    'todo': 'bg-slate-500/20 text-slate-400',
+    'todo': 'bg-neutral-500/20 text-neutral-400',
     'done': 'bg-green-500/20 text-green-400',
     'review': 'bg-purple-500/20 text-purple-400',
     'blocked': 'bg-red-500/20 text-red-400'
@@ -271,7 +271,7 @@ function ProjectAdmin() {
 
         return (
             <div
-                className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center font-bold text-white ${clickable ? 'cursor-pointer hover:ring-2 hover:ring-purple-500' : ''} transition`}
+                className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center font-bold text-white ${clickable ? 'cursor-pointer hover:ring-2 hover:ring-purple-500' : ''} transition`}
                 onClick={handleClick}
             >
                 {initial}
@@ -281,10 +281,10 @@ function ProjectAdmin() {
 
     // Clickable user name
     const UserLink = ({ userId, userName }: { userId?: string | null; userName?: string | null }) => {
-        if (!userId || !userName) return <span className="text-slate-500">N/A</span>
+        if (!userId || !userName) return <span className="text-neutral-500">N/A</span>
         return (
             <span
-                className="text-slate-300 hover:text-purple-400 cursor-pointer transition"
+                className="text-neutral-300 hover:text-purple-400 cursor-pointer transition"
                 onClick={() => handleViewProfile(userId)}
             >
                 {userName}
@@ -337,7 +337,7 @@ function ProjectAdmin() {
     return (
         <div className="space-y-6">
             {/* Sub-tabs */}
-            <div className="flex flex-wrap gap-2 sm:gap-3 bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-2">
+            <div className="flex flex-wrap gap-2 sm:gap-3 bg-neutral-800/50 backdrop-blur border border-neutral-700 rounded-xl p-2">
                 {subTabs.map(tab => (
                     <button
                         key={tab.id}
@@ -349,7 +349,7 @@ function ProjectAdmin() {
                         }}
                         className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition ${view === tab.id
                             ? 'bg-purple-600 text-white'
-                            : 'text-slate-400 hover:bg-slate-700 hover:text-white'
+                            : 'text-neutral-400 hover:bg-neutral-700 hover:text-white'
                             }`}
                     >
                         <tab.icon className="w-4 h-4" />
@@ -362,50 +362,50 @@ function ProjectAdmin() {
             {view === 'overview' && (
                 <div className="space-y-6">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-xl p-4 text-center">
+                        <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-xl p-4 text-center">
                             <Briefcase className="w-8 h-8 mx-auto text-purple-400 mb-2" />
                             <p className="text-2xl font-bold text-white">{analytics?.total_projects || projects.length}</p>
-                            <p className="text-slate-400 text-sm">Projects</p>
+                            <p className="text-neutral-400 text-sm">Projects</p>
                         </div>
-                        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-xl p-4 text-center">
-                            <ListTodo className="w-8 h-8 mx-auto text-blue-400 mb-2" />
+                        <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-xl p-4 text-center">
+                            <ListTodo className="w-8 h-8 mx-auto text-purple-400 mb-2" />
                             <p className="text-2xl font-bold text-white">{analytics?.total_tasks || tasks.length}</p>
-                            <p className="text-slate-400 text-sm">Tasks</p>
+                            <p className="text-neutral-400 text-sm">Tasks</p>
                         </div>
-                        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-xl p-4 text-center">
+                        <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-xl p-4 text-center">
                             <Users className="w-8 h-8 mx-auto text-green-400 mb-2" />
                             <p className="text-2xl font-bold text-white">{analytics?.total_teams || teams.length}</p>
-                            <p className="text-slate-400 text-sm">Teams</p>
+                            <p className="text-neutral-400 text-sm">Teams</p>
                         </div>
-                        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-xl p-4 text-center">
-                            <CheckCircle className="w-8 h-8 mx-auto text-emerald-400 mb-2" />
+                        <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-xl p-4 text-center">
+                            <CheckCircle className="w-8 h-8 mx-auto text-green-400 mb-2" />
                             <p className="text-2xl font-bold text-white">{analytics?.active_teams || 0}</p>
-                            <p className="text-slate-400 text-sm">Active Teams</p>
+                            <p className="text-neutral-400 text-sm">Active Teams</p>
                         </div>
                     </div>
 
                     {/* Recent Projects */}
-                    <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-6">
+                    <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-6">
                         <h3 className="text-lg font-semibold text-white mb-4">Recent Projects</h3>
                         <div className="space-y-3">
                             {projects.slice(0, 5).map(project => (
-                                <div key={project.id} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
+                                <div key={project.id} className="flex items-center justify-between p-3 bg-neutral-700/30 rounded-lg">
                                     <div className="flex items-center gap-3">
                                         <FolderKanban className="w-5 h-5 text-purple-400" />
                                         <div>
                                             <p className="text-white font-medium">{project.name}</p>
-                                            <p className="text-slate-400 text-xs">
+                                            <p className="text-neutral-400 text-xs">
                                                 {project.team_name || 'No team'} • {formatLabel(project.project_type)}
                                             </p>
                                         </div>
                                     </div>
-                                    <span className={`px-2 py-1 rounded text-xs ${STATUS_COLORS[project.status] || 'bg-slate-600 text-slate-300'}`}>
+                                    <span className={`px-2 py-1 rounded text-xs ${STATUS_COLORS[project.status] || 'bg-neutral-600 text-neutral-300'}`}>
                                         {formatLabel(project.status)}
                                     </span>
                                 </div>
                             ))}
                             {projects.length === 0 && (
-                                <p className="text-slate-400 text-center py-4">No projects found</p>
+                                <p className="text-neutral-400 text-center py-4">No projects found</p>
                             )}
                         </div>
                     </div>
@@ -417,21 +417,21 @@ function ProjectAdmin() {
                 <div className="space-y-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                         <div className="flex-1 relative w-full">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
                             <input
                                 type="text"
                                 placeholder="Search projects..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                                className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                             />
                         </div>
                         <div className="flex items-center gap-2">
-                            <Filter className="w-4 h-4 text-slate-400" />
+                            <Filter className="w-4 h-4 text-neutral-400" />
                             <select
                                 value={selectedTeamFilter}
                                 onChange={(e) => setSelectedTeamFilter(e.target.value)}
-                                className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
+                                className="px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
                             >
                                 <option value="">All Teams</option>
                                 {uniqueTeams.map(t => (
@@ -439,7 +439,7 @@ function ProjectAdmin() {
                                 ))}
                             </select>
                             {selectedTeamFilter && (
-                                <button onClick={() => setSelectedTeamFilter('')} className="p-1 text-slate-400 hover:text-white">
+                                <button onClick={() => setSelectedTeamFilter('')} className="p-1 text-neutral-400 hover:text-white">
                                     <X className="w-4 h-4" />
                                 </button>
                             )}
@@ -449,31 +449,31 @@ function ProjectAdmin() {
                         </button>
                     </div>
 
-                    <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl overflow-hidden">
+                    <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-slate-700/50">
+                                <thead className="bg-neutral-700/50">
                                     <tr>
-                                        <th className="text-left px-4 py-3 text-slate-300 font-medium text-sm">Project</th>
-                                        <th className="text-left px-4 py-3 text-slate-300 font-medium text-sm hidden sm:table-cell">Team</th>
-                                        <th className="text-left px-4 py-3 text-slate-300 font-medium text-sm hidden md:table-cell">Owner</th>
-                                        <th className="text-left px-4 py-3 text-slate-300 font-medium text-sm">Status</th>
+                                        <th className="text-left px-4 py-3 text-neutral-300 font-medium text-sm">Project</th>
+                                        <th className="text-left px-4 py-3 text-neutral-300 font-medium text-sm hidden sm:table-cell">Team</th>
+                                        <th className="text-left px-4 py-3 text-neutral-300 font-medium text-sm hidden md:table-cell">Owner</th>
+                                        <th className="text-left px-4 py-3 text-neutral-300 font-medium text-sm">Status</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-700/50">
+                                <tbody className="divide-y divide-neutral-700/50">
                                     {filteredProjects.map(project => (
-                                        <tr key={project.id} className="hover:bg-slate-700/30 transition">
+                                        <tr key={project.id} className="hover:bg-neutral-700/30 transition">
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-3">
                                                     <FolderKanban className="w-5 h-5 text-purple-400 flex-shrink-0" />
                                                     <div className="min-w-0">
                                                         <p className="text-white font-medium truncate">{project.name}</p>
-                                                        <p className="text-slate-400 text-xs truncate">{formatLabel(project.project_type)}</p>
+                                                        <p className="text-neutral-400 text-xs truncate">{formatLabel(project.project_type)}</p>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-3 text-slate-300 text-sm hidden sm:table-cell">
-                                                {project.team_name || <span className="text-slate-500">No team</span>}
+                                            <td className="px-4 py-3 text-neutral-300 text-sm hidden sm:table-cell">
+                                                {project.team_name || <span className="text-neutral-500">No team</span>}
                                             </td>
                                             <td className="px-4 py-3 hidden md:table-cell">
                                                 <div className="flex items-center gap-2">
@@ -482,7 +482,7 @@ function ProjectAdmin() {
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3">
-                                                <span className={`px-2 py-1 rounded text-xs ${STATUS_COLORS[project.status] || 'bg-slate-600 text-slate-300'}`}>
+                                                <span className={`px-2 py-1 rounded text-xs ${STATUS_COLORS[project.status] || 'bg-neutral-600 text-neutral-300'}`}>
                                                     {formatLabel(project.status)}
                                                 </span>
                                             </td>
@@ -490,7 +490,7 @@ function ProjectAdmin() {
                                     ))}
                                     {filteredProjects.length === 0 && (
                                         <tr>
-                                            <td colSpan={4} className="text-center py-8 text-slate-400">
+                                            <td colSpan={4} className="text-center py-8 text-neutral-400">
                                                 No projects found
                                             </td>
                                         </tr>
@@ -507,21 +507,21 @@ function ProjectAdmin() {
                 <div className="space-y-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                         <div className="flex-1 relative w-full">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
                             <input
                                 type="text"
                                 placeholder="Search tasks..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                                className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                             />
                         </div>
                         <div className="flex items-center gap-2">
-                            <Filter className="w-4 h-4 text-slate-400" />
+                            <Filter className="w-4 h-4 text-neutral-400" />
                             <select
                                 value={selectedProjectFilter}
                                 onChange={(e) => setSelectedProjectFilter(e.target.value)}
-                                className="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
+                                className="px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
                             >
                                 <option value="">All Projects</option>
                                 {projects.map(p => (
@@ -529,36 +529,36 @@ function ProjectAdmin() {
                                 ))}
                             </select>
                             {selectedProjectFilter && (
-                                <button onClick={() => setSelectedProjectFilter('')} className="p-1 text-slate-400 hover:text-white">
+                                <button onClick={() => setSelectedProjectFilter('')} className="p-1 text-neutral-400 hover:text-white">
                                     <X className="w-4 h-4" />
                                 </button>
                             )}
                         </div>
                     </div>
 
-                    <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl overflow-hidden">
+                    <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead className="bg-slate-700/50">
+                                <thead className="bg-neutral-700/50">
                                     <tr>
-                                        <th className="text-left px-4 py-3 text-slate-300 font-medium text-sm">Task</th>
-                                        <th className="text-left px-4 py-3 text-slate-300 font-medium text-sm hidden sm:table-cell">Project</th>
-                                        <th className="text-left px-4 py-3 text-slate-300 font-medium text-sm">Status</th>
-                                        <th className="text-left px-4 py-3 text-slate-300 font-medium text-sm hidden md:table-cell">Assignee</th>
+                                        <th className="text-left px-4 py-3 text-neutral-300 font-medium text-sm">Task</th>
+                                        <th className="text-left px-4 py-3 text-neutral-300 font-medium text-sm hidden sm:table-cell">Project</th>
+                                        <th className="text-left px-4 py-3 text-neutral-300 font-medium text-sm">Status</th>
+                                        <th className="text-left px-4 py-3 text-neutral-300 font-medium text-sm hidden md:table-cell">Assignee</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-700/50">
+                                <tbody className="divide-y divide-neutral-700/50">
                                     {filteredTasks.map(task => (
-                                        <tr key={task.id} className="hover:bg-slate-700/30 transition">
+                                        <tr key={task.id} className="hover:bg-neutral-700/30 transition">
                                             <td className="px-4 py-3">
                                                 <p className="text-white font-medium">{task.title}</p>
-                                                <p className="text-slate-400 text-xs capitalize">{task.priority} priority</p>
+                                                <p className="text-neutral-400 text-xs capitalize">{task.priority} priority</p>
                                             </td>
-                                            <td className="px-4 py-3 text-slate-300 text-sm hidden sm:table-cell">
+                                            <td className="px-4 py-3 text-neutral-300 text-sm hidden sm:table-cell">
                                                 {task.project_name || 'N/A'}
                                             </td>
                                             <td className="px-4 py-3">
-                                                <span className={`px-2 py-1 rounded text-xs ${STATUS_COLORS[task.status] || 'bg-slate-600 text-slate-300'}`}>
+                                                <span className={`px-2 py-1 rounded text-xs ${STATUS_COLORS[task.status] || 'bg-neutral-600 text-neutral-300'}`}>
                                                     {formatLabel(task.status)}
                                                 </span>
                                             </td>
@@ -569,14 +569,14 @@ function ProjectAdmin() {
                                                         <UserLink userId={task.assigned_to} userName={task.assigned_to_name} />
                                                     </div>
                                                 ) : (
-                                                    <span className="text-slate-500 text-sm">Unassigned</span>
+                                                    <span className="text-neutral-500 text-sm">Unassigned</span>
                                                 )}
                                             </td>
                                         </tr>
                                     ))}
                                     {filteredTasks.length === 0 && (
                                         <tr>
-                                            <td colSpan={4} className="text-center py-8 text-slate-400">
+                                            <td colSpan={4} className="text-center py-8 text-neutral-400">
                                                 No tasks found
                                             </td>
                                         </tr>
@@ -593,13 +593,13 @@ function ProjectAdmin() {
                 <div className="space-y-4">
                     <div className="flex items-center gap-4">
                         <div className="flex-1 relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
                             <input
                                 type="text"
                                 placeholder="Search teams..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                                className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                             />
                         </div>
                         <button onClick={fetchData} className="p-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition">
@@ -616,19 +616,19 @@ function ProjectAdmin() {
                             return (
                                 <div
                                     key={team.id}
-                                    className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl overflow-hidden"
+                                    className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl overflow-hidden"
                                 >
                                     <div
-                                        className="p-4 flex items-center justify-between cursor-pointer hover:bg-slate-700/30 transition"
+                                        className="p-4 flex items-center justify-between cursor-pointer hover:bg-neutral-700/30 transition"
                                         onClick={() => setExpandedTeam(isExpanded ? null : team.id)}
                                     >
                                         <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center">
                                                 <Users className="w-6 h-6 text-white" />
                                             </div>
                                             <div>
                                                 <h3 className="text-white font-semibold">{team.name}</h3>
-                                                <p className="text-slate-400 text-sm">
+                                                <p className="text-neutral-400 text-sm">
                                                     {team.member_count || 0} members • {team.project_count || 0} projects
                                                 </p>
                                             </div>
@@ -640,27 +640,27 @@ function ProjectAdmin() {
                                                 onClick={(e) => { e.stopPropagation(); handleViewProfile(team.leader) }}
                                             >
                                                 <UserAvatar userId={team.leader} userName={team.leader_name} userPicture={team.leader_picture} size="xs" />
-                                                <span className="text-slate-300 text-xs">Leader</span>
+                                                <span className="text-neutral-300 text-xs">Leader</span>
                                             </div>
-                                            <span className={`px-2 py-1 rounded text-xs ${team.is_active ? 'bg-green-500/20 text-green-400' : 'bg-slate-600 text-slate-400'}`}>
+                                            <span className={`px-2 py-1 rounded text-xs ${team.is_active ? 'bg-green-500/20 text-green-400' : 'bg-neutral-600 text-neutral-400'}`}>
                                                 {team.is_active ? 'Active' : 'Inactive'}
                                             </span>
                                             {isExpanded ? (
-                                                <ChevronDown className="w-5 h-5 text-slate-400" />
+                                                <ChevronDown className="w-5 h-5 text-neutral-400" />
                                             ) : (
-                                                <ChevronRight className="w-5 h-5 text-slate-400" />
+                                                <ChevronRight className="w-5 h-5 text-neutral-400" />
                                             )}
                                         </div>
                                     </div>
 
                                     {isExpanded && (
-                                        <div className="border-t border-slate-700/50 p-4 bg-slate-900/30">
-                                            <h4 className="text-slate-400 text-sm mb-3">Team Members</h4>
+                                        <div className="border-t border-neutral-700/50 p-4 bg-neutral-900/30">
+                                            <h4 className="text-neutral-400 text-sm mb-3">Team Members</h4>
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                                 {/* Leader first */}
                                                 <div
-                                                    className="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition cursor-pointer"
+                                                    className="flex items-center gap-3 p-3 rounded-lg bg-neutral-800/50 hover:bg-neutral-700/50 transition cursor-pointer"
                                                     onClick={() => handleViewProfile(team.leader)}
                                                 >
                                                     <UserAvatar userId={team.leader} userName={team.leader_name} userPicture={team.leader_picture} size="md" />
@@ -668,7 +668,7 @@ function ProjectAdmin() {
                                                         <p className="text-white text-sm font-medium truncate hover:text-purple-400">
                                                             {team.leader_name}
                                                         </p>
-                                                        <span className="text-xs px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400">
+                                                        <span className="text-xs px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">
                                                             Leader
                                                         </span>
                                                     </div>
@@ -678,7 +678,7 @@ function ProjectAdmin() {
                                                 {members.filter(m => m.status === 'accepted').map(member => (
                                                     <div
                                                         key={member.id}
-                                                        className="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition cursor-pointer"
+                                                        className="flex items-center gap-3 p-3 rounded-lg bg-neutral-800/50 hover:bg-neutral-700/50 transition cursor-pointer"
                                                         onClick={() => handleViewProfile(member.user)}
                                                     >
                                                         <UserAvatar userId={member.user} userName={member.user_name} userPicture={member.user_picture} size="md" />
@@ -688,7 +688,7 @@ function ProjectAdmin() {
                                                             </p>
                                                             <span className={`text-xs px-1.5 py-0.5 rounded ${member.role === 'admin'
                                                                 ? 'bg-purple-500/20 text-purple-400'
-                                                                : 'bg-slate-600 text-slate-300'
+                                                                : 'bg-neutral-600 text-neutral-300'
                                                                 }`}>
                                                                 {member.role}
                                                             </span>
@@ -698,7 +698,7 @@ function ProjectAdmin() {
                                             </div>
 
                                             {members.filter(m => m.status === 'accepted').length === 0 && (
-                                                <p className="text-slate-500 text-sm text-center py-4">
+                                                <p className="text-neutral-500 text-sm text-center py-4">
                                                     No other members yet
                                                 </p>
                                             )}
@@ -708,7 +708,7 @@ function ProjectAdmin() {
                             )
                         })}
                         {filteredTeams.length === 0 && (
-                            <div className="text-center py-8 text-slate-400">
+                            <div className="text-center py-8 text-neutral-400">
                                 No teams found
                             </div>
                         )}
@@ -721,32 +721,32 @@ function ProjectAdmin() {
                 <div className="space-y-6">
                     {/* Summary */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-xl p-4 text-center">
+                        <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-xl p-4 text-center">
                             <Briefcase className="w-8 h-8 mx-auto text-purple-400 mb-2" />
                             <p className="text-2xl font-bold text-white">{analytics.total_projects}</p>
-                            <p className="text-slate-400 text-sm">Total Projects</p>
+                            <p className="text-neutral-400 text-sm">Total Projects</p>
                         </div>
-                        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-xl p-4 text-center">
-                            <ListTodo className="w-8 h-8 mx-auto text-blue-400 mb-2" />
+                        <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-xl p-4 text-center">
+                            <ListTodo className="w-8 h-8 mx-auto text-purple-400 mb-2" />
                             <p className="text-2xl font-bold text-white">{analytics.total_tasks}</p>
-                            <p className="text-slate-400 text-sm">Total Tasks</p>
+                            <p className="text-neutral-400 text-sm">Total Tasks</p>
                         </div>
-                        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-xl p-4 text-center">
+                        <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-xl p-4 text-center">
                             <Users className="w-8 h-8 mx-auto text-green-400 mb-2" />
                             <p className="text-2xl font-bold text-white">{analytics.total_teams}</p>
-                            <p className="text-slate-400 text-sm">Total Teams</p>
+                            <p className="text-neutral-400 text-sm">Total Teams</p>
                         </div>
-                        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-xl p-4 text-center">
-                            <CheckCircle className="w-8 h-8 mx-auto text-emerald-400 mb-2" />
+                        <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-xl p-4 text-center">
+                            <CheckCircle className="w-8 h-8 mx-auto text-green-400 mb-2" />
                             <p className="text-2xl font-bold text-white">{analytics.active_teams}</p>
-                            <p className="text-slate-400 text-sm">Active Teams</p>
+                            <p className="text-neutral-400 text-sm">Active Teams</p>
                         </div>
                     </div>
 
                     {/* Charts */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Projects by Status */}
-                        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-6">
+                        <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-6">
                             <h3 className="text-lg font-semibold text-white mb-4">Projects by Status</h3>
                             {analytics.projects_by_status.length > 0 ? (
                                 <ResponsiveContainer width="100%" height={250}>
@@ -769,14 +769,14 @@ function ProjectAdmin() {
                                     </PieChart>
                                 </ResponsiveContainer>
                             ) : (
-                                <div className="h-[250px] flex items-center justify-center text-slate-400">
+                                <div className="h-[250px] flex items-center justify-center text-neutral-400">
                                     No project data available
                                 </div>
                             )}
                         </div>
 
                         {/* Projects by Type */}
-                        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-6">
+                        <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-6">
                             <h3 className="text-lg font-semibold text-white mb-4">Projects by Type</h3>
                             {analytics.projects_by_type.length > 0 ? (
                                 <ResponsiveContainer width="100%" height={250}>
@@ -796,14 +796,14 @@ function ProjectAdmin() {
                                     </BarChart>
                                 </ResponsiveContainer>
                             ) : (
-                                <div className="h-[250px] flex items-center justify-center text-slate-400">
+                                <div className="h-[250px] flex items-center justify-center text-neutral-400">
                                     No type data available
                                 </div>
                             )}
                         </div>
 
                         {/* Tasks by Status */}
-                        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-6 lg:col-span-2">
+                        <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-6 lg:col-span-2">
                             <h3 className="text-lg font-semibold text-white mb-4">Tasks by Status</h3>
                             {analytics.tasks_by_status.length > 0 ? (
                                 <ResponsiveContainer width="100%" height={250}>
@@ -823,7 +823,7 @@ function ProjectAdmin() {
                                     </BarChart>
                                 </ResponsiveContainer>
                             ) : (
-                                <div className="h-[250px] flex items-center justify-center text-slate-400">
+                                <div className="h-[250px] flex items-center justify-center text-neutral-400">
                                     No task data available
                                 </div>
                             )}

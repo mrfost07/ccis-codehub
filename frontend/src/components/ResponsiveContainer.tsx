@@ -56,7 +56,7 @@ export function ResponsiveCard({
 }: ResponsiveCardProps) {
   return (
     <div 
-      className={`bg-slate-900 rounded-lg sm:rounded-xl border border-slate-800 ${padding} ${className} ${onClick ? 'cursor-pointer hover:border-slate-700 transition' : ''}`}
+      className={`bg-neutral-900 rounded-lg sm:rounded-xl border border-neutral-800 ${padding} ${className} ${onClick ? 'cursor-pointer hover:border-neutral-700 transition' : ''}`}
       onClick={onClick}
     >
       {children}
@@ -77,9 +77,9 @@ export function ResponsiveTable({ headers, children, className = '' }: Responsiv
       <div className="hidden md:block overflow-x-auto">
         <table className={`w-full ${className}`}>
           <thead>
-            <tr className="border-b border-slate-800">
+            <tr className="border-b border-neutral-800">
               {headers.map((header, index) => (
-                <th key={index} className="text-left py-3 px-4 text-sm font-semibold text-slate-300">
+                <th key={index} className="text-left py-3 px-4 text-sm font-semibold text-neutral-300">
                   {header}
                 </th>
               ))}
@@ -142,8 +142,8 @@ export function ResponsiveButton({
   disabled = false
 }: ResponsiveButtonProps) {
   const variants = {
-    primary: 'bg-indigo-600 hover:bg-indigo-700 text-white',
-    secondary: 'bg-slate-700 hover:bg-slate-600 text-white',
+    primary: 'bg-purple-600 hover:bg-purple-700 text-white',
+    secondary: 'bg-neutral-700 hover:bg-neutral-600 text-white',
     danger: 'bg-red-600 hover:bg-red-700 text-white',
   }
 

@@ -34,10 +34,10 @@ export default function ProfileAvatar({
 
     // Static gradient classes for Tailwind compatibility
     const gradientClasses = {
-        purple: 'bg-gradient-to-br from-purple-500 to-pink-500',
-        cyan: 'bg-gradient-to-br from-cyan-500 to-blue-500',
-        green: 'bg-gradient-to-br from-green-500 to-emerald-500',
-        orange: 'bg-gradient-to-br from-orange-500 to-red-500'
+        purple: 'bg-gradient-to-br from-purple-500 to-purple-500',
+        cyan: 'bg-gradient-to-br from-purple-500 to-purple-500',
+        green: 'bg-gradient-to-br from-green-500 to-green-500',
+        orange: 'bg-gradient-to-br from-amber-500 to-red-500'
     }
 
     const mediaUrl = getMediaUrl(src)

@@ -86,17 +86,17 @@ function AdminAnalytics() {
             <div className="space-y-6">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {[...Array(8)].map((_, i) => (
-                        <div key={i} className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-4 sm:p-6 animate-pulse">
-                            <div className="h-6 bg-slate-700 rounded mb-3"></div>
-                            <div className="h-10 bg-slate-700 rounded"></div>
+                        <div key={i} className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-4 sm:p-6 animate-pulse">
+                            <div className="h-6 bg-neutral-700 rounded mb-3"></div>
+                            <div className="h-10 bg-neutral-700 rounded"></div>
                         </div>
                     ))}
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {[...Array(4)].map((_, i) => (
-                        <div key={i} className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-6 h-80 animate-pulse">
-                            <div className="h-6 bg-slate-700 rounded w-1/3 mb-4"></div>
-                            <div className="h-full bg-slate-700/50 rounded"></div>
+                        <div key={i} className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-6 h-80 animate-pulse">
+                            <div className="h-6 bg-neutral-700 rounded w-1/3 mb-4"></div>
+                            <div className="h-full bg-neutral-700/50 rounded"></div>
                         </div>
                     ))}
                 </div>
@@ -106,10 +106,10 @@ function AdminAnalytics() {
 
     if (error || !data) {
         return (
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-red-700/30 rounded-2xl p-8 text-center">
+            <div className="bg-neutral-800/50 backdrop-blur-xl border border-red-700/30 rounded-2xl p-8 text-center">
                 <XCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
                 <h3 className="text-xl font-bold text-white mb-2">Failed to Load Analytics</h3>
-                <p className="text-slate-400 mb-4">{error}</p>
+                <p className="text-neutral-400 mb-4">{error}</p>
                 <button
                     onClick={fetchAnalytics}
                     className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2 mx-auto"
@@ -166,15 +166,15 @@ function AdminAnalytics() {
 
     // Summary stats
     const summaryStats = [
-        { icon: Users, label: 'Total Users', value: data.summary.total_users, color: 'from-blue-500 to-blue-600' },
+        { icon: Users, label: 'Total Users', value: data.summary.total_users, color: 'from-purple-500 to-purple-600' },
         { icon: Users, label: 'Students', value: data.summary.total_students, color: 'from-green-500 to-green-600' },
         { icon: Users, label: 'Instructors', value: data.summary.total_instructors, color: 'from-purple-500 to-purple-600' },
-        { icon: TrendingUp, label: 'Active (30d)', value: data.summary.active_users_30d, color: 'from-cyan-500 to-cyan-600' },
-        { icon: BookOpen, label: 'Career Paths', value: data.summary.total_career_paths, color: 'from-indigo-500 to-indigo-600' },
-        { icon: Award, label: 'Modules', value: data.summary.total_modules, color: 'from-yellow-500 to-yellow-600' },
-        { icon: CheckCircle, label: 'Quizzes', value: data.summary.total_quizzes, color: 'from-pink-500 to-pink-600' },
-        { icon: Briefcase, label: 'Projects', value: data.summary.total_projects, color: 'from-orange-500 to-orange-600' },
-        { icon: MessageSquare, label: 'Posts', value: data.summary.total_posts, color: 'from-teal-500 to-teal-600' },
+        { icon: TrendingUp, label: 'Active (30d)', value: data.summary.active_users_30d, color: 'from-purple-500 to-purple-600' },
+        { icon: BookOpen, label: 'Career Paths', value: data.summary.total_career_paths, color: 'from-purple-500 to-purple-600' },
+        { icon: Award, label: 'Modules', value: data.summary.total_modules, color: 'from-amber-500 to-amber-600' },
+        { icon: CheckCircle, label: 'Quizzes', value: data.summary.total_quizzes, color: 'from-purple-500 to-purple-600' },
+        { icon: Briefcase, label: 'Projects', value: data.summary.total_projects, color: 'from-amber-500 to-amber-600' },
+        { icon: MessageSquare, label: 'Posts', value: data.summary.total_posts, color: 'from-purple-500 to-purple-600' },
         { icon: Users, label: 'Enrollments', value: data.summary.total_enrollments, color: 'from-red-500 to-red-600' },
     ]
 
@@ -182,7 +182,7 @@ function AdminAnalytics() {
     const CustomTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length) {
             return (
-                <div className="bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 shadow-xl">
+                <div className="bg-neutral-800 border border-neutral-600 rounded-lg px-3 py-2 shadow-xl">
                     <p className="text-white font-medium">{payload[0].name}: {payload[0].value}</p>
                 </div>
             )
@@ -197,7 +197,7 @@ function AdminAnalytics() {
                 <h2 className="text-xl sm:text-2xl font-bold text-white">Platform Analytics</h2>
                 <button
                     onClick={fetchAnalytics}
-                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg flex items-center gap-2 text-sm"
+                    className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg flex items-center gap-2 text-sm"
                 >
                     <RefreshCw className="w-4 h-4" />
                     Refresh
@@ -211,12 +211,12 @@ function AdminAnalytics() {
                     return (
                         <div
                             key={stat.label}
-                            className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-3 sm:p-4 shadow-lg hover:bg-slate-800/70 hover:border-slate-600/50 transition-all"
+                            className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-3 sm:p-4 shadow-lg hover:bg-neutral-800/70 hover:border-neutral-600/50 transition-all"
                         >
                             <div className={`inline-flex p-2 rounded-lg bg-gradient-to-r ${stat.color} mb-2`}>
                                 <Icon className="h-4 w-4 text-white" />
                             </div>
-                            <p className="text-slate-400 text-xs mb-0.5">{stat.label}</p>
+                            <p className="text-neutral-400 text-xs mb-0.5">{stat.label}</p>
                             <p className="text-lg sm:text-xl font-bold text-white">{stat.value.toLocaleString()}</p>
                         </div>
                     )
@@ -226,7 +226,7 @@ function AdminAnalytics() {
             {/* Charts Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Users by Role - Pie Chart */}
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-4 sm:p-6 shadow-lg">
+                <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-4 sm:p-6 shadow-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Users by Role</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
@@ -252,7 +252,7 @@ function AdminAnalytics() {
                 </div>
 
                 {/* Users by Program - Pie Chart */}
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-4 sm:p-6 shadow-lg">
+                <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-4 sm:p-6 shadow-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Users by Program</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
@@ -278,7 +278,7 @@ function AdminAnalytics() {
                 </div>
 
                 {/* Users by Year Level - Bar Chart */}
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-4 sm:p-6 shadow-lg">
+                <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-4 sm:p-6 shadow-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Students by Year Level</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
@@ -294,7 +294,7 @@ function AdminAnalytics() {
                 </div>
 
                 {/* Projects by Status - Pie Chart */}
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-4 sm:p-6 shadow-lg">
+                <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-4 sm:p-6 shadow-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Projects by Status</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
@@ -320,7 +320,7 @@ function AdminAnalytics() {
                 </div>
 
                 {/* Modules by Type - Bar Chart */}
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-4 sm:p-6 shadow-lg">
+                <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-4 sm:p-6 shadow-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Modules by Type</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
@@ -336,7 +336,7 @@ function AdminAnalytics() {
                 </div>
 
                 {/* Posts by Type - Pie Chart */}
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-4 sm:p-6 shadow-lg">
+                <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-4 sm:p-6 shadow-lg">
                     <h3 className="text-lg font-semibold text-white mb-4">Posts by Type</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
@@ -363,51 +363,51 @@ function AdminAnalytics() {
             </div>
 
             {/* Quiz Performance Stats */}
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-4 sm:p-6 shadow-lg">
+            <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-4 sm:p-6 shadow-lg">
                 <h3 className="text-lg font-semibold text-white mb-4">Quiz Performance</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 bg-slate-700/30 rounded-xl">
+                    <div className="text-center p-4 bg-neutral-700/30 rounded-xl">
                         <p className="text-2xl font-bold text-white">{data.learning.quiz_performance.total_attempts}</p>
-                        <p className="text-slate-400 text-sm">Total Attempts</p>
+                        <p className="text-neutral-400 text-sm">Total Attempts</p>
                     </div>
-                    <div className="text-center p-4 bg-slate-700/30 rounded-xl">
-                        <p className="text-2xl font-bold text-cyan-400">{data.learning.quiz_performance.avg_score?.toFixed(1) || 0}%</p>
-                        <p className="text-slate-400 text-sm">Average Score</p>
+                    <div className="text-center p-4 bg-neutral-700/30 rounded-xl">
+                        <p className="text-2xl font-bold text-purple-400">{data.learning.quiz_performance.avg_score?.toFixed(1) || 0}%</p>
+                        <p className="text-neutral-400 text-sm">Average Score</p>
                     </div>
                     <div className="text-center p-4 bg-green-900/30 rounded-xl">
                         <p className="text-2xl font-bold text-green-400">{data.learning.quiz_performance.passed}</p>
-                        <p className="text-slate-400 text-sm">Passed</p>
+                        <p className="text-neutral-400 text-sm">Passed</p>
                     </div>
                     <div className="text-center p-4 bg-red-900/30 rounded-xl">
                         <p className="text-2xl font-bold text-red-400">{data.learning.quiz_performance.failed}</p>
-                        <p className="text-slate-400 text-sm">Failed</p>
+                        <p className="text-neutral-400 text-sm">Failed</p>
                     </div>
                 </div>
             </div>
 
             {/* Community Engagement */}
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-4 sm:p-6 shadow-lg">
+            <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-4 sm:p-6 shadow-lg">
                 <h3 className="text-lg font-semibold text-white mb-4">Community Engagement</h3>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <div className="text-center p-4 bg-slate-700/30 rounded-xl">
+                    <div className="text-center p-4 bg-neutral-700/30 rounded-xl">
                         <p className="text-2xl font-bold text-white">{data.community.engagement.total_posts}</p>
-                        <p className="text-slate-400 text-sm">Total Posts</p>
+                        <p className="text-neutral-400 text-sm">Total Posts</p>
                     </div>
-                    <div className="text-center p-4 bg-slate-700/30 rounded-xl">
+                    <div className="text-center p-4 bg-neutral-700/30 rounded-xl">
                         <p className="text-2xl font-bold text-white">{data.community.engagement.total_comments}</p>
-                        <p className="text-slate-400 text-sm">Total Comments</p>
+                        <p className="text-neutral-400 text-sm">Total Comments</p>
                     </div>
-                    <div className="text-center p-4 bg-slate-700/30 rounded-xl">
-                        <p className="text-2xl font-bold text-pink-400">{data.community.engagement.total_likes}</p>
-                        <p className="text-slate-400 text-sm">Total Likes</p>
+                    <div className="text-center p-4 bg-neutral-700/30 rounded-xl">
+                        <p className="text-2xl font-bold text-purple-400">{data.community.engagement.total_likes}</p>
+                        <p className="text-neutral-400 text-sm">Total Likes</p>
                     </div>
-                    <div className="text-center p-4 bg-slate-700/30 rounded-xl">
-                        <p className="text-2xl font-bold text-cyan-400">{data.community.engagement.recent_posts}</p>
-                        <p className="text-slate-400 text-sm">Posts (30d)</p>
+                    <div className="text-center p-4 bg-neutral-700/30 rounded-xl">
+                        <p className="text-2xl font-bold text-purple-400">{data.community.engagement.recent_posts}</p>
+                        <p className="text-neutral-400 text-sm">Posts (30d)</p>
                     </div>
-                    <div className="text-center p-4 bg-slate-700/30 rounded-xl">
+                    <div className="text-center p-4 bg-neutral-700/30 rounded-xl">
                         <p className="text-2xl font-bold text-green-400">{data.summary.total_teams}</p>
-                        <p className="text-slate-400 text-sm">Teams</p>
+                        <p className="text-neutral-400 text-sm">Teams</p>
                     </div>
                 </div>
             </div>

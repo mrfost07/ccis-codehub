@@ -265,29 +265,29 @@ export default function ModuleFormWithEditor({
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
-      <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 sm:p-6 w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+      <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-4 sm:p-6 w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
-            <FileText className="w-6 h-6 text-blue-400" />
+            <FileText className="w-6 h-6 text-purple-400" />
             <h3 className="text-xl font-bold text-white">
               {editingModule ? 'Edit Module' : 'Create New Module'}
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-700 rounded-lg transition"
+            className="p-2 hover:bg-neutral-700 rounded-lg transition"
           >
-            <X className="w-5 h-5 text-slate-400" />
+            <X className="w-5 h-5 text-neutral-400" />
           </button>
         </div>
 
         <form onSubmit={(e) => { e.preventDefault(); handleBasicInfoSubmit(); }} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Career Path *</label>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">Career Path *</label>
             <select
               value={basicInfo.career_path}
               onChange={(e) => setBasicInfo({ ...basicInfo, career_path: e.target.value })}
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+              className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
               required
             >
               <option value="">Select a career path</option>
@@ -298,24 +298,24 @@ export default function ModuleFormWithEditor({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Module Title *</label>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">Module Title *</label>
             <input
               type="text"
               value={basicInfo.title}
               onChange={(e) => setBasicInfo({ ...basicInfo, title: e.target.value })}
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+              className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
               placeholder="e.g., Introduction to Python"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Description *</label>
+            <label className="block text-sm font-medium text-neutral-300 mb-2">Description *</label>
             <textarea
               value={basicInfo.description}
               onChange={(e) => setBasicInfo({ ...basicInfo, description: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+              className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
               placeholder="Brief description of the module..."
               required
             />
@@ -323,11 +323,11 @@ export default function ModuleFormWithEditor({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Module Type</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-2">Module Type</label>
               <select
                 value={basicInfo.module_type}
                 onChange={(e) => setBasicInfo({ ...basicInfo, module_type: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
               >
                 <option value="text">Text</option>
                 <option value="video">Video</option>
@@ -336,11 +336,11 @@ export default function ModuleFormWithEditor({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Difficulty</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-2">Difficulty</label>
               <select
                 value={basicInfo.difficulty_level}
                 onChange={(e) => setBasicInfo({ ...basicInfo, difficulty_level: e.target.value })}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
               >
                 <option value="beginner">Beginner</option>
                 <option value="intermediate">Intermediate</option>
@@ -351,41 +351,41 @@ export default function ModuleFormWithEditor({
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Duration (min)</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-2">Duration (min)</label>
               <input
                 type="number"
                 value={basicInfo.duration_minutes}
                 onChange={(e) => setBasicInfo({ ...basicInfo, duration_minutes: parseInt(e.target.value) || 0 })}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 min="1"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Points</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-2">Points</label>
               <input
                 type="number"
                 value={basicInfo.points_reward}
                 onChange={(e) => setBasicInfo({ ...basicInfo, points_reward: parseInt(e.target.value) || 0 })}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 min="1"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Order</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-2">Order</label>
               <input
                 type="number"
                 value={basicInfo.order}
                 onChange={(e) => setBasicInfo({ ...basicInfo, order: parseInt(e.target.value) || 0 })}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 min="0"
               />
             </div>
           </div>
 
           <div className="space-y-3">
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
               <div className="flex items-center gap-2">
                 <FileUp className="w-4 h-4" />
                 Upload Document (PDF/DOCX) - Auto-fill Content
@@ -398,7 +398,7 @@ export default function ModuleFormWithEditor({
                   setFile(e.target.files?.[0] || null)
                   setExtractedSlides(null) // Clear previous extraction
                 }}
-                className="flex-1 px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-600 file:text-white file:cursor-pointer hover:file:bg-blue-700"
+                className="flex-1 px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white file:cursor-pointer hover:file:bg-purple-700"
                 accept=".pdf,.docx,.doc"
               />
               {file && (
@@ -406,7 +406,7 @@ export default function ModuleFormWithEditor({
                   type="button"
                   onClick={extractContentFromFile}
                   disabled={extracting}
-                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 disabled:opacity-50 rounded-lg text-white font-medium transition flex items-center gap-2"
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 disabled:opacity-50 rounded-lg text-white font-medium transition flex items-center gap-2"
                 >
                   {extracting ? (
                     <>
@@ -422,7 +422,7 @@ export default function ModuleFormWithEditor({
                 </button>
               )}
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-neutral-400">
               Upload a PDF or Word document to automatically extract and fill content into the editor
             </p>
             {extractedSlides && (
@@ -441,9 +441,9 @@ export default function ModuleFormWithEditor({
               id="is_locked"
               checked={basicInfo.is_locked}
               onChange={(e) => setBasicInfo({ ...basicInfo, is_locked: e.target.checked })}
-              className="w-4 h-4 bg-slate-700 border-slate-600 rounded"
+              className="w-4 h-4 bg-neutral-700 border-neutral-600 rounded"
             />
-            <label htmlFor="is_locked" className="text-sm text-slate-300">
+            <label htmlFor="is_locked" className="text-sm text-neutral-300">
               Lock this module (requires prerequisites)
             </label>
           </div>
@@ -451,14 +451,14 @@ export default function ModuleFormWithEditor({
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg transition font-medium"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg transition font-medium"
             >
               Next: Add Content →
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+              className="px-6 py-3 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition"
             >
               Cancel
             </button>

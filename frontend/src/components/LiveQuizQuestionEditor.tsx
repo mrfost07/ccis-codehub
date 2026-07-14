@@ -406,7 +406,7 @@ export default function LiveQuizQuestionEditor({
     if (loading) {
         return (
             <div className="flex items-center justify-center py-16">
-                <Loader2 className="w-6 h-6 text-orange-500 animate-spin" />
+                <Loader2 className="w-6 h-6 text-amber-500 animate-spin" />
             </div>
         )
     }
@@ -453,7 +453,7 @@ export default function LiveQuizQuestionEditor({
                 <button
                     type="button"
                     onClick={() => scrollTabs('left')}
-                    className="p-1.5 bg-slate-700/50 hover:bg-slate-600 text-slate-400 hover:text-white rounded-lg transition flex-shrink-0"
+                    className="p-1.5 bg-neutral-700/50 hover:bg-neutral-600 text-neutral-400 hover:text-white rounded-lg transition flex-shrink-0"
                     title="Scroll left"
                 >
                     <ChevronLeft className="w-4 h-4" />
@@ -473,13 +473,13 @@ export default function LiveQuizQuestionEditor({
                                     scrollTabsToIndex(index)
                                 }}
                                 className={`px-3 py-1.5 text-xs rounded-lg transition relative ${currentIndex === index
-                                    ? 'bg-orange-600 text-white'
-                                    : 'bg-slate-700/80 text-slate-300 hover:bg-slate-600'
+                                    ? 'bg-amber-600 text-white'
+                                    : 'bg-neutral-700/80 text-neutral-300 hover:bg-neutral-600'
                                     }`}
                             >
                                 Q{index + 1}
                                 {q.isDirty && (
-                                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-yellow-400 rounded-full" />
+                                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-amber-400 rounded-full" />
                                 )}
                             </button>
                             {questions.length > 1 && (
@@ -496,7 +496,7 @@ export default function LiveQuizQuestionEditor({
                     <button
                         type="button"
                         onClick={addQuestion}
-                        className="px-2.5 py-1.5 text-xs bg-slate-700/50 hover:bg-slate-600 text-slate-400 hover:text-white rounded-lg transition flex items-center gap-1 flex-shrink-0"
+                        className="px-2.5 py-1.5 text-xs bg-neutral-700/50 hover:bg-neutral-600 text-neutral-400 hover:text-white rounded-lg transition flex items-center gap-1 flex-shrink-0"
                     >
                         <Plus className="w-3.5 h-3.5" />
                     </button>
@@ -506,7 +506,7 @@ export default function LiveQuizQuestionEditor({
                 <button
                     type="button"
                     onClick={() => scrollTabs('right')}
-                    className="p-1.5 bg-slate-700/50 hover:bg-slate-600 text-slate-400 hover:text-white rounded-lg transition flex-shrink-0"
+                    className="p-1.5 bg-neutral-700/50 hover:bg-neutral-600 text-neutral-400 hover:text-white rounded-lg transition flex-shrink-0"
                     title="Scroll right"
                 >
                     <ChevronRight className="w-4 h-4" />
@@ -515,17 +515,17 @@ export default function LiveQuizQuestionEditor({
 
             {/* Question Editor - Compact */}
             {currentQuestion && (
-                <div className="bg-slate-700/30 rounded-xl p-4 border border-slate-700/50 space-y-4">
+                <div className="bg-neutral-700/30 rounded-xl p-4 border border-neutral-700/50 space-y-4">
                     {/* Question Text */}
                     <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1.5">
+                        <label className="block text-xs font-medium text-neutral-400 mb-1.5">
                             Question Text
                         </label>
                         <textarea
                             value={currentQuestion.question_text}
                             onChange={(e) => updateQuestion('question_text', e.target.value)}
                             rows={2}
-                            className="w-full px-3 py-2 text-sm bg-slate-800/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-500 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 resize-none transition"
+                            className="w-full px-3 py-2 text-sm bg-neutral-800/50 border border-neutral-600/50 rounded-lg text-white placeholder-neutral-500 focus:ring-1 focus:ring-amber-500 focus:border-amber-500 resize-none transition"
                             placeholder="Enter your question..."
                         />
                     </div>
@@ -533,11 +533,11 @@ export default function LiveQuizQuestionEditor({
                     {/* Type, Points, Time - Responsive Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1.5">Type</label>
+                            <label className="block text-xs font-medium text-neutral-400 mb-1.5">Type</label>
                             <select
                                 value={currentQuestion.question_type}
                                 onChange={(e) => updateQuestion('question_type', e.target.value)}
-                                className="w-full px-2.5 py-2 sm:py-1.5 text-sm bg-slate-800/50 border border-slate-600/50 rounded-lg text-white focus:ring-1 focus:ring-orange-500 transition"
+                                className="w-full px-2.5 py-2 sm:py-1.5 text-sm bg-neutral-800/50 border border-neutral-600/50 rounded-lg text-white focus:ring-1 focus:ring-amber-500 transition"
                             >
                                 <option value="multiple_choice">Multiple Choice</option>
                                 <option value="true_false">True/False</option>
@@ -547,7 +547,7 @@ export default function LiveQuizQuestionEditor({
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-1 gap-3 sm:contents">
                             <div>
-                                <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1">
+                                <label className="block text-xs font-medium text-neutral-400 mb-1.5 flex items-center gap-1">
                                     <Award className="w-3 h-3" /> Points
                                 </label>
                                 <input
@@ -556,11 +556,11 @@ export default function LiveQuizQuestionEditor({
                                     max="100"
                                     value={currentQuestion.points}
                                     onChange={(e) => updateQuestion('points', parseInt(e.target.value) || 10)}
-                                    className="w-full px-2.5 py-2 sm:py-1.5 text-sm bg-slate-800/50 border border-slate-600/50 rounded-lg text-white focus:ring-1 focus:ring-orange-500 transition"
+                                    className="w-full px-2.5 py-2 sm:py-1.5 text-sm bg-neutral-800/50 border border-neutral-600/50 rounded-lg text-white focus:ring-1 focus:ring-amber-500 transition"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1">
+                                <label className="block text-xs font-medium text-neutral-400 mb-1.5 flex items-center gap-1">
                                     <Clock className="w-3 h-3" /> Seconds
                                 </label>
                                 <input
@@ -569,7 +569,7 @@ export default function LiveQuizQuestionEditor({
                                     max="120"
                                     value={currentQuestion.time_limit}
                                     onChange={(e) => updateQuestion('time_limit', parseInt(e.target.value) || 30)}
-                                    className="w-full px-2.5 py-2 sm:py-1.5 text-sm bg-slate-800/50 border border-slate-600/50 rounded-lg text-white focus:ring-1 focus:ring-orange-500 transition"
+                                    className="w-full px-2.5 py-2 sm:py-1.5 text-sm bg-neutral-800/50 border border-neutral-600/50 rounded-lg text-white focus:ring-1 focus:ring-amber-500 transition"
                                 />
                             </div>
                         </div>
@@ -578,7 +578,7 @@ export default function LiveQuizQuestionEditor({
                     {/* Multiple Choice Options - Compact */}
                     {currentQuestion.question_type === 'multiple_choice' && (
                         <div className="space-y-2">
-                            <label className="block text-xs font-medium text-slate-400">Answer Options</label>
+                            <label className="block text-xs font-medium text-neutral-400">Answer Options</label>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 {(['A', 'B', 'C', 'D'] as const).map((letter) => {
                                     const optionKey = `option_${letter.toLowerCase()}` as keyof LocalQuestion
@@ -590,7 +590,7 @@ export default function LiveQuizQuestionEditor({
                                                 onClick={() => updateQuestion('correct_answer', letter)}
                                                 className={`w-7 h-7 rounded text-xs font-medium transition flex items-center justify-center flex-shrink-0 ${isCorrect
                                                     ? 'bg-green-600 text-white'
-                                                    : 'bg-slate-700/80 text-slate-400 hover:bg-slate-600'
+                                                    : 'bg-neutral-700/80 text-neutral-400 hover:bg-neutral-600'
                                                     }`}
                                             >
                                                 {isCorrect ? <Check className="w-3.5 h-3.5" /> : letter}
@@ -599,14 +599,14 @@ export default function LiveQuizQuestionEditor({
                                                 type="text"
                                                 value={currentQuestion[optionKey] as string}
                                                 onChange={(e) => updateQuestion(optionKey, e.target.value)}
-                                                className="flex-1 px-2.5 py-1.5 text-sm bg-slate-800/50 border border-slate-600/50 rounded-lg text-white focus:ring-1 focus:ring-orange-500 transition"
+                                                className="flex-1 px-2.5 py-1.5 text-sm bg-neutral-800/50 border border-neutral-600/50 rounded-lg text-white focus:ring-1 focus:ring-amber-500 transition"
                                                 placeholder={`Option ${letter}`}
                                             />
                                         </div>
                                     )
                                 })}
                             </div>
-                            <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                            <p className="text-[10px] text-neutral-500 flex items-center gap-1">
                                 <Info className="w-3 h-3" /> Click the letter to mark it as correct
                             </p>
                         </div>
@@ -615,14 +615,14 @@ export default function LiveQuizQuestionEditor({
                     {/* True/False - Compact */}
                     {currentQuestion.question_type === 'true_false' && (
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1.5">Correct Answer</label>
+                            <label className="block text-xs font-medium text-neutral-400 mb-1.5">Correct Answer</label>
                             <div className="flex gap-2">
                                 <button
                                     type="button"
                                     onClick={() => updateQuestion('correct_answer', 'true')}
                                     className={`flex-1 py-2 text-sm rounded-lg font-medium transition ${currentQuestion.correct_answer === 'true'
                                         ? 'bg-green-600 text-white'
-                                        : 'bg-slate-700/80 text-slate-300 hover:bg-slate-600'
+                                        : 'bg-neutral-700/80 text-neutral-300 hover:bg-neutral-600'
                                         }`}
                                 >
                                     True
@@ -632,7 +632,7 @@ export default function LiveQuizQuestionEditor({
                                     onClick={() => updateQuestion('correct_answer', 'false')}
                                     className={`flex-1 py-2 text-sm rounded-lg font-medium transition ${currentQuestion.correct_answer === 'false'
                                         ? 'bg-red-600 text-white'
-                                        : 'bg-slate-700/80 text-slate-300 hover:bg-slate-600'
+                                        : 'bg-neutral-700/80 text-neutral-300 hover:bg-neutral-600'
                                         }`}
                                 >
                                     False
@@ -644,12 +644,12 @@ export default function LiveQuizQuestionEditor({
                     {/* Short Answer - Compact */}
                     {currentQuestion.question_type === 'short_answer' && (
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1.5">Expected Answer</label>
+                            <label className="block text-xs font-medium text-neutral-400 mb-1.5">Expected Answer</label>
                             <input
                                 type="text"
                                 value={currentQuestion.correct_answer}
                                 onChange={(e) => updateQuestion('correct_answer', e.target.value)}
-                                className="w-full px-2.5 py-1.5 text-sm bg-slate-800/50 border border-slate-600/50 rounded-lg text-white focus:ring-1 focus:ring-orange-500 transition"
+                                className="w-full px-2.5 py-1.5 text-sm bg-neutral-800/50 border border-neutral-600/50 rounded-lg text-white focus:ring-1 focus:ring-amber-500 transition"
                                 placeholder="Enter the expected answer..."
                             />
                         </div>
@@ -660,13 +660,13 @@ export default function LiveQuizQuestionEditor({
                         <div className="space-y-3">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-xs font-medium text-slate-400 mb-1.5 flex items-center gap-1">
+                                    <label className="block text-xs font-medium text-neutral-400 mb-1.5 flex items-center gap-1">
                                         <Code className="w-3 h-3" /> Language
                                     </label>
                                     <select
                                         value={currentQuestion.programming_language}
                                         onChange={(e) => updateQuestion('programming_language', e.target.value)}
-                                        className="w-full px-2.5 py-2 sm:py-1.5 text-sm bg-slate-800/50 border border-slate-600/50 rounded-lg text-white focus:ring-1 focus:ring-orange-500 transition"
+                                        className="w-full px-2.5 py-2 sm:py-1.5 text-sm bg-neutral-800/50 border border-neutral-600/50 rounded-lg text-white focus:ring-1 focus:ring-amber-500 transition"
                                     >
                                         {SUPPORTED_LANGUAGES.map(lang => (
                                             <option key={lang.value} value={lang.value}>{lang.label}</option>
@@ -676,26 +676,26 @@ export default function LiveQuizQuestionEditor({
                             </div>
 
                             <div>
-                                <label className="block text-xs font-medium text-slate-400 mb-1.5">Starter Code (given to student)</label>
+                                <label className="block text-xs font-medium text-neutral-400 mb-1.5">Starter Code (given to student)</label>
                                 <textarea
                                     value={currentQuestion.starter_code}
                                     onChange={(e) => updateQuestion('starter_code', e.target.value)}
                                     rows={4}
-                                    className="w-full px-2.5 py-1.5 text-sm bg-slate-900/80 border border-slate-600/50 rounded-lg text-green-400 font-mono focus:ring-1 focus:ring-orange-500 transition"
+                                    className="w-full px-2.5 py-1.5 text-sm bg-neutral-900/80 border border-neutral-600/50 rounded-lg text-green-400 font-mono focus:ring-1 focus:ring-amber-500 transition"
                                     placeholder={currentQuestion.programming_language === 'python' ? 'def solution(n):\n    # Your code here\n    pass' : '// Your code here'}
                                 />
                             </div>
 
                             <div>
                                 <div className="flex items-center justify-between mb-1.5">
-                                    <label className="text-xs font-medium text-slate-400">Test Cases</label>
+                                    <label className="text-xs font-medium text-neutral-400">Test Cases</label>
                                     <button
                                         type="button"
                                         onClick={() => {
                                             const newTests = [...currentQuestion.test_cases, { input: '', expected_output: '' }]
                                             updateQuestion('test_cases', newTests)
                                         }}
-                                        className="text-[10px] text-orange-400 hover:text-orange-300 flex items-center gap-0.5"
+                                        className="text-[10px] text-amber-400 hover:text-amber-300 flex items-center gap-0.5"
                                     >
                                         <Plus className="w-3 h-3" /> Add Test
                                     </button>
@@ -704,7 +704,7 @@ export default function LiveQuizQuestionEditor({
                                     {currentQuestion.test_cases.map((tc: TestCase, tcIdx: number) => (
                                         <div key={tcIdx} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-start">
                                             <div>
-                                                <label className="block text-[10px] text-slate-500 mb-0.5">Input</label>
+                                                <label className="block text-[10px] text-neutral-500 mb-0.5">Input</label>
                                                 <textarea
                                                     value={tc.input}
                                                     onChange={(e) => {
@@ -713,12 +713,12 @@ export default function LiveQuizQuestionEditor({
                                                         updateQuestion('test_cases', newTests)
                                                     }}
                                                     rows={2}
-                                                    className="w-full px-2 py-1 text-xs bg-slate-900/80 border border-slate-600/50 rounded text-white font-mono focus:ring-1 focus:ring-orange-500"
+                                                    className="w-full px-2 py-1 text-xs bg-neutral-900/80 border border-neutral-600/50 rounded text-white font-mono focus:ring-1 focus:ring-amber-500"
                                                     placeholder="5\n3"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="block text-[10px] text-slate-500 mb-0.5">Expected Output</label>
+                                                <label className="block text-[10px] text-neutral-500 mb-0.5">Expected Output</label>
                                                 <textarea
                                                     value={tc.expected_output}
                                                     onChange={(e) => {
@@ -727,7 +727,7 @@ export default function LiveQuizQuestionEditor({
                                                         updateQuestion('test_cases', newTests)
                                                     }}
                                                     rows={2}
-                                                    className="w-full px-2 py-1 text-xs bg-slate-900/80 border border-slate-600/50 rounded text-white font-mono focus:ring-1 focus:ring-orange-500"
+                                                    className="w-full px-2 py-1 text-xs bg-neutral-900/80 border border-neutral-600/50 rounded text-white font-mono focus:ring-1 focus:ring-amber-500"
                                                     placeholder="8"
                                                 />
                                             </div>
@@ -746,7 +746,7 @@ export default function LiveQuizQuestionEditor({
                                         </div>
                                     ))}
                                 </div>
-                                <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1">
+                                <p className="text-[10px] text-neutral-500 mt-1 flex items-center gap-1">
                                     <Info className="w-3 h-3" /> Use \n for newlines in input. Output is compared exactly (trimmed).
                                 </p>
                             </div>
@@ -755,12 +755,12 @@ export default function LiveQuizQuestionEditor({
 
                     {/* Explanation - Compact */}
                     <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1.5">Explanation (optional)</label>
+                        <label className="block text-xs font-medium text-neutral-400 mb-1.5">Explanation (optional)</label>
                         <input
                             type="text"
                             value={currentQuestion.explanation}
                             onChange={(e) => updateQuestion('explanation', e.target.value)}
-                            className="w-full px-2.5 py-1.5 text-sm bg-slate-800/50 border border-slate-600/50 rounded-lg text-white placeholder-slate-500 focus:ring-1 focus:ring-orange-500 transition"
+                            className="w-full px-2.5 py-1.5 text-sm bg-neutral-800/50 border border-neutral-600/50 rounded-lg text-white placeholder-neutral-500 focus:ring-1 focus:ring-amber-500 transition"
                             placeholder="Why is this the correct answer?"
                         />
                     </div>
@@ -771,9 +771,9 @@ export default function LiveQuizQuestionEditor({
                             type="checkbox"
                             checked={currentQuestion.time_bonus_enabled}
                             onChange={(e) => updateQuestion('time_bonus_enabled', e.target.checked)}
-                            className="w-4 h-4 text-orange-500 bg-slate-800 border-slate-600 rounded focus:ring-orange-500 focus:ring-offset-0"
+                            className="w-4 h-4 text-amber-500 bg-neutral-800 border-neutral-600 rounded focus:ring-amber-500 focus:ring-offset-0"
                         />
-                        <span className="text-xs text-slate-400 group-hover:text-slate-300 flex items-center gap-1">
+                        <span className="text-xs text-neutral-400 group-hover:text-neutral-300 flex items-center gap-1">
                             <Zap className="w-3 h-3" /> Time bonus enabled
                         </span>
                     </label>
@@ -787,7 +787,7 @@ export default function LiveQuizQuestionEditor({
                         type="button"
                         onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))}
                         disabled={currentIndex === 0}
-                        className="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs bg-slate-700/80 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition flex items-center justify-center gap-1"
+                        className="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs bg-neutral-700/80 hover:bg-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition flex items-center justify-center gap-1"
                     >
                         <ChevronLeft className="w-3.5 h-3.5" /> Prev
                     </button>
@@ -795,7 +795,7 @@ export default function LiveQuizQuestionEditor({
                         type="button"
                         onClick={() => setCurrentIndex(Math.min(questions.length - 1, currentIndex + 1))}
                         disabled={currentIndex === questions.length - 1}
-                        className="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs bg-slate-700/80 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition flex items-center justify-center gap-1"
+                        className="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs bg-neutral-700/80 hover:bg-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition flex items-center justify-center gap-1"
                     >
                         Next <ChevronRight className="w-3.5 h-3.5" />
                     </button>
@@ -805,7 +805,7 @@ export default function LiveQuizQuestionEditor({
                     <button
                         type="button"
                         onClick={handleClose}
-                        className="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs bg-slate-700/80 hover:bg-slate-600 text-white rounded-lg transition"
+                        className="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs bg-neutral-700/80 hover:bg-neutral-600 text-white rounded-lg transition"
                     >
                         Close
                     </button>
@@ -813,7 +813,7 @@ export default function LiveQuizQuestionEditor({
                         type="button"
                         onClick={saveCurrentQuestion}
                         disabled={saving}
-                        className="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs bg-orange-600 hover:bg-orange-500 text-white rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                        className="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
                     >
                         {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                         Save
@@ -822,7 +822,7 @@ export default function LiveQuizQuestionEditor({
             </div>
 
             {/* Stats Bar - Responsive */}
-            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 pt-2 border-t border-slate-700/50">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-neutral-500 pt-2 border-t border-neutral-700/50">
                 <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                     <span className="flex items-center gap-1">
                         <FileText className="w-3 h-3" /> {questions.length}
@@ -834,7 +834,7 @@ export default function LiveQuizQuestionEditor({
                         <Clock className="w-3 h-3" /> {questions.reduce((sum, q) => sum + q.time_limit, 0)}s
                     </span>
                 </div>
-                <div className="flex gap-2 text-slate-500">
+                <div className="flex gap-2 text-neutral-500">
                     <span>{questions.filter(q => q.question_type === 'multiple_choice').length} MC</span>
                     <span>{questions.filter(q => q.question_type === 'true_false').length} T/F</span>
                     <span>{questions.filter(q => q.question_type === 'short_answer').length} SA</span>

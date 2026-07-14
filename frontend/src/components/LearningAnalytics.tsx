@@ -152,7 +152,7 @@ function LearningAnalytics() {
 
     if (!data) {
         return (
-            <div className="text-center py-20 text-slate-400">
+            <div className="text-center py-20 text-neutral-400">
                 Failed to load analytics data
             </div>
         )
@@ -173,42 +173,42 @@ function LearningAnalytics() {
 
             {/* Summary Stats Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-xl p-4 text-center">
+                <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-xl p-4 text-center">
                     <BookOpen className="w-8 h-8 mx-auto text-purple-400 mb-2" />
                     <p className="text-2xl font-bold text-white">{data.career_paths.total}</p>
-                    <p className="text-slate-400 text-sm">Career Paths</p>
+                    <p className="text-neutral-400 text-sm">Career Paths</p>
                 </div>
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-xl p-4 text-center">
-                    <FileText className="w-8 h-8 mx-auto text-blue-400 mb-2" />
+                <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-xl p-4 text-center">
+                    <FileText className="w-8 h-8 mx-auto text-purple-400 mb-2" />
                     <p className="text-2xl font-bold text-white">{data.modules.total}</p>
-                    <p className="text-slate-400 text-sm">Modules</p>
+                    <p className="text-neutral-400 text-sm">Modules</p>
                 </div>
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-xl p-4 text-center">
+                <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-xl p-4 text-center">
                     <Award className="w-8 h-8 mx-auto text-green-400 mb-2" />
                     <p className="text-2xl font-bold text-white">{data.quizzes.total}</p>
-                    <p className="text-slate-400 text-sm">Quizzes</p>
+                    <p className="text-neutral-400 text-sm">Quizzes</p>
                 </div>
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-xl p-4 text-center">
-                    <Users className="w-8 h-8 mx-auto text-yellow-400 mb-2" />
+                <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-xl p-4 text-center">
+                    <Users className="w-8 h-8 mx-auto text-amber-400 mb-2" />
                     <p className="text-2xl font-bold text-white">{data.enrollments.total}</p>
-                    <p className="text-slate-400 text-sm">Enrollments</p>
+                    <p className="text-neutral-400 text-sm">Enrollments</p>
                 </div>
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-xl p-4 text-center">
-                    <CheckCircle className="w-8 h-8 mx-auto text-emerald-400 mb-2" />
+                <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-xl p-4 text-center">
+                    <CheckCircle className="w-8 h-8 mx-auto text-green-400 mb-2" />
                     <p className="text-2xl font-bold text-white">{data.enrollments.completion_rate.toFixed(0)}%</p>
-                    <p className="text-slate-400 text-sm">Completion Rate</p>
+                    <p className="text-neutral-400 text-sm">Completion Rate</p>
                 </div>
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-xl p-4 text-center">
-                    <TrendingUp className="w-8 h-8 mx-auto text-pink-400 mb-2" />
+                <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-xl p-4 text-center">
+                    <TrendingUp className="w-8 h-8 mx-auto text-purple-400 mb-2" />
                     <p className="text-2xl font-bold text-white">{data.quiz_performance.avg_score.toFixed(0)}%</p>
-                    <p className="text-slate-400 text-sm">Avg Quiz Score</p>
+                    <p className="text-neutral-400 text-sm">Avg Quiz Score</p>
                 </div>
             </div>
 
             {/* Charts Row 1 */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Career Paths by Program */}
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-6">
+                <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-6">
                     <h3 className="text-lg font-semibold text-white mb-4">Career Paths by Program</h3>
                     {data.career_paths.by_program.length > 0 ? (
                         <ResponsiveContainer width="100%" height={250}>
@@ -231,14 +231,14 @@ function LearningAnalytics() {
                             </PieChart>
                         </ResponsiveContainer>
                     ) : (
-                        <div className="h-[250px] flex items-center justify-center text-slate-400">
+                        <div className="h-[250px] flex items-center justify-center text-neutral-400">
                             No career path data available
                         </div>
                     )}
                 </div>
 
                 {/* Career Paths by Difficulty */}
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-6">
+                <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-6">
                     <h3 className="text-lg font-semibold text-white mb-4">Career Paths by Difficulty</h3>
                     {data.career_paths.by_difficulty.length > 0 ? (
                         <ResponsiveContainer width="100%" height={250}>
@@ -258,7 +258,7 @@ function LearningAnalytics() {
                             </BarChart>
                         </ResponsiveContainer>
                     ) : (
-                        <div className="h-[250px] flex items-center justify-center text-slate-400">
+                        <div className="h-[250px] flex items-center justify-center text-neutral-400">
                             No difficulty data available
                         </div>
                     )}
@@ -268,7 +268,7 @@ function LearningAnalytics() {
             {/* Charts Row 2 */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Modules by Type */}
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-6">
+                <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-6">
                     <h3 className="text-lg font-semibold text-white mb-4">Modules by Type</h3>
                     {data.modules.by_type.length > 0 ? (
                         <ResponsiveContainer width="100%" height={250}>
@@ -291,22 +291,22 @@ function LearningAnalytics() {
                             </PieChart>
                         </ResponsiveContainer>
                     ) : (
-                        <div className="h-[250px] flex items-center justify-center text-slate-400">
+                        <div className="h-[250px] flex items-center justify-center text-neutral-400">
                             No module data available
                         </div>
                     )}
                 </div>
 
                 {/* Quiz Performance */}
-                <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-6">
+                <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-6">
                     <h3 className="text-lg font-semibold text-white mb-4">Quiz Performance</h3>
                     <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-                            <p className="text-slate-400 text-sm">Total Attempts</p>
+                        <div className="bg-neutral-700/50 rounded-lg p-4 text-center">
+                            <p className="text-neutral-400 text-sm">Total Attempts</p>
                             <p className="text-2xl font-bold text-white">{data.quiz_performance.total_attempts}</p>
                         </div>
-                        <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-                            <p className="text-slate-400 text-sm">Total Questions</p>
+                        <div className="bg-neutral-700/50 rounded-lg p-4 text-center">
+                            <p className="text-neutral-400 text-sm">Total Questions</p>
                             <p className="text-2xl font-bold text-white">{data.quizzes.total_questions}</p>
                         </div>
                         <div className="bg-green-900/30 rounded-lg p-4 text-center">
@@ -318,14 +318,14 @@ function LearningAnalytics() {
                             <p className="text-2xl font-bold text-red-400">{data.quiz_performance.fail_count}</p>
                         </div>
                     </div>
-                    <div className="bg-slate-700/50 rounded-lg p-4">
+                    <div className="bg-neutral-700/50 rounded-lg p-4">
                         <div className="flex justify-between items-center mb-2">
-                            <span className="text-slate-400">Average Pass Score Threshold</span>
+                            <span className="text-neutral-400">Average Pass Score Threshold</span>
                             <span className="text-white font-semibold">{data.quizzes.avg_pass_score.toFixed(0)}%</span>
                         </div>
-                        <div className="w-full bg-slate-600 rounded-full h-3">
+                        <div className="w-full bg-neutral-600 rounded-full h-3">
                             <div
-                                className="bg-gradient-to-r from-purple-500 to-blue-500 h-3 rounded-full transition-all"
+                                className="bg-gradient-to-r from-purple-500 to-purple-500 h-3 rounded-full transition-all"
                                 style={{ width: `${data.quizzes.avg_pass_score}%` }}
                             />
                         </div>
@@ -334,20 +334,20 @@ function LearningAnalytics() {
             </div>
 
             {/* Enrollment Stats */}
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-6">
+            <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-6">
                 <h3 className="text-lg font-semibold text-white mb-4">Enrollment Statistics</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-                        <p className="text-slate-400 text-sm">Total Enrollments</p>
+                    <div className="bg-neutral-700/50 rounded-lg p-4 text-center">
+                        <p className="text-neutral-400 text-sm">Total Enrollments</p>
                         <p className="text-2xl font-bold text-white">{data.enrollments.total}</p>
                     </div>
                     <div className="bg-green-900/30 rounded-lg p-4 text-center">
                         <p className="text-green-400 text-sm">Completed</p>
                         <p className="text-2xl font-bold text-green-400">{data.enrollments.completed}</p>
                     </div>
-                    <div className="bg-yellow-900/30 rounded-lg p-4 text-center">
-                        <p className="text-yellow-400 text-sm">In Progress</p>
-                        <p className="text-2xl font-bold text-yellow-400">{data.enrollments.in_progress}</p>
+                    <div className="bg-amber-900/30 rounded-lg p-4 text-center">
+                        <p className="text-amber-400 text-sm">In Progress</p>
+                        <p className="text-2xl font-bold text-amber-400">{data.enrollments.in_progress}</p>
                     </div>
                     <div className="bg-purple-900/30 rounded-lg p-4 text-center">
                         <p className="text-purple-400 text-sm">Completion Rate</p>
@@ -357,22 +357,22 @@ function LearningAnalytics() {
             </div>
 
             {/* Module Stats */}
-            <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/30 rounded-2xl p-6">
+            <div className="bg-neutral-800/50 backdrop-blur-xl border border-neutral-700/30 rounded-2xl p-6">
                 <h3 className="text-lg font-semibold text-white mb-4">Module Statistics</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-                        <Clock className="w-6 h-6 mx-auto text-blue-400 mb-2" />
-                        <p className="text-slate-400 text-sm">Avg Duration</p>
+                    <div className="bg-neutral-700/50 rounded-lg p-4 text-center">
+                        <Clock className="w-6 h-6 mx-auto text-purple-400 mb-2" />
+                        <p className="text-neutral-400 text-sm">Avg Duration</p>
                         <p className="text-xl font-bold text-white">{data.modules.avg_duration.toFixed(0)} min</p>
                     </div>
-                    <div className="bg-slate-700/50 rounded-lg p-4 text-center">
-                        <Award className="w-6 h-6 mx-auto text-yellow-400 mb-2" />
-                        <p className="text-slate-400 text-sm">Total Points</p>
+                    <div className="bg-neutral-700/50 rounded-lg p-4 text-center">
+                        <Award className="w-6 h-6 mx-auto text-amber-400 mb-2" />
+                        <p className="text-neutral-400 text-sm">Total Points</p>
                         <p className="text-xl font-bold text-white">{data.modules.total_points}</p>
                     </div>
-                    <div className="bg-slate-700/50 rounded-lg p-4 text-center">
+                    <div className="bg-neutral-700/50 rounded-lg p-4 text-center">
                         <FileText className="w-6 h-6 mx-auto text-green-400 mb-2" />
-                        <p className="text-slate-400 text-sm">Module Types</p>
+                        <p className="text-neutral-400 text-sm">Module Types</p>
                         <p className="text-xl font-bold text-white">{data.modules.by_type.length}</p>
                     </div>
                 </div>

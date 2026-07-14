@@ -20,7 +20,7 @@ export default function AdminRoute({ children, allowInstructor = false }: AdminR
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
         <div className="text-white">Verifying access...</div>
       </div>
     )

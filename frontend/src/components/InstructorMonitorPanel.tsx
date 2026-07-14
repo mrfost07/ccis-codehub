@@ -47,7 +47,7 @@ const VIOLATION_LABELS: Record<string, string> = {
 
 const VIOLATION_COLORS: Record<string, string> = {
     fullscreen_exit: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
-    tab_switch: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
+    tab_switch: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
     copy_paste: 'text-red-400 bg-red-500/10 border-red-500/30',
 };
 
@@ -214,15 +214,15 @@ const InstructorMonitorPanel: React.FC<InstructorMonitorPanelProps> = ({ joinCod
 
     return (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="bg-neutral-900 border border-neutral-700 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
 
                 {/* ── Header ───────────────────────────────────────────── */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-gradient-to-r from-slate-800 to-slate-900 flex-shrink-0">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 bg-gradient-to-r from-neutral-800 to-neutral-900 flex-shrink-0">
                     <div className="flex items-center gap-3">
-                        <ShieldAlert className="w-5 h-5 text-orange-400" />
+                        <ShieldAlert className="w-5 h-5 text-amber-400" />
                         <div>
                             <h3 className="font-bold text-white text-sm">Live Monitoring</h3>
-                            <p className="text-xs text-slate-400">{quizTitle} · <span className="font-mono">{joinCode}</span></p>
+                            <p className="text-xs text-neutral-400">{quizTitle} · <span className="font-mono">{joinCode}</span></p>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -237,42 +237,42 @@ const InstructorMonitorPanel: React.FC<InstructorMonitorPanelProps> = ({ joinCod
                                     </button>
                                 )
                         }
-                        <button onClick={onClose} className="ml-2 p-1.5 hover:bg-slate-700 rounded-lg transition text-slate-400 hover:text-white">
+                        <button onClick={onClose} className="ml-2 p-1.5 hover:bg-neutral-700 rounded-lg transition text-neutral-400 hover:text-white">
                             <X className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
 
                 {/* ── Stats Bar ────────────────────────────────────────── */}
-                <div className="grid grid-cols-3 border-b border-slate-800 flex-shrink-0">
+                <div className="grid grid-cols-3 border-b border-neutral-800 flex-shrink-0">
                     <div className="flex flex-col items-center py-3">
-                        <Users className="w-4 h-4 text-slate-400 mb-0.5" />
+                        <Users className="w-4 h-4 text-neutral-400 mb-0.5" />
                         <span className="text-lg font-bold text-white">{participants.length}</span>
-                        <span className="text-xs text-slate-500">Participants</span>
+                        <span className="text-xs text-neutral-500">Participants</span>
                     </div>
-                    <div className="flex flex-col items-center py-3 border-x border-slate-800">
+                    <div className="flex flex-col items-center py-3 border-x border-neutral-800">
                         <AlertTriangle className="w-4 h-4 text-amber-400 mb-0.5" />
                         <span className="text-lg font-bold text-amber-400">{violations.length}</span>
-                        <span className="text-xs text-slate-500">Violations</span>
+                        <span className="text-xs text-neutral-500">Violations</span>
                     </div>
                     <div className="flex flex-col items-center py-3">
                         <UserX className="w-4 h-4 text-red-400 mb-0.5" />
                         <span className="text-lg font-bold text-red-400">{flaggedCount}</span>
-                        <span className="text-xs text-slate-500">Flagged</span>
+                        <span className="text-xs text-neutral-500">Flagged</span>
                     </div>
                 </div>
 
                 {/* ── Tabs ─────────────────────────────────────────────── */}
-                <div className="flex border-b border-slate-800 flex-shrink-0">
+                <div className="flex border-b border-neutral-800 flex-shrink-0">
                     <button
                         onClick={() => setTab('violations')}
-                        className={`flex-1 py-2.5 text-sm font-medium transition ${tab === 'violations' ? 'text-orange-400 border-b-2 border-orange-500 bg-slate-800/30' : 'text-slate-400 hover:text-white'}`}
+                        className={`flex-1 py-2.5 text-sm font-medium transition ${tab === 'violations' ? 'text-amber-400 border-b-2 border-amber-500 bg-neutral-800/30' : 'text-neutral-400 hover:text-white'}`}
                     >
-                        Violations {violations.length > 0 && <span className="ml-1 px-1.5 py-0.5 bg-orange-500/20 text-orange-400 rounded text-xs">{violations.length}</span>}
+                        Violations {violations.length > 0 && <span className="ml-1 px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded text-xs">{violations.length}</span>}
                     </button>
                     <button
                         onClick={() => setTab('participants')}
-                        className={`flex-1 py-2.5 text-sm font-medium transition ${tab === 'participants' ? 'text-orange-400 border-b-2 border-orange-500 bg-slate-800/30' : 'text-slate-400 hover:text-white'}`}
+                        className={`flex-1 py-2.5 text-sm font-medium transition ${tab === 'participants' ? 'text-amber-400 border-b-2 border-amber-500 bg-neutral-800/30' : 'text-neutral-400 hover:text-white'}`}
                     >
                         Participants
                         {pausedCount > 0 && <span className="ml-1 px-1.5 py-0.5 bg-amber-500/20 text-amber-400 rounded text-xs">{pausedCount} paused</span>}
@@ -284,22 +284,22 @@ const InstructorMonitorPanel: React.FC<InstructorMonitorPanelProps> = ({ joinCod
 
                     {/* ── Violations Tab ─────────────────────────────────── */}
                     {tab === 'violations' && (
-                        <div className="divide-y divide-slate-800">
+                        <div className="divide-y divide-neutral-800">
                             {violations.length === 0 ? (
-                                <div className="text-center py-16 text-slate-500">
+                                <div className="text-center py-16 text-neutral-500">
                                     <ShieldAlert className="w-10 h-10 mx-auto mb-3 opacity-30" />
                                     <p className="text-sm">No violations yet</p>
                                     <p className="text-xs mt-1 opacity-60">Violations will appear here in real-time</p>
                                 </div>
                             ) : (
                                 violations.map(v => (
-                                    <div key={v.id} className="flex items-center gap-3 px-5 py-3 hover:bg-slate-800/30 transition">
-                                        <div className={`px-2 py-0.5 rounded border text-xs font-medium ${VIOLATION_COLORS[v.violationType] || 'text-slate-400 bg-slate-700/50 border-slate-600'}`}>
+                                    <div key={v.id} className="flex items-center gap-3 px-5 py-3 hover:bg-neutral-800/30 transition">
+                                        <div className={`px-2 py-0.5 rounded border text-xs font-medium ${VIOLATION_COLORS[v.violationType] || 'text-neutral-400 bg-neutral-700/50 border-neutral-600'}`}>
                                             {VIOLATION_LABELS[v.violationType] || v.violationType}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <span className="text-white text-sm font-medium truncate block">{v.nickname}</span>
-                                            <span className="text-slate-500 text-xs">
+                                            <span className="text-neutral-500 text-xs">
                                                 {v.totalViolations} total violation{v.totalViolations !== 1 ? 's' : ''}
                                             </span>
                                         </div>
@@ -309,7 +309,7 @@ const InstructorMonitorPanel: React.FC<InstructorMonitorPanelProps> = ({ joinCod
                                                     <UserX className="w-3 h-3" /> Flagged
                                                 </span>
                                             )}
-                                            <span className="text-xs text-slate-600">{relativeTime(v.ts)}</span>
+                                            <span className="text-xs text-neutral-600">{relativeTime(v.ts)}</span>
                                         </div>
                                     </div>
                                 ))
@@ -319,9 +319,9 @@ const InstructorMonitorPanel: React.FC<InstructorMonitorPanelProps> = ({ joinCod
 
                     {/* ── Participants Tab ───────────────────────────────── */}
                     {tab === 'participants' && (
-                        <div className="divide-y divide-slate-800">
+                        <div className="divide-y divide-neutral-800">
                             {participants.length === 0 ? (
-                                <div className="text-center py-16 text-slate-500">
+                                <div className="text-center py-16 text-neutral-500">
                                     <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
                                     <p className="text-sm">No participants yet</p>
                                 </div>
@@ -329,9 +329,9 @@ const InstructorMonitorPanel: React.FC<InstructorMonitorPanelProps> = ({ joinCod
                                 participants
                                     .sort((a, b) => b.violations - a.violations)
                                     .map(p => (
-                                        <div key={p.participantId} className={`flex items-center gap-3 px-5 py-3 hover:bg-slate-800/30 transition ${p.isPaused ? 'bg-amber-900/10' : ''}`}>
+                                        <div key={p.participantId} className={`flex items-center gap-3 px-5 py-3 hover:bg-neutral-800/30 transition ${p.isPaused ? 'bg-amber-900/10' : ''}`}>
                                             {/* Avatar / status dot */}
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${p.isFlagged ? 'bg-red-800 text-red-200' : p.isPaused ? 'bg-amber-800 text-amber-200' : 'bg-slate-700 text-slate-300'}`}>
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${p.isFlagged ? 'bg-red-800 text-red-200' : p.isPaused ? 'bg-amber-800 text-amber-200' : 'bg-neutral-700 text-neutral-300'}`}>
                                                 {p.nickname.charAt(0).toUpperCase()}
                                             </div>
 
@@ -350,12 +350,12 @@ const InstructorMonitorPanel: React.FC<InstructorMonitorPanelProps> = ({ joinCod
                                                     )}
                                                 </div>
                                                 <div className="flex items-center gap-3 mt-0.5">
-                                                    <span className="text-slate-400 text-xs">Score: {p.score}</span>
+                                                    <span className="text-neutral-400 text-xs">Score: {p.score}</span>
                                                     {p.violations > 0 && (
                                                         <span className="text-amber-400 text-xs">{p.violations} violation{p.violations !== 1 ? 's' : ''}</span>
                                                     )}
                                                     {p.pauseReason && (
-                                                        <span className="text-slate-500 text-xs truncate max-w-[160px]">{p.pauseReason}</span>
+                                                        <span className="text-neutral-500 text-xs truncate max-w-[160px]">{p.pauseReason}</span>
                                                     )}
                                                 </div>
                                             </div>
@@ -388,9 +388,9 @@ const InstructorMonitorPanel: React.FC<InstructorMonitorPanelProps> = ({ joinCod
                 </div>
 
                 {/* ── Footer hint ──────────────────────────────────────── */}
-                <div className="border-t border-slate-800 px-5 py-2.5 flex-shrink-0 flex items-center gap-2">
-                    <Eye className="w-3.5 h-3.5 text-slate-600" />
-                    <p className="text-xs text-slate-600">Updates are live via WebSocket · Sorted by violations</p>
+                <div className="border-t border-neutral-800 px-5 py-2.5 flex-shrink-0 flex items-center gap-2">
+                    <Eye className="w-3.5 h-3.5 text-neutral-600" />
+                    <p className="text-xs text-neutral-600">Updates are live via WebSocket · Sorted by violations</p>
                 </div>
             </div>
         </div>

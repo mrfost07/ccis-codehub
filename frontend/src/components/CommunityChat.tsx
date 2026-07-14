@@ -358,7 +358,7 @@ export default function CommunityChat() {
         return (
           <button
             onClick={handleIdleClick}
-            className="fixed right-0 bottom-[45%] w-10 h-16 bg-slate-900/60 backdrop-blur-sm border border-slate-700/30 border-r-0 rounded-l-xl shadow-lg hover:w-12 hover:bg-slate-800/80 transition-[width,background] z-50 flex items-center justify-center group"
+            className="fixed right-0 bottom-[45%] w-10 h-16 bg-neutral-900/60 backdrop-blur-sm border border-neutral-700/30 border-r-0 rounded-l-xl shadow-lg hover:w-12 hover:bg-neutral-800/80 transition-[width,background] z-50 flex items-center justify-center group"
             title="Community Chat"
           >
             <MessageCircle className="w-4 h-4 text-purple-400 opacity-60 group-hover:opacity-100 transition-opacity" />
@@ -375,7 +375,7 @@ export default function CommunityChat() {
       return (
         <button
           onClick={handleOpen}
-          className="fixed right-4 sm:right-6 bottom-36 sm:bottom-24 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-transform z-50 flex items-center justify-center"
+          className="fixed right-4 sm:right-6 bottom-36 sm:bottom-24 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-r from-purple-600 to-purple-600 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-transform z-50 flex items-center justify-center"
           title="Open Community Chat"
         >
           <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -389,12 +389,12 @@ export default function CommunityChat() {
     }
 
     return (
-      <div className="fixed right-2 sm:right-6 bottom-36 sm:bottom-40 w-[calc(100vw-16px)] sm:w-96 h-[calc(100vh-160px)] sm:h-[550px] bg-slate-900 rounded-2xl shadow-2xl border border-slate-700 flex flex-col z-[60] overflow-hidden">
+      <div className="fixed right-2 sm:right-6 bottom-36 sm:bottom-40 w-[calc(100vw-16px)] sm:w-96 h-[calc(100vh-160px)] sm:h-[550px] bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-700 flex flex-col z-[60] overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-700 bg-slate-800">
+      <div className="flex items-center justify-between p-4 border-b border-neutral-700 bg-neutral-800">
         <div className="flex items-center gap-3">
           {/* Use Lucide icons instead of emoji */}
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center">
             {activeRoom?.room_type === 'global' || activeRoom?.name?.toLowerCase().includes('global')
               ? <Globe className="w-5 h-5 text-white" />
               : <Building2 className="w-5 h-5 text-white" />
@@ -402,31 +402,31 @@ export default function CommunityChat() {
           </div>
           <div>
             <h3 className="font-bold text-white">{activeRoom?.name || 'Community Chat'}</h3>
-            <p className="text-xs text-slate-400">{activeRoom?.member_count || 0} members</p>
+            <p className="text-xs text-neutral-400">{activeRoom?.member_count || 0} members</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className="p-2 hover:bg-slate-700 rounded-lg transition"
+            className="p-2 hover:bg-neutral-700 rounded-lg transition"
           >
-            <Settings className="w-5 h-5 text-slate-400" />
+            <Settings className="w-5 h-5 text-neutral-400" />
           </button>
           <button
             onClick={handleClose}
-            className="p-2 hover:bg-slate-700 rounded-lg transition"
+            className="p-2 hover:bg-neutral-700 rounded-lg transition"
           >
-            <X className="w-5 h-5 text-slate-400" />
+            <X className="w-5 h-5 text-neutral-400" />
           </button>
         </div>
       </div>
 
       {/* Settings Panel */}
       {showSettings && (
-        <div className="p-4 border-b border-slate-700 bg-slate-800/50 space-y-4">
+        <div className="p-4 border-b border-neutral-700 bg-neutral-800/50 space-y-4">
           {/* Nickname */}
           <div>
-            <label className="text-xs text-slate-400 block mb-1">Display Name / Nickname</label>
+            <label className="text-xs text-neutral-400 block mb-1">Display Name / Nickname</label>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -434,7 +434,7 @@ export default function CommunityChat() {
                 onChange={(e) => setNickname(e.target.value)}
                 disabled={!editingNickname}
                 placeholder="Enter nickname..."
-                className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500 disabled:opacity-50"
+                className="flex-1 px-3 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-sm text-white placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-purple-500 disabled:opacity-50"
               />
               {editingNickname ? (
                 <button
@@ -446,7 +446,7 @@ export default function CommunityChat() {
               ) : (
                 <button
                   onClick={() => setEditingNickname(true)}
-                  className="p-2 bg-slate-600 hover:bg-slate-500 rounded-lg transition"
+                  className="p-2 bg-neutral-600 hover:bg-neutral-500 rounded-lg transition"
                 >
                   <Edit2 className="w-4 h-4 text-white" />
                 </button>
@@ -459,7 +459,7 @@ export default function CommunityChat() {
 
       {/* Room Tabs */}
       {rooms.length > 1 && (
-        <div className="flex gap-1 px-3 pt-2 pb-1 border-b border-slate-700/50 overflow-x-auto scrollbar-none">
+        <div className="flex gap-1 px-3 pt-2 pb-1 border-b border-neutral-700/50 overflow-x-auto scrollbar-none">
           {rooms.map((room) => (
             <button
               key={room.id}
@@ -467,7 +467,7 @@ export default function CommunityChat() {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
                 activeRoom?.id === room.id
                   ? 'bg-purple-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                  : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-700/50'
               }`}
             >
               {room.room_type === 'global' || room.name.toLowerCase().includes('global')
@@ -487,12 +487,12 @@ export default function CommunityChat() {
         className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 relative"
       >
         {messages.length === 0 ? (
-          <div className="text-center text-slate-500 py-12">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-800 flex items-center justify-center">
+          <div className="text-center text-neutral-500 py-12">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-neutral-800 flex items-center justify-center">
               <MessageCircle className="w-8 h-8 opacity-50" />
             </div>
             <p className="text-sm">No messages yet</p>
-            <p className="text-xs text-slate-600 mt-1">Start the conversation!</p>
+            <p className="text-xs text-neutral-600 mt-1">Start the conversation!</p>
           </div>
         ) : (
           messages.map((message, index) => {
@@ -517,7 +517,7 @@ export default function CommunityChat() {
                         className="w-8 h-8 rounded-full object-cover ring-2 ring-purple-500/30"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center ring-2 ring-purple-500/30">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center ring-2 ring-purple-500/30">
                         <span className="text-xs font-bold text-white">
                           {user?.username?.[0]?.toUpperCase() || 'U'}
                         </span>
@@ -527,12 +527,12 @@ export default function CommunityChat() {
                     <img
                       src={getProfilePicUrl(message.sender_info.profile_picture)!}
                       alt={message.sender_info?.display_name || 'User'}
-                      className="w-8 h-8 rounded-full object-cover ring-2 ring-slate-600 cursor-pointer hover:ring-purple-500 transition-all"
+                      className="w-8 h-8 rounded-full object-cover ring-2 ring-neutral-600 cursor-pointer hover:ring-purple-500 transition-all"
                       onClick={() => handleViewProfile(message.sender_info.id)}
                     />
                   ) : (
                     <div
-                      className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center ring-2 ring-slate-600 cursor-pointer hover:ring-purple-500 transition-all"
+                      className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center ring-2 ring-neutral-600 cursor-pointer hover:ring-purple-500 transition-all"
                       onClick={() => handleViewProfile(message.sender_info.id)}
                     >
                       <span className="text-xs font-bold text-white">
@@ -556,7 +556,7 @@ export default function CommunityChat() {
 
                   {/* Reply Reference */}
                   {message.reply_to_info && (
-                    <div className={`flex items-center gap-1 text-[10px] text-slate-500 mb-1 ${message.is_own_message ? 'mr-1' : 'ml-1'
+                    <div className={`flex items-center gap-1 text-[10px] text-neutral-500 mb-1 ${message.is_own_message ? 'mr-1' : 'ml-1'
                       }`}>
                       <Reply className="w-3 h-3" />
                       <span>Replying to {message.reply_to_info.sender}</span>
@@ -565,7 +565,7 @@ export default function CommunityChat() {
 
                   {/* Bumped Badge */}
                   {message.is_bumped && (
-                    <div className={`flex items-center gap-1 text-[10px] text-yellow-500 mb-1 ${message.is_own_message ? 'mr-1' : 'ml-1'
+                    <div className={`flex items-center gap-1 text-[10px] text-amber-500 mb-1 ${message.is_own_message ? 'mr-1' : 'ml-1'
                       }`}>
                       <ArrowUp className="w-3 h-3" />
                       <span>Bumped {message.bump_count}x</span>
@@ -576,21 +576,21 @@ export default function CommunityChat() {
                   <div
                     className={`relative rounded-2xl px-3 py-2 sm:px-4 sm:py-2.5 shadow-md ${message.is_own_message
                       ? 'bg-gradient-to-br from-purple-600 to-purple-700 rounded-br-sm'
-                      : 'bg-slate-700/80 backdrop-blur rounded-bl-sm'
+                      : 'bg-neutral-700/80 backdrop-blur rounded-bl-sm'
                       } ${message.deleted_for_everyone ? 'opacity-60' : ''}`}
                   >
                     {/* Reply Preview */}
                     {message.reply_to_info && (
                       <div className={`text-[11px] rounded-lg p-2 mb-2 border-l-2 ${message.is_own_message
                         ? 'bg-purple-800/50 border-purple-400'
-                        : 'bg-slate-800/50 border-slate-500'
+                        : 'bg-neutral-800/50 border-neutral-500'
                         }`}>
-                        <p className="text-slate-300 truncate">{message.reply_to_info.content}</p>
+                        <p className="text-neutral-300 truncate">{message.reply_to_info.content}</p>
                       </div>
                     )}
 
                     {/* Message Content */}
-                    <p className={`text-sm break-words leading-relaxed ${message.deleted_for_everyone ? 'italic text-slate-400' : 'text-white'
+                    <p className={`text-sm break-words leading-relaxed ${message.deleted_for_everyone ? 'italic text-neutral-400' : 'text-white'
                       }`}>
                       {message.deleted_for_everyone ? 'This message was deleted' : message.content}
                     </p>
@@ -604,7 +604,7 @@ export default function CommunityChat() {
                             onClick={() => handleReact(message.id, emoji)}
                             className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[11px] transition-all ${data.reacted_by_me
                               ? 'bg-purple-500/80 ring-1 ring-purple-400'
-                              : 'bg-slate-600/80 hover:bg-slate-500/80'
+                              : 'bg-neutral-600/80 hover:bg-neutral-500/80'
                               }`}
                           >
                             <span>{emoji}</span>
@@ -617,7 +617,7 @@ export default function CommunityChat() {
                     {/* Time & Status */}
                     <div className={`flex items-center gap-1.5 mt-1.5 ${message.is_own_message ? 'justify-end' : 'justify-start'
                       }`}>
-                      <span className={`text-[10px] ${message.is_own_message ? 'text-purple-200/70' : 'text-slate-400'
+                      <span className={`text-[10px] ${message.is_own_message ? 'text-purple-200/70' : 'text-neutral-400'
                         }`}>
                         {formatTime(message.created_at)}
                       </span>
@@ -631,12 +631,12 @@ export default function CommunityChat() {
 
                   {/* Reactions Picker — anchored to message container */}
                   {showReactions === message.id && (
-                    <div className={`absolute ${message.is_own_message ? 'right-0' : 'left-0'} bottom-full mb-1 bg-slate-800/95 backdrop-blur rounded-xl p-2 shadow-xl border border-slate-700 flex gap-1 z-20`}>
+                    <div className={`absolute ${message.is_own_message ? 'right-0' : 'left-0'} bottom-full mb-1 bg-neutral-800/95 backdrop-blur rounded-xl p-2 shadow-xl border border-neutral-700 flex gap-1 z-20`}>
                       {REACTIONS.map((emoji) => (
                         <button
                           key={emoji}
                           onClick={() => handleReact(message.id, emoji)}
-                          className="p-1.5 hover:bg-slate-700 rounded-lg transition text-base hover:scale-110"
+                          className="p-1.5 hover:bg-neutral-700 rounded-lg transition text-base hover:scale-110"
                         >
                           {emoji}
                         </button>
@@ -646,11 +646,11 @@ export default function CommunityChat() {
 
                   {/* Message Menu — anchored to message container */}
                   {showMessageMenu === message.id && (
-                    <div className={`absolute ${message.is_own_message ? 'right-0' : 'left-0'} bottom-full mb-1 bg-slate-800/95 backdrop-blur rounded-xl shadow-xl border border-slate-700 overflow-hidden z-20 min-w-[160px]`}>
+                    <div className={`absolute ${message.is_own_message ? 'right-0' : 'left-0'} bottom-full mb-1 bg-neutral-800/95 backdrop-blur rounded-xl shadow-xl border border-neutral-700 overflow-hidden z-20 min-w-[160px]`}>
                       {/* Reply */}
                       <button
                         onClick={() => { setReplyingTo(message); setShowMessageMenu(null) }}
-                        className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-300 hover:bg-slate-700 transition"
+                        className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-neutral-300 hover:bg-neutral-700 transition"
                       >
                         <Reply className="w-4 h-4" />
                         Reply
@@ -659,7 +659,7 @@ export default function CommunityChat() {
                       {/* Bump */}
                       <button
                         onClick={() => { handleBump(message.id); setShowMessageMenu(null) }}
-                        className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-300 hover:bg-slate-700 transition border-t border-slate-700"
+                        className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-neutral-300 hover:bg-neutral-700 transition border-t border-neutral-700"
                       >
                         <ArrowUp className="w-4 h-4" />
                         Bump
@@ -669,7 +669,7 @@ export default function CommunityChat() {
                       {message.is_own_message ? (
                         <button
                           onClick={() => handleDeleteForEveryone(message.id)}
-                          className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-400 hover:bg-slate-700 transition border-t border-slate-700"
+                          className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-400 hover:bg-neutral-700 transition border-t border-neutral-700"
                         >
                           <Trash2 className="w-4 h-4" />
                           Delete for everyone
@@ -677,7 +677,7 @@ export default function CommunityChat() {
                       ) : (
                         <button
                           onClick={() => handleDeleteForMe(message.id)}
-                          className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-slate-300 hover:bg-slate-700 transition border-t border-slate-700"
+                          className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-neutral-300 hover:bg-neutral-700 transition border-t border-neutral-700"
                         >
                           <Trash2 className="w-4 h-4" />
                           Delete for me
@@ -694,17 +694,17 @@ export default function CommunityChat() {
                   <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 self-center">
                     <button
                       onClick={() => setShowReactions(showReactions === message.id ? null : message.id)}
-                      className="p-1.5 hover:bg-slate-700 rounded-md transition bg-slate-800/80"
+                      className="p-1.5 hover:bg-neutral-700 rounded-md transition bg-neutral-800/80"
                       title="React"
                     >
-                      <Smile className="w-3.5 h-3.5 text-slate-400" />
+                      <Smile className="w-3.5 h-3.5 text-neutral-400" />
                     </button>
                     <button
                       onClick={() => setShowMessageMenu(showMessageMenu === message.id ? null : message.id)}
-                      className="p-1.5 hover:bg-slate-700 rounded-md transition bg-slate-800/80"
+                      className="p-1.5 hover:bg-neutral-700 rounded-md transition bg-neutral-800/80"
                       title="More"
                     >
-                      <MoreVertical className="w-3.5 h-3.5 text-slate-400" />
+                      <MoreVertical className="w-3.5 h-3.5 text-neutral-400" />
                     </button>
                   </div>
                 )}
@@ -728,26 +728,26 @@ export default function CommunityChat() {
 
       {/* Reply Preview */}
       {replyingTo && (
-        <div className="px-3 sm:px-4 py-2.5 bg-slate-800/95 backdrop-blur border-t border-slate-700">
+        <div className="px-3 sm:px-4 py-2.5 bg-neutral-800/95 backdrop-blur border-t border-neutral-700">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <div className="flex-shrink-0 w-1 h-8 bg-purple-500 rounded-full" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 text-xs">
                   <Reply className="w-3 h-3 text-purple-400 flex-shrink-0" />
-                  <span className="text-slate-400">Replying to</span>
+                  <span className="text-neutral-400">Replying to</span>
                   <span className="text-purple-400 font-medium truncate">
                     {replyingTo.sender_info?.display_name || 'Unknown'}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 truncate mt-0.5">
+                <p className="text-xs text-neutral-500 truncate mt-0.5">
                   {replyingTo.content}
                 </p>
               </div>
             </div>
             <button
               onClick={() => setReplyingTo(null)}
-              className="flex-shrink-0 p-1.5 text-slate-400 hover:text-white hover:bg-slate-700 rounded-full transition"
+              className="flex-shrink-0 p-1.5 text-neutral-400 hover:text-white hover:bg-neutral-700 rounded-full transition"
             >
               <X className="w-4 h-4" />
             </button>
@@ -756,7 +756,7 @@ export default function CommunityChat() {
       )}
 
       {/* Input */}
-      <div className="p-3 sm:p-4 border-t border-slate-700 bg-slate-800/95 backdrop-blur">
+      <div className="p-3 sm:p-4 border-t border-neutral-700 bg-neutral-800/95 backdrop-blur">
         <div className="flex items-end gap-2 sm:gap-3">
           <div className="flex-1 relative">
             <textarea
@@ -775,7 +775,7 @@ export default function CommunityChat() {
                 }
               }}
               placeholder="Type a message... (Shift+Enter for newline)"
-              className="w-full px-4 py-2.5 sm:py-3 bg-slate-700/80 border border-slate-600 rounded-2xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all resize-none overflow-hidden"
+              className="w-full px-4 py-2.5 sm:py-3 bg-neutral-700/80 border border-neutral-600 rounded-2xl text-sm text-white placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all resize-none overflow-hidden"
               style={{ minHeight: '44px' }}
             />
           </div>

@@ -36,7 +36,7 @@ export function GlassTable({
 
 export function GlassTableHead({ children }: { children: ReactNode }) {
     return (
-        <thead className="bg-slate-800/50">
+        <thead className="bg-neutral-800/50">
             {children}
         </thead>
     )
@@ -44,7 +44,7 @@ export function GlassTableHead({ children }: { children: ReactNode }) {
 
 export function GlassTableBody({ children }: { children: ReactNode }) {
     return (
-        <tbody className="divide-y divide-slate-700/50">
+        <tbody className="divide-y divide-neutral-700/50">
             {children}
         </tbody>
     )
@@ -63,7 +63,7 @@ export function GlassTableRow({
         <tr
             onClick={onClick}
             className={`
-        ${clickable ? 'cursor-pointer hover:bg-slate-700/30' : ''}
+        ${clickable ? 'cursor-pointer hover:bg-neutral-700/30' : ''}
         transition-colors
       `}
         >
@@ -80,7 +80,7 @@ export function GlassTableHeader({
     className?: string
 }) {
     return (
-        <th className={`px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider ${className}`}>
+        <th className={`px-4 py-3 text-left text-xs font-medium text-neutral-400 uppercase tracking-wider ${className}`}>
             {children}
         </th>
     )
@@ -94,7 +94,7 @@ export function GlassTableCell({
     className?: string
 }) {
     return (
-        <td className={`px-4 py-3 text-sm text-slate-300 whitespace-nowrap ${className}`}>
+        <td className={`px-4 py-3 text-sm text-neutral-300 whitespace-nowrap ${className}`}>
             {children}
         </td>
     )

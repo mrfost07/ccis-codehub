@@ -722,21 +722,21 @@ const LiveQuizSession = () => {
         };
 
         return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 pb-20">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-950 to-slate-950" />
+            <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4 pb-20">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-neutral-950 to-neutral-950" />
                 <div className="relative w-full max-w-lg">
-                    <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-2xl p-5 sm:p-8 shadow-2xl">
+                    <div className="bg-neutral-900/60 backdrop-blur-xl border border-neutral-800 rounded-2xl p-5 sm:p-8 shadow-2xl">
                         <div className="text-center mb-6">
                             <div className="w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Camera className="w-8 h-8 text-purple-400" />
                             </div>
                             <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">Camera Setup</h1>
-                            <p className="text-slate-400 text-sm">
+                            <p className="text-neutral-400 text-sm">
                                 This quiz requires AI proctoring. Please allow camera access to continue.
                             </p>
                         </div>
 
-                        <div className="relative w-full aspect-video bg-slate-800 rounded-xl overflow-hidden mb-6 border border-slate-700">
+                        <div className="relative w-full aspect-video bg-neutral-800 rounded-xl overflow-hidden mb-6 border border-neutral-700">
                             <video
                                 ref={onboardingVideoRef}
                                 className="w-full h-full object-cover"
@@ -748,7 +748,7 @@ const LiveQuizSession = () => {
                                 <div className="absolute inset-0 flex items-center justify-center">
                                     <div className="text-center">
                                         <Loader2 className="w-8 h-8 animate-spin text-purple-400 mx-auto mb-2" />
-                                        <p className="text-sm text-slate-400">Requesting camera access...</p>
+                                        <p className="text-sm text-neutral-400">Requesting camera access...</p>
                                     </div>
                                 </div>
                             )}
@@ -776,15 +776,15 @@ const LiveQuizSession = () => {
                             <div className="flex items-center gap-3">
                                 {onboardingCamActive
                                     ? <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
-                                    : <div className="w-5 h-5 rounded-full border-2 border-slate-600 shrink-0" />
+                                    : <div className="w-5 h-5 rounded-full border-2 border-neutral-600 shrink-0" />
                                 }
-                                <span className={`text-sm ${onboardingCamActive ? 'text-green-300' : 'text-slate-400'}`}>
+                                <span className={`text-sm ${onboardingCamActive ? 'text-green-300' : 'text-neutral-400'}`}>
                                     Camera access granted
                                 </span>
                             </div>
                             <div className="flex items-center gap-3">
                                 <ShieldAlert className="w-5 h-5 text-purple-400 shrink-0" />
-                                <span className="text-sm text-slate-400">AI will monitor during quiz</span>
+                                <span className="text-sm text-neutral-400">AI will monitor during quiz</span>
                             </div>
                         </div>
 
@@ -792,7 +792,7 @@ const LiveQuizSession = () => {
                             <button
                                 onClick={handleProceedToQuiz}
                                 disabled={!onboardingCamActive}
-                                className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 <CheckCircle className="w-5 h-5" />
                                 I'm Ready — Start Quiz
@@ -800,7 +800,7 @@ const LiveQuizSession = () => {
                             {onboardingCamError && (
                                 <button
                                     onClick={handleSkipProctor}
-                                    className="w-full py-2.5 border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 rounded-xl transition-all text-sm"
+                                    className="w-full py-2.5 border border-neutral-700 text-neutral-400 hover:text-white hover:border-neutral-500 rounded-xl transition-all text-sm"
                                 >
                                     Continue without camera
                                 </button>
@@ -818,10 +818,10 @@ const LiveQuizSession = () => {
 
     if (proctorReady && aiProctorEnabled && (!proctorWsConnected || isCalibrating)) {
         return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 pb-20">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-950 to-slate-950" />
+            <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4 pb-20">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-neutral-950 to-neutral-950" />
                 <div className="relative w-full max-w-md">
-                    <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl text-center">
+                    <div className="bg-neutral-900/60 backdrop-blur-xl border border-neutral-800 rounded-2xl p-6 sm:p-8 shadow-2xl text-center">
                         {!proctorWsConnected ? (
                             /* Connecting to server */
                             <>
@@ -829,23 +829,23 @@ const LiveQuizSession = () => {
                                     <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
                                 </div>
                                 <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">Setting Up Proctoring</h1>
-                                <p className="text-slate-400 text-sm">Connecting to monitoring server...</p>
+                                <p className="text-neutral-400 text-sm">Connecting to monitoring server...</p>
                             </>
                         ) : (
                             /* Calibrating — show "look at center" */
                             <>
-                                <div className="w-20 h-20 bg-blue-600/20 rounded-full flex items-center justify-center mx-auto mb-5 relative">
-                                    <div className="absolute inset-0 rounded-full border-2 border-blue-400/30 animate-ping" />
-                                    <Eye className="w-10 h-10 text-blue-400" />
+                                <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-5 relative">
+                                    <div className="absolute inset-0 rounded-full border-2 border-purple-400/30 animate-ping" />
+                                    <Eye className="w-10 h-10 text-purple-400" />
                                 </div>
                                 <h1 className="text-xl sm:text-2xl font-bold text-white mb-3">Look at the Center of Your Screen</h1>
-                                <p className="text-slate-400 text-sm mb-6">
+                                <p className="text-neutral-400 text-sm mb-6">
                                     Keep your eyes on the screen while we set up face tracking...
                                 </p>
-                                <div className="w-48 h-2 bg-slate-700 rounded-full mx-auto overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-pulse" style={{ width: '60%' }} />
+                                <div className="w-48 h-2 bg-neutral-700 rounded-full mx-auto overflow-hidden">
+                                    <div className="h-full bg-gradient-to-r from-purple-500 to-purple-500 rounded-full animate-pulse" style={{ width: '60%' }} />
                                 </div>
-                                <p className="text-slate-500 text-xs mt-3">This only takes a few seconds</p>
+                                <p className="text-neutral-500 text-xs mt-3">This only takes a few seconds</p>
                             </>
                         )}
                     </div>
@@ -860,14 +860,14 @@ const LiveQuizSession = () => {
 
     if (isQuizClosed) {
         return (
-            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white p-6">
-                <div className="bg-slate-900 border border-red-800/50 rounded-2xl p-10 text-center max-w-md shadow-2xl">
+            <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center text-white p-6">
+                <div className="bg-neutral-900 border border-red-800/50 rounded-2xl p-10 text-center max-w-md shadow-2xl">
                     <ShieldAlert className="w-16 h-16 text-red-400 mx-auto mb-4" />
                     <h2 className="text-2xl font-bold text-red-400 mb-3">Session Closed</h2>
-                    <p className="text-slate-400 mb-8">{closeReason}</p>
+                    <p className="text-neutral-400 mb-8">{closeReason}</p>
                     <button
                         onClick={() => navigate('/quiz/join')}
-                        className="px-6 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg font-medium transition"
+                        className="px-6 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg font-medium transition"
                     >
                         Return to Home
                     </button>
@@ -882,21 +882,21 @@ const LiveQuizSession = () => {
 
     if (isQuizPaused) {
         return (
-            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white p-6">
+            <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center text-white p-6">
                 {/* Blurred quiz background overlay */}
-                <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-sm" />
-                <div className="relative z-10 bg-slate-900 border border-amber-600/50 rounded-2xl p-10 text-center max-w-md shadow-2xl">
+                <div className="absolute inset-0 bg-neutral-950/95 backdrop-blur-sm" />
+                <div className="relative z-10 bg-neutral-900 border border-amber-600/50 rounded-2xl p-10 text-center max-w-md shadow-2xl">
                     <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-5">
                         <Lock className="w-10 h-10 text-amber-400" />
                     </div>
                     <h2 className="text-2xl font-bold text-amber-400 mb-3">Quiz Paused</h2>
-                    <p className="text-slate-400 mb-8">{pauseReason}</p>
+                    <p className="text-neutral-400 mb-8">{pauseReason}</p>
 
                     {pauseSource === 'proctor' ? (
                         /* AI Proctor pause — auto-resumes, no button needed */
                         <div className="flex flex-col items-center gap-3">
-                            <div className="animate-pulse flex items-center gap-2 text-blue-400 text-sm">
-                                <div className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
+                            <div className="animate-pulse flex items-center gap-2 text-purple-400 text-sm">
+                                <div className="w-2 h-2 rounded-full bg-purple-400 animate-ping" />
                                 Monitoring... will auto-resume when you look at the screen
                             </div>
                         </div>
@@ -918,7 +918,7 @@ const LiveQuizSession = () => {
                                     enterFullscreen();
                                 }
                             }}
-                            className="flex items-center gap-2 mx-auto px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl font-bold transition"
+                            className="flex items-center gap-2 mx-auto px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white rounded-xl font-bold transition"
                         >
                             <Maximize className="w-5 h-5" />
                             {document.fullscreenElement ? 'Continue Quiz' : 'Re-enter Fullscreen to Continue'}
@@ -936,22 +936,22 @@ const LiveQuizSession = () => {
     if (gameState.status === 'waiting' && !gameState.currentQuestion) {
         const isCodingChallenge = sessionState.quizTitle?.toLowerCase().includes('challenge');
         return (
-            <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white">
+            <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center text-white">
                 <div className="text-center space-y-4">
                     <Loader2 className="w-12 h-12 animate-spin mx-auto text-purple-500" />
                     <h2 className="text-2xl font-bold">
                         {isCodingChallenge ? 'Waiting for the challenge to begin...' : 'Waiting for next question...'}
                     </h2>
-                    <p className="text-slate-400">
+                    <p className="text-neutral-400">
                         {isCodingChallenge ? 'The host will start the coding challenge shortly' : 'The host will send the first question shortly'}
                     </p>
                     {sessionState.quizTitle && (
-                        <p className="text-slate-500 text-sm mt-4">{sessionState.quizTitle}</p>
+                        <p className="text-neutral-500 text-sm mt-4">{sessionState.quizTitle}</p>
                     )}
                     {!isFullscreen && (
                         <button
                             onClick={enterFullscreen}
-                            className="mt-4 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-lg text-sm font-medium transition flex items-center gap-2 mx-auto"
+                            className="mt-4 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 rounded-lg text-sm font-medium transition flex items-center gap-2 mx-auto"
                         >
                             <Maximize className="w-4 h-4" />
                             Enter Fullscreen
@@ -964,7 +964,7 @@ const LiveQuizSession = () => {
 
     if (!gameState.currentQuestion) {
         return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+            <div className="min-h-screen bg-neutral-950 flex items-center justify-center text-white">
                 <Loader2 className="w-8 h-8 animate-spin mr-3" />
                 Loading question...
             </div>
@@ -976,18 +976,18 @@ const LiveQuizSession = () => {
     // ─────────────────────────────────────────────────────────────────────────
 
     return (
-        <div className="min-h-screen bg-slate-950 flex flex-col pb-16 sm:pb-0">
+        <div className="min-h-screen bg-neutral-950 flex flex-col pb-16 sm:pb-0">
 
             {/* ── Header ──────────────────────────────────────────────── */}
-            <div className="bg-slate-900 border-b border-slate-800 px-3 sm:px-4 py-2 sm:py-4 sticky top-0 z-10">
+            <div className="bg-neutral-900 border-b border-neutral-800 px-3 sm:px-4 py-2 sm:py-4 sticky top-0 z-10">
                 <div className="max-w-4xl mx-auto flex justify-between items-center">
                     <div className="flex items-center gap-2 sm:gap-3">
-                        <span className="bg-gradient-to-r from-purple-600 to-indigo-600 px-2 py-1 rounded text-xs font-bold text-white">
+                        <span className="bg-gradient-to-r from-purple-600 to-purple-600 px-2 py-1 rounded text-xs font-bold text-white">
                             LIVE
                         </span>
-                        <span className="font-mono text-slate-400 text-sm">{joinCode}</span>
+                        <span className="font-mono text-neutral-400 text-sm">{joinCode}</span>
                         {gameState.questionNumber > 0 && (
-                            <span className="text-slate-500 text-sm">
+                            <span className="text-neutral-500 text-sm">
                                 Q{gameState.questionNumber}
                                 {gameState.totalQuestions > 0 && `/${gameState.totalQuestions}`}
                             </span>
@@ -1001,7 +1001,7 @@ const LiveQuizSession = () => {
                                     ? <Camera className="w-4 h-4 text-green-400" />
                                     : <CameraOff className="w-4 h-4 text-red-400" />
                                 }
-                                <span className="text-xs text-slate-400">
+                                <span className="text-xs text-neutral-400">
                                     {cameraActive ? 'Proctored' : 'Cam off'}
                                 </span>
                             </div>
@@ -1012,7 +1012,7 @@ const LiveQuizSession = () => {
                             </span>
                         )}
                         {answerResult && !canShowResult && (
-                            <span className="text-sm font-medium text-blue-400">Submitted</span>
+                            <span className="text-sm font-medium text-purple-400">Submitted</span>
                         )}
                         <div className="text-white font-bold">Score: {gameState.score}</div>
                     </div>
@@ -1026,9 +1026,9 @@ const LiveQuizSession = () => {
                     {/* Split Pane */}
                     <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
                         {/* Left Pane — Problem Description + Results */}
-                        <div className="lg:w-[42%] border-b lg:border-b-0 lg:border-r border-slate-800/50 overflow-y-auto flex flex-col">
+                        <div className="lg:w-[42%] border-b lg:border-b-0 lg:border-r border-neutral-800/50 overflow-y-auto flex flex-col">
                             {/* Left Pane Tabs */}
-                            <div className="flex border-b border-slate-800/50 sticky top-0 bg-slate-950 z-10">
+                            <div className="flex border-b border-neutral-800/50 sticky top-0 bg-neutral-950 z-10">
                                 <button
                                     className="px-4 py-2.5 text-sm font-medium text-white border-b-2 border-purple-500"
                                 >
@@ -1045,7 +1045,7 @@ const LiveQuizSession = () => {
 
                             <div className="flex-1 p-4 sm:p-6 space-y-4 overflow-y-auto">
                                 {/* Problem Text */}
-                                <div className="prose prose-invert prose-sm max-w-none text-slate-300 leading-relaxed whitespace-pre-wrap">
+                                <div className="prose prose-invert prose-sm max-w-none text-neutral-300 leading-relaxed whitespace-pre-wrap">
                                     <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(gameState.currentQuestion.text) }} />
                                 </div>
 
@@ -1057,16 +1057,16 @@ const LiveQuizSession = () => {
                                             .filter((tc: any) => !tc.is_hidden)
                                             .slice(0, 3)
                                             .map((tc: any, i: number) => (
-                                            <div key={i} className="bg-slate-900/60 border border-slate-800/50 rounded-lg p-3">
-                                                <div className="text-xs text-slate-500 mb-1">Example {i + 1}</div>
+                                            <div key={i} className="bg-neutral-900/60 border border-neutral-800/50 rounded-lg p-3">
+                                                <div className="text-xs text-neutral-500 mb-1">Example {i + 1}</div>
                                                 <div className="grid grid-cols-2 gap-3">
                                                     <div>
-                                                        <div className="text-[10px] text-slate-600 uppercase tracking-wider mb-0.5">Input</div>
+                                                        <div className="text-[10px] text-neutral-600 uppercase tracking-wider mb-0.5">Input</div>
                                                         <code className="text-xs text-green-400 font-mono">{tc.input || '(none)'}</code>
                                                     </div>
                                                     <div>
-                                                        <div className="text-[10px] text-slate-600 uppercase tracking-wider mb-0.5">Output</div>
-                                                        <code className="text-xs text-blue-400 font-mono">{tc.expected_output}</code>
+                                                        <div className="text-[10px] text-neutral-600 uppercase tracking-wider mb-0.5">Output</div>
+                                                        <code className="text-xs text-purple-400 font-mono">{tc.expected_output}</code>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1075,7 +1075,7 @@ const LiveQuizSession = () => {
                                 )}
 
                                 {/* Timer + Score */}
-                                <div className="flex items-center gap-4 text-xs text-slate-500 pt-2 border-t border-slate-800/50">
+                                <div className="flex items-center gap-4 text-xs text-neutral-500 pt-2 border-t border-neutral-800/50">
                                     <span className="flex items-center gap-1">
                                         <Timer className={`w-3 h-3 ${gameState.timeRemaining <= 5 ? 'text-red-400 animate-pulse' : 'text-purple-400'}`} />
                                         <span className={gameState.timeRemaining <= 10 ? 'text-red-400 font-bold' : ''}>
@@ -1090,8 +1090,8 @@ const LiveQuizSession = () => {
 
                                 {/* Test Results (shown after Run/Submit) */}
                                 {(codeExecResult || isRunningCode) && (
-                                    <div className="space-y-2 pt-2 border-t border-slate-800/50">
-                                        <div className="flex items-center gap-2 text-slate-400 text-sm font-medium">
+                                    <div className="space-y-2 pt-2 border-t border-neutral-800/50">
+                                        <div className="flex items-center gap-2 text-neutral-400 text-sm font-medium">
                                             <Terminal className="w-4 h-4" />
                                             <span>Test Results</span>
                                             {codeExecResult && (
@@ -1101,25 +1101,25 @@ const LiveQuizSession = () => {
                                             )}
                                         </div>
                                         {isRunningCode && !codeExecResult && (
-                                            <div className="flex items-center gap-2 text-slate-400 text-sm">
+                                            <div className="flex items-center gap-2 text-neutral-400 text-sm">
                                                 <Loader2 className="w-4 h-4 animate-spin" />
                                                 Running test cases...
                                             </div>
                                         )}
                                         {codeExecResult?.results?.map((r: any, i: number) => (
                                             <div key={i} className={`p-3 rounded-lg border text-xs ${r.passed
-                                                ? 'bg-emerald-500/5 border-emerald-500/20'
-                                                : 'bg-rose-500/5 border-rose-500/20'}`}>
+                                                ? 'bg-green-500/5 border-green-500/20'
+                                                : 'bg-red-500/5 border-red-500/20'}`}>
                                                 <div className="flex items-center gap-2 mb-1">
                                                     {r.passed
-                                                        ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                                                        : <XCircle className="w-3.5 h-3.5 text-rose-400" />}
-                                                    <span className="font-medium text-slate-300">
+                                                        ? <CheckCircle className="w-3.5 h-3.5 text-green-400" />
+                                                        : <XCircle className="w-3.5 h-3.5 text-red-400" />}
+                                                    <span className="font-medium text-neutral-300">
                                                         Test {i + 1}{r.is_hidden ? ' (hidden)' : ''}
                                                     </span>
                                                 </div>
                                                 {!r.passed && !r.is_hidden && r.stderr && (
-                                                    <div className="text-rose-400 text-xs mt-1 font-mono">{r.stderr.slice(0, 200)}</div>
+                                                    <div className="text-red-400 text-xs mt-1 font-mono">{r.stderr.slice(0, 200)}</div>
                                                 )}
                                                 {!r.passed && r.error === 'timeout' && (
                                                     <div className="text-amber-400 text-xs mt-1 flex items-center gap-1">
@@ -1136,10 +1136,10 @@ const LiveQuizSession = () => {
                         {/* Right Pane — Code Editor */}
                         <div className="lg:w-[58%] flex flex-col">
                             {/* Language Selector + Action Buttons */}
-                            <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800/50 bg-slate-900/50">
+                            <div className="flex items-center justify-between px-4 py-2 border-b border-neutral-800/50 bg-neutral-900/50">
                                 <div className="flex items-center gap-2">
                                     <Code className="w-4 h-4 text-purple-400" />
-                                    <span className="text-sm text-slate-300 font-medium">
+                                    <span className="text-sm text-neutral-300 font-medium">
                                         {(gameState.currentQuestion.language || 'python').charAt(0).toUpperCase() + (gameState.currentQuestion.language || 'python').slice(1)}
                                     </span>
                                 </div>
@@ -1147,7 +1147,7 @@ const LiveQuizSession = () => {
                                     <button
                                         onClick={runCodeLocally}
                                         disabled={isAnswerSubmitted || isRunningCode}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed border border-slate-600"
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-600"
                                     >
                                         {isRunningCode
                                             ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -1191,12 +1191,12 @@ const LiveQuizSession = () => {
                             </div>
 
                             {/* Status Bar */}
-                            <div className="px-4 py-1.5 bg-slate-900/80 border-t border-slate-800/50 flex items-center gap-4 text-[10px] text-slate-600">
+                            <div className="px-4 py-1.5 bg-neutral-900/80 border-t border-neutral-800/50 flex items-center gap-4 text-[10px] text-neutral-600">
                                 <span>{(gameState.currentQuestion.language || 'python')}</span>
                                 <span>{codeAnswer.split('\n').length} lines</span>
                                 <span>{codeAnswer.length} chars</span>
                                 {codeExecResult && (
-                                    <span className={codeExecResult.passed === codeExecResult.total ? 'text-emerald-500' : 'text-amber-500'}>
+                                    <span className={codeExecResult.passed === codeExecResult.total ? 'text-green-500' : 'text-amber-500'}>
                                         {codeExecResult.passed}/{codeExecResult.total} tests passed
                                     </span>
                                 )}
@@ -1209,7 +1209,7 @@ const LiveQuizSession = () => {
                 <div className="flex-1 flex flex-col max-w-4xl w-full mx-auto p-4 md:p-8">
 
                     {/* Timer Bar */}
-                    <div className="w-full bg-slate-800 h-2 rounded-full mb-8 overflow-hidden">
+                    <div className="w-full bg-neutral-800 h-2 rounded-full mb-8 overflow-hidden">
                         <div
                             className={`h-full transition-all duration-1000 ease-linear ${gameState.timeRemaining <= 5 ? 'bg-red-500' :
                                 gameState.timeRemaining <= 10 ? 'bg-amber-500' : 'bg-purple-500'
@@ -1221,13 +1221,13 @@ const LiveQuizSession = () => {
                     </div>
 
                     {/* Question Card */}
-                    <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5 sm:p-8 mb-6 sm:mb-8 text-center shadow-xl">
+                    <div className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-5 sm:p-8 mb-6 sm:mb-8 text-center shadow-xl">
                         <h2
                             className="text-xl sm:text-2xl md:text-3xl font-bold text-white leading-tight [&_p]:m-0"
                             dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(gameState.currentQuestion.text) }}
                         />
                         <div className={`mt-6 flex justify-center items-center gap-2 font-mono text-xl ${gameState.timeRemaining <= 5 ? 'text-red-400' :
-                            gameState.timeRemaining <= 10 ? 'text-amber-400' : 'text-slate-400'
+                            gameState.timeRemaining <= 10 ? 'text-amber-400' : 'text-neutral-400'
                             }`}>
                             <Timer className={`w-6 h-6 ${gameState.timeRemaining <= 5 ? 'text-red-400 animate-pulse' : 'text-purple-400'}`} />
                             <span>{gameState.timeRemaining}s</span>
@@ -1243,14 +1243,14 @@ const LiveQuizSession = () => {
                                     const isSelected = selectedAnswer === choice.id;
                                     const showResult = answerResult !== null && canShowResult;
 
-                                    let boxClass = 'bg-slate-800 border-slate-700 hover:bg-slate-700';
+                                    let boxClass = 'bg-neutral-800 border-neutral-700 hover:bg-neutral-700';
                                     if (isSelected && !showResult) boxClass = 'bg-purple-600 border-purple-500 text-white';
-                                    if (isAnswerSubmitted && !isSelected && !showResult) boxClass = 'opacity-50 bg-slate-800 border-slate-700';
+                                    if (isAnswerSubmitted && !isSelected && !showResult) boxClass = 'opacity-50 bg-neutral-800 border-neutral-700';
 
                                     if (showResult) {
                                         if (isSelected && answerResult === 'correct') boxClass = 'bg-green-600 border-green-500 ring-4 ring-green-900';
                                         if (isSelected && answerResult === 'incorrect') boxClass = 'bg-red-600 border-red-500 ring-4 ring-red-900';
-                                        if (!isSelected) boxClass = 'opacity-40 bg-slate-800 border-slate-700';
+                                        if (!isSelected) boxClass = 'opacity-40 bg-neutral-800 border-neutral-700';
                                     }
 
                                     return (
@@ -1261,10 +1261,10 @@ const LiveQuizSession = () => {
                                             className={`p-4 sm:p-6 rounded-xl border-2 text-left transition-all transform active:scale-[0.98] flex items-center justify-between group ${boxClass}`}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                                                <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${isSelected ? 'bg-white/20 text-white' : 'bg-neutral-700 text-neutral-400'}`}>
                                                     {choice.id}
                                                 </span>
-                                                <span className={`text-base sm:text-lg font-medium ${isSelected ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>
+                                                <span className={`text-base sm:text-lg font-medium ${isSelected ? 'text-white' : 'text-neutral-200 group-hover:text-white'}`}>
                                                     {choice.text}
                                                 </span>
                                             </div>
@@ -1284,13 +1284,13 @@ const LiveQuizSession = () => {
                                     const isSelected = selectedAnswer === valLower;
                                     const showResult = answerResult !== null && canShowResult;
 
-                                    let boxClass = 'bg-slate-800 border-slate-700 hover:bg-slate-700';
-                                    if (isSelected && !showResult) boxClass = 'bg-gradient-to-r from-purple-600 to-indigo-600 border-purple-500';
-                                    if (isAnswerSubmitted && !isSelected && !showResult) boxClass = 'opacity-50 bg-slate-800 border-slate-700';
+                                    let boxClass = 'bg-neutral-800 border-neutral-700 hover:bg-neutral-700';
+                                    if (isSelected && !showResult) boxClass = 'bg-gradient-to-r from-purple-600 to-purple-600 border-purple-500';
+                                    if (isAnswerSubmitted && !isSelected && !showResult) boxClass = 'opacity-50 bg-neutral-800 border-neutral-700';
                                     if (showResult) {
                                         if (isSelected && answerResult === 'correct') boxClass = 'bg-green-600 border-green-500 ring-4 ring-green-900';
                                         if (isSelected && answerResult === 'incorrect') boxClass = 'bg-red-600 border-red-500 ring-4 ring-red-900';
-                                        if (!isSelected) boxClass = 'opacity-40 bg-slate-800 border-slate-700';
+                                        if (!isSelected) boxClass = 'opacity-40 bg-neutral-800 border-neutral-700';
                                     }
 
                                     return (
@@ -1324,12 +1324,12 @@ const LiveQuizSession = () => {
                                                 : 'Type your answer...'
                                     }
                                     rows={gameState.currentQuestion.questionType === 'essay' ? 6 : 3}
-                                    className="w-full bg-slate-800/50 border border-slate-700 rounded-xl p-4 text-white text-base placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 resize-none"
+                                    className="w-full bg-neutral-800/50 border border-neutral-700 rounded-xl p-4 text-white text-base placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 resize-none"
                                 />
                                 {!isAnswerSubmitted && selectedAnswer && (
                                     <button
                                         onClick={() => submitAnswer(selectedAnswer)}
-                                        className="mt-3 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl transition-all w-full"
+                                        className="mt-3 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white font-bold rounded-xl transition-all w-full"
                                     >
                                         Submit Answer
                                     </button>
@@ -1357,18 +1357,18 @@ const LiveQuizSession = () => {
             {/* ── Code Success Modal Overlay ── */}
             {showCodeSuccessModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" style={{ animation: 'fadeIn 0.3s ease-out' }}>
-                    <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-8 max-w-md w-full mx-4 text-center shadow-2xl shadow-emerald-500/10">
+                    <div className="bg-neutral-900 border border-green-500/30 rounded-2xl p-8 max-w-md w-full mx-4 text-center shadow-2xl shadow-green-500/10">
                         <div className="text-6xl mb-4">🎉</div>
-                        <h2 className="text-2xl font-bold text-emerald-400 mb-2">All Tests Passed!</h2>
-                        <p className="text-slate-400 mb-4">Great job! You nailed this coding challenge.</p>
+                        <h2 className="text-2xl font-bold text-green-400 mb-2">All Tests Passed!</h2>
+                        <p className="text-neutral-400 mb-4">Great job! You nailed this coding challenge.</p>
                         <div className="flex items-center justify-center gap-6 mb-6 text-sm">
-                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-2">
-                                <div className="text-emerald-400 font-bold text-lg">+{pointsEarned}</div>
-                                <div className="text-slate-500 text-xs">Points</div>
+                            <div className="bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-2">
+                                <div className="text-green-400 font-bold text-lg">+{pointsEarned}</div>
+                                <div className="text-neutral-500 text-xs">Points</div>
                             </div>
-                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-2">
-                                <div className="text-blue-400 font-bold text-lg">Score: {gameState.score}</div>
-                                <div className="text-slate-500 text-xs">Total</div>
+                            <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-2">
+                                <div className="text-purple-400 font-bold text-lg">Score: {gameState.score}</div>
+                                <div className="text-neutral-500 text-xs">Total</div>
                             </div>
                         </div>
                         <div className="flex gap-3">
@@ -1383,7 +1383,7 @@ const LiveQuizSession = () => {
                             </button>
                             <button
                                 onClick={() => setShowCodeSuccessModal(false)}
-                                className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-xl transition border border-slate-700"
+                                className="flex-1 px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-medium rounded-xl transition border border-neutral-700"
                             >
                                 Stay Here
                             </button>

@@ -166,13 +166,13 @@ export default function Login() {
 
           {/* Footer Links */}
           <div className="mt-5 text-center space-y-2">
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-neutral-400">
               Don't have an account?{' '}
-              <Link to="/register" className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors">
+              <Link to="/register" className="text-purple-400 hover:text-purple-300 font-medium transition-colors">
                 Sign up
               </Link>
             </p>
-            <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors">
+            <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 transition-colors">
               <ArrowLeft className="w-3 h-3" />
               Back to Home
             </Link>

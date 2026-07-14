@@ -359,7 +359,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-lg sm:text-xl font-bold text-white">Quiz Question Editor</h3>
-          <p className="text-slate-400 text-xs sm:text-sm">Create slide-based quiz questions</p>
+          <p className="text-neutral-400 text-xs sm:text-sm">Create slide-based quiz questions</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           {/* Upload PDF/DOCX Button */}
@@ -384,7 +384,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
           <button
             type="button"
             onClick={() => setIsPreview(!isPreview)}
-            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition flex items-center gap-2"
+            className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition flex items-center gap-2"
           >
             {isPreview ? <Edit3 className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             {isPreview ? 'Edit' : 'Preview'}
@@ -407,8 +407,8 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
               type="button"
               onClick={() => setCurrentQuestionIndex(index)}
               className={`px-4 py-2 rounded-lg transition ${currentQuestionIndex === index
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                ? 'bg-purple-600 text-white'
+                : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
                 }`}
             >
               Q{index + 1}
@@ -436,17 +436,17 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
 
       {/* Question Editor */}
       {currentQuestion && (
-        <div className="bg-slate-800/50 rounded-xl p-4 sm:p-6 border border-slate-700">
+        <div className="bg-neutral-800/50 rounded-xl p-4 sm:p-6 border border-neutral-700">
           {/* Question Title */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
               Question {currentQuestionIndex + 1} Title
             </label>
             <input
               type="text"
               value={currentQuestion.title}
               onChange={(e) => updateQuestionTitle(currentQuestionIndex, e.target.value)}
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               placeholder="e.g., What is a variable in Python?"
             />
           </div>
@@ -454,13 +454,13 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
           {/* Question Type and Points */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
                 Question Type
               </label>
               <select
                 value={currentQuestion.type}
                 onChange={(e) => updateQuestionType(currentQuestionIndex, e.target.value as Question['type'])}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
               >
                 <option value="multiple_choice">Multiple Choice</option>
                 <option value="true_false">True/False</option>
@@ -470,7 +470,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
                 Points
               </label>
               <input
@@ -478,19 +478,19 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
                 min="1"
                 value={currentQuestion.points}
                 onChange={(e) => updateQuestionPoints(currentQuestionIndex, parseInt(e.target.value) || 1)}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
               />
             </div>
           </div>
 
           {/* Question Content */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-neutral-300 mb-2">
               Question Content
             </label>
             {isPreview ? (
               <div
-                className="prose prose-invert prose-lg max-w-none bg-slate-900 rounded-lg p-6 border border-slate-700"
+                className="prose prose-invert prose-lg max-w-none bg-neutral-900 rounded-lg p-6 border border-neutral-700"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentQuestion.content || '') }}
               />
             ) : (
@@ -507,13 +507,13 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
           {currentQuestion.type === 'multiple_choice' && currentQuestion.choices && (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <label className="block text-sm font-medium text-slate-300">
+                <label className="block text-sm font-medium text-neutral-300">
                   Answer Choices
                 </label>
                 <button
                   type="button"
                   onClick={() => addChoice(currentQuestionIndex)}
-                  className="px-3 py-1 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 rounded-lg transition text-sm flex items-center gap-1"
+                  className="px-3 py-1 bg-purple-600/20 hover:bg-purple-600/40 text-purple-400 rounded-lg transition text-sm flex items-center gap-1"
                 >
                   <Plus className="w-3 h-3" />
                   Add Choice
@@ -522,14 +522,14 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
               <div className="space-y-2">
                 {currentQuestion.choices.map((choice, index) => (
                   <div key={choice.id} className="flex items-center gap-2">
-                    <span className="text-slate-400 font-mono text-sm w-8">
+                    <span className="text-neutral-400 font-mono text-sm w-8">
                       {String.fromCharCode(65 + index)}.
                     </span>
                     <input
                       type="text"
                       value={choice.text}
                       onChange={(e) => updateChoice(currentQuestionIndex, choice.id, e.target.value)}
-                      className="flex-1 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-3 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
                       placeholder={`Option ${String.fromCharCode(65 + index)}`}
                     />
                     <button
@@ -537,7 +537,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
                       onClick={() => toggleCorrectChoice(currentQuestionIndex, choice.id)}
                       className={`p-2 rounded-lg transition ${choice.isCorrect
                         ? 'bg-green-600 text-white'
-                        : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                        : 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600'
                         }`}
                       title={choice.isCorrect ? 'Correct answer' : 'Mark as correct'}
                     >
@@ -555,7 +555,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-slate-500 mt-2">
+              <p className="text-xs text-neutral-500 mt-2">
                 💡 Click the checkmark to set the correct answer
               </p>
             </div>
@@ -564,7 +564,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
           {/* True/False */}
           {currentQuestion.type === 'true_false' && (
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
                 Correct Answer
               </label>
               <div className="flex gap-3">
@@ -577,7 +577,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
                   }}
                   className={`flex-1 py-3 rounded-lg font-medium transition ${currentQuestion.correctAnswer === 'true'
                     ? 'bg-green-600 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
                     }`}
                 >
                   True
@@ -591,7 +591,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
                   }}
                   className={`flex-1 py-3 rounded-lg font-medium transition ${currentQuestion.correctAnswer === 'false'
                     ? 'bg-red-600 text-white'
-                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
                     }`}
                 >
                   False
@@ -602,8 +602,8 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
 
           {/* Short Answer / Essay */}
           {(currentQuestion.type === 'short_answer' || currentQuestion.type === 'essay') && (
-            <div className="bg-blue-600/10 border border-blue-600/30 rounded-lg p-4">
-              <p className="text-blue-300 text-sm">
+            <div className="bg-purple-600/10 border border-purple-600/30 rounded-lg p-4">
+              <p className="text-purple-300 text-sm">
                 📝 This is an open-ended question. Students will type their answer in a text box.
                 {currentQuestion.type === 'essay' && ' Essays allow longer responses with multiple paragraphs.'}
               </p>
@@ -613,13 +613,13 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
       )}
 
       {/* Summary */}
-      <div className="bg-blue-600/10 border border-blue-600/30 rounded-lg p-4">
+      <div className="bg-purple-600/10 border border-purple-600/30 rounded-lg p-4">
         <div className="flex items-center justify-between">
-          <p className="text-blue-300 text-sm">
+          <p className="text-purple-300 text-sm">
             📝 <strong>{questions.length}</strong> {questions.length === 1 ? 'question' : 'questions'} •
             ⭐ <strong>{questions.reduce((sum, q) => sum + q.points, 0)}</strong> total points
           </p>
-          <div className="flex gap-2 text-xs text-blue-400">
+          <div className="flex gap-2 text-xs text-purple-400">
             <span>{questions.filter(q => q.type === 'multiple_choice').length} MC</span>
             <span>{questions.filter(q => q.type === 'true_false').length} T/F</span>
             <span>{questions.filter(q => q.type === 'short_answer').length} SA</span>

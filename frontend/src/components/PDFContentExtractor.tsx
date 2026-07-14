@@ -580,14 +580,14 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
               ? 'bg-green-500/20 text-green-400'
               : index === currentIndex
                 ? 'bg-purple-500/20 text-purple-400 ring-2 ring-purple-500/50'
-                : 'bg-slate-700 text-slate-500'
+                : 'bg-neutral-700 text-neutral-500'
               }`}>
               <span className="flex-shrink-0">{step.icon}</span>
               <span className="text-xs sm:text-sm font-medium hidden sm:inline">{step.label}</span>
               {index < currentIndex && <Check className="w-3 h-3 text-green-400 flex-shrink-0" />}
             </div>
             {index < steps.length - 1 && (
-              <div className={`w-4 sm:w-8 h-0.5 mx-1 ${index < currentIndex ? 'bg-green-500' : 'bg-slate-700'
+              <div className={`w-4 sm:w-8 h-0.5 mx-1 ${index < currentIndex ? 'bg-green-500' : 'bg-neutral-700'
                 }`} />
             )}
           </div>
@@ -597,13 +597,13 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
   }
 
   return (
-    <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden max-h-[90vh] flex flex-col">
+    <div className="bg-neutral-800 rounded-xl border border-neutral-700 overflow-hidden max-h-[90vh] flex flex-col">
       {/* Header */}
-      <div className="p-4 sm:p-6 border-b border-slate-700 flex-shrink-0">
+      <div className="p-4 sm:p-6 border-b border-neutral-700 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-xl font-bold text-white">AI Content Generator</h3>
-            <p className="text-sm text-slate-400 mt-1">
+            <p className="text-sm text-neutral-400 mt-1">
               {currentStep === 'input' && 'Generate learning content from PDF or AI prompt'}
               {currentStep === 'path' && 'Configure your career path details'}
               {currentStep === 'modules' && `Editing Module ${currentModuleIndex + 1} of ${extractedContent?.modules.length || 0}`}
@@ -614,7 +614,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
           {onClose && (
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-700 transition"
+              className="p-2 text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-700 transition"
             >
               <X className="w-5 h-5" />
             </button>
@@ -635,12 +635,12 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
         {currentStep === 'input' && (
           <div className="space-y-6">
             {/* Mode Selector Tabs */}
-            <div className="flex gap-2 p-1 bg-slate-700 rounded-lg">
+            <div className="flex gap-2 p-1 bg-neutral-700 rounded-lg">
               <button
                 onClick={() => setInputMode('pdf')}
                 className={`flex-1 flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-medium transition text-sm ${inputMode === 'pdf'
                   ? 'bg-purple-600 text-white'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-600'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-600'
                   }`}
               >
                 <FileText className="w-4 h-4" />
@@ -650,7 +650,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                 onClick={() => setInputMode('prompt')}
                 className={`flex-1 flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-medium transition text-sm ${inputMode === 'prompt'
                   ? 'bg-purple-600 text-white'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-600'
+                  : 'text-neutral-400 hover:text-white hover:bg-neutral-600'
                   }`}
               >
                 <Sparkles className="w-4 h-4" />
@@ -665,7 +665,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                   onClick={() => fileInputRef.current?.click()}
                   className={`border-2 border-dashed rounded-lg p-6 sm:p-8 text-center cursor-pointer transition-all ${file
                     ? 'border-green-500/50 bg-green-500/10'
-                    : 'border-slate-600 hover:border-purple-500/50 hover:bg-slate-700/50'
+                    : 'border-neutral-600 hover:border-purple-500/50 hover:bg-neutral-700/50'
                     }`}
                 >
                   <input
@@ -680,7 +680,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                       <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-green-400" />
                       <div className="text-left">
                         <p className="text-white font-medium text-sm sm:text-base">{file.name}</p>
-                        <p className="text-xs sm:text-sm text-slate-400">
+                        <p className="text-xs sm:text-sm text-neutral-400">
                           {(file.size / 1024 / 1024).toFixed(2)} MB
                         </p>
                       </div>
@@ -688,11 +688,11 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                     </div>
                   ) : (
                     <>
-                      <Upload className="w-10 h-10 sm:w-12 sm:h-12 text-slate-500 mx-auto mb-3" />
+                      <Upload className="w-10 h-10 sm:w-12 sm:h-12 text-neutral-500 mx-auto mb-3" />
                       <p className="text-white font-medium mb-1 text-sm sm:text-base">
                         Click to upload PDF or DOCX
                       </p>
-                      <p className="text-xs sm:text-sm text-slate-400">
+                      <p className="text-xs sm:text-sm text-neutral-400">
                         Maximum file size: 10MB
                       </p>
                     </>
@@ -725,7 +725,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
             {inputMode === 'prompt' && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <label className="block text-sm font-medium text-neutral-300 mb-2">
                     Describe the course you want to create
                   </label>
                   <textarea
@@ -733,13 +733,13 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                     onChange={(e) => setPromptText(e.target.value)}
                     placeholder="E.g., Create a comprehensive Python programming course for beginners covering variables, data types, control flow, functions, and object-oriented programming..."
                     rows={4}
-                    className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 resize-none text-sm sm:text-base"
+                    className="w-full px-4 py-3 bg-neutral-700 border border-neutral-600 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-purple-500 resize-none text-sm sm:text-base"
                   />
                 </div>
 
                 {/* Quick Suggestions */}
                 <div>
-                  <p className="text-xs text-slate-400 mb-2">Quick suggestions:</p>
+                  <p className="text-xs text-neutral-400 mb-2">Quick suggestions:</p>
                   <div className="flex flex-wrap gap-2">
                     {[
                       'Python Basics',
@@ -751,7 +751,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                       <button
                         key={suggestion}
                         onClick={() => setPromptText(`Create a comprehensive ${suggestion} course for college students with detailed modules and practical exercises`)}
-                        className="px-2 sm:px-3 py-1.5 text-xs bg-slate-700 border border-slate-600 text-slate-300 rounded-lg hover:bg-slate-600 hover:border-purple-500 transition"
+                        className="px-2 sm:px-3 py-1.5 text-xs bg-neutral-700 border border-neutral-600 text-neutral-300 rounded-lg hover:bg-neutral-600 hover:border-purple-500 transition"
                       >
                         {suggestion}
                       </button>
@@ -762,11 +762,11 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                 {/* Options */}
                 <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                   <div className="flex items-center gap-2">
-                    <label className="text-xs sm:text-sm text-slate-300">Modules:</label>
+                    <label className="text-xs sm:text-sm text-neutral-300">Modules:</label>
                     <select
                       value={moduleCount}
                       onChange={(e) => setModuleCount(parseInt(e.target.value))}
-                      className="px-2 sm:px-3 py-1.5 sm:py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-xs sm:text-sm focus:outline-none focus:border-purple-500"
+                      className="px-2 sm:px-3 py-1.5 sm:py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white text-xs sm:text-sm focus:outline-none focus:border-purple-500"
                     >
                       {[3, 4, 5, 6, 7, 8, 10].map((n) => (
                         <option key={n} value={n}>{n}</option>
@@ -778,9 +778,9 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                       type="checkbox"
                       checked={includeQuizzes}
                       onChange={(e) => setIncludeQuizzes(e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-purple-600 focus:ring-purple-500"
+                      className="w-4 h-4 rounded border-neutral-600 bg-neutral-700 text-purple-600 focus:ring-purple-500"
                     />
-                    <span className="text-xs sm:text-sm text-slate-300">Include quizzes</span>
+                    <span className="text-xs sm:text-sm text-neutral-300">Include quizzes</span>
                   </label>
                 </div>
 
@@ -805,11 +805,11 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
             )}
 
             {/* Info Box */}
-            <div className="flex items-start gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-              <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-              <div className="text-xs sm:text-sm text-blue-200">
+            <div className="flex items-start gap-3 p-4 bg-purple-500/10 border border-purple-500/20 rounded-lg">
+              <AlertCircle className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
+              <div className="text-xs sm:text-sm text-purple-200">
                 <p className="font-medium mb-1">How it works:</p>
-                <ol className="list-decimal list-inside space-y-1 text-blue-300">
+                <ol className="list-decimal list-inside space-y-1 text-purple-300">
                   <li>Upload PDF or describe your course</li>
                   <li>AI generates path, modules & quizzes</li>
                   <li>Edit each component with rich editors</li>
@@ -825,20 +825,20 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Course Name</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-2">Course Name</label>
                 <input
                   type="text"
                   value={extractedContent.path.name}
                   onChange={(e) => updatePath('name', e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                  className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Program</label>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">Program</label>
                 <select
                   value={extractedContent.path.program_type}
                   onChange={(e) => updatePath('program_type', e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
                 >
                   <option value="bsit">BS Information Technology</option>
                   <option value="bscs">BS Computer Science</option>
@@ -846,11 +846,11 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Difficulty</label>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">Difficulty</label>
                 <select
                   value={extractedContent.path.difficulty_level}
                   onChange={(e) => updatePath('difficulty_level', e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
                 >
                   <option value="beginner">Beginner</option>
                   <option value="intermediate">Intermediate</option>
@@ -858,37 +858,37 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Duration (weeks)</label>
+                <label className="block text-sm font-medium text-neutral-300 mb-2">Duration (weeks)</label>
                 <input
                   type="number"
                   value={extractedContent.path.estimated_duration}
                   onChange={(e) => updatePath('estimated_duration', parseInt(e.target.value) || 1)}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                  className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
+              <label className="block text-sm font-medium text-neutral-300 mb-2">Description</label>
               <textarea
                 value={extractedContent.path.description}
                 onChange={(e) => updatePath('description', e.target.value)}
                 rows={3}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-purple-500 resize-none"
+                className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500 resize-none"
               />
             </div>
 
             {/* Summary */}
-            <div className="p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-              <h4 className="text-sm font-medium text-slate-300 mb-2">Content Summary</h4>
+            <div className="p-4 bg-neutral-700/50 rounded-lg border border-neutral-600">
+              <h4 className="text-sm font-medium text-neutral-300 mb-2">Content Summary</h4>
               <div className="flex flex-wrap gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <FileText className="w-4 h-4 text-purple-400" />
-                  <span className="text-slate-400">{extractedContent.modules.length} Modules</span>
+                  <span className="text-neutral-400">{extractedContent.modules.length} Modules</span>
                 </div>
                 {includeQuizzes && extractedContent.quizzes.length > 0 && (
                   <div className="flex items-center gap-2">
                     <ClipboardList className="w-4 h-4 text-green-400" />
-                    <span className="text-slate-400">{extractedContent.quizzes.length} Quizzes</span>
+                    <span className="text-neutral-400">{extractedContent.quizzes.length} Quizzes</span>
                   </div>
                 )}
               </div>
@@ -924,7 +924,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
               <h3 className="text-lg font-semibold text-white mb-1">
                 {extractedContent.modules[currentModuleIndex]?.title || `Module ${currentModuleIndex + 1}`}
               </h3>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-neutral-400">
                 {extractedContent.modules[currentModuleIndex]?.description}
               </p>
             </div>
@@ -959,7 +959,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
               <h3 className="text-lg font-semibold text-white mb-1">
                 {extractedContent.quizzes[currentQuizIndex]?.title || `Quiz ${currentQuizIndex + 1}`}
               </h3>
-              <p className="text-sm text-slate-400">
+              <p className="text-sm text-neutral-400">
                 For Module {extractedContent.quizzes[currentQuizIndex].module_index + 1}: {extractedContent.modules[extractedContent.quizzes[currentQuizIndex].module_index]?.title}
               </p>
             </div>
@@ -978,7 +978,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
               <CheckCircle className="w-10 h-10 text-green-400" />
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">Content Created Successfully!</h3>
-            <p className="text-slate-400 mb-6">
+            <p className="text-neutral-400 mb-6">
               Your learning content has been saved and is ready for students.
             </p>
             <div className="flex justify-center gap-4">

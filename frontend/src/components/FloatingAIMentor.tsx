@@ -17,7 +17,7 @@ const FormattedMessage = ({ content }: { content: string }) => {
   const lines = content.split('\n')
 
   return (
-    <div className="formatted-message leading-relaxed text-slate-100 space-y-2">
+    <div className="formatted-message leading-relaxed text-neutral-100 space-y-2">
       {lines.map((line, idx) => {
         const trimmedLine = line.trim()
 
@@ -63,7 +63,7 @@ const FormattedMessage = ({ content }: { content: string }) => {
         }
 
         // Regular paragraph
-        return <p key={idx} className="text-slate-100">{formatInlineMarkdown(trimmedLine)}</p>
+        return <p key={idx} className="text-neutral-100">{formatInlineMarkdown(trimmedLine)}</p>
       })}
     </div>
   )
@@ -113,11 +113,11 @@ const formatInlineMarkdown = (text: string): React.ReactNode => {
         remaining = remaining.slice(first.index + first.match[0].length)
         break
       case 'italic':
-        segments.push(<em key={`i${keyIndex++}`} className="italic text-slate-200">{first.match[1]}</em>)
+        segments.push(<em key={`i${keyIndex++}`} className="italic text-neutral-200">{first.match[1]}</em>)
         remaining = remaining.slice(first.index + first.match[0].length)
         break
       case 'code':
-        segments.push(<code key={`c${keyIndex++}`} className="px-1.5 py-0.5 bg-slate-700 rounded text-purple-300 text-sm font-mono">{first.match[1]}</code>)
+        segments.push(<code key={`c${keyIndex++}`} className="px-1.5 py-0.5 bg-neutral-700 rounded text-purple-300 text-sm font-mono">{first.match[1]}</code>)
         remaining = remaining.slice(first.index + first.match[0].length)
         break
       case 'link':
@@ -874,7 +874,7 @@ export default function FloatingAIMentor() {
       {!isOpen && isIdle && (
         <button
           onClick={handleIdleClick}
-          className="fixed right-0 bottom-1/3 w-10 h-16 bg-slate-900/60 backdrop-blur-sm border border-slate-700/30 border-r-0 rounded-l-xl shadow-lg hover:w-12 hover:bg-slate-800/80 transition-all duration-300 z-50 flex items-center justify-center group"
+          className="fixed right-0 bottom-1/3 w-10 h-16 bg-neutral-900/60 backdrop-blur-sm border border-neutral-700/30 border-r-0 rounded-l-xl shadow-lg hover:w-12 hover:bg-neutral-800/80 transition-all duration-300 z-50 flex items-center justify-center group"
           title="Open AI Mentor"
         >
           <Bot className="w-4 h-4 text-purple-400 opacity-60 group-hover:opacity-100 group-hover:w-5 group-hover:h-5 transition-all" />
@@ -885,7 +885,7 @@ export default function FloatingAIMentor() {
       {!isOpen && !isIdle && (
         <button
           onClick={handleToggle}
-          className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-full shadow-2xl hover:scale-110 transition-all duration-300 z-[60] flex items-center justify-center"
+          className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-purple-600 to-purple-600 rounded-full shadow-2xl hover:scale-110 transition-all duration-300 z-[60] flex items-center justify-center"
         >
           <Bot className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
         </button>
@@ -894,15 +894,15 @@ export default function FloatingAIMentor() {
       {/* Chat Window - Dark Glass UI (full screen in voice mode) */}
       {isOpen && (
         <div className={isVoiceMode
-          ? "fixed inset-0 bg-slate-950/98 backdrop-blur-xl z-[60] flex flex-col overflow-hidden"
-          : "fixed inset-2 bottom-20 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[420px] sm:h-[550px] bg-slate-900/95 backdrop-blur-lg border border-slate-700/50 rounded-2xl shadow-2xl z-[60] flex flex-col overflow-hidden"
+          ? "fixed inset-0 bg-neutral-950/98 backdrop-blur-xl z-[60] flex flex-col overflow-hidden"
+          : "fixed inset-2 bottom-20 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[420px] sm:h-[550px] bg-neutral-900/95 backdrop-blur-lg border border-neutral-700/50 rounded-2xl shadow-2xl z-[60] flex flex-col overflow-hidden"
         }>
           {/* Header - Dark Glass */}
-          <div className="bg-slate-800/80 backdrop-blur-lg border-b border-slate-700/50 p-4 flex items-center justify-between">
+          <div className="bg-neutral-800/80 backdrop-blur-lg border-b border-neutral-700/50 p-4 flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setShowConversations(!showConversations)}
-                className="text-slate-400 hover:text-purple-400 hover:bg-slate-700/50 rounded-lg p-1.5 flex items-center justify-center transition-colors"
+                className="text-neutral-400 hover:text-purple-400 hover:bg-neutral-700/50 rounded-lg p-1.5 flex items-center justify-center transition-colors"
                 title="Conversations"
               >
                 <Menu className="w-5 h-5" />
@@ -910,14 +910,14 @@ export default function FloatingAIMentor() {
               <Bot className="w-7 h-7 text-purple-400" />
               <div>
                 <h3 className="font-bold text-white">AI Mentor</h3>
-                <p className="text-xs text-slate-400">Smarter Than Your Average Mentor</p>
+                <p className="text-xs text-neutral-400">Smarter Than Your Average Mentor</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => { setIsVoiceMode(!isVoiceMode); if (isVoiceMode && speech.isListening) speech.stopListening(); }}
-                className={`hover:bg-slate-700/50 rounded-lg p-2 flex items-center justify-center transition-colors ${
-                  isVoiceMode ? 'text-purple-400 bg-purple-500/10' : 'text-slate-400 hover:text-white'
+                className={`hover:bg-neutral-700/50 rounded-lg p-2 flex items-center justify-center transition-colors ${
+                  isVoiceMode ? 'text-purple-400 bg-purple-500/10' : 'text-neutral-400 hover:text-white'
                 }`}
                 title={isVoiceMode ? 'Switch to chat' : 'Switch to voice'}
               >
@@ -925,21 +925,21 @@ export default function FloatingAIMentor() {
               </button>
               <button
                 onClick={createNewConversation}
-                className="text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg p-2 flex items-center justify-center transition-colors"
+                className="text-neutral-400 hover:text-white hover:bg-neutral-700/50 rounded-lg p-2 flex items-center justify-center transition-colors"
                 title="New Chat"
               >
                 <Plus className="w-5 h-5" />
               </button>
               <button
                 onClick={() => setShowSettings(true)}
-                className="text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg p-2 flex items-center justify-center transition-colors"
+                className="text-neutral-400 hover:text-white hover:bg-neutral-700/50 rounded-lg p-2 flex items-center justify-center transition-colors"
                 title="Settings"
               >
                 <Settings className="w-5 h-5" />
               </button>
               <button
                 onClick={handleToggle}
-                className="text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg p-2 flex items-center justify-center transition-colors"
+                className="text-neutral-400 hover:text-white hover:bg-neutral-700/50 rounded-lg p-2 flex items-center justify-center transition-colors"
                 title="Close"
               >
                 <X className="w-5 h-5" />
@@ -949,12 +949,12 @@ export default function FloatingAIMentor() {
 
           {/* Conversation List Sidebar - Dark Glass */}
           {showConversations && (
-            <div className="absolute left-0 top-0 h-full w-64 bg-slate-900/98 backdrop-blur-lg border-r border-slate-700/50 rounded-l-2xl z-10 overflow-hidden shadow-xl">
-              <div className="p-4 bg-slate-800/80 border-b border-slate-700/50 flex items-center justify-between">
+            <div className="absolute left-0 top-0 h-full w-64 bg-neutral-900/98 backdrop-blur-lg border-r border-neutral-700/50 rounded-l-2xl z-10 overflow-hidden shadow-xl">
+              <div className="p-4 bg-neutral-800/80 border-b border-neutral-700/50 flex items-center justify-between">
                 <h3 className="font-bold text-white">Conversations</h3>
                 <button
                   onClick={() => setShowConversations(false)}
-                  className="text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg p-1.5 transition-colors"
+                  className="text-neutral-400 hover:text-white hover:bg-neutral-700/50 rounded-lg p-1.5 transition-colors"
                   title="Close panel"
                 >
                   <X className="w-4 h-4" />
@@ -962,7 +962,7 @@ export default function FloatingAIMentor() {
               </div>
               <div className="overflow-y-auto h-[calc(100%-4rem)]">
                 {sessions.length === 0 ? (
-                  <div className="p-4 text-center text-slate-400">
+                  <div className="p-4 text-center text-neutral-400">
                     <p className="text-sm">No conversations yet</p>
                     <button onClick={createNewConversation} className="mt-2 px-4 py-2 bg-purple-600 rounded-lg text-white text-sm hover:bg-purple-700">
                       Start New Chat
@@ -973,7 +973,7 @@ export default function FloatingAIMentor() {
                     {sessions.map((session) => (
                       <div
                         key={session.id}
-                        className={`w-full text-left p-3 rounded-lg transition-colors cursor-pointer group relative ${session.id === sessionId ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+                        className={`w-full text-left p-3 rounded-lg transition-colors cursor-pointer group relative ${session.id === sessionId ? 'bg-purple-600 text-white' : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'}`}
                         onClick={() => switchConversation(session.id)}
                       >
                         <div className="text-sm font-medium truncate pr-6">{getSessionTitle(session)}</div>
@@ -982,7 +982,7 @@ export default function FloatingAIMentor() {
                         {/* Delete button with Lucide icon */}
                         <button
                           onClick={(e) => deleteConversation(session.id, e)}
-                          className={`absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${session.id === sessionId ? 'hover:bg-purple-700 text-white' : 'hover:bg-red-600/80 text-slate-400 hover:text-white'}`}
+                          className={`absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${session.id === sessionId ? 'hover:bg-purple-700 text-white' : 'hover:bg-red-600/80 text-neutral-400 hover:text-white'}`}
                           title="Delete conversation"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -997,7 +997,7 @@ export default function FloatingAIMentor() {
 
           {/* ── VOICE MODE (Full Screen) ───────────────────────── */}
           {isVoiceMode ? (
-            <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-slate-950">
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden bg-neutral-950">
               {/* Voice Panel (center — takes up most space) */}
               <div className="flex-1 flex flex-col items-center justify-center relative min-h-0">
                 {/* Animated background glow */}
@@ -1011,16 +1011,16 @@ export default function FloatingAIMentor() {
 
                 {/* Status indicator */}
                 <div className={`text-sm font-medium mb-6 h-6 flex items-center gap-2 transition-all duration-300 ${
-                  voiceStatus === 'listening' ? 'text-red-400' : voiceStatus === 'processing' ? 'text-yellow-400 animate-pulse' : voiceStatus === 'speaking' ? 'text-purple-400' : 'text-slate-600'
+                  voiceStatus === 'listening' ? 'text-red-400' : voiceStatus === 'processing' ? 'text-amber-400 animate-pulse' : voiceStatus === 'speaking' ? 'text-purple-400' : 'text-neutral-600'
                 }`}>
                   {voiceStatus === 'listening' && <><span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" /> Listening...</>}
-                  {voiceStatus === 'processing' && <><span className="w-2 h-2 rounded-full bg-yellow-400" /> Processing...</>}
+                  {voiceStatus === 'processing' && <><span className="w-2 h-2 rounded-full bg-amber-400" /> Processing...</>}
                   {voiceStatus === 'speaking' && <><span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" /> AI Speaking...</>}
                 </div>
 
                 {/* Title with subtitle */}
                 <h2 className="text-white text-3xl md:text-4xl font-bold mb-2 tracking-tight relative z-10">AI Mentor</h2>
-                <p className="text-slate-500 text-sm mb-12 relative z-10">Voice Assistant</p>
+                <p className="text-neutral-500 text-sm mb-12 relative z-10">Voice Assistant</p>
 
                 {/* Waveform — large, centered */}
                 <div className="mb-12 w-full max-w-[750px] px-6 relative z-10">
@@ -1042,10 +1042,10 @@ export default function FloatingAIMentor() {
                     voiceStatus === 'listening'
                       ? 'bg-red-500 scale-110 shadow-[0_0_40px_rgba(239,68,68,0.5)] ring-4 ring-red-500/30 animate-pulse'
                       : voiceStatus === 'processing'
-                        ? 'bg-slate-700 cursor-wait'
+                        ? 'bg-neutral-700 cursor-wait'
                         : voiceStatus === 'speaking'
                           ? 'bg-purple-500/30 cursor-not-allowed ring-4 ring-purple-500/20 shadow-[0_0_30px_rgba(168,85,247,0.3)]'
-                          : 'bg-gradient-to-br from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 hover:scale-105 shadow-[0_0_30px_rgba(147,51,234,0.3)] hover:shadow-[0_0_50px_rgba(147,51,234,0.5)]'
+                          : 'bg-gradient-to-br from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 hover:scale-105 shadow-[0_0_30px_rgba(147,51,234,0.3)] hover:shadow-[0_0_50px_rgba(147,51,234,0.5)]'
                   }`}
                 >
                   {voiceStatus === 'listening'
@@ -1055,7 +1055,7 @@ export default function FloatingAIMentor() {
                       : <Mic className="w-8 h-8 md:w-10 md:h-10 text-white" />
                   }
                 </button>
-                <p className="text-slate-500 text-sm mt-5 select-none relative z-10">
+                <p className="text-neutral-500 text-sm mt-5 select-none relative z-10">
                   {voiceStatus === 'listening' ? 'Click to send' : voiceStatus === 'processing' ? 'Thinking...' : voiceStatus === 'speaking' ? 'Playing response...' : 'Click to start'}
                 </p>
 
@@ -1075,22 +1075,22 @@ export default function FloatingAIMentor() {
               </div>
 
               {/* Transcript Panel */}
-              <div className="md:w-[300px] h-48 md:h-auto border-t md:border-t-0 md:border-l border-slate-800 overflow-y-auto p-6 bg-slate-900/80">
-                <h4 className="text-slate-500 text-[11px] font-semibold mb-5 uppercase tracking-[0.2em]">Transcript</h4>
+              <div className="md:w-[300px] h-48 md:h-auto border-t md:border-t-0 md:border-l border-neutral-800 overflow-y-auto p-6 bg-neutral-900/80">
+                <h4 className="text-neutral-500 text-[11px] font-semibold mb-5 uppercase tracking-[0.2em]">Transcript</h4>
                 {voiceTranscript.length === 0 ? (
                   <div className="flex flex-col items-center justify-center mt-12 opacity-40">
-                    <Mic className="w-8 h-8 text-slate-600 mb-3" />
-                    <p className="text-slate-600 text-sm text-center">Hold the mic button<br/>and start speaking</p>
+                    <Mic className="w-8 h-8 text-neutral-600 mb-3" />
+                    <p className="text-neutral-600 text-sm text-center">Hold the mic button<br/>and start speaking</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {voiceTranscript.map((entry, i) => (
-                      <div key={i} className={`p-3 rounded-lg ${entry.role === 'user' ? 'bg-slate-800/50' : 'bg-purple-500/10 border border-purple-500/20'}`}>
+                      <div key={i} className={`p-3 rounded-lg ${entry.role === 'user' ? 'bg-neutral-800/50' : 'bg-purple-500/10 border border-purple-500/20'}`}>
                         <span className={`text-[10px] font-bold uppercase tracking-widest ${
-                          entry.role === 'user' ? 'text-slate-500' : 'text-purple-500'
+                          entry.role === 'user' ? 'text-neutral-500' : 'text-purple-500'
                         }`}>{entry.role === 'user' ? 'You' : 'AI Mentor'}</span>
                         <p className={`text-sm mt-1 leading-relaxed ${
-                          entry.role === 'user' ? 'text-slate-300' : 'text-purple-200'
+                          entry.role === 'user' ? 'text-neutral-300' : 'text-purple-200'
                         }`}>{entry.text}</p>
                       </div>
                     ))}
@@ -1111,14 +1111,14 @@ export default function FloatingAIMentor() {
                     <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
                     <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                   </div>
-                  <p className="text-sm text-slate-400">Loading conversation...</p>
+                  <p className="text-sm text-neutral-400">Loading conversation...</p>
                 </div>
               </div>
             ) : (
               <>
                 {messages.map((msg, idx) => (
                   <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] ${msg.role === 'user' ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white' : 'bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 text-slate-100'} rounded-2xl overflow-hidden shadow-md`}>
+                    <div className={`max-w-[85%] ${msg.role === 'user' ? 'bg-gradient-to-r from-purple-600 to-purple-600 text-white' : 'bg-neutral-800/80 backdrop-blur-sm border border-neutral-700/50 text-neutral-100'} rounded-2xl overflow-hidden shadow-md`}>
                       <div className="p-3 text-sm">
                         {msg.role === 'ai' ? (
                           <FormattedMessage content={msg.content} />
@@ -1128,14 +1128,14 @@ export default function FloatingAIMentor() {
                       </div>
 
                       {msg.searchResults && (
-                        <div className="border-t border-slate-700 p-3 space-y-2">
+                        <div className="border-t border-neutral-700 p-3 space-y-2">
                           <div className="text-xs font-semibold text-purple-400 mb-2">🔍 Found {msg.searchResults.total} results</div>
                           {msg.searchResults.paths && msg.searchResults.paths.length > 0 && (
                             <div className="space-y-1">
                               {msg.searchResults.paths.slice(0, 3).map((path) => (
-                                <div key={path.id} className="bg-slate-700/50 p-2 rounded text-xs">
+                                <div key={path.id} className="bg-neutral-700/50 p-2 rounded text-xs">
                                   <div className="font-medium flex items-center gap-1"><span>{path.icon}</span><span>{path.name}</span></div>
-                                  <div className="text-slate-400 text-[10px] mt-1">{path.module_count} modules</div>
+                                  <div className="text-neutral-400 text-[10px] mt-1">{path.module_count} modules</div>
                                 </div>
                               ))}
                             </div>
@@ -1143,9 +1143,9 @@ export default function FloatingAIMentor() {
                           {msg.searchResults.modules && msg.searchResults.modules.length > 0 && (
                             <div className="space-y-1">
                               {msg.searchResults.modules.slice(0, 2).map((module) => (
-                                <div key={module.id} className="bg-slate-700/50 p-2 rounded text-xs">
+                                <div key={module.id} className="bg-neutral-700/50 p-2 rounded text-xs">
                                   <div className="font-medium">📘 {module.title}</div>
-                                  <div className="text-slate-400 text-[10px]">{module.path_name}</div>
+                                  <div className="text-neutral-400 text-[10px]">{module.path_name}</div>
                                 </div>
                               ))}
                             </div>
@@ -1154,12 +1154,12 @@ export default function FloatingAIMentor() {
                       )}
 
                       {msg.actionButtons && msg.actionButtons.length > 0 && (
-                        <div className="border-t border-slate-700 p-3 space-y-2">
+                        <div className="border-t border-neutral-700 p-3 space-y-2">
                           {msg.actionButtons.map((btn, btnIdx) => (
                             <button
                               key={btnIdx}
                               onClick={btn.onClick}
-                              className={`w-full text-xs px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 ${btn.variant === 'primary' ? 'bg-purple-600 hover:bg-purple-700 text-white' : btn.variant === 'success' ? 'bg-green-600 hover:bg-green-700 text-white' : btn.variant === 'danger' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-slate-700 hover:bg-slate-600 text-white'}`}
+                              className={`w-full text-xs px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 ${btn.variant === 'primary' ? 'bg-purple-600 hover:bg-purple-700 text-white' : btn.variant === 'success' ? 'bg-green-600 hover:bg-green-700 text-white' : btn.variant === 'danger' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-neutral-700 hover:bg-neutral-600 text-white'}`}
                             >
                               {btn.icon && <span>{btn.icon}</span>}
                               <span>{btn.label}</span>
@@ -1175,7 +1175,7 @@ export default function FloatingAIMentor() {
 
             {isStreaming && streamingText && (
               <div className="flex justify-start">
-                <div className="max-w-[85%] p-3 rounded-2xl bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 text-slate-100 shadow-md">
+                <div className="max-w-[85%] p-3 rounded-2xl bg-neutral-800/80 backdrop-blur-sm border border-neutral-700/50 text-neutral-100 shadow-md">
                   <span className="whitespace-pre-wrap text-sm leading-relaxed">{streamingText}</span>
                   <span className="inline-block w-0.5 h-4 ml-1 bg-purple-400 animate-pulse"></span>
                 </div>
@@ -1184,14 +1184,14 @@ export default function FloatingAIMentor() {
 
             {loading && !isStreaming && (
               <div className="flex justify-start">
-                <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 p-3 rounded-2xl shadow-md">
+                <div className="bg-neutral-800/80 backdrop-blur-sm border border-neutral-700/50 p-3 rounded-2xl shadow-md">
                   <div className="flex items-center gap-2">
                     <div className="flex gap-1">
                       <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
                       <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
                       <span className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                     </div>
-                    <span className="text-sm text-slate-400">AI is thinking...</span>
+                    <span className="text-sm text-neutral-400">AI is thinking...</span>
                   </div>
                 </div>
               </div>
@@ -1217,7 +1217,7 @@ export default function FloatingAIMentor() {
                     key={idx}
                     type="button"
                     onClick={() => handleSuggestionClick(suggestion.value)}
-                    className="px-3 py-1.5 text-xs text-slate-300 hover:text-white border border-slate-500/50 hover:border-purple-400 rounded-full transition-all flex items-center gap-1 group bg-slate-900/90 backdrop-blur-sm hover:bg-purple-600/80 shadow-md"
+                    className="px-3 py-1.5 text-xs text-neutral-300 hover:text-white border border-neutral-500/50 hover:border-purple-400 rounded-full transition-all flex items-center gap-1 group bg-neutral-900/90 backdrop-blur-sm hover:bg-purple-600/80 shadow-md"
                   >
                     <span>{suggestion.label}</span>
                     <ChevronRight className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />
@@ -1227,7 +1227,7 @@ export default function FloatingAIMentor() {
           </div>
 
           {/* Input */}
-          <form onSubmit={handleSendMessage} className="p-3 sm:p-4 border-t border-slate-700/50 bg-slate-900/50">
+          <form onSubmit={handleSendMessage} className="p-3 sm:p-4 border-t border-neutral-700/50 bg-neutral-900/50">
             <div className="flex space-x-2">
               <input
                 type="text"
@@ -1240,12 +1240,12 @@ export default function FloatingAIMentor() {
                   }
                 }}
                 placeholder="Ask anything..."
-                className="flex-1 px-4 py-2.5 bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-xl focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500/50 text-sm placeholder:text-slate-500 transition-all"
+                className="flex-1 px-4 py-2.5 bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500/50 text-sm placeholder:text-neutral-500 transition-all"
               />
               <button
                 type="submit"
                 disabled={loading || isStreaming}
-                className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 rounded-xl transition disabled:opacity-50 shadow-lg shadow-purple-500/20"
+                className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700 rounded-xl transition disabled:opacity-50 shadow-lg shadow-purple-500/20"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-white">
                   <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
@@ -1269,18 +1269,18 @@ export default function FloatingAIMentor() {
 
       {confirmationDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
+          <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
             <div className="flex items-start gap-3 mb-4">
               <span className="text-3xl">⚠️</span>
               <div>
                 <h3 className="text-lg font-bold text-white mb-2">Confirm Action</h3>
-                <p className="text-slate-300 text-sm">{confirmationDialog.message}</p>
+                <p className="text-neutral-300 text-sm">{confirmationDialog.message}</p>
               </div>
             </div>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => { confirmationDialog.onCancel?.(); setConfirmationDialog(null) }}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors text-sm"
+                className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg transition-colors text-sm"
               >
                 Cancel
               </button>

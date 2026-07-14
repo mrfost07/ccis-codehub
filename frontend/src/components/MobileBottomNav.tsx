@@ -30,7 +30,7 @@ export default function MobileBottomNav() {
 
     return (
         <nav
-            className="md:hidden fixed bottom-0 left-0 right-0 z-[60] bg-slate-900 border-t border-slate-800"
+            className="md:hidden fixed bottom-0 left-0 right-0 z-[60] bg-neutral-900 border-t border-neutral-800"
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
             <div className="flex items-center justify-around h-14 px-1">
@@ -48,7 +48,7 @@ export default function MobileBottomNav() {
                                 transition-all duration-200 ease-out
                                 ${active
                                     ? 'text-white bg-purple-600/20'
-                                    : 'text-slate-500 active:bg-slate-800/50'
+                                    : 'text-neutral-500 active:bg-neutral-800/50'
                                 }
                             `}
                         >

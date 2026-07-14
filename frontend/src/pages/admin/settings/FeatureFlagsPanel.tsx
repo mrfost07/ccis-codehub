@@ -154,7 +154,7 @@ export default function FeatureFlagsPanel() {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-12">
-                <div className="text-slate-400">Loading settings...</div>
+                <div className="text-neutral-400">Loading settings...</div>
             </div>
         )
     }
@@ -165,13 +165,13 @@ export default function FeatureFlagsPanel() {
             <div className="flex items-center justify-between">
                 <div>
                     <h3 className="text-lg font-semibold text-white">Feature Flags</h3>
-                    <p className="text-sm text-slate-400 mt-1">
+                    <p className="text-sm text-neutral-400 mt-1">
                         Toggle features on or off without rebuilding
                     </p>
                 </div>
 
                 {lastUpdated && (
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <div className="flex items-center gap-2 text-xs text-neutral-500">
                         <Clock className="w-3.5 h-3.5" />
                         <span>Updated by {lastUpdated.by} at {lastUpdated.at}</span>
                     </div>
@@ -185,12 +185,12 @@ export default function FeatureFlagsPanel() {
                         key={flag.key}
                         onClick={() => handleToggleClick(flag)}
                         disabled={updating === flag.key}
-                        className="group relative flex items-start gap-4 p-4 bg-slate-900/30 hover:bg-slate-900/50 border border-slate-700/50 rounded-xl transition-all text-left disabled:opacity-50"
+                        className="group relative flex items-start gap-4 p-4 bg-neutral-900/30 hover:bg-neutral-900/50 border border-neutral-700/50 rounded-xl transition-all text-left disabled:opacity-50"
                     >
                         {/* Icon */}
                         <div className={`p-2.5 rounded-lg transition-colors ${flag.enabled
                                 ? 'bg-purple-500/10 text-purple-400'
-                                : 'bg-slate-700/50 text-slate-500'
+                                : 'bg-neutral-700/50 text-neutral-500'
                             }`}>
                             {flag.icon}
                         </div>
@@ -202,16 +202,16 @@ export default function FeatureFlagsPanel() {
                                 {flag.enabled ? (
                                     <ToggleRight className="w-5 h-5 text-purple-400 flex-shrink-0" />
                                 ) : (
-                                    <ToggleLeft className="w-5 h-5 text-slate-600 flex-shrink-0" />
+                                    <ToggleLeft className="w-5 h-5 text-neutral-600 flex-shrink-0" />
                                 )}
                             </div>
-                            <p className="text-sm text-slate-400">{flag.description}</p>
+                            <p className="text-sm text-neutral-400">{flag.description}</p>
 
                             {/* Status Badge */}
                             <div className="mt-2">
                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${flag.enabled
                                         ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                                        : 'bg-slate-700/50 text-slate-400 border border-slate-600/50'
+                                        : 'bg-neutral-700/50 text-neutral-400 border border-neutral-600/50'
                                     }`}>
                                     {updating === flag.key ? 'Updating...' : flag.enabled ? 'Enabled' : 'Disabled'}
                                 </span>
@@ -224,7 +224,7 @@ export default function FeatureFlagsPanel() {
             {/* Confirmation Modal */}
             {confirmFlag && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-slate-800 border border-slate-700 rounded-xl max-w-md w-full shadow-2xl">
+                    <div className="bg-neutral-800 border border-neutral-700 rounded-xl max-w-md w-full shadow-2xl">
                         <div className="p-6 space-y-4">
                             <div className="flex items-center gap-3">
                                 <div className={`p-2.5 rounded-lg ${confirmFlag.enabled
@@ -238,14 +238,14 @@ export default function FeatureFlagsPanel() {
                                 </h3>
                             </div>
 
-                            <p className="text-slate-300 text-sm">
+                            <p className="text-neutral-300 text-sm">
                                 {confirmFlag.description}. This will take effect immediately for all users.
                             </p>
 
                             <div className="flex gap-3 pt-2">
                                 <button
                                     onClick={() => setConfirmFlag(null)}
-                                    className="flex-1 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors font-medium"
+                                    className="flex-1 px-4 py-2.5 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition-colors font-medium"
                                 >
                                     Cancel
                                 </button>

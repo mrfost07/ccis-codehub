@@ -28,7 +28,7 @@ export default function DeleteUserModal({
             onClick={onClose}
         >
             <div
-                className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+                className="bg-neutral-900 border border-neutral-800 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Icon & Title - Centered */}
@@ -37,17 +37,17 @@ export default function DeleteUserModal({
                         <Trash2 className="w-8 h-8 text-red-500" />
                     </div>
                     <h3 className="text-xl font-semibold text-white mb-1">Delete User?</h3>
-                    <p className="text-slate-400 text-sm">
+                    <p className="text-neutral-400 text-sm">
                         This will permanently remove <span className="text-white font-medium">{deleteModal.username}</span>
                     </p>
                 </div>
 
                 {/* Buttons */}
-                <div className="p-4 bg-slate-800/50 flex gap-3">
+                <div className="p-4 bg-neutral-800/50 flex gap-3">
                     <button
                         onClick={onClose}
                         disabled={isDeleting}
-                        className="flex-1 px-4 py-3 bg-slate-700/50 hover:bg-slate-700 disabled:opacity-50 text-slate-300 hover:text-white rounded-xl transition-all font-medium"
+                        className="flex-1 px-4 py-3 bg-neutral-700/50 hover:bg-neutral-700 disabled:opacity-50 text-neutral-300 hover:text-white rounded-xl transition-all font-medium"
                     >
                         Cancel
                     </button>

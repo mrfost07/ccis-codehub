@@ -55,13 +55,13 @@ export default function AdminSettingsTab() {
                     onClose={() => setShowPasswordModal(false)}
                     onVerify={handleVerify}
                 />
-                <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-12">
+                <div className="bg-neutral-800/50 backdrop-blur border border-neutral-700 rounded-xl p-12">
                     <div className="text-center">
                         <div className="inline-flex p-4 bg-purple-500/10 rounded-2xl mb-4">
                             <Settings className="w-8 h-8 text-purple-400" />
                         </div>
                         <h2 className="text-2xl font-bold text-white mb-2">System Settings</h2>
-                        <p className="text-slate-400 mb-4">Verification required to access settings</p>
+                        <p className="text-neutral-400 mb-4">Verification required to access settings</p>
                         <button
                             onClick={() => setShowPasswordModal(true)}
                             className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors font-medium"
@@ -77,21 +77,21 @@ export default function AdminSettingsTab() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-6">
+            <div className="bg-neutral-800/50 backdrop-blur border border-neutral-700 rounded-xl p-6">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-2.5 bg-purple-500/10 rounded-lg">
                         <Settings className="w-6 h-6 text-purple-400" />
                     </div>
                     <div>
                         <h2 className="text-2xl font-bold text-white">System Settings</h2>
-                        <p className="text-sm text-slate-400 mt-1">
+                        <p className="text-sm text-neutral-400 mt-1">
                             Manage feature flags and monitor system health
                         </p>
                     </div>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-2 border-b border-slate-700">
+                <div className="flex gap-2 border-b border-neutral-700">
                     {tabs.map((tab) => {
                         const Icon = tab.icon
                         const isActive = activeTab === tab.id
@@ -102,7 +102,7 @@ export default function AdminSettingsTab() {
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`flex items-center gap-2 px-4 py-3 font-medium transition-all border-b-2 ${isActive
                                         ? 'text-purple-400 border-purple-500'
-                                        : 'text-slate-400 border-transparent hover:text-slate-300'
+                                        : 'text-neutral-400 border-transparent hover:text-neutral-300'
                                     }`}
                             >
                                 <Icon className="w-4 h-4" />
@@ -114,7 +114,7 @@ export default function AdminSettingsTab() {
             </div>
 
             {/* Tab Content */}
-            <div className="bg-slate-800/50 backdrop-blur border border-slate-700 rounded-xl p-6">
+            <div className="bg-neutral-800/50 backdrop-blur border border-neutral-700 rounded-xl p-6">
                 {activeTab === 'flags' && <FeatureFlagsPanel />}
                 {activeTab === 'health' && <SystemHealthPanel />}
             </div>

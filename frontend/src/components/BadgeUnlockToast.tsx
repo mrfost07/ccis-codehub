@@ -94,8 +94,8 @@ export default function BadgeUnlockToast({ badgeNames, onComplete }: BadgeUnlock
       >
         {/* Glow ring */}
         <div className="relative">
-          <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-purple-500 via-yellow-400 to-purple-500 opacity-30 blur-xl animate-spin" style={{ animationDuration: '3s' }} />
-          <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-yellow-400 via-amber-500 to-orange-600 flex items-center justify-center shadow-2xl">
+          <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-purple-500 via-amber-400 to-purple-500 opacity-30 blur-xl animate-spin" style={{ animationDuration: '3s' }} />
+          <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 flex items-center justify-center shadow-2xl">
             <Trophy className="w-12 h-12 text-white drop-shadow-lg" />
           </div>
         </div>
@@ -110,12 +110,12 @@ export default function BadgeUnlockToast({ badgeNames, onComplete }: BadgeUnlock
         </div>
 
         {badgeNames.length > 1 && (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-neutral-500">
             {currentIndex + 1} / {badgeNames.length}
           </p>
         )}
 
-        <p className="text-xs text-slate-400 animate-pulse">Click anywhere to dismiss</p>
+        <p className="text-xs text-neutral-400 animate-pulse">Click anywhere to dismiss</p>
       </div>
 
       {/* Click to dismiss */}

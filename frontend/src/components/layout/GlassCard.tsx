@@ -29,15 +29,15 @@ export default function GlassCard({
     const glowClasses = {
         none: '',
         purple: 'shadow-lg shadow-purple-500/5 border-purple-500/20',
-        blue: 'shadow-lg shadow-blue-500/5 border-blue-500/20',
+        blue: 'shadow-lg shadow-purple-500/5 border-purple-500/20',
         green: 'shadow-lg shadow-green-500/5 border-green-500/20',
     }
 
     return (
         <div
             className={`
-        bg-slate-800/40 backdrop-blur-xl
-        border border-slate-700/50
+        bg-neutral-800/40 backdrop-blur-xl
+        border border-neutral-700/50
         rounded-2xl
         ${paddingClasses[padding]}
         ${glowClasses[glow]}

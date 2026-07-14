@@ -78,14 +78,14 @@ export default function VideoCoursePage() {
     }, [slug, activeLesson, course])
 
     const getDifficultyColor = (d: string) => {
-        if (d === 'beginner') return 'text-emerald-400 bg-emerald-500/15'
+        if (d === 'beginner') return 'text-green-400 bg-green-500/15'
         if (d === 'intermediate') return 'text-amber-400 bg-amber-500/15'
-        return 'text-rose-400 bg-rose-500/15'
+        return 'text-red-400 bg-red-500/15'
     }
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+            <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
                 <Loader2 className="w-10 h-10 text-purple-400 animate-spin" />
             </div>
         )
@@ -94,20 +94,20 @@ export default function VideoCoursePage() {
     if (!course) return null
 
     return (
-        <div className="min-h-screen bg-slate-950 flex flex-col pb-24 sm:pb-0">
+        <div className="min-h-screen bg-neutral-950 flex flex-col pb-24 sm:pb-0">
             <Navbar />
 
             {/* Top Bar */}
-            <div className="bg-slate-900/80 border-b border-slate-800/50 px-4 py-2 flex items-center gap-3">
+            <div className="bg-neutral-900/80 border-b border-neutral-800/50 px-4 py-2 flex items-center gap-3">
                 <button
                     onClick={() => navigate('/learning')}
-                    className="text-slate-400 hover:text-white transition p-1"
+                    className="text-neutral-400 hover:text-white transition p-1"
                 >
                     <ArrowLeft className="w-5 h-5" />
                 </button>
                 <div className="flex-1 min-w-0">
                     <h1 className="text-white font-semibold text-sm sm:text-base truncate">{course.title}</h1>
-                    <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                    <div className="flex items-center gap-2 text-[11px] text-neutral-500">
                         <span>{course.instructor_name}</span>
                         <span>•</span>
                         <span>{course.lessons_count} lessons</span>
@@ -135,41 +135,41 @@ export default function VideoCoursePage() {
             {/* Content */}
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
                 {/* Lesson Sidebar */}
-                <div className={`${sidebarOpen ? 'w-full lg:w-80' : 'w-0'} border-b lg:border-b-0 lg:border-r border-slate-800/50 overflow-y-auto bg-slate-950 transition-all flex-shrink-0`}>
-                    <div className="p-3 border-b border-slate-800/50 bg-slate-900/50">
+                <div className={`${sidebarOpen ? 'w-full lg:w-80' : 'w-0'} border-b lg:border-b-0 lg:border-r border-neutral-800/50 overflow-y-auto bg-neutral-950 transition-all flex-shrink-0`}>
+                    <div className="p-3 border-b border-neutral-800/50 bg-neutral-900/50">
                         <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                             <BookOpen className="w-4 h-4 text-purple-400" />
                             Course Content
                         </h3>
-                        <p className="text-[10px] text-slate-500 mt-0.5">
+                        <p className="text-[10px] text-neutral-500 mt-0.5">
                             {course.completed_lessons}/{course.lessons_count} lessons completed
                         </p>
                     </div>
-                    <div className="divide-y divide-slate-800/30">
+                    <div className="divide-y divide-neutral-800/30">
                         {course.lessons.map((lesson, idx) => (
                             <button
                                 key={lesson.id}
                                 onClick={() => setActiveLesson(lesson)}
-                                className={`w-full text-left p-3 flex items-start gap-3 transition hover:bg-slate-900/60 ${
+                                className={`w-full text-left p-3 flex items-start gap-3 transition hover:bg-neutral-900/60 ${
                                     activeLesson?.id === lesson.id ? 'bg-purple-500/10 border-l-2 border-purple-500' : ''
                                 }`}
                             >
                                 <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold mt-0.5 ${
                                     lesson.is_completed
-                                        ? 'bg-emerald-500/20 text-emerald-400'
+                                        ? 'bg-green-500/20 text-green-400'
                                         : activeLesson?.id === lesson.id
                                             ? 'bg-purple-500/20 text-purple-400'
-                                            : 'bg-slate-800/50 text-slate-500'
+                                            : 'bg-neutral-800/50 text-neutral-500'
                                 }`}>
                                     {lesson.is_completed ? <CheckCircle className="w-3.5 h-3.5" /> : idx + 1}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className={`text-sm truncate ${
-                                        activeLesson?.id === lesson.id ? 'text-white font-medium' : 'text-slate-400'
+                                        activeLesson?.id === lesson.id ? 'text-white font-medium' : 'text-neutral-400'
                                     }`}>
                                         {lesson.title}
                                     </p>
-                                    <p className="text-[10px] text-slate-600 flex items-center gap-1 mt-0.5">
+                                    <p className="text-[10px] text-neutral-600 flex items-center gap-1 mt-0.5">
                                         <Clock className="w-3 h-3" /> {lesson.duration_minutes} min
                                     </p>
                                 </div>
@@ -199,20 +199,20 @@ export default function VideoCoursePage() {
                                     <div>
                                         <h2 className="text-lg sm:text-xl font-bold text-white">{activeLesson.title}</h2>
                                         {activeLesson.description && (
-                                            <p className="text-sm text-slate-400 mt-1">{activeLesson.description}</p>
+                                            <p className="text-sm text-neutral-400 mt-1">{activeLesson.description}</p>
                                         )}
                                     </div>
                                     {!activeLesson.is_completed && (
                                         <button
                                             onClick={handleMarkComplete}
-                                            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-sm font-medium rounded-lg transition flex-shrink-0"
+                                            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white text-sm font-medium rounded-lg transition flex-shrink-0"
                                         >
                                             <CheckCircle className="w-4 h-4" />
                                             Mark Complete
                                         </button>
                                     )}
                                     {activeLesson.is_completed && (
-                                        <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 text-sm rounded-lg border border-emerald-500/30 flex-shrink-0">
+                                        <span className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 text-green-400 text-sm rounded-lg border border-green-500/30 flex-shrink-0">
                                             <CheckCircle className="w-4 h-4" /> Completed
                                         </span>
                                     )}
@@ -226,20 +226,20 @@ export default function VideoCoursePage() {
                                     return (
                                         <button
                                             onClick={() => setActiveLesson(nextLesson)}
-                                            className="w-full flex items-center justify-between p-3 bg-slate-900/60 border border-slate-800/50 rounded-xl hover:bg-slate-900/80 transition group"
+                                            className="w-full flex items-center justify-between p-3 bg-neutral-900/60 border border-neutral-800/50 rounded-xl hover:bg-neutral-900/80 transition group"
                                         >
                                             <div className="text-left">
-                                                <div className="text-[10px] text-slate-600 uppercase">Next Lesson</div>
-                                                <div className="text-sm text-slate-300 group-hover:text-white transition">{nextLesson.title}</div>
+                                                <div className="text-[10px] text-neutral-600 uppercase">Next Lesson</div>
+                                                <div className="text-sm text-neutral-300 group-hover:text-white transition">{nextLesson.title}</div>
                                             </div>
-                                            <ChevronRight className="w-5 h-5 text-slate-600 group-hover:text-white transition" />
+                                            <ChevronRight className="w-5 h-5 text-neutral-600 group-hover:text-white transition" />
                                         </button>
                                     )
                                 })()}
                             </div>
                         </>
                     ) : (
-                        <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
+                        <div className="flex-1 flex items-center justify-center text-neutral-500 text-sm">
                             Select a lesson to start watching
                         </div>
                     )}

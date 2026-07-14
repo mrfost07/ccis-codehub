@@ -19,11 +19,11 @@ interface Job {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  fulltime:    'bg-blue-500/20 text-blue-300',
+  fulltime:    'bg-purple-500/20 text-purple-300',
   parttime:    'bg-purple-500/20 text-purple-300',
-  internship:  'bg-emerald-500/20 text-emerald-300',
+  internship:  'bg-green-500/20 text-green-300',
   contract:    'bg-amber-500/20 text-amber-300',
-  remote:      'bg-cyan-500/20 text-cyan-300',
+  remote:      'bg-purple-500/20 text-purple-300',
 }
 const TYPE_LABELS: Record<string, string> = {
   fulltime: 'Full-time', parttime: 'Part-time',
@@ -33,10 +33,10 @@ const TYPE_LABELS: Record<string, string> = {
 const GRADIENTS = [
   'from-purple-500 to-purple-700',
   'from-green-600 to-green-700',
-  'from-purple-600 to-violet-700',
+  'from-purple-600 to-purple-700',
   'from-amber-500 to-amber-700',
   'from-purple-400 to-purple-600',
-  'from-green-500 to-emerald-700',
+  'from-green-500 to-green-700',
 ]
 
 // ─── Expanded Modal ──────────────────────────────────────────────────────────
@@ -55,26 +55,26 @@ function JobModal({ job, onClose, onToggleSave }: { job: Job; onClose: () => voi
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
       <div
-        className="relative w-full sm:max-w-md bg-slate-900 rounded-t-2xl sm:rounded-2xl border border-slate-700/50 shadow-2xl flex flex-col max-h-[70vh] sm:max-h-[85vh] mb-16 sm:mb-0"
+        className="relative w-full sm:max-w-md bg-neutral-900 rounded-t-2xl sm:rounded-2xl border border-neutral-700/50 shadow-2xl flex flex-col max-h-[70vh] sm:max-h-[85vh] mb-16 sm:mb-0"
         onClick={e => e.stopPropagation()}
       >
         {/* Drag handle (mobile) */}
         <div className="flex justify-center pt-2.5 pb-1 sm:hidden">
-          <div className="w-8 h-1 rounded-full bg-slate-600" />
+          <div className="w-8 h-1 rounded-full bg-neutral-600" />
         </div>
 
         {/* Compact header */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-800">
-          <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-neutral-800">
+          <div className="w-9 h-9 rounded-xl bg-neutral-800 border border-neutral-700 flex items-center justify-center overflow-hidden flex-shrink-0">
             {job.company_logo
               ? <img src={job.company_logo} alt={job.company} className="w-full h-full object-contain p-0.5" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-              : <Building2 className="w-4 h-4 text-slate-400" />}
+              : <Building2 className="w-4 h-4 text-neutral-400" />}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white font-semibold text-sm leading-tight line-clamp-1">{job.title}</p>
-            <p className="text-slate-400 text-xs truncate">{job.company}</p>
+            <p className="text-neutral-400 text-xs truncate">{job.company}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition flex-shrink-0">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-neutral-800 text-neutral-400 hover:text-white transition flex-shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -84,12 +84,12 @@ function JobModal({ job, onClose, onToggleSave }: { job: Job; onClose: () => voi
           {/* Location + type pills */}
           <div className="flex flex-wrap gap-2">
             {location && (
-              <span className="text-xs text-slate-400 flex items-center gap-1">
+              <span className="text-xs text-neutral-400 flex items-center gap-1">
                 <MapPin className="w-3 h-3" /> {location}
               </span>
             )}
             {job.job_type && (
-              <span className={`text-xs px-2 py-0.5 rounded-full ${TYPE_COLORS[job.job_type] || 'bg-slate-700 text-slate-300'}`}>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${TYPE_COLORS[job.job_type] || 'bg-neutral-700 text-neutral-300'}`}>
                 {TYPE_LABELS[job.job_type] || job.job_type}
               </span>
             )}
@@ -99,13 +99,13 @@ function JobModal({ job, onClose, onToggleSave }: { job: Job; onClose: () => voi
           {score > 0 && (
             <div>
               <div className="flex justify-between text-xs mb-1">
-                <span className="text-slate-500">Skill match</span>
-                <span className={score >= 70 ? 'text-emerald-400' : score >= 40 ? 'text-amber-400' : 'text-slate-400'}>
+                <span className="text-neutral-500">Skill match</span>
+                <span className={score >= 70 ? 'text-green-400' : score >= 40 ? 'text-amber-400' : 'text-neutral-400'}>
                   {score}%
                 </span>
               </div>
-              <div className="h-1.5 bg-slate-800 rounded-full">
-                <div className={`h-full rounded-full ${score >= 70 ? 'bg-emerald-500' : score >= 40 ? 'bg-amber-500' : 'bg-slate-600'}`}
+              <div className="h-1.5 bg-neutral-800 rounded-full">
+                <div className={`h-full rounded-full ${score >= 70 ? 'bg-green-500' : score >= 40 ? 'bg-amber-500' : 'bg-neutral-600'}`}
                   style={{ width: `${score}%` }} />
               </div>
             </div>
@@ -115,21 +115,21 @@ function JobModal({ job, onClose, onToggleSave }: { job: Job; onClose: () => voi
           {job.skills_required.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {job.skills_required.slice(0, 6).map(s => (
-                <span key={s} className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-400">{s}</span>
+                <span key={s} className="text-[10px] px-1.5 py-0.5 rounded-full bg-neutral-800 border border-neutral-700 text-neutral-400">{s}</span>
               ))}
             </div>
           )}
         </div>
 
         {/* Actions — pinned at bottom */}
-        <div className="flex gap-2 px-4 py-3 border-t border-slate-800">
+        <div className="flex gap-2 px-4 py-3 border-t border-neutral-800">
           <a href={job.apply_url} target="_blank" rel="noopener noreferrer"
             className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl transition text-sm flex items-center justify-center gap-2">
             <ExternalLink className="w-4 h-4" /> Apply Now
           </a>
           <button
             onClick={() => onToggleSave(job.id, job.is_saved)}
-            className={`px-4 py-2.5 rounded-xl border transition ${job.is_saved ? 'bg-blue-500/10 border-blue-500/40 text-blue-400' : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'}`}>
+            className={`px-4 py-2.5 rounded-xl border transition ${job.is_saved ? 'bg-purple-500/10 border-purple-500/40 text-purple-400' : 'bg-neutral-800 border-neutral-700 text-neutral-300 hover:text-white'}`}>
             {job.is_saved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
           </button>
         </div>
@@ -154,7 +154,7 @@ function StoryCard({ job, idx, onClick, onToggleSave }: {
       style={{ scrollSnapAlign: 'start' }}
     >
       {/* Story card */}
-      <div className={`relative w-full aspect-[9/14] rounded-2xl overflow-hidden border-2 border-transparent group-hover:border-purple-400 transition-all duration-200 shadow-lg group-hover:shadow-purple-500/20 group-hover:-translate-y-1 ${!hasLogo ? `bg-gradient-to-b ${grad}` : 'bg-slate-800'}`}>
+      <div className={`relative w-full aspect-[9/14] rounded-2xl overflow-hidden border-2 border-transparent group-hover:border-purple-400 transition-all duration-200 shadow-lg group-hover:shadow-purple-500/20 group-hover:-translate-y-1 ${!hasLogo ? `bg-gradient-to-b ${grad}` : 'bg-neutral-800'}`}>
 
         {/* Background: company logo fills the card */}
         {hasLogo && (
@@ -182,7 +182,7 @@ function StoryCard({ job, idx, onClick, onToggleSave }: {
         {/* Skill match badge */}
         {score > 0 && (
           <div className="absolute top-2 right-2 bg-black/50 backdrop-blur rounded-full px-1.5 py-0.5 z-10">
-            <span className={`text-[9px] font-bold ${score >= 70 ? 'text-emerald-300' : score >= 40 ? 'text-amber-300' : 'text-white'}`}>
+            <span className={`text-[9px] font-bold ${score >= 70 ? 'text-green-300' : score >= 40 ? 'text-amber-300' : 'text-white'}`}>
               {score}%
             </span>
           </div>
@@ -198,14 +198,14 @@ function StoryCard({ job, idx, onClick, onToggleSave }: {
         <button
           onClick={e => { e.stopPropagation(); onToggleSave(job.id, job.is_saved) }}
           className={`absolute top-2 left-2 w-6 h-6 rounded-full flex items-center justify-center transition z-10
-            ${job.is_saved ? 'bg-blue-500 text-white' : 'bg-black/30 text-white/70 opacity-0 group-hover:opacity-100'}`}
+            ${job.is_saved ? 'bg-purple-500 text-white' : 'bg-black/30 text-white/70 opacity-0 group-hover:opacity-100'}`}
         >
           {job.is_saved ? <BookmarkCheck className="w-3 h-3" /> : <Bookmark className="w-3 h-3" />}
         </button>
       </div>
 
       {/* Label below */}
-      <p className="text-center text-[10px] text-slate-400 mt-1.5 truncate px-1">{job.company}</p>
+      <p className="text-center text-[10px] text-neutral-400 mt-1.5 truncate px-1">{job.company}</p>
     </div>
   )
 }
@@ -251,8 +251,8 @@ export default function JobStories() {
         <div className="flex gap-3 overflow-hidden">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="flex-none w-28 sm:w-32">
-              <div className="w-full aspect-[9/14] rounded-2xl bg-slate-800/60 animate-pulse" />
-              <div className="h-2.5 bg-slate-800/60 rounded mt-2 mx-2 animate-pulse" />
+              <div className="w-full aspect-[9/14] rounded-2xl bg-neutral-800/60 animate-pulse" />
+              <div className="h-2.5 bg-neutral-800/60 rounded mt-2 mx-2 animate-pulse" />
             </div>
           ))}
         </div>
@@ -267,11 +267,11 @@ export default function JobStories() {
       <div className="mb-5">
         {/* Section label */}
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-            <Briefcase className="w-4 h-4 text-blue-400" />
+          <h3 className="text-sm font-semibold text-neutral-300 flex items-center gap-2">
+            <Briefcase className="w-4 h-4 text-purple-400" />
             Job Opportunities
           </h3>
-          <span className="text-xs text-slate-500">{jobs.length} matching jobs</span>
+          <span className="text-xs text-neutral-500">{jobs.length} matching jobs</span>
         </div>
 
         {/* Carousel */}
@@ -281,8 +281,8 @@ export default function JobStories() {
             onClick={() => scroll('left')}
             disabled={!canLeft}
             className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10
-              w-8 h-8 rounded-full bg-slate-800 border border-slate-600 shadow-md
-              flex items-center justify-center text-white hover:bg-slate-700 transition
+              w-8 h-8 rounded-full bg-neutral-800 border border-neutral-600 shadow-md
+              flex items-center justify-center text-white hover:bg-neutral-700 transition
               opacity-0 group-hover/stories:opacity-100 disabled:opacity-0"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -310,8 +310,8 @@ export default function JobStories() {
             onClick={() => scroll('right')}
             disabled={!canRight}
             className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10
-              w-8 h-8 rounded-full bg-slate-800 border border-slate-600 shadow-md
-              flex items-center justify-center text-white hover:bg-slate-700 transition
+              w-8 h-8 rounded-full bg-neutral-800 border border-neutral-600 shadow-md
+              flex items-center justify-center text-white hover:bg-neutral-700 transition
               opacity-0 group-hover/stories:opacity-100 disabled:opacity-0"
           >
             <ChevronRight className="w-4 h-4" />

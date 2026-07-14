@@ -48,20 +48,20 @@ const TYPE_LABELS: Record<string, string> = {
 }
 
 const TYPE_COLORS: Record<string, string> = {
-  fulltime:    'bg-blue-500/20 text-blue-300 border-blue-500/30',
+  fulltime:    'bg-purple-500/20 text-purple-300 border-purple-500/30',
   parttime:    'bg-purple-500/20 text-purple-300 border-purple-500/30',
-  internship:  'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+  internship:  'bg-green-500/20 text-green-300 border-green-500/30',
   contract:    'bg-amber-500/20 text-amber-300 border-amber-500/30',
-  remote:      'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+  remote:      'bg-purple-500/20 text-purple-300 border-purple-500/30',
 }
 
 const SCORE_COLOR = (s: number) =>
-  s >= 70 ? 'text-emerald-400' : s >= 40 ? 'text-amber-400' : 'text-slate-400'
+  s >= 70 ? 'text-green-400' : s >= 40 ? 'text-amber-400' : 'text-neutral-400'
 
 const SCORE_BG = (s: number) =>
-  s >= 70 ? 'bg-emerald-500/20 border-emerald-500/30' :
+  s >= 70 ? 'bg-green-500/20 border-green-500/30' :
   s >= 40 ? 'bg-amber-500/20 border-amber-500/30' :
-            'bg-slate-700/40 border-slate-600/30'
+            'bg-neutral-700/40 border-neutral-600/30'
 
 function timeAgo(iso: string | null): string {
   if (!iso) return 'Recently'
@@ -101,8 +101,8 @@ function JobCard({
       onClick={onClick}
       className={`relative p-4 rounded-xl border cursor-pointer transition-all duration-200 group
         ${selected
-          ? 'border-blue-500/60 bg-slate-800/90 shadow-lg shadow-blue-500/10'
-          : 'border-slate-700/50 bg-slate-900/60 hover:border-slate-600 hover:bg-slate-800/60'
+          ? 'border-purple-500/60 bg-neutral-800/90 shadow-lg shadow-purple-500/10'
+          : 'border-neutral-700/50 bg-neutral-900/60 hover:border-neutral-600 hover:bg-neutral-800/60'
         }`}
     >
       {/* Skill match bar */}
@@ -113,25 +113,25 @@ function JobCard({
 
       <div className="flex items-start gap-3">
         {/* Logo */}
-        <div className="w-10 h-10 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
+        <div className="w-10 h-10 rounded-lg bg-neutral-800 border border-neutral-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
           {job.company_logo
             ? <img src={job.company_logo} alt={job.company} className="w-full h-full object-contain p-1" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-            : <Building2 className="w-5 h-5 text-slate-500" />}
+            : <Building2 className="w-5 h-5 text-neutral-500" />}
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className={`text-sm font-semibold line-clamp-1 transition ${selected ? 'text-white' : 'text-slate-200 group-hover:text-white'}`}>
+          <h3 className={`text-sm font-semibold line-clamp-1 transition ${selected ? 'text-white' : 'text-neutral-200 group-hover:text-white'}`}>
             {job.title}
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5 truncate">{job.company}</p>
+          <p className="text-xs text-neutral-400 mt-0.5 truncate">{job.company}</p>
           <div className="flex flex-wrap gap-1.5 mt-2 items-center">
             {job.location && (
-              <span className="text-[10px] text-slate-500 flex items-center gap-1">
+              <span className="text-[10px] text-neutral-500 flex items-center gap-1">
                 <MapPin className="w-2.5 h-2.5" /> {job.location.split(' ').slice(0, 2).join(' ')}
               </span>
             )}
             {job.job_type && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${TYPE_COLORS[job.job_type] || 'bg-slate-700 text-slate-400 border-slate-600'}`}>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${TYPE_COLORS[job.job_type] || 'bg-neutral-700 text-neutral-400 border-neutral-600'}`}>
                 {TYPE_LABELS[job.job_type] || job.job_type}
               </span>
             )}
@@ -146,15 +146,15 @@ function JobCard({
         {/* Save button */}
         <button
           onClick={e => { e.stopPropagation(); onToggleSave(job.id, job.is_saved) }}
-          className={`p-1.5 rounded-lg transition flex-shrink-0 ${job.is_saved ? 'text-blue-400 bg-blue-500/10' : 'text-slate-600 hover:text-slate-300 hover:bg-slate-700/50'}`}
+          className={`p-1.5 rounded-lg transition flex-shrink-0 ${job.is_saved ? 'text-purple-400 bg-purple-500/10' : 'text-neutral-600 hover:text-neutral-300 hover:bg-neutral-700/50'}`}
         >
           {job.is_saved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
         </button>
       </div>
 
       <div className="flex items-center justify-between mt-2">
-        {salary(job) && <span className="text-[11px] text-slate-400 font-medium">{salary(job)}</span>}
-        <span className="text-[10px] text-slate-600 ml-auto flex items-center gap-1">
+        {salary(job) && <span className="text-[11px] text-neutral-400 font-medium">{salary(job)}</span>}
+        <span className="text-[10px] text-neutral-600 ml-auto flex items-center gap-1">
           <Clock className="w-2.5 h-2.5" /> {timeAgo(job.posted_at)}
         </span>
       </div>
@@ -174,20 +174,20 @@ function JobDetail({ job, onClose, onToggleSave }: {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="p-5 border-b border-slate-700/50">
+      <div className="p-5 border-b border-neutral-700/50">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            <div className="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <div className="w-12 h-12 rounded-xl bg-neutral-800 border border-neutral-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
               {job.company_logo
                 ? <img src={job.company_logo} alt={job.company} className="w-full h-full object-contain p-1" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-                : <Building2 className="w-6 h-6 text-slate-500" />}
+                : <Building2 className="w-6 h-6 text-neutral-500" />}
             </div>
             <div className="min-w-0">
               <h2 className="text-base font-bold text-white leading-tight">{job.title}</h2>
-              <p className="text-sm text-slate-400 mt-0.5">{job.company}</p>
+              <p className="text-sm text-neutral-400 mt-0.5">{job.company}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition flex-shrink-0">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-neutral-700 text-neutral-400 hover:text-white transition flex-shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -195,7 +195,7 @@ function JobDetail({ job, onClose, onToggleSave }: {
         {/* Badges */}
         <div className="flex flex-wrap gap-2 mt-3">
           {job.location && (
-            <span className="text-xs text-slate-400 flex items-center gap-1 bg-slate-800 px-2 py-1 rounded-lg border border-slate-700">
+            <span className="text-xs text-neutral-400 flex items-center gap-1 bg-neutral-800 px-2 py-1 rounded-lg border border-neutral-700">
               <MapPin className="w-3 h-3" /> {job.location}
             </span>
           )}
@@ -205,7 +205,7 @@ function JobDetail({ job, onClose, onToggleSave }: {
             </span>
           )}
           {salary(job) && (
-            <span className="text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-lg">
+            <span className="text-xs text-green-300 bg-green-500/10 border border-green-500/20 px-2 py-1 rounded-lg">
               {salary(job)}
             </span>
           )}
@@ -214,28 +214,28 @@ function JobDetail({ job, onClose, onToggleSave }: {
 
       {/* Skill match */}
       {job.skill_match && job.skill_match.total_required > 0 && (
-        <div className="px-5 py-3 border-b border-slate-700/50">
+        <div className="px-5 py-3 border-b border-neutral-700/50">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5" /> Skill Match
             </span>
             <span className={`text-sm font-bold ${SCORE_COLOR(score)}`}>{score}%</span>
           </div>
-          <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
-            <div className={`h-full rounded-full transition-all ${score >= 70 ? 'bg-emerald-500' : score >= 40 ? 'bg-amber-500' : 'bg-slate-500'}`}
+          <div className="h-1.5 bg-neutral-700 rounded-full overflow-hidden">
+            <div className={`h-full rounded-full transition-all ${score >= 70 ? 'bg-green-500' : score >= 40 ? 'bg-amber-500' : 'bg-neutral-500'}`}
               style={{ width: `${score}%` }} />
           </div>
           {job.skill_match.matched.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {job.skill_match.matched.map(sk => (
-                <span key={sk} className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">{sk}</span>
+                <span key={sk} className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-300 border border-green-500/25">{sk}</span>
               ))}
             </div>
           )}
           {job.skill_match.missing.length > 0 && (
             <div className="mt-1.5 flex flex-wrap gap-1">
               {job.skill_match.missing.slice(0, 6).map(sk => (
-                <span key={sk} className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-700/50 text-slate-500 border border-slate-600/30">{sk}</span>
+                <span key={sk} className="text-[10px] px-1.5 py-0.5 rounded-full bg-neutral-700/50 text-neutral-500 border border-neutral-600/30">{sk}</span>
               ))}
             </div>
           )}
@@ -246,16 +246,16 @@ function JobDetail({ job, onClose, onToggleSave }: {
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
         {job.description && (
           <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Description</h3>
-            <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">{job.description}</p>
+            <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">Description</h3>
+            <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-line">{job.description}</p>
           </div>
         )}
         {job.skills_required.length > 0 && (
           <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Required Skills</h3>
+            <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">Required Skills</h3>
             <div className="flex flex-wrap gap-1.5">
               {job.skills_required.map(sk => (
-                <span key={sk} className="text-xs px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300">{sk}</span>
+                <span key={sk} className="text-xs px-2 py-0.5 rounded-full bg-neutral-800 border border-neutral-700 text-neutral-300">{sk}</span>
               ))}
             </div>
           </div>
@@ -263,14 +263,14 @@ function JobDetail({ job, onClose, onToggleSave }: {
       </div>
 
       {/* Footer actions */}
-      <div className="p-4 border-t border-slate-700/50 flex gap-3">
+      <div className="p-4 border-t border-neutral-700/50 flex gap-3">
         <a href={job.apply_url} target="_blank" rel="noopener noreferrer"
-          className="flex-1 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-xl transition text-sm flex items-center justify-center gap-2">
+          className="flex-1 py-2.5 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 text-white font-semibold rounded-xl transition text-sm flex items-center justify-center gap-2">
           <ExternalLink className="w-4 h-4" /> Apply Now
         </a>
         <button
           onClick={() => onToggleSave(job.id, job.is_saved)}
-          className={`px-4 py-2.5 rounded-xl border transition text-sm flex items-center gap-2 ${job.is_saved ? 'bg-blue-500/10 border-blue-500/40 text-blue-400' : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'}`}>
+          className={`px-4 py-2.5 rounded-xl border transition text-sm flex items-center gap-2 ${job.is_saved ? 'bg-purple-500/10 border-purple-500/40 text-purple-400' : 'bg-neutral-800 border-neutral-700 text-neutral-300 hover:text-white'}`}>
           {job.is_saved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
           {job.is_saved ? 'Saved' : 'Save'}
         </button>
@@ -358,7 +358,7 @@ export default function Jobs() {
   const displayJobs = showSaved ? savedJobs : jobs
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className="min-h-screen bg-neutral-950 text-white">
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 py-6">
 
@@ -366,22 +366,22 @@ export default function Jobs() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-black text-white flex items-center gap-2">
-              <Briefcase className="w-6 h-6 text-blue-400" /> Job Board
+              <Briefcase className="w-6 h-6 text-purple-400" /> Job Board
             </h1>
-            <p className="text-sm text-slate-400 mt-0.5">
+            <p className="text-sm text-neutral-400 mt-0.5">
               {total} IT jobs · matched to your skills
             </p>
           </div>
           <div className="flex gap-2">
             {(user?.role === 'admin' || user?.role === 'instructor') && (
               <button onClick={handleSync} disabled={syncing}
-                className="flex items-center gap-2 px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm text-slate-300 hover:text-white hover:border-slate-600 transition disabled:opacity-50">
-                <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin text-blue-400' : ''}`} />
+                className="flex items-center gap-2 px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-xl text-sm text-neutral-300 hover:text-white hover:border-neutral-600 transition disabled:opacity-50">
+                <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin text-purple-400' : ''}`} />
                 {syncing ? 'Syncing…' : 'Sync Jobs'}
               </button>
             )}
             <button onClick={() => setShowSaved(s => !s)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition border ${showSaved ? 'bg-blue-500/20 border-blue-500/40 text-blue-300' : 'bg-slate-800 border-slate-700 text-slate-300 hover:text-white'}`}>
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition border ${showSaved ? 'bg-purple-500/20 border-purple-500/40 text-purple-300' : 'bg-neutral-800 border-neutral-700 text-neutral-300 hover:text-white'}`}>
               <BookmarkCheck className="w-4 h-4" />
               Saved ({savedJobs.length})
             </button>
@@ -392,24 +392,24 @@ export default function Jobs() {
         {!showSaved && (
           <div className="flex flex-wrap gap-3 mb-5">
             <div className="relative flex-1 min-w-48">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
               <input value={q} onChange={e => handleSearch(e.target.value)}
                 placeholder="Search job title, company, skill…"
-                className="w-full pl-9 pr-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                className="w-full pl-9 pr-4 py-2.5 bg-neutral-900 border border-neutral-700 rounded-xl text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-purple-500" />
             </div>
-            <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-xl px-2">
-              <Filter className="w-3.5 h-3.5 text-slate-500" />
+            <div className="flex items-center gap-1.5 bg-neutral-900 border border-neutral-700 rounded-xl px-2">
+              <Filter className="w-3.5 h-3.5 text-neutral-500" />
               <select value={typeFilter} onChange={e => { setType(e.target.value); fetchJobs(1) }}
-                className="bg-transparent text-sm text-slate-300 py-2.5 pr-2 focus:outline-none">
+                className="bg-transparent text-sm text-neutral-300 py-2.5 pr-2 focus:outline-none">
                 <option value="">All Types</option>
                 {Object.entries(TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </div>
             <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
               <input value={locFilter} onChange={e => { setLoc(e.target.value); fetchJobs(1) }}
                 placeholder="Location"
-                className="pl-8 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500 w-36" />
+                className="pl-8 pr-3 py-2.5 bg-neutral-900 border border-neutral-700 rounded-xl text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-purple-500 w-36" />
             </div>
           </div>
         )}
@@ -420,14 +420,14 @@ export default function Jobs() {
           <div className={`flex flex-col gap-2 overflow-y-auto pr-1 scrollbar-hide transition-all ${selected ? 'w-full lg:w-96 flex-shrink-0' : 'w-full'}`}>
             {loading ? (
               [...Array(6)].map((_, i) => (
-                <div key={i} className="h-24 bg-slate-800/50 rounded-xl animate-pulse border border-slate-700/30" />
+                <div key={i} className="h-24 bg-neutral-800/50 rounded-xl animate-pulse border border-neutral-700/30" />
               ))
             ) : displayJobs.length === 0 ? (
-              <div className="text-center py-20 text-slate-500">
+              <div className="text-center py-20 text-neutral-500">
                 <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-30" />
                 <p className="text-sm">{showSaved ? 'No saved jobs yet.' : 'No jobs found.'}</p>
                 {!showSaved && (
-                  <p className="text-xs mt-1 text-slate-600">
+                  <p className="text-xs mt-1 text-neutral-600">
                     Try syncing jobs or adjusting your filters.
                   </p>
                 )}
@@ -444,12 +444,12 @@ export default function Jobs() {
             {!showSaved && totalPages > 1 && (
               <div className="flex items-center justify-center gap-3 py-4">
                 <button onClick={() => fetchJobs(page - 1)} disabled={page <= 1}
-                  className="p-2 rounded-lg bg-slate-800 border border-slate-700 disabled:opacity-40 hover:bg-slate-700 transition">
+                  className="p-2 rounded-lg bg-neutral-800 border border-neutral-700 disabled:opacity-40 hover:bg-neutral-700 transition">
                   <ChevronLeft className="w-4 h-4" />
                 </button>
-                <span className="text-sm text-slate-400">Page {page} of {totalPages}</span>
+                <span className="text-sm text-neutral-400">Page {page} of {totalPages}</span>
                 <button onClick={() => fetchJobs(page + 1)} disabled={page >= totalPages}
-                  className="p-2 rounded-lg bg-slate-800 border border-slate-700 disabled:opacity-40 hover:bg-slate-700 transition">
+                  className="p-2 rounded-lg bg-neutral-800 border border-neutral-700 disabled:opacity-40 hover:bg-neutral-700 transition">
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -458,7 +458,7 @@ export default function Jobs() {
 
           {/* Detail panel */}
           {selected && (
-            <div className="hidden lg:flex flex-1 flex-col bg-slate-900/70 border border-slate-700/50 rounded-2xl overflow-hidden">
+            <div className="hidden lg:flex flex-1 flex-col bg-neutral-900/70 border border-neutral-700/50 rounded-2xl overflow-hidden">
               <JobDetail job={selected} onClose={() => setSelected(null)} onToggleSave={handleToggleSave} />
             </div>
           )}

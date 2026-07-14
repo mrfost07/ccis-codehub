@@ -142,13 +142,13 @@ export default function QuizTaking() {
 
   const getTimeColor = () => {
     if (timeRemaining < 60) return 'text-red-400'
-    if (timeRemaining < 300) return 'text-yellow-400'
+    if (timeRemaining < 300) return 'text-amber-400'
     return 'text-green-400'
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
         <div className="text-white text-xl">Loading quiz...</div>
       </div>
     )
@@ -156,7 +156,7 @@ export default function QuizTaking() {
 
   if (!quiz) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
         <div className="text-red-400 text-xl">Quiz not found</div>
       </div>
     )
@@ -165,7 +165,7 @@ export default function QuizTaking() {
   // Quiz Start Screen
   if (!quizStarted) {
     return (
-      <div className="min-h-screen bg-slate-950 p-6">
+      <div className="min-h-screen bg-neutral-950 p-6">
         <div className="max-w-4xl mx-auto">
           <div className="relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/60 p-8 mb-6">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
@@ -173,49 +173,49 @@ export default function QuizTaking() {
             <p className="text-neutral-400 text-base sm:text-lg max-w-3xl">{quiz.description}</p>
           </div>
 
-          <div className="bg-slate-800 rounded-2xl p-8 mb-6">
+          <div className="bg-neutral-800 rounded-2xl p-8 mb-6">
             <h2 className="text-2xl font-bold text-white mb-6">Quiz Information</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div className="flex items-center gap-4 p-4 bg-slate-700/50 rounded-xl">
-                <Clock className="w-8 h-8 text-blue-400" />
+              <div className="flex items-center gap-4 p-4 bg-neutral-700/50 rounded-xl">
+                <Clock className="w-8 h-8 text-purple-400" />
                 <div>
-                  <div className="text-slate-400 text-sm">Time Limit</div>
+                  <div className="text-neutral-400 text-sm">Time Limit</div>
                   <div className="text-white text-xl font-bold">{quiz.time_limit_minutes} minutes</div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 p-4 bg-slate-700/50 rounded-xl">
+              <div className="flex items-center gap-4 p-4 bg-neutral-700/50 rounded-xl">
                 <CheckCircle className="w-8 h-8 text-green-400" />
                 <div>
-                  <div className="text-slate-400 text-sm">Passing Score</div>
+                  <div className="text-neutral-400 text-sm">Passing Score</div>
                   <div className="text-white text-xl font-bold">{quiz.passing_score}%</div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 p-4 bg-slate-700/50 rounded-xl">
-                <AlertCircle className="w-8 h-8 text-yellow-400" />
+              <div className="flex items-center gap-4 p-4 bg-neutral-700/50 rounded-xl">
+                <AlertCircle className="w-8 h-8 text-amber-400" />
                 <div>
-                  <div className="text-slate-400 text-sm">Questions</div>
+                  <div className="text-neutral-400 text-sm">Questions</div>
                   <div className="text-white text-xl font-bold">{quiz.questions?.length || 0}</div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 p-4 bg-slate-700/50 rounded-xl">
+              <div className="flex items-center gap-4 p-4 bg-neutral-700/50 rounded-xl">
                 <Award className="w-8 h-8 text-purple-400" />
                 <div>
-                  <div className="text-slate-400 text-sm">Max Attempts</div>
+                  <div className="text-neutral-400 text-sm">Max Attempts</div>
                   <div className="text-white text-xl font-bold">{quiz.max_attempts}</div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-blue-600/20 border border-blue-600 rounded-xl p-4 mb-6">
-              <h3 className="text-blue-400 font-semibold mb-2 flex items-center gap-2">
+            <div className="bg-purple-600/20 border border-purple-600 rounded-xl p-4 mb-6">
+              <h3 className="text-purple-400 font-semibold mb-2 flex items-center gap-2">
                 <AlertCircle className="w-5 h-5" />
                 Important Instructions
               </h3>
-              <ul className="text-slate-300 space-y-2 ml-6 list-disc">
+              <ul className="text-neutral-300 space-y-2 ml-6 list-disc">
                 <li>Once started, the timer cannot be paused</li>
                 <li>You can navigate between questions freely</li>
                 <li>Flag questions to review them later</li>
@@ -226,7 +226,7 @@ export default function QuizTaking() {
 
             <button
               onClick={startQuiz}
-              className="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-bold text-lg hover:from-purple-700 hover:to-indigo-700 transition flex items-center justify-center gap-2"
+              className="w-full py-4 bg-gradient-to-r from-purple-600 to-purple-600 text-white rounded-xl font-bold text-lg hover:from-purple-700 hover:to-purple-700 transition flex items-center justify-center gap-2"
             >
               Start Quiz
               <ArrowRight className="w-6 h-6" />
@@ -242,7 +242,7 @@ export default function QuizTaking() {
     const passed = score >= quiz.passing_score
 
     return (
-      <div className="min-h-screen bg-slate-950 p-6">
+      <div className="min-h-screen bg-neutral-950 p-6">
         <div className="max-w-4xl mx-auto">
           <div className={`bg-gradient-to-r ${passed ? 'from-green-600 to-green-700' : 'from-red-600 to-red-700'} rounded-2xl p-8 mb-6`}>
             <div className="text-center">
@@ -260,25 +260,25 @@ export default function QuizTaking() {
             </div>
           </div>
 
-          <div className="bg-slate-800 rounded-2xl p-8 mb-6">
+          <div className="bg-neutral-800 rounded-2xl p-8 mb-6">
             <h2 className="text-2xl font-bold text-white mb-6">Your Results</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="text-center p-6 bg-slate-700/50 rounded-xl">
+              <div className="text-center p-6 bg-neutral-700/50 rounded-xl">
                 <div className="text-4xl font-bold text-white mb-2">{score}%</div>
-                <div className="text-slate-400">Your Score</div>
+                <div className="text-neutral-400">Your Score</div>
               </div>
 
-              <div className="text-center p-6 bg-slate-700/50 rounded-xl">
+              <div className="text-center p-6 bg-neutral-700/50 rounded-xl">
                 <div className="text-4xl font-bold text-white mb-2">{quiz.passing_score}%</div>
-                <div className="text-slate-400">Passing Score</div>
+                <div className="text-neutral-400">Passing Score</div>
               </div>
 
-              <div className="text-center p-6 bg-slate-700/50 rounded-xl">
+              <div className="text-center p-6 bg-neutral-700/50 rounded-xl">
                 <div className={`text-4xl font-bold mb-2 ${passed ? 'text-green-400' : 'text-red-400'}`}>
                   {passed ? 'PASSED' : 'FAILED'}
                 </div>
-                <div className="text-slate-400">Status</div>
+                <div className="text-neutral-400">Status</div>
               </div>
             </div>
 
@@ -301,8 +301,8 @@ export default function QuizTaking() {
                       ) : (
                         <XCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
                       )}
-                      <span className="text-slate-400 font-mono text-xs w-6">Q{i + 1}</span>
-                      <span className="text-slate-300 flex-1 truncate">{qr.question_text}</span>
+                      <span className="text-neutral-400 font-mono text-xs w-6">Q{i + 1}</span>
+                      <span className="text-neutral-300 flex-1 truncate">{qr.question_text}</span>
                       <span className={`text-xs font-semibold ${qr.is_correct ? 'text-green-400' : 'text-red-400'}`}>
                         {qr.is_correct ? 'Correct' : 'Incorrect'}
                       </span>
@@ -315,7 +315,7 @@ export default function QuizTaking() {
             <div className="flex gap-4">
               <button
                 onClick={() => navigate('/learning')}
-                className="flex-1 py-3 bg-slate-700 text-white rounded-xl font-semibold hover:bg-slate-600 transition"
+                className="flex-1 py-3 bg-neutral-700 text-white rounded-xl font-semibold hover:bg-neutral-600 transition"
               >
                 Back to Learning
               </button>
@@ -339,14 +339,14 @@ export default function QuizTaking() {
   const progress = ((currentQuestion + 1) / quiz.questions.length) * 100
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-neutral-950">
       {/* Header with Timer */}
-      <div className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+      <div className="bg-neutral-900 border-b border-neutral-800 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-white">{quiz.title}</h1>
-              <p className="text-slate-400 text-sm">
+              <p className="text-neutral-400 text-sm">
                 Question {currentQuestion + 1} of {quiz.questions.length}
               </p>
             </div>
@@ -368,9 +368,9 @@ export default function QuizTaking() {
           </div>
 
           {/* Progress Bar */}
-          <div className="mt-4 h-2 bg-slate-800 rounded-full overflow-hidden">
+          <div className="mt-4 h-2 bg-neutral-800 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 transition-all duration-300"
+              className="h-full bg-gradient-to-r from-purple-600 to-purple-600 transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -381,7 +381,7 @@ export default function QuizTaking() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Question Navigation Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-slate-800 rounded-xl p-4 sticky top-24">
+            <div className="bg-neutral-800 rounded-xl p-4 sticky top-24">
               <h3 className="text-white font-semibold mb-4">Questions</h3>
               <div className="grid grid-cols-5 lg:grid-cols-4 gap-2">
                 {quiz.questions.map((q, index) => (
@@ -394,9 +394,9 @@ export default function QuizTaking() {
                         ? 'bg-purple-600 text-white ring-2 ring-purple-400' 
                         : answers[q.id]
                           ? 'bg-green-600/20 text-green-400 border border-green-600'
-                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
                       }
-                      ${flaggedQuestions.has(index) ? 'ring-2 ring-yellow-400' : ''}
+                      ${flaggedQuestions.has(index) ? 'ring-2 ring-amber-400' : ''}
                     `}
                   >
                     {index + 1}
@@ -405,15 +405,15 @@ export default function QuizTaking() {
               </div>
 
               <div className="mt-4 space-y-2 text-sm">
-                <div className="flex items-center gap-2 text-slate-400">
+                <div className="flex items-center gap-2 text-neutral-400">
                   <div className="w-4 h-4 bg-green-600/20 border border-green-600 rounded"></div>
                   <span>Answered</span>
                 </div>
-                <div className="flex items-center gap-2 text-slate-400">
-                  <div className="w-4 h-4 bg-slate-700 rounded"></div>
+                <div className="flex items-center gap-2 text-neutral-400">
+                  <div className="w-4 h-4 bg-neutral-700 rounded"></div>
                   <span>Not Answered</span>
                 </div>
-                <div className="flex items-center gap-2 text-slate-400">
+                <div className="flex items-center gap-2 text-neutral-400">
                   <div className="w-4 h-4 bg-purple-600 rounded"></div>
                   <span>Current</span>
                 </div>
@@ -423,7 +423,7 @@ export default function QuizTaking() {
 
           {/* Question Content */}
           <div className="lg:col-span-3">
-            <div className="bg-slate-800 rounded-xl p-8">
+            <div className="bg-neutral-800 rounded-xl p-8">
               <div className="flex items-start justify-between mb-6">
                 <div className="flex-1">
                   <div className="text-purple-400 text-sm font-semibold mb-2">
@@ -432,7 +432,7 @@ export default function QuizTaking() {
                   <h2 className="text-2xl font-bold text-white mb-4">
                     {question.question_text}
                   </h2>
-                  <div className="text-slate-400 text-sm">
+                  <div className="text-neutral-400 text-sm">
                     {question.points} {question.points === 1 ? 'point' : 'points'}
                   </div>
                 </div>
@@ -441,8 +441,8 @@ export default function QuizTaking() {
                   onClick={() => toggleFlag(currentQuestion)}
                   className={`p-2 rounded-lg transition ${
                     flaggedQuestions.has(currentQuestion)
-                      ? 'bg-yellow-600 text-white'
-                      : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-neutral-700 text-neutral-400 hover:bg-neutral-600'
                   }`}
                   title="Flag for review"
                 >
@@ -459,7 +459,7 @@ export default function QuizTaking() {
                       block p-4 rounded-xl border-2 cursor-pointer transition-all
                       ${answers[question.id] === choice.id
                         ? 'border-purple-600 bg-purple-600/20'
-                        : 'border-slate-700 bg-slate-700/30 hover:border-slate-600'
+                        : 'border-neutral-700 bg-neutral-700/30 hover:border-neutral-600'
                       }
                     `}
                   >
@@ -483,7 +483,7 @@ export default function QuizTaking() {
                         block p-4 rounded-xl border-2 cursor-pointer transition-all
                         ${answers[question.id] === true
                           ? 'border-purple-600 bg-purple-600/20'
-                          : 'border-slate-700 bg-slate-700/30 hover:border-slate-600'
+                          : 'border-neutral-700 bg-neutral-700/30 hover:border-neutral-600'
                         }
                       `}
                     >
@@ -504,7 +504,7 @@ export default function QuizTaking() {
                         block p-4 rounded-xl border-2 cursor-pointer transition-all
                         ${answers[question.id] === false
                           ? 'border-purple-600 bg-purple-600/20'
-                          : 'border-slate-700 bg-slate-700/30 hover:border-slate-600'
+                          : 'border-neutral-700 bg-neutral-700/30 hover:border-neutral-600'
                         }
                       `}
                     >
@@ -526,7 +526,7 @@ export default function QuizTaking() {
                   <textarea
                     value={answers[question.id] || ''}
                     onChange={(e) => handleAnswerChange(question.id, e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-700 text-white rounded-xl border-2 border-slate-600 focus:border-purple-600 outline-none resize-none"
+                    className="w-full px-4 py-3 bg-neutral-700 text-white rounded-xl border-2 border-neutral-600 focus:border-purple-600 outline-none resize-none"
                     rows={4}
                     placeholder="Type your answer here..."
                   />
@@ -534,11 +534,11 @@ export default function QuizTaking() {
               </div>
 
               {/* Navigation Buttons */}
-              <div className="flex items-center justify-between pt-6 border-t border-slate-700">
+              <div className="flex items-center justify-between pt-6 border-t border-neutral-700">
                 <button
                   onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
                   disabled={currentQuestion === 0}
-                  className="px-6 py-3 bg-slate-700 text-white rounded-xl font-semibold hover:bg-slate-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-6 py-3 bg-neutral-700 text-white rounded-xl font-semibold hover:bg-neutral-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   <ArrowLeft className="w-5 h-5" />
                   Previous

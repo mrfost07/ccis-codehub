@@ -187,27 +187,27 @@ export default function CodingChallengePage() {
     }
 
     const getDifficultyStyle = (d: string) => {
-        if (d === 'easy') return 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30'
+        if (d === 'easy') return 'text-green-400 bg-green-500/15 border-green-500/30'
         if (d === 'medium') return 'text-amber-400 bg-amber-500/15 border-amber-500/30'
-        return 'text-rose-400 bg-rose-500/15 border-rose-500/30'
+        return 'text-red-400 bg-red-500/15 border-red-500/30'
     }
 
     const getStatusStyle = (s: string) => {
-        if (s === 'accepted') return 'text-emerald-400'
+        if (s === 'accepted') return 'text-green-400'
         if (s === 'partial') return 'text-amber-400'
-        return 'text-rose-400'
+        return 'text-red-400'
     }
 
     const getStatusIcon = (s: string) => {
-        if (s === 'accepted') return <CheckCircle className="w-4 h-4 text-emerald-400" />
+        if (s === 'accepted') return <CheckCircle className="w-4 h-4 text-green-400" />
         if (s === 'partial') return <AlertCircle className="w-4 h-4 text-amber-400" />
-        return <XCircle className="w-4 h-4 text-rose-400" />
+        return <XCircle className="w-4 h-4 text-red-400" />
     }
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-                <Loader2 className="w-10 h-10 text-blue-400 animate-spin" />
+            <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+                <Loader2 className="w-10 h-10 text-purple-400 animate-spin" />
             </div>
         )
     }
@@ -215,7 +215,7 @@ export default function CodingChallengePage() {
     if (!challenge) return null
 
     return (
-        <div className="min-h-screen bg-slate-950 flex flex-col pb-24 sm:pb-0">
+        <div className="min-h-screen bg-neutral-950 flex flex-col pb-24 sm:pb-0">
             <Navbar />
 
             {/* Badge Unlock Celebration */}
@@ -227,10 +227,10 @@ export default function CodingChallengePage() {
             )}
 
             {/* Top Bar */}
-            <div className="bg-slate-900/80 border-b border-slate-800/50 px-4 py-2 flex items-center gap-3">
+            <div className="bg-neutral-900/80 border-b border-neutral-800/50 px-4 py-2 flex items-center gap-3">
                 <button
                     onClick={() => navigate('/learning')}
-                    className="text-slate-400 hover:text-white transition p-1"
+                    className="text-neutral-400 hover:text-white transition p-1"
                 >
                     <ArrowLeft className="w-5 h-5" />
                 </button>
@@ -240,7 +240,7 @@ export default function CodingChallengePage() {
                 <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getDifficultyStyle(challenge.difficulty)}`}>
                     {challenge.difficulty}
                 </span>
-                <span className="text-xs text-slate-500 hidden sm:inline">
+                <span className="text-xs text-neutral-500 hidden sm:inline">
                     {challenge.acceptance_rate}% acceptance
                 </span>
                 {violations > 0 && (
@@ -257,9 +257,9 @@ export default function CodingChallengePage() {
             {/* Split Pane */}
             <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
                 {/* Left Pane — Problem Description */}
-                <div className="lg:w-[45%] border-b lg:border-b-0 lg:border-r border-slate-800/50 overflow-y-auto">
+                <div className="lg:w-[45%] border-b lg:border-b-0 lg:border-r border-neutral-800/50 overflow-y-auto">
                     {/* Tabs */}
-                    <div className="flex border-b border-slate-800/50 sticky top-0 bg-slate-950 z-10">
+                    <div className="flex border-b border-neutral-800/50 sticky top-0 bg-neutral-950 z-10">
                         {[
                             { id: 'description' as const, label: 'Description' },
                             { id: 'results' as const, label: 'Results' },
@@ -273,8 +273,8 @@ export default function CodingChallengePage() {
                                     if (tab.id === 'history') loadHistory()
                                 }}
                                 className={`px-4 py-2.5 text-sm font-medium transition ${activeTab === tab.id
-                                    ? 'text-white border-b-2 border-blue-500'
-                                    : 'text-slate-500 hover:text-slate-300'
+                                    ? 'text-white border-b-2 border-purple-500'
+                                    : 'text-neutral-500 hover:text-neutral-300'
                                     }`}
                             >
                                 {tab.label}
@@ -287,18 +287,18 @@ export default function CodingChallengePage() {
                         <div className="p-4 sm:p-6 space-y-4">
                             {/* Tags */}
                             <div className="flex flex-wrap gap-2">
-                                <span className="text-xs px-2 py-0.5 bg-slate-800/50 text-slate-400 rounded-full">
+                                <span className="text-xs px-2 py-0.5 bg-neutral-800/50 text-neutral-400 rounded-full">
                                     {challenge.category}
                                 </span>
                                 {challenge.tags.map(tag => (
-                                    <span key={tag} className="text-xs px-2 py-0.5 bg-slate-800/50 text-slate-400 rounded-full">
+                                    <span key={tag} className="text-xs px-2 py-0.5 bg-neutral-800/50 text-neutral-400 rounded-full">
                                         {tag}
                                     </span>
                                 ))}
                             </div>
 
                             {/* Problem Description */}
-                            <div className="prose prose-invert prose-sm max-w-none text-slate-300 leading-relaxed whitespace-pre-wrap">
+                            <div className="prose prose-invert prose-sm max-w-none text-neutral-300 leading-relaxed whitespace-pre-wrap">
                                 {challenge.description}
                             </div>
 
@@ -307,16 +307,16 @@ export default function CodingChallengePage() {
                                 <div className="space-y-3">
                                     <h3 className="text-sm font-semibold text-white">Examples</h3>
                                     {challenge.test_cases.slice(0, 3).map((tc, i) => (
-                                        <div key={i} className="bg-slate-900/60 border border-slate-800/50 rounded-lg p-3">
-                                            <div className="text-xs text-slate-500 mb-1">Example {i + 1}</div>
+                                        <div key={i} className="bg-neutral-900/60 border border-neutral-800/50 rounded-lg p-3">
+                                            <div className="text-xs text-neutral-500 mb-1">Example {i + 1}</div>
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div>
-                                                    <div className="text-[10px] text-slate-600 uppercase tracking-wider mb-0.5">Input</div>
+                                                    <div className="text-[10px] text-neutral-600 uppercase tracking-wider mb-0.5">Input</div>
                                                     <code className="text-xs text-green-400 font-mono">{tc.input || '(none)'}</code>
                                                 </div>
                                                 <div>
-                                                    <div className="text-[10px] text-slate-600 uppercase tracking-wider mb-0.5">Output</div>
-                                                    <code className="text-xs text-blue-400 font-mono">{tc.expected_output}</code>
+                                                    <div className="text-[10px] text-neutral-600 uppercase tracking-wider mb-0.5">Output</div>
+                                                    <code className="text-xs text-purple-400 font-mono">{tc.expected_output}</code>
                                                 </div>
                                             </div>
                                         </div>
@@ -328,7 +328,7 @@ export default function CodingChallengePage() {
                             {challenge.constraints && (
                                 <div>
                                     <h3 className="text-sm font-semibold text-white mb-2">Constraints</h3>
-                                    <p className="text-xs text-slate-400 whitespace-pre-wrap">{challenge.constraints}</p>
+                                    <p className="text-xs text-neutral-400 whitespace-pre-wrap">{challenge.constraints}</p>
                                 </div>
                             )}
 
@@ -355,7 +355,7 @@ export default function CodingChallengePage() {
                             )}
 
                             {/* Stats */}
-                            <div className="flex items-center gap-4 text-xs text-slate-500 pt-2 border-t border-slate-800/50">
+                            <div className="flex items-center gap-4 text-xs text-neutral-500 pt-2 border-t border-neutral-800/50">
                                 <span className="flex items-center gap-1"><Trophy className="w-3 h-3" /> {challenge.points} pts</span>
                                 <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {Math.floor(challenge.time_limit_seconds / 60)} min</span>
                                 <span>{challenge.total_solved} solved</span>
@@ -368,8 +368,8 @@ export default function CodingChallengePage() {
                         <div className="p-4 sm:p-6">
                             {(running || submitting) ? (
                                 <div className="flex flex-col items-center py-12 gap-3">
-                                    <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
-                                    <p className="text-sm text-slate-400">
+                                    <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+                                    <p className="text-sm text-neutral-400">
                                         {running ? 'Running against public tests...' : 'Running against all test cases...'}
                                     </p>
                                 </div>
@@ -377,40 +377,40 @@ export default function CodingChallengePage() {
                                 // Run result (public tests only)
                                 <div className="space-y-4">
                                     <div className={`flex items-center gap-3 p-4 rounded-xl border ${runResult.passed === runResult.total
-                                        ? 'bg-emerald-500/10 border-emerald-500/30'
+                                        ? 'bg-green-500/10 border-green-500/30'
                                         : 'bg-amber-500/10 border-amber-500/30'}`}>
                                         {runResult.passed === runResult.total
-                                            ? <CheckCircle className="w-5 h-5 text-emerald-400" />
+                                            ? <CheckCircle className="w-5 h-5 text-green-400" />
                                             : <AlertCircle className="w-5 h-5 text-amber-400" />}
                                         <div>
                                             <div className="text-sm font-semibold text-white">
                                                 Run Complete — {runResult.passed}/{runResult.total} public tests passed
                                             </div>
-                                            <div className="text-xs text-slate-500">This did not count as a submission</div>
+                                            <div className="text-xs text-neutral-500">This did not count as a submission</div>
                                         </div>
                                     </div>
                                     <div className="space-y-2">
                                         {runResult.results.map((r, i) => (
                                             <div key={i} className={`p-3 rounded-lg border text-xs ${r.passed
-                                                ? 'bg-emerald-500/5 border-emerald-500/20'
-                                                : 'bg-rose-500/5 border-rose-500/20'}`}>
+                                                ? 'bg-green-500/5 border-green-500/20'
+                                                : 'bg-red-500/5 border-red-500/20'}`}>
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    {r.passed ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <XCircle className="w-3.5 h-3.5 text-rose-400" />}
-                                                    <span className="font-medium text-slate-300">Test Case {r.test_case_index + 1}</span>
+                                                    {r.passed ? <CheckCircle className="w-3.5 h-3.5 text-green-400" /> : <XCircle className="w-3.5 h-3.5 text-red-400" />}
+                                                    <span className="font-medium text-neutral-300">Test Case {r.test_case_index + 1}</span>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-2 mt-2">
                                                     <div>
-                                                        <div className="text-[10px] text-slate-600 uppercase">Your Output</div>
+                                                        <div className="text-[10px] text-neutral-600 uppercase">Your Output</div>
                                                         <code className="text-green-400 font-mono">{r.stdout?.trim() || '(empty)'}</code>
                                                     </div>
                                                     <div>
-                                                        <div className="text-[10px] text-slate-600 uppercase">Expected</div>
-                                                        <code className="text-blue-400 font-mono">{r.expected}</code>
+                                                        <div className="text-[10px] text-neutral-600 uppercase">Expected</div>
+                                                        <code className="text-purple-400 font-mono">{r.expected}</code>
                                                     </div>
                                                     {r.stderr && (
                                                         <div className="col-span-2">
-                                                            <div className="text-[10px] text-slate-600 uppercase">Error</div>
-                                                            <code className="text-rose-400 font-mono whitespace-pre-wrap">{r.stderr}</code>
+                                                            <div className="text-[10px] text-neutral-600 uppercase">Error</div>
+                                                            <code className="text-red-400 font-mono whitespace-pre-wrap">{r.stderr}</code>
                                                         </div>
                                                     )}
                                                 </div>
@@ -422,16 +422,16 @@ export default function CodingChallengePage() {
                                 // Submit result (all tests)
                                 <div className="space-y-4">
                                     <div className={`flex items-center gap-3 p-4 rounded-xl border ${result.status === 'accepted'
-                                        ? 'bg-emerald-500/10 border-emerald-500/30'
+                                        ? 'bg-green-500/10 border-green-500/30'
                                         : result.status === 'partial'
                                             ? 'bg-amber-500/10 border-amber-500/30'
-                                            : 'bg-rose-500/10 border-rose-500/30'}`}>
+                                            : 'bg-red-500/10 border-red-500/30'}`}>
                                         {getStatusIcon(result.status)}
                                         <div>
                                             <div className={`font-semibold text-sm ${getStatusStyle(result.status)}`}>
                                                 {result.status === 'accepted' ? 'Accepted ✓' : result.status === 'partial' ? 'Partial Solution' : result.status.replace('_', ' ').toUpperCase()}
                                             </div>
-                                            <div className="text-xs text-slate-500">
+                                            <div className="text-xs text-neutral-500">
                                                 {result.passed_tests}/{result.total_tests} tests passed • {result.execution_time_ms}ms • +{result.points_earned} pts
                                             </div>
                                         </div>
@@ -439,33 +439,33 @@ export default function CodingChallengePage() {
                                     <div className="space-y-2">
                                         {result.results.map((r, i) => (
                                             <div key={i} className={`p-3 rounded-lg border text-xs ${r.passed
-                                                ? 'bg-emerald-500/5 border-emerald-500/20'
-                                                : 'bg-rose-500/5 border-rose-500/20'}`}>
+                                                ? 'bg-green-500/5 border-green-500/20'
+                                                : 'bg-red-500/5 border-red-500/20'}`}>
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    {r.passed ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <XCircle className="w-3.5 h-3.5 text-rose-400" />}
-                                                    <span className="font-medium text-slate-300">
+                                                    {r.passed ? <CheckCircle className="w-3.5 h-3.5 text-green-400" /> : <XCircle className="w-3.5 h-3.5 text-red-400" />}
+                                                    <span className="font-medium text-neutral-300">
                                                         Test Case {r.test_case_index + 1}
                                                     </span>
-                                                    {r.is_hidden && <span className="text-slate-600">(hidden)</span>}
+                                                    {r.is_hidden && <span className="text-neutral-600">(hidden)</span>}
                                                 </div>
                                                 {!r.is_hidden && (
                                                     <div className="grid grid-cols-2 gap-2 mt-2">
                                                         {r.stdout !== undefined && (
                                                             <div>
-                                                                <div className="text-[10px] text-slate-600 uppercase">Your Output</div>
+                                                                <div className="text-[10px] text-neutral-600 uppercase">Your Output</div>
                                                                 <code className="text-green-400 font-mono">{r.stdout || '(empty)'}</code>
                                                             </div>
                                                         )}
                                                         {r.expected !== undefined && (
                                                             <div>
-                                                                <div className="text-[10px] text-slate-600 uppercase">Expected</div>
-                                                                <code className="text-blue-400 font-mono">{r.expected}</code>
+                                                                <div className="text-[10px] text-neutral-600 uppercase">Expected</div>
+                                                                <code className="text-purple-400 font-mono">{r.expected}</code>
                                                             </div>
                                                         )}
                                                         {r.stderr && (
                                                             <div className="col-span-2">
-                                                                <div className="text-[10px] text-slate-600 uppercase">Error</div>
-                                                                <code className="text-rose-400 font-mono whitespace-pre-wrap">{r.stderr}</code>
+                                                                <div className="text-[10px] text-neutral-600 uppercase">Error</div>
+                                                                <code className="text-red-400 font-mono whitespace-pre-wrap">{r.stderr}</code>
                                                             </div>
                                                         )}
                                                     </div>
@@ -475,8 +475,8 @@ export default function CodingChallengePage() {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="text-center py-12 text-slate-500 text-sm">
-                                    <Code className="w-10 h-10 mx-auto mb-3 text-slate-700" />
+                                <div className="text-center py-12 text-neutral-500 text-sm">
+                                    <Code className="w-10 h-10 mx-auto mb-3 text-neutral-700" />
                                     Click Run to test against public examples, or Submit to test against all test cases
                                 </div>
                             )}
@@ -487,20 +487,20 @@ export default function CodingChallengePage() {
                     {activeTab === 'custom' && (
                         <div className="p-4 sm:p-6 space-y-4">
                             <div>
-                                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                                <label className="block text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
                                     Custom stdin
                                 </label>
                                 <textarea
                                     value={customInput}
                                     onChange={e => setCustomInput(e.target.value)}
                                     placeholder={`Enter your input here...\nEach line = one input value`}
-                                    className="w-full h-28 bg-slate-900/80 border border-slate-700/50 rounded-lg px-3 py-2 text-sm font-mono text-green-400 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                                    className="w-full h-28 bg-neutral-900/80 border border-neutral-700/50 rounded-lg px-3 py-2 text-sm font-mono text-green-400 placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-purple-500 resize-none"
                                 />
                             </div>
                             <button
                                 onClick={handleRunCustom}
                                 disabled={runningCustom || !currentCode.trim()}
-                                className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed border border-slate-600"
+                                className="flex items-center gap-2 px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-600"
                             >
                                 {runningCustom
                                     ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -510,8 +510,8 @@ export default function CodingChallengePage() {
 
                             {runningCustom && (
                                 <div className="flex flex-col items-center py-8 gap-3">
-                                    <Loader2 className="w-7 h-7 text-blue-400 animate-spin" />
-                                    <p className="text-sm text-slate-400">Running...</p>
+                                    <Loader2 className="w-7 h-7 text-purple-400 animate-spin" />
+                                    <p className="text-sm text-neutral-400">Running...</p>
                                 </div>
                             )}
 
@@ -524,24 +524,24 @@ export default function CodingChallengePage() {
                                     )}
                                     {customResult.stdout && (
                                         <div>
-                                            <div className="text-[10px] text-slate-600 uppercase tracking-wider mb-1">Output</div>
-                                            <pre className="bg-slate-900/80 border border-slate-800 rounded-lg px-3 py-2 text-xs text-green-400 font-mono whitespace-pre-wrap overflow-x-auto">{customResult.stdout}</pre>
+                                            <div className="text-[10px] text-neutral-600 uppercase tracking-wider mb-1">Output</div>
+                                            <pre className="bg-neutral-900/80 border border-neutral-800 rounded-lg px-3 py-2 text-xs text-green-400 font-mono whitespace-pre-wrap overflow-x-auto">{customResult.stdout}</pre>
                                         </div>
                                     )}
                                     {customResult.stderr && (
                                         <div>
-                                            <div className="text-[10px] text-slate-600 uppercase tracking-wider mb-1">Error / stderr</div>
-                                            <pre className="bg-slate-900/80 border border-rose-800/30 rounded-lg px-3 py-2 text-xs text-rose-400 font-mono whitespace-pre-wrap overflow-x-auto">{customResult.stderr}</pre>
+                                            <div className="text-[10px] text-neutral-600 uppercase tracking-wider mb-1">Error / stderr</div>
+                                            <pre className="bg-neutral-900/80 border border-red-800/30 rounded-lg px-3 py-2 text-xs text-red-400 font-mono whitespace-pre-wrap overflow-x-auto">{customResult.stderr}</pre>
                                         </div>
                                     )}
                                     {!customResult.stdout && !customResult.stderr && (
-                                        <p className="text-slate-500 text-sm text-center py-4">No output produced.</p>
+                                        <p className="text-neutral-500 text-sm text-center py-4">No output produced.</p>
                                     )}
                                 </div>
                             )}
 
                             {!runningCustom && !customResult && (
-                                <div className="text-center py-8 text-slate-600 text-sm">
+                                <div className="text-center py-8 text-neutral-600 text-sm">
                                     Enter your input above and click Run to see the raw output.
                                 </div>
                             )}
@@ -552,24 +552,24 @@ export default function CodingChallengePage() {
                     {activeTab === 'history' && (
                         <div className="p-4 sm:p-6">
                             {submissions.length === 0 ? (
-                                <div className="text-center py-12 text-slate-500 text-sm">
-                                    <History className="w-10 h-10 mx-auto mb-3 text-slate-700" />
+                                <div className="text-center py-12 text-neutral-500 text-sm">
+                                    <History className="w-10 h-10 mx-auto mb-3 text-neutral-700" />
                                     No submissions yet
                                 </div>
                             ) : (
                                 <div className="space-y-2">
                                     {submissions.map(sub => (
-                                        <div key={sub.id} className="flex items-center gap-3 p-3 bg-slate-900/60 border border-slate-800/50 rounded-lg">
+                                        <div key={sub.id} className="flex items-center gap-3 p-3 bg-neutral-900/60 border border-neutral-800/50 rounded-lg">
                                             {getStatusIcon(sub.status)}
                                             <div className="flex-1 min-w-0">
                                                 <div className={`text-sm font-medium ${getStatusStyle(sub.status)}`}>
                                                     {sub.status.replace('_', ' ')}
                                                 </div>
-                                                <div className="text-[10px] text-slate-500">
+                                                <div className="text-[10px] text-neutral-500">
                                                     {sub.language} • {sub.passed_tests}/{sub.total_tests} passed • {sub.execution_time_ms}ms
                                                 </div>
                                             </div>
-                                            <div className="text-right text-[10px] text-slate-600">
+                                            <div className="text-right text-[10px] text-neutral-600">
                                                 {new Date(sub.submitted_at).toLocaleString()}
                                             </div>
                                         </div>
@@ -583,13 +583,13 @@ export default function CodingChallengePage() {
                 {/* Right Pane — Code Editor */}
                 <div className="lg:w-[55%] flex flex-col">
                     {/* Language Selector + Buttons */}
-                    <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800/50 bg-slate-900/50">
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-neutral-800/50 bg-neutral-900/50">
                         <div className="flex items-center gap-2">
-                            <Code className="w-4 h-4 text-blue-400" />
+                            <Code className="w-4 h-4 text-purple-400" />
                             <select
                                 value={language}
                                 onChange={(e) => handleLanguageChange(e.target.value)}
-                                className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                className="bg-neutral-800/50 border border-neutral-700/50 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-purple-500"
                             >
                                 {challenge.supported_languages.map(lang => (
                                     <option key={lang} value={lang}>{LANGUAGE_LABELS[lang] || lang}</option>
@@ -601,7 +601,7 @@ export default function CodingChallengePage() {
                             <button
                                 onClick={handleRun}
                                 disabled={running || submitting || runningCustom || !currentCode.trim()}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed border border-slate-600"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed border border-neutral-600"
                             >
                                 {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4 text-green-400" />}
                                 Run
@@ -619,7 +619,7 @@ export default function CodingChallengePage() {
                     </div>
 
                     {/* Syntax-Highlighted Code Editor */}
-                    <div className="flex-1 overflow-auto bg-slate-950" style={{ fontFamily: "'Fira Code', 'Consolas', monospace" }}>
+                    <div className="flex-1 overflow-auto bg-neutral-950" style={{ fontFamily: "'Fira Code', 'Consolas', monospace" }}>
                         <Editor
                             value={currentCode}
                             onValueChange={handleCodeChange}
@@ -643,12 +643,12 @@ export default function CodingChallengePage() {
                     </div>
 
                     {/* Status Bar */}
-                    <div className="px-4 py-1.5 bg-slate-900/80 border-t border-slate-800/50 flex items-center gap-4 text-[10px] text-slate-600">
+                    <div className="px-4 py-1.5 bg-neutral-900/80 border-t border-neutral-800/50 flex items-center gap-4 text-[10px] text-neutral-600">
                         <span>{LANGUAGE_LABELS[language] || language}</span>
                         <span>{currentCode.split('\n').length} lines</span>
                         <span>{currentCode.length} chars</span>
                         {(result || runResult) && (
-                            <span className={result?.status === 'accepted' ? 'text-emerald-500' : 'text-amber-500'}>
+                            <span className={result?.status === 'accepted' ? 'text-green-500' : 'text-amber-500'}>
                                 {result ? `Last: ${result.passed_tests}/${result.total_tests} passed` : `Run: ${runResult?.passed}/${runResult?.total}`}
                             </span>
                         )}
@@ -659,22 +659,22 @@ export default function CodingChallengePage() {
             {/* ── Success Modal Overlay ── */}
             {showSuccessModal && result && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-8 max-w-md w-full mx-4 text-center shadow-2xl shadow-emerald-500/10">
+                    <div className="bg-neutral-900 border border-green-500/30 rounded-2xl p-8 max-w-md w-full mx-4 text-center shadow-2xl shadow-green-500/10">
                         <div className="text-6xl mb-4">🎉</div>
-                        <h2 className="text-2xl font-bold text-emerald-400 mb-2">All Tests Passed!</h2>
-                        <p className="text-slate-400 mb-4">Congratulations! You solved <span className="text-white font-semibold">{challenge?.title}</span></p>
+                        <h2 className="text-2xl font-bold text-green-400 mb-2">All Tests Passed!</h2>
+                        <p className="text-neutral-400 mb-4">Congratulations! You solved <span className="text-white font-semibold">{challenge?.title}</span></p>
                         <div className="flex items-center justify-center gap-6 mb-6 text-sm">
-                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-2">
-                                <div className="text-emerald-400 font-bold text-lg">+{result.points_earned}</div>
-                                <div className="text-slate-500 text-xs">Points</div>
+                            <div className="bg-green-500/10 border border-green-500/20 rounded-xl px-4 py-2">
+                                <div className="text-green-400 font-bold text-lg">+{result.points_earned}</div>
+                                <div className="text-neutral-500 text-xs">Points</div>
                             </div>
-                            <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl px-4 py-2">
-                                <div className="text-blue-400 font-bold text-lg">{result.passed_tests}/{result.total_tests}</div>
-                                <div className="text-slate-500 text-xs">Tests</div>
+                            <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-2">
+                                <div className="text-purple-400 font-bold text-lg">{result.passed_tests}/{result.total_tests}</div>
+                                <div className="text-neutral-500 text-xs">Tests</div>
                             </div>
                             <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-2">
                                 <div className="text-purple-400 font-bold text-lg">{result.execution_time_ms}ms</div>
-                                <div className="text-slate-500 text-xs">Runtime</div>
+                                <div className="text-neutral-500 text-xs">Runtime</div>
                             </div>
                         </div>
                         <div className="flex gap-3">
@@ -686,7 +686,7 @@ export default function CodingChallengePage() {
                             </button>
                             <button
                                 onClick={() => setShowSuccessModal(false)}
-                                className="flex-1 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-xl transition border border-slate-700"
+                                className="flex-1 px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-medium rounded-xl transition border border-neutral-700"
                             >
                                 Keep Practicing
                             </button>
