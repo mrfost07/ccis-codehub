@@ -135,7 +135,7 @@ export default function StudentLearningDashboard() {
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">My Learning Journey</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2">My Learning Journey</h1>
           <p className="text-neutral-300">Track your progress and continue learning</p>
         </div>
 
@@ -147,7 +147,7 @@ export default function StudentLearningDashboard() {
               <div className="p-3 rounded-lg bg-purple-500/10 text-purple-400">
                 <BookOpen className="w-6 h-6" />
               </div>
-              <span className="text-3xl font-bold text-white">{stats.total_enrollments}</span>
+              <span className="text-3xl font-bold text-white tabular-nums">{stats.total_enrollments}</span>
             </div>
             <h3 className="text-neutral-200 font-semibold">Enrolled Paths</h3>
             <p className="text-neutral-500 text-sm">{stats.active_enrollments} active</p>
@@ -159,7 +159,7 @@ export default function StudentLearningDashboard() {
               <div className="p-3 rounded-lg bg-green-500/10 text-green-400">
                 <CheckCircle className="w-6 h-6" />
               </div>
-              <span className="text-3xl font-bold text-white">{stats.completed_paths}</span>
+              <span className="text-3xl font-bold text-white tabular-nums">{stats.completed_paths}</span>
             </div>
             <h3 className="text-neutral-200 font-semibold">Completed Paths</h3>
             <p className="text-neutral-500 text-sm">{stats.certificates_earned} certificates</p>
@@ -171,7 +171,7 @@ export default function StudentLearningDashboard() {
               <div className="p-3 rounded-lg bg-amber-500/10 text-amber-400">
                 <Trophy className="w-6 h-6" />
               </div>
-              <span className="text-3xl font-bold text-white">{stats.total_points}</span>
+              <span className="text-3xl font-bold text-white tabular-nums">{stats.total_points}</span>
             </div>
             <h3 className="text-neutral-200 font-semibold">Total Points</h3>
             <p className="text-neutral-500 text-sm">{stats.total_modules_completed} modules done</p>
@@ -183,7 +183,7 @@ export default function StudentLearningDashboard() {
               <div className="p-3 rounded-lg bg-purple-500/10 text-purple-400">
                 <Zap className="w-6 h-6" />
               </div>
-              <span className="text-3xl font-bold text-white">{stats.current_streak}</span>
+              <span className="text-3xl font-bold text-white tabular-nums">{stats.current_streak}</span>
             </div>
             <h3 className="text-neutral-200 font-semibold">Day Streak</h3>
             <p className="text-neutral-500 text-sm">Keep it going!</p>

@@ -92,18 +92,18 @@ export default function AdminSidenav({ activeTab, onTabChange, children }: Admin
           ${isCollapsed ? 'w-16' : 'w-60'}
           ${sidenavOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           transition-all duration-300 ease-in-out
-          bg-neutral-900/95 backdrop-blur-xl
-          border-r border-neutral-700/50
+          bg-neutral-900
+          border-r border-neutral-800
           flex flex-col
         `}
             >
                 {/* Logo & Toggle */}
-                <div className="flex items-center justify-between p-4 border-b border-neutral-700/50">
+                <div className="flex items-center justify-between p-4 border-b border-neutral-800">
                     {!isCollapsed ? (
                         <div className="flex items-center gap-3">
                             <img src="/logo/ccis-logo.png" alt="CCIS" className="h-9 w-9" />
                             <div className="flex flex-col">
-                                <span className="text-sm font-bold bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent leading-tight">
+                                <span className="text-sm font-bold text-white leading-tight">
                                     CCIS CodeHub
                                 </span>
                                 <span className="text-xs text-neutral-400 font-medium">
@@ -150,13 +150,13 @@ export default function AdminSidenav({ activeTab, onTabChange, children }: Admin
                   py-2.5 rounded-xl
                   transition-all duration-200
                   ${isActive
-                                        ? 'bg-gradient-to-r from-purple-600/30 to-purple-600/30 text-white border border-purple-500/30'
+                                        ? 'bg-purple-500/10 text-purple-300'
                                         : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
                                     }
                 `}
                                 title={isCollapsed ? item.label : undefined}
                             >
-                                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-purple-400' : ''}`} />
+                                <Icon className="w-5 h-5 flex-shrink-0" />
                                 {!isCollapsed && (
                                     <span className="text-sm font-medium truncate">{item.label}</span>
                                 )}
@@ -166,7 +166,7 @@ export default function AdminSidenav({ activeTab, onTabChange, children }: Admin
                 </nav>
 
                 {/* Quick Links */}
-                <div className="px-2 py-3 border-t border-neutral-700/50">
+                <div className="px-2 py-3 border-t border-neutral-800">
                     <Link
                         to="/learning"
                         className={`
@@ -186,7 +186,7 @@ export default function AdminSidenav({ activeTab, onTabChange, children }: Admin
             {/* Main Content */}
             <main className="flex-1 min-w-0 flex flex-col">
                 {/* Top Header */}
-                <header className="sticky top-0 z-30 bg-neutral-900/80 backdrop-blur-xl border-b border-neutral-700/50">
+                <header className="sticky top-0 z-30 bg-neutral-950/80 backdrop-blur border-b border-neutral-800">
                     <div className="flex items-center justify-between h-14 px-4 md:px-6">
                         {/* Mobile menu button */}
                         <button

@@ -98,17 +98,17 @@ export default function DashboardLayout({
           ${sidenavWidth}
           ${sidenavOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           transition-all duration-300 ease-in-out
-          bg-neutral-900/95 backdrop-blur-xl
-          border-r border-neutral-700/50
+          bg-neutral-900
+          border-r border-neutral-800
           flex flex-col
         `}
             >
                 {/* Logo & Collapse Toggle */}
-                <div className="flex items-center justify-between p-4 border-b border-neutral-700/50">
+                <div className="flex items-center justify-between p-4 border-b border-neutral-800">
                     {!isCollapsed && (
                         <Link to="/dashboard" className="flex items-center gap-2">
                             <img src="/logo/ccis-logo.png" alt="CCIS" className="h-8 w-8" />
-                            <span className="text-lg font-bold bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent">
+                            <span className="text-lg font-bold text-white">
                                 CodeHub
                             </span>
                         </Link>
@@ -152,18 +152,18 @@ export default function DashboardLayout({
                   py-2.5 rounded-xl
                   transition-all duration-200
                   ${isActive
-                                        ? 'bg-gradient-to-r from-purple-600/30 to-purple-600/30 text-white border border-purple-500/30'
+                                        ? 'bg-purple-500/10 text-purple-300'
                                         : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
                                     }
                 `}
                                 title={isCollapsed ? item.label : undefined}
                             >
-                                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-purple-400' : ''}`} />
+                                <Icon className="w-5 h-5 flex-shrink-0" />
                                 {!isCollapsed && (
                                     <span className="text-sm font-medium truncate">{item.label}</span>
                                 )}
                                 {!isCollapsed && item.badge && item.badge > 0 && (
-                                    <span className="ml-auto px-2 py-0.5 text-xs font-medium bg-purple-500/20 text-purple-400 rounded-full">
+                                    <span className="ml-auto rounded-full border border-purple-500/30 bg-purple-500/15 px-1.5 text-xs text-purple-300 tabular-nums">
                                         {item.badge}
                                     </span>
                                 )}
@@ -175,8 +175,8 @@ export default function DashboardLayout({
                     })}
                 </nav>
 
-                {/* Back to CodeHub */}
-                <div className="p-3 border-t border-neutral-700/50">
+                {/* Footer: back link + user + logout */}
+                <div className="p-3 border-t border-neutral-800 space-y-1">
                     <button
                         onClick={() => navigate('/learning')}
                         className={`
@@ -190,13 +190,46 @@ export default function DashboardLayout({
                         <ArrowLeft className="w-5 h-5 flex-shrink-0" />
                         {!isCollapsed && <span className="text-sm font-medium">Back to CodeHub</span>}
                     </button>
+
+                    {!isCollapsed ? (
+                        <div className="flex items-center gap-2.5 px-3 py-2">
+                            <div className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center shrink-0 overflow-hidden">
+                                <span className="text-xs text-white font-semibold">
+                                    {user?.username?.charAt(0).toUpperCase() || 'U'}
+                                </span>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-white truncate">
+                                    {user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user?.username}
+                                </p>
+                                <p className="text-xs text-neutral-500 truncate">@{user?.username}</p>
+                            </div>
+                            <button
+                                onClick={handleLogout}
+                                title="Log out"
+                                aria-label="Log out"
+                                className="p-1.5 rounded-lg text-neutral-500 hover:text-red-400 hover:bg-neutral-800 transition-colors shrink-0"
+                            >
+                                <LogOut className="w-4 h-4" />
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={handleLogout}
+                            title="Log out"
+                            aria-label="Log out"
+                            className="w-full flex justify-center py-2.5 rounded-xl text-neutral-500 hover:text-red-400 hover:bg-neutral-800 transition-colors"
+                        >
+                            <LogOut className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
             </aside>
 
             {/* Main Content Area */}
             <main className="flex-1 min-w-0 flex flex-col">
                 {/* Header Bar - Minimal */}
-                <header className="sticky top-0 z-30 bg-neutral-900/80 backdrop-blur-xl border-b border-neutral-700/50">
+                <header className="sticky top-0 z-30 bg-neutral-950/80 backdrop-blur border-b border-neutral-800">
                     <div className="flex items-center justify-between h-14 px-4 md:px-6">
                         {/* Mobile Menu Toggle */}
                         <button

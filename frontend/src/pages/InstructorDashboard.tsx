@@ -1270,6 +1270,16 @@ function InstructorDashboard() {
       <QuickActionsBar />
       {activeTab === 'overview' && (
         <>
+          {/* Personalized greeting */}
+          <div className="mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+              Welcome back, {cachedProfile?.first_name || cachedProfile?.username || 'Instructor'}
+            </h2>
+            <p className="text-sm text-neutral-400 mt-1">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} · Here's how your courses are doing
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
             {statCards.map((stat) => {
               const Icon = stat.icon

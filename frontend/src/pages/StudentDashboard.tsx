@@ -9,6 +9,7 @@ import {
 import api from '../services/api'
 import { projectsAPI } from '../services/api'
 import toast from 'react-hot-toast'
+import { useAuth } from '../contexts/AuthContext'
 import { SkeletonCard, SkeletonStatCard } from '../components/ui'
 
 interface Enrollment {
@@ -70,6 +71,7 @@ interface ProjectStats {
 
 export default function StudentDashboard() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('overview')
 
   // Sidebar navigation items
@@ -270,6 +272,16 @@ export default function StudentDashboard() {
       {/* Overview Tab */}
       {activeTab === 'overview' && (
         <>
+          {/* Personalized greeting */}
+          <div className="mb-6">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+              Welcome back, {user?.first_name || user?.username || 'Student'}
+            </h2>
+            <p className="text-sm text-neutral-400 mt-1">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} · Here's your learning at a glance
+            </p>
+          </div>
+
           {/* Stats Grid - Mobile Responsive */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
             <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-3 sm:p-4 md:p-6">

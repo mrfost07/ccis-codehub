@@ -40,8 +40,8 @@ export default function AdminUsersTab({
     const displayUsers = (userSearchTerm || userRoleFilter || userProgramFilter) ? filteredUsers : users
 
     return (
-        <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-4 sm:p-6 shadow-lg">
-            <h2 className="text-2xl font-bold text-white mb-6">User Management</h2>
+        <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 sm:p-6">
+            <h2 className="text-xl font-bold tracking-tight text-white mb-6">User Management</h2>
 
             {/* User Search and Filters */}
             <div className="mb-6 flex flex-col md:flex-row gap-4">
@@ -53,14 +53,14 @@ export default function AdminUsersTab({
                             placeholder="Search users by name or email..."
                             value={userSearchTerm}
                             onChange={(e) => onSearchChange(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg focus:outline-none focus:border-purple-500 text-white"
+                            className="w-full pl-10 pr-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg focus:outline-none focus:border-purple-500 text-white"
                         />
                     </div>
                 </div>
                 <select
                     value={userRoleFilter}
                     onChange={(e) => onRoleFilterChange(e.target.value)}
-                    className="px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
+                    className="px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white"
                 >
                     <option value="">All Roles</option>
                     <option value="student">Students</option>
@@ -70,7 +70,7 @@ export default function AdminUsersTab({
                 <select
                     value={userProgramFilter}
                     onChange={(e) => onProgramFilterChange(e.target.value)}
-                    className="px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
+                    className="px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white"
                 >
                     <option value="">All Programs</option>
                     <option value="BSIT">BSIT</option>
@@ -79,9 +79,9 @@ export default function AdminUsersTab({
                 </select>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-neutral-800">
                 <table className="w-full text-sm text-left text-neutral-300">
-                    <thead className="text-xs uppercase bg-neutral-700/50">
+                    <thead className="text-xs font-semibold uppercase tracking-wider text-neutral-500 bg-neutral-900/60 border-b border-neutral-800">
                         <tr>
                             <th className="px-4 py-3">Username</th>
                             <th className="px-4 py-3">Email</th>
@@ -91,9 +91,9 @@ export default function AdminUsersTab({
                             <th className="px-4 py-3">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-neutral-800/70">
                         {displayUsers.map((user) => (
-                            <tr key={user.id} className="border-b border-neutral-700 hover:bg-neutral-700/30">
+                            <tr key={user.id} className="hover:bg-neutral-800/40 transition-colors">
                                 <td className="px-4 py-3 font-medium text-white">{user.username}</td>
                                 <td className="px-4 py-3">{user.email}</td>
                                 <td className="px-4 py-3">{user.program || 'N/A'}</td>
@@ -101,7 +101,7 @@ export default function AdminUsersTab({
                                     <select
                                         value={user.role}
                                         onChange={(e) => onChangeUserRole(user.id, e.target.value)}
-                                        className="px-3 py-1 bg-neutral-700 border border-neutral-600 rounded text-white text-xs focus:outline-none focus:border-purple-500"
+                                        className="px-3 py-1 bg-neutral-900 border border-neutral-700 rounded text-white text-xs focus:outline-none focus:border-purple-500"
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         <option value="student">Student</option>
@@ -110,7 +110,9 @@ export default function AdminUsersTab({
                                     </select>
                                 </td>
                                 <td className="px-4 py-3">
-                                    <span className={`px-2 py-1 rounded-full text-xs ${user.is_active ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
+                                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${user.is_active
+                                        ? 'bg-green-500/15 text-green-300 border-green-500/30'
+                                        : 'bg-red-500/15 text-red-300 border-red-500/30'
                                         }`}>
                                         {user.is_active ? 'Active' : 'Inactive'}
                                     </span>

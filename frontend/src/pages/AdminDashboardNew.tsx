@@ -488,7 +488,7 @@ export default function AdminDashboard() {
                 {activeTab === 'learning' && (
                     <div className="space-y-6">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-2xl font-bold text-white">Learning Analytics</h2>
+                            <h2 className="text-xl font-bold tracking-tight text-white">Learning Analytics</h2>
                             <p className="text-sm text-neutral-400">Manage learning content in Instructor Dashboard</p>
                         </div>
                         <LearningAnalytics />
@@ -497,8 +497,8 @@ export default function AdminDashboard() {
 
                 {/* Projects Tab */}
                 {activeTab === 'projects' && (
-                    <div className="bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl p-4 sm:p-6 shadow-lg">
-                        <h2 className="text-2xl font-bold text-white mb-6">Project Admin</h2>
+                    <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 sm:p-6">
+                        <h2 className="text-xl font-bold tracking-tight text-white mb-6">Project Admin</h2>
                         <ProjectAdmin />
                     </div>
                 )}

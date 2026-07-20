@@ -55,7 +55,7 @@ export default function AdminSettingsTab() {
                     onClose={() => setShowPasswordModal(false)}
                     onVerify={handleVerify}
                 />
-                <div className="bg-neutral-800/50 backdrop-blur border border-neutral-700 rounded-xl p-12">
+                <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-12">
                     <div className="text-center">
                         <div className="inline-flex p-4 bg-purple-500/10 rounded-2xl mb-4">
                             <Settings className="w-8 h-8 text-purple-400" />
@@ -77,13 +77,13 @@ export default function AdminSettingsTab() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="bg-neutral-800/50 backdrop-blur border border-neutral-700 rounded-xl p-6">
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-6">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-2.5 bg-purple-500/10 rounded-lg">
                         <Settings className="w-6 h-6 text-purple-400" />
                     </div>
                     <div>
-                        <h2 className="text-2xl font-bold text-white">System Settings</h2>
+                        <h2 className="text-xl font-bold tracking-tight text-white">System Settings</h2>
                         <p className="text-sm text-neutral-400 mt-1">
                             Manage feature flags and monitor system health
                         </p>
@@ -114,7 +114,7 @@ export default function AdminSettingsTab() {
             </div>
 
             {/* Tab Content */}
-            <div className="bg-neutral-800/50 backdrop-blur border border-neutral-700 rounded-xl p-6">
+            <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-6">
                 {activeTab === 'flags' && <FeatureFlagsPanel />}
                 {activeTab === 'health' && <SystemHealthPanel />}
             </div>

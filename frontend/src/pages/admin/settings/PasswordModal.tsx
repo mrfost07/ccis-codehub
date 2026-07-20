@@ -78,7 +78,7 @@ export default function PasswordModal({ isOpen, onClose, onVerify }: PasswordMod
                             onChange={(e) => setKey(e.target.value)}
                             placeholder="Enter settings key"
                             autoFocus
-                            className="w-full px-4 py-3 bg-neutral-900/50 border border-neutral-600 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all"
+                            className="w-full px-4 py-3 bg-neutral-900/50 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all"
                             disabled={isVerifying}
                         />
                     </div>

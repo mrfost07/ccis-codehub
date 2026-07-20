@@ -211,7 +211,7 @@ export default function FeatureFlagsPanel() {
                             <div className="mt-2">
                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${flag.enabled
                                         ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                                        : 'bg-neutral-700/50 text-neutral-400 border border-neutral-600/50'
+                                        : 'bg-neutral-700/50 text-neutral-400 border border-neutral-700'
                                     }`}>
                                     {updating === flag.key ? 'Updating...' : flag.enabled ? 'Enabled' : 'Disabled'}
                                 </span>

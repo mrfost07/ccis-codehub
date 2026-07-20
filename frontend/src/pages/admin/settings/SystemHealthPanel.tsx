@@ -88,7 +88,7 @@ export default function SystemHealthPanel() {
 
                 <button
                     onClick={fetchHealth}
-                    className="flex items-center gap-2 px-3 py-2 bg-neutral-700/50 hover:bg-neutral-700 border border-neutral-600 rounded-lg transition-colors text-sm text-neutral-300"
+                    className="flex items-center gap-2 px-3 py-2 bg-neutral-700/50 hover:bg-neutral-900 border border-neutral-700 rounded-lg transition-colors text-sm text-neutral-300"
                 >
                     <RefreshCw className="w-4 h-4" />
                     <span>Refresh</span>
