@@ -190,6 +190,12 @@ h1, h2, h3, h4, h5, h6 {
   outline-offset: 2px;
 }
 
+/* Slow gradient pan used by the "Cyber" profile cover */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
 /* Honor OS-level reduced-motion preference (DESIGN_SYSTEM.md §8) */
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -151,7 +151,7 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
       setQuizState(quizPassed ? 'passed' : 'failed')
 
       if (quizPassed) {
-        toast.success(`🎉 Congratulations! You passed with ${percentage}%!`)
+        toast.success(`Congratulations! You passed with ${percentage}%.`)
         onComplete(percentage, true)
       } else {
         toast.error(`Score: ${percentage}%. You need ${passingScore}% to pass.`)
@@ -203,28 +203,28 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
   if (quizState === 'passed') {
     return (
       <div className="max-w-md mx-auto text-center py-4 sm:py-8">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/30">
-          <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center mx-auto mb-4">
+          <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-green-400" />
         </div>
 
-        <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">
-          🎉 Congratulations!
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white mb-1">
+          Congratulations!
         </h2>
-        <p className="text-sm sm:text-base text-green-400 mb-4">You passed the quiz!</p>
+        <p className="text-sm sm:text-base text-green-400 mb-4">You passed the quiz.</p>
 
-        <div className="bg-neutral-800/50 rounded-xl p-4 mb-4 border border-green-500/30">
+        <div className="bg-neutral-900 rounded-xl p-4 mb-4 border border-neutral-800">
           <div className="flex items-center justify-center gap-6">
             <div>
-              <p className="text-2xl sm:text-3xl font-bold text-green-400">{score}%</p>
+              <p className="text-2xl sm:text-3xl font-bold text-green-400 tabular-nums">{score}%</p>
               <p className="text-xs text-neutral-400">Score</p>
             </div>
-            <div className="w-px h-10 bg-neutral-600"></div>
+            <div className="w-px h-10 bg-neutral-700"></div>
             <div>
-              <p className="text-2xl sm:text-3xl font-bold text-purple-400">{pointsEarned}/{totalPoints}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-white tabular-nums">{pointsEarned}/{totalPoints}</p>
               <p className="text-xs text-neutral-400">Points</p>
             </div>
           </div>
-          <p className="text-xs text-neutral-400 mt-3 pt-3 border-t border-neutral-700">
+          <p className="text-xs text-neutral-400 mt-3 pt-3 border-t border-neutral-800 tabular-nums">
             Passing: {passingScore}% • Attempts: {attemptsUsed}/{maxAttempts}
           </p>
         </div>
@@ -241,26 +241,26 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
   if (quizState === 'failed') {
     return (
       <div className="max-w-md mx-auto text-center py-4 sm:py-8">
-        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-red-500/30">
-          <XCircle className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center mx-auto mb-4">
+          <XCircle className="w-8 h-8 sm:w-10 sm:h-10 text-red-400" />
         </div>
 
-        <h2 className="text-xl sm:text-2xl font-bold text-white mb-1">Quiz Not Passed</h2>
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white mb-1">Quiz Not Passed</h2>
         <p className="text-sm text-red-400 mb-4">Review and try again.</p>
 
-        <div className="bg-neutral-800/50 rounded-xl p-4 mb-4 border border-red-500/30">
+        <div className="bg-neutral-900 rounded-xl p-4 mb-4 border border-neutral-800">
           <div className="flex items-center justify-center gap-6">
             <div>
-              <p className="text-2xl sm:text-3xl font-bold text-red-400">{score}%</p>
+              <p className="text-2xl sm:text-3xl font-bold text-red-400 tabular-nums">{score}%</p>
               <p className="text-xs text-neutral-400">Score</p>
             </div>
-            <div className="w-px h-10 bg-neutral-600"></div>
+            <div className="w-px h-10 bg-neutral-700"></div>
             <div>
-              <p className="text-2xl sm:text-3xl font-bold text-purple-400">{pointsEarned}/{totalPoints}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-white tabular-nums">{pointsEarned}/{totalPoints}</p>
               <p className="text-xs text-neutral-400">Points</p>
             </div>
           </div>
-          <p className="text-xs text-neutral-400 mt-3 pt-3 border-t border-neutral-700">
+          <p className="text-xs text-neutral-400 mt-3 pt-3 border-t border-neutral-800 tabular-nums">
             Need: {passingScore}% • Attempts: {attemptsUsed}/{maxAttempts}
           </p>
         </div>
@@ -273,7 +273,7 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
             </div>
             <button
               onClick={handleRetry}
-              className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700 text-white rounded-lg transition font-medium flex items-center justify-center gap-2"
+              className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
             >
               <RotateCcw className="w-4 h-4" />
               Retake Quiz
@@ -306,21 +306,27 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
             return (
               <label
                 key={choice.id}
-                className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${isSelected
-                  ? 'bg-purple-600/20 border-purple-500 text-white'
-                  : 'bg-neutral-800/50 border-neutral-700 text-neutral-300 hover:border-neutral-600'
+                className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${isSelected
+                  ? 'bg-purple-600 border-purple-500 text-white'
+                  : 'bg-neutral-800 border-neutral-700 text-neutral-300 hover:border-neutral-600'
                   }`}
               >
                 <input
                   type="checkbox"
                   checked={isSelected}
                   onChange={() => handleCheckboxChange(number, choice.id)}
-                  className="w-5 h-5 rounded border-neutral-600 bg-neutral-700 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
+                  className="sr-only"
                 />
-                <span className="font-medium text-purple-400 mr-2">
-                  {String.fromCharCode(65 + index)}.
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-semibold ${isSelected
+                    ? 'bg-white/15 text-white'
+                    : 'bg-neutral-700/60 text-neutral-300'
+                    }`}
+                >
+                  {String.fromCharCode(65 + index)}
                 </span>
                 <span className="flex-1">{choice.text}</span>
+                {isSelected && <CheckCircle className="w-5 h-5 shrink-0 text-white/80" />}
               </label>
             )
           })}
@@ -332,23 +338,33 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
       const options = [{ id: 'true', text: 'True' }, { id: 'false', text: 'False' }]
       return (
         <div className="space-y-3">
-          {options.map((option) => {
+          {options.map((option, index) => {
             const isSelected = ((userAnswer as string[]) || []).includes(option.id)
             return (
               <label
                 key={option.id}
-                className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${isSelected
-                  ? 'bg-purple-600/20 border-purple-500 text-white'
-                  : 'bg-neutral-800/50 border-neutral-700 text-neutral-300 hover:border-neutral-600'
+                className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${isSelected
+                  ? 'bg-purple-600 border-purple-500 text-white'
+                  : 'bg-neutral-800 border-neutral-700 text-neutral-300 hover:border-neutral-600'
                   }`}
               >
                 <input
-                  type="checkbox"
+                  type="radio"
+                  name={`question-${number}`}
                   checked={isSelected}
                   onChange={() => setAnswers({ ...answers, [number]: [option.id] })}
-                  className="w-5 h-5 rounded border-neutral-600 bg-neutral-700 text-purple-600 focus:ring-purple-500"
+                  className="sr-only"
                 />
-                <span className="font-medium">{option.text}</span>
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-semibold ${isSelected
+                    ? 'bg-white/15 text-white'
+                    : 'bg-neutral-700/60 text-neutral-300'
+                    }`}
+                >
+                  {String.fromCharCode(65 + index)}
+                </span>
+                <span className="flex-1 font-medium">{option.text}</span>
+                {isSelected && <CheckCircle className="w-5 h-5 shrink-0 text-white/80" />}
               </label>
             )
           })}
@@ -365,7 +381,7 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
             value={(userAnswer as string) || ''}
             onChange={(e) => handleTextChange(number, e.target.value)}
             placeholder="Enter your answer..."
-            className="w-full px-4 py-3 bg-neutral-800 border-2 border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:border-purple-500 focus:ring-0 text-lg"
+            className="w-full px-4 py-3 bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 text-lg"
           />
         </div>
       )
@@ -379,7 +395,7 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
           onChange={(e) => handleTextChange(number, e.target.value)}
           rows={5}
           placeholder="Type your answer here..."
-          className="w-full px-4 py-3 bg-neutral-800 border-2 border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:border-purple-500 focus:ring-0 resize-none"
+          className="w-full px-4 py-3 bg-neutral-900 border border-neutral-700 rounded-lg text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 resize-none"
         />
       </div>
     )
@@ -388,25 +404,25 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
   return (
     <div className="space-y-6">
       {/* Progress Header */}
-      <div className="bg-neutral-800/50 rounded-xl p-4 border border-neutral-700">
+      <div className="bg-neutral-900 rounded-xl p-4 border border-neutral-800">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-neutral-400">
+          <span className="text-sm text-neutral-400 tabular-nums">
             Question {currentQuestionIndex + 1} of {questions.length}
           </span>
-          <span className="text-sm text-neutral-400">
+          <span className="text-sm text-neutral-400 tabular-nums">
             Answered: {questions.filter(q => isAnswered(q.number)).length}/{questions.length}
           </span>
         </div>
-        <div className="w-full bg-neutral-700 rounded-full h-2">
+        <div className="w-full bg-neutral-800 rounded-full h-2 overflow-hidden">
           <div
-            className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+            className="bg-purple-500 h-2 rounded-full transition-[width] duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
       {/* Question Card */}
-      <div className="bg-neutral-800/50 rounded-xl p-6 sm:p-8 border border-neutral-700">
+      <div className="bg-neutral-900 rounded-xl p-6 sm:p-8 border border-neutral-800">
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             <span className="px-2.5 py-1 rounded-full border border-neutral-700 bg-neutral-800 text-neutral-300 text-xs font-medium">
@@ -428,7 +444,7 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
         <button
           onClick={() => goToQuestion(currentQuestionIndex - 1)}
           disabled={currentQuestionIndex === 0}
-          className="flex items-center gap-2 px-4 sm:px-6 py-3 bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition"
+          className="flex items-center gap-2 px-4 sm:px-6 py-3 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-100 rounded-lg transition-colors"
         >
           <ChevronLeft className="w-5 h-5" />
           <span className="hidden sm:inline">Previous</span>
@@ -439,11 +455,11 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
             <button
               key={q.number}
               onClick={() => goToQuestion(index)}
-              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-sm font-medium transition flex-shrink-0 ${index === currentQuestionIndex
+              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center text-sm font-medium tabular-nums transition-colors flex-shrink-0 ${index === currentQuestionIndex
                 ? 'bg-purple-600 text-white'
                 : isAnswered(q.number)
-                  ? 'bg-green-600/30 text-green-400 border border-green-600/50'
-                  : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
+                  ? 'bg-green-500/15 text-green-300 border border-green-500/30'
+                  : 'bg-neutral-800 text-neutral-300 border border-neutral-700 hover:bg-neutral-700'
                 }`}
             >
               {q.number}
@@ -455,15 +471,15 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="flex items-center gap-2 px-4 sm:px-6 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg transition font-medium"
+            className="flex items-center gap-2 px-4 sm:px-6 py-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white rounded-lg transition-colors font-medium"
           >
-            {submitting ? 'Submitting...' : 'Submit'}
+            {submitting ? 'Submitting…' : 'Submit'}
             <CheckCircle className="w-5 h-5" />
           </button>
         ) : (
           <button
             onClick={() => goToQuestion(currentQuestionIndex + 1)}
-            className="flex items-center gap-2 px-4 sm:px-6 py-3 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition"
+            className="flex items-center gap-2 px-4 sm:px-6 py-3 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 text-neutral-100 rounded-lg transition-colors"
           >
             <span className="hidden sm:inline">Next</span>
             <ChevronRight className="w-5 h-5" />

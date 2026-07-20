@@ -38,7 +38,6 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
     if (slides.length > 0 && currentSlideIndex === slides.length - 1 && !hasViewedLastSlide) {
       setHasViewedLastSlide(true)
       onAllSlidesViewed?.()
-      console.log('✅ All slides viewed!')
     }
   }, [currentSlideIndex, slides.length, hasViewedLastSlide, onAllSlidesViewed, maxViewedSlide])
 
@@ -52,11 +51,12 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
       try {
         const response = await api.get(`/learning/modules/${moduleId}/get_progress/`)
         if (response.data.current_slide && response.data.current_slide > 0) {
-          setCurrentSlideIndex(response.data.current_slide)
+          // Clamp: content may have fewer slides than when progress was saved
+          setCurrentSlideIndex(Math.min(response.data.current_slide, slides.length - 1))
         }
         setProgressLoaded(true)
-      } catch (error) {
-        console.log('No saved progress found, starting from beginning')
+      } catch {
+        // No saved progress — start from the beginning
         setProgressLoaded(true)
       }
     }
@@ -76,7 +76,6 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
           current_slide: currentSlideIndex,
           total_slides: slides.length
         })
-        console.log(`Progress saved: Slide ${currentSlideIndex + 1}/${slides.length}`)
       } catch (error) {
         console.error('Failed to save progress:', error)
       }
@@ -158,10 +157,7 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
 
   const goToSlide = (index: number) => {
     // Only allow going to slides that have been viewed (prevents skipping forward)
-    if (index > maxViewedSlide) {
-      console.log(`Cannot skip to slide ${index + 1}, max viewed is ${maxViewedSlide + 1}`)
-      return
-    }
+    if (index > maxViewedSlide) return
 
     if (index !== currentSlideIndex && !isAnimating) {
       setIsAnimating(true)
@@ -175,13 +171,18 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      slideRef.current?.requestFullscreen()
-      setIsFullscreen(true)
+      slideRef.current?.requestFullscreen().catch(() => { /* fullscreen unavailable */ })
     } else {
       document.exitFullscreen()
-      setIsFullscreen(false)
     }
   }
+
+  // Keep state in sync even when fullscreen exits via Esc or browser chrome
+  useEffect(() => {
+    const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', onFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange)
+  }, [])
 
   // Touch handlers for swipe
   const minSwipeDistance = 50
@@ -221,30 +222,36 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
   }, [currentSlideIndex, slides.length])
 
   if (slides.length === 0) {
-    return <div className="text-neutral-400">Loading slides...</div>
+    return (
+      <div className="p-6 space-y-3" aria-hidden="true">
+        <div className="animate-pulse rounded-lg bg-neutral-800/80 h-8 w-1/2" />
+        <div className="animate-pulse rounded-lg bg-neutral-800/80 h-4 w-full" />
+        <div className="animate-pulse rounded-lg bg-neutral-800/80 h-4 w-2/3" />
+      </div>
+    )
   }
 
-  const currentSlide = slides[currentSlideIndex]
+  const currentSlide = slides[Math.min(currentSlideIndex, slides.length - 1)]
 
   return (
     <div
       ref={slideRef}
-      className="flex flex-col h-full bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 relative overflow-hidden"
+      className="flex flex-col h-full bg-neutral-950 relative overflow-hidden"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
       {/* Compact Header with Progress */}
-      <div className="bg-neutral-900/95 backdrop-blur-sm border-b border-neutral-700/30 px-4 md:px-6 py-3">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
+      <div className="border-b border-neutral-800/60 px-4 sm:px-6 lg:px-8 py-3">
+        <div className="flex items-center justify-between max-w-5xl mx-auto">
           <div className="flex items-center gap-4">
-            <span className="text-xs md:text-sm font-semibold text-purple-400">
+            <span className="text-xs md:text-sm font-semibold text-purple-400 tabular-nums">
               {currentSlideIndex + 1} / {slides.length}
             </span>
             {/* Progress Bar */}
-            <div className="hidden sm:block w-32 md:w-48 h-1 bg-neutral-700/50 rounded-full overflow-hidden">
+            <div className="hidden sm:block w-32 md:w-48 h-1 bg-neutral-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-purple-500 to-purple-600 transition-all duration-500"
+                className="h-full bg-purple-500 transition-[width] duration-500"
                 style={{ width: `${((currentSlideIndex + 1) / slides.length) * 100}%` }}
               />
             </div>
@@ -253,7 +260,8 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="p-1.5 hover:bg-neutral-700/50 rounded-md transition-colors"
+            className="p-1.5 hover:bg-neutral-800 rounded-md transition-colors"
+            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
             title="Fullscreen"
           >
             {isFullscreen ? (
@@ -265,47 +273,38 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
         </div>
       </div>
 
-      {/* Main Slide Area - Full width on mobile */}
-      <div className="flex-1 flex items-center justify-center p-1 sm:p-4 md:p-6 lg:p-8 overflow-y-auto">
-        <div className="w-full max-w-5xl mx-auto h-full">
-          {/* Slide with Animation */}
+      {/* Slide Area — open canvas, no card (full-width reading surface) */}
+      <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 md:py-12 min-h-[50vh]">
+        <div
+          className={`max-w-5xl mx-auto transform transition-all duration-300 ease-out ${isAnimating
+            ? slideDirection === 'right'
+              ? 'translate-x-6 opacity-0'
+              : '-translate-x-6 opacity-0'
+            : 'translate-x-0 opacity-100'
+            }`}
+        >
+          <p className="text-xs font-semibold uppercase tracking-wider text-purple-400 mb-3 tabular-nums">
+            Slide {currentSlideIndex + 1} of {slides.length}
+          </p>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-white leading-tight mb-6 sm:mb-8">
+            {currentSlide.title}
+          </h2>
           <div
-            className={`h-full transform transition-all duration-500 ease-out ${isAnimating
-              ? slideDirection === 'right'
-                ? 'translate-x-full opacity-0'
-                : '-translate-x-full opacity-0'
-              : 'translate-x-0 opacity-100'
-              }`}
-          >
-            <div className="h-full bg-neutral-800/50 backdrop-blur-sm rounded-none sm:rounded-xl border-0 sm:border border-neutral-700/50 shadow-2xl overflow-hidden flex flex-col">
-              {/* Clean Slide Header */}
-              <div className="bg-gradient-to-r from-purple-600/10 via-purple-600/10 to-purple-600/10 border-b border-neutral-700/30 px-4 sm:px-6 md:px-10 py-3 sm:py-4 md:py-6">
-                <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent leading-tight">
-                  {currentSlide.title}
-                </h2>
-              </div>
-
-              {/* Slide Content - Minimal padding on mobile */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-10 lg:p-12">
-                <div
-                  className="prose prose-invert prose-sm sm:prose-base md:prose-lg max-w-none module-content-display slide-content-view"
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentSlide.content || '') }}
-                />
-              </div>
-            </div>
-          </div>
+            className="prose prose-invert prose-sm sm:prose-base md:prose-lg max-w-none module-content-display slide-content-view"
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(currentSlide.content || '') }}
+          />
         </div>
       </div>
 
-      {/* Clean Navigation Footer */}
-      <div className="bg-neutral-900/95 backdrop-blur-sm border-t border-neutral-700/30 px-2 sm:px-4 md:px-6 py-3 sm:py-4">
+      {/* Navigation Footer — sticks to the viewport bottom on long slides */}
+      <div className="sticky bottom-0 bg-neutral-950/90 backdrop-blur-sm border-t border-neutral-800/60 px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
         <div className="flex items-center justify-between max-w-5xl mx-auto gap-2 sm:gap-4">
           {/* Previous Button - Larger touch target on mobile */}
           <button
             type="button"
             onClick={goToPrevSlide}
             disabled={currentSlideIndex === 0 || isAnimating}
-            className="flex items-center justify-center gap-1 sm:gap-2 min-w-[48px] sm:min-w-[80px] md:min-w-[120px] px-3 sm:px-4 md:px-6 py-3 sm:py-2.5 md:py-3 bg-neutral-700/80 hover:bg-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 hover:scale-105 disabled:hover:scale-100 shadow-lg"
+            className="flex items-center justify-center gap-1 sm:gap-2 min-w-[48px] sm:min-w-[80px] md:min-w-[120px] px-3 sm:px-4 md:px-6 py-3 sm:py-2.5 md:py-3 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 disabled:opacity-40 disabled:cursor-not-allowed text-neutral-100 rounded-lg transition-colors"
           >
             <ChevronLeft className="w-5 h-5 sm:w-5 sm:h-5" />
             <span className="hidden sm:inline text-sm font-medium">Prev</span>
@@ -326,11 +325,11 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
                       type="button"
                       onClick={() => goToSlide(index)}
                       disabled={isAnimating || !isViewed}
-                      className={`w-8 h-8 rounded-md text-sm font-semibold transition-all duration-200 ${isCurrent
-                        ? 'bg-gradient-to-r from-purple-600 to-purple-600 text-white scale-110 shadow-lg'
+                      className={`w-8 h-8 rounded-md text-sm font-semibold tabular-nums transition-colors ${isCurrent
+                        ? 'bg-purple-600 text-white'
                         : isViewed
-                          ? 'bg-green-600/20 text-green-400 hover:bg-green-600/30 cursor-pointer'
-                          : 'bg-neutral-700/30 text-neutral-600 cursor-not-allowed opacity-50'
+                          ? 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white cursor-pointer'
+                          : 'bg-neutral-800/40 text-neutral-600 cursor-not-allowed'
                         }`}
                       title={isViewed ? `Go to slide ${index + 1}` : `Complete previous slides first`}
                     >
@@ -363,11 +362,11 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
                       type="button"
                       onClick={() => goToSlide(index)}
                       disabled={isAnimating || !isViewed}
-                      className={`w-8 h-8 rounded-md text-sm font-semibold transition-all duration-200 ${isCurrent
-                        ? 'bg-gradient-to-r from-purple-600 to-purple-600 text-white scale-110 shadow-lg'
+                      className={`w-8 h-8 rounded-md text-sm font-semibold tabular-nums transition-colors ${isCurrent
+                        ? 'bg-purple-600 text-white'
                         : isViewed
-                          ? 'bg-green-600/20 text-green-400 hover:bg-green-600/30 cursor-pointer'
-                          : 'bg-neutral-700/30 text-neutral-600 cursor-not-allowed opacity-50'
+                          ? 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700 hover:text-white cursor-pointer'
+                          : 'bg-neutral-800/40 text-neutral-600 cursor-not-allowed'
                         }`}
                       title={isViewed ? `Go to slide ${index + 1}` : `Complete previous slides first`}
                     >
@@ -388,7 +387,7 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
                     onClick={() => goToSlide(index)}
                     disabled={isAnimating}
                     className={`transition-all duration-200 rounded-full ${index === currentSlideIndex
-                      ? 'w-5 h-2 bg-gradient-to-r from-purple-500 to-purple-600'
+                      ? 'w-5 h-2 bg-purple-500'
                       : 'w-2 h-2 bg-neutral-600 hover:bg-neutral-500'
                       }`}
                   />
@@ -401,7 +400,7 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
                     type="button"
                     onClick={() => goToSlide(0)}
                     className={`transition-all duration-200 rounded-full ${currentSlideIndex === 0
-                      ? 'w-5 h-2 bg-gradient-to-r from-purple-500 to-purple-600'
+                      ? 'w-5 h-2 bg-purple-500'
                       : 'w-2 h-2 bg-neutral-600'
                       }`}
                   />
@@ -421,7 +420,7 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
                     onClick={() => goToSlide(slides.length - 1)}
                     disabled={slides.length - 1 > maxViewedSlide}
                     className={`transition-all duration-200 rounded-full ${currentSlideIndex === slides.length - 1
-                      ? 'w-5 h-2 bg-gradient-to-r from-purple-500 to-purple-600'
+                      ? 'w-5 h-2 bg-purple-500'
                       : 'w-2 h-2 bg-neutral-600'
                       }`}
                   />
@@ -435,7 +434,7 @@ export default function SlideViewer({ content, moduleId, onAllSlidesViewed }: Sl
             type="button"
             onClick={goToNextSlide}
             disabled={currentSlideIndex === slides.length - 1 || isAnimating}
-            className="flex items-center justify-center gap-1 sm:gap-2 min-w-[48px] sm:min-w-[80px] md:min-w-[120px] px-3 sm:px-4 md:px-6 py-3 sm:py-2.5 md:py-3 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 hover:scale-105 disabled:hover:scale-100 shadow-lg"
+            className="flex items-center justify-center gap-1 sm:gap-2 min-w-[48px] sm:min-w-[80px] md:min-w-[120px] px-3 sm:px-4 md:px-6 py-3 sm:py-2.5 md:py-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
           >
             <span className="hidden sm:inline text-sm font-medium">Next</span>
             <ChevronRight className="w-5 h-5 sm:w-5 sm:h-5" />

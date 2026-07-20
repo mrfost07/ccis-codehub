@@ -8,7 +8,7 @@ import BadgeUnlockToast from '../components/BadgeUnlockToast'
 import ReactMarkdown from 'react-markdown'
 import {
   ArrowLeft, ArrowRight, CheckCircle, Clock, Award,
-  FileText, Download, Play, BookOpen, Target, Video, Lock, ClipboardList
+  FileText, Download, Play, BookOpen, Target, Video, Lock, ClipboardList, Loader2
 } from 'lucide-react'
 import api from '../services/api'
 import toast from 'react-hot-toast'
@@ -49,7 +49,6 @@ export default function ModuleLearningEnhanced() {
   const [earnedBadges, setEarnedBadges] = useState<string[]>([])
 
   useEffect(() => {
-    console.log('=== MODULE ID CHANGED:', moduleId, '===')
     // Reset state when changing modules
     setShowQuiz(false)
     setModuleCompleted(false)
@@ -74,35 +73,15 @@ export default function ModuleLearningEnhanced() {
       setLoading(true)
       const response = await api.get(`/learning/modules/${moduleId}/`)
       const moduleData = response.data
-
-      console.log('Module data:', moduleData)
       setModule(moduleData)
 
       // Fetch quiz for this module
       try {
-        console.log('=== FETCHING QUIZ FOR MODULE:', moduleId, '===')
         const quizResponse = await api.get(`/learning/quizzes/?learning_module=${moduleId}`)
-        console.log('Quiz API response:', quizResponse.data)
-
         const quizzes = quizResponse.data.results || quizResponse.data || []
-        console.log('Number of quizzes found:', quizzes.length)
-
-        if (quizzes.length > 0) {
-          const quizData = quizzes[0]
-          console.log('Quiz ID:', quizData.id)
-          console.log('Quiz title:', quizData.title)
-          console.log('Quiz has content:', !!quizData.content)
-          console.log('Quiz content length:', quizData.content?.length || 0)
-          console.log('Quiz content preview:', quizData.content?.substring(0, 100) || 'EMPTY')
-
-          setQuiz(quizData)
-          console.log('✅ Quiz set successfully:', quizData.id)
-        } else {
-          console.log('⚠️ No quiz found for this module')
-          setQuiz(null)
-        }
+        setQuiz(quizzes.length > 0 ? quizzes[0] : null)
       } catch (quizError) {
-        console.error('❌ Error fetching quiz:', quizError)
+        console.error('Error fetching quiz:', quizError)
         setQuiz(null)
       }
 
@@ -113,7 +92,7 @@ export default function ModuleLearningEnhanced() {
           const modules = modulesResponse.data.results || modulesResponse.data || []
           setAllModules(modules.sort((a: ModuleData, b: ModuleData) => a.order - b.order))
         } catch (err) {
-          console.log('Could not fetch related modules:', err)
+          console.error('Could not fetch related modules:', err)
         }
       }
 
@@ -128,15 +107,8 @@ export default function ModuleLearningEnhanced() {
   const markAsCompleted = async () => {
     if (!module) return
 
-    console.log('=== MARK AS COMPLETED CALLED ===')
-    console.log('Quiz state variable:', quiz)
-    console.log('Quiz exists:', !!quiz)
-    console.log('Quiz has content:', !!quiz?.content)
-    console.log('Quiz content length:', quiz?.content?.length || 0)
-    console.log('Quiz content preview:', quiz?.content?.substring(0, 200))
-
     if (module.is_completed) {
-      toast('Module already completed!', { icon: 'ℹ️' })
+      toast('Module already completed')
       return
     }
 
@@ -144,17 +116,12 @@ export default function ModuleLearningEnhanced() {
 
     // Check if quiz exists and has content
     const hasValidQuiz = quiz && quiz.content && quiz.content.trim().length > 0
-    console.log('Has valid quiz:', hasValidQuiz)
 
     if (hasValidQuiz) {
-      console.log('✅ QUIZ EXISTS - SHOWING QUIZ NOW')
-      toast.success('Module content completed! Time to test your knowledge! 📝', { duration: 3000 })
+      toast.success('Module content completed — time to test your knowledge', { duration: 3000 })
       setShowQuiz(true)
-      console.log('setShowQuiz called with true')
       return
     }
-
-    console.log('❌ NO QUIZ - Marking module as complete directly')
 
     try {
       setCompleting(true)
@@ -170,7 +137,7 @@ export default function ModuleLearningEnhanced() {
       }
 
       setModule(prev => prev ? { ...prev, is_completed: true } : null)
-      toast.success(`✅ Module completed! You earned ${module.points_reward} points!`, { duration: 4000 })
+      toast.success(`Module completed! You earned ${module.points_reward} points.`, { duration: 4000 })
 
       const currentIndex = allModules.findIndex(m => m.id === moduleId)
       const nextModule = allModules[currentIndex + 1]
@@ -180,13 +147,12 @@ export default function ModuleLearningEnhanced() {
           const continueToNext = window.confirm(`Great job! Ready to continue to "${nextModule.title}"?`)
           if (continueToNext) {
             navigate(`/learning/modules/${nextModule.id}`)
-            window.location.reload()
           } else {
             navigate(`/learning/paths/${module.career_path}`)
           }
         }, 1500)
       } else {
-        toast.success('🎉 Congratulations! You completed all available modules!', { duration: 5000 })
+        toast.success('Congratulations! You completed all available modules.', { duration: 5000 })
         setTimeout(() => {
           navigate(`/learning/paths/${module.career_path}`)
         }, 2000)
@@ -204,21 +170,15 @@ export default function ModuleLearningEnhanced() {
 
     // If failed, user can retry from the QuizViewer (it has retry button)
     // Don't hide quiz - let user see results and retry
-    if (!passed) {
-      console.log('Quiz not passed. User can retry from quiz screen.')
-      return
-    }
+    if (!passed) return
 
     // Quiz passed - mark module as complete
     try {
       setCompleting(true)
-      console.log('Quiz passed! Marking module as complete...')
 
       const completeResponse = await api.post(`/learning/modules/${moduleId}/complete/`, {
         time_spent_seconds: readingTime
       })
-
-      console.log('Complete response:', completeResponse.data)
 
       // Show badge unlock toast if earned
       const badges = completeResponse.data?.badges_earned || []
@@ -237,7 +197,7 @@ export default function ModuleLearningEnhanced() {
 
         if (nextModule && !nextModule.is_locked) {
           const continueToNext = window.confirm(
-            `🎉 Module completed! Ready to continue to "${nextModule.title}"?`
+            `Module completed! Ready to continue to "${nextModule.title}"?`
           )
           if (continueToNext) {
             navigate(`/learning/modules/${nextModule.id}`)
@@ -245,7 +205,7 @@ export default function ModuleLearningEnhanced() {
             navigate(`/learning/paths/${module.career_path}`)
           }
         } else {
-          toast.success('🎉 You completed all modules in this path!', { duration: 4000 })
+          toast.success('You completed all modules in this path!', { duration: 4000 })
           setTimeout(() => navigate(`/learning/paths/${module.career_path}`), 1500)
         }
       }, 3000)
@@ -334,12 +294,12 @@ export default function ModuleLearningEnhanced() {
     if (module.module_type === 'project') {
       return (
         <div className="space-y-6">
-          <div className="bg-gradient-to-r from-amber-600/20 to-amber-600/20 border border-amber-600/30 rounded-lg p-6">
+          <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-6">
             <div className="flex items-center gap-3 mb-3">
               <Award className="w-6 h-6 text-amber-400" />
               <h3 className="text-xl font-semibold text-white">Project Assignment</h3>
             </div>
-            <p className="text-amber-100">
+            <p className="text-neutral-300">
               This is a hands-on project module. Complete the project requirements below to finish this module.
             </p>
           </div>
@@ -373,7 +333,7 @@ export default function ModuleLearningEnhanced() {
       if (isPdf) {
         return (
           <div className="space-y-4">
-            <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg overflow-hidden">
+            <div className="bg-neutral-850 border border-neutral-800 rounded-lg overflow-hidden">
               <div className="flex items-center justify-between p-4 bg-neutral-900/50">
                 <div className="flex items-center gap-3">
                   <FileText className="w-6 h-6 text-purple-400" />
@@ -385,7 +345,7 @@ export default function ModuleLearningEnhanced() {
                 <a
                   href={module.file}
                   download={fileName}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition"
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition"
                 >
                   <Download className="w-4 h-4" />
                   Download
@@ -409,7 +369,7 @@ export default function ModuleLearningEnhanced() {
       // Other file types
       return (
         <div className="space-y-4">
-          <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-6">
+          <div className="bg-neutral-850 border border-neutral-800 rounded-lg p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <FileText className="w-8 h-8 text-purple-400" />
@@ -421,7 +381,7 @@ export default function ModuleLearningEnhanced() {
               <a
                 href={module.file}
                 download={fileName}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition"
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition"
               >
                 <Download className="w-4 h-4" />
                 Download
@@ -457,8 +417,8 @@ export default function ModuleLearningEnhanced() {
         toast.error('Complete the previous modules to unlock this one')
         return
       }
+      // The moduleId effect refetches on param change — no full reload needed
       navigate(`/learning/modules/${targetModule.id}`)
-      window.location.reload() // Refresh to load new module
     }
   }
 
@@ -479,7 +439,7 @@ export default function ModuleLearningEnhanced() {
           <h1 className="text-2xl font-bold mb-4">Module Not Found</h1>
           <button
             onClick={() => navigate('/learning')}
-            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg transition"
+            className="px-6 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg transition"
           >
             Back to Learning
           </button>
@@ -558,11 +518,18 @@ export default function ModuleLearningEnhanced() {
         </div>
       </div>
 
+      {/* Slides render full-width, edge to edge — an open reading surface, no card */}
+      {!showQuiz && module.content?.includes('module-slide') && (
+        <div className="border-b border-neutral-800">
+          {renderModuleContent()}
+        </div>
+      )}
+
       {/* Main Content - Desktop Optimized */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Learning Content or Quiz - Mobile Responsive */}
+        {/* Quiz or non-slide content */}
         {showQuiz && quiz && quiz.content ? (
-          <div className="bg-neutral-800/50 backdrop-blur border border-neutral-700 rounded-xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6 shadow-xl">
+          <div className="mb-4 sm:mb-6">
             <QuizViewer
               content={quiz.content}
               quizId={quiz.id}
@@ -572,14 +539,14 @@ export default function ModuleLearningEnhanced() {
               onComplete={handleQuizComplete}
             />
           </div>
-        ) : (
-          <div className="bg-neutral-800/50 backdrop-blur border border-neutral-700 rounded-xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6 shadow-xl">
+        ) : !module.content?.includes('module-slide') ? (
+          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6 md:p-8 mb-4 sm:mb-6">
             {renderModuleContent()}
           </div>
-        )}
+        ) : null}
 
         {/* Actions - Mobile Responsive */}
-        <div className="bg-neutral-800/50 backdrop-blur border border-neutral-700 rounded-xl p-4 sm:p-6 shadow-xl">
+        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6">
           <div className="flex flex-col gap-4">
             {/* Navigation */}
             <div className="flex gap-2 sm:gap-3">
@@ -617,22 +584,18 @@ export default function ModuleLearningEnhanced() {
               <button
                 onClick={(e) => {
                   e.preventDefault()
-                  console.log('=== COMPLETE BUTTON CLICKED ===')
-                  console.log('Module completed:', module.is_completed)
-                  console.log('Show quiz:', showQuiz)
-                  console.log('Quiz exists:', !!quiz)
                   markAsCompleted()
                 }}
                 disabled={completing || moduleCompleted || (module.content?.includes('module-slide') && !allSlidesViewed)}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition shadow-lg disabled:opacity-50 ${module.content?.includes('module-slide') && !allSlidesViewed
-                  ? 'bg-neutral-600 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white'
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 ${module.content?.includes('module-slide') && !allSlidesViewed
+                  ? 'bg-neutral-800 border border-neutral-700 text-neutral-400 cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-500 text-white'
                   }`}
               >
                 {completing ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Completing...
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Completing…
                   </>
                 ) : module.content?.includes('module-slide') && !allSlidesViewed ? (
                   <>
@@ -647,8 +610,6 @@ export default function ModuleLearningEnhanced() {
                 )}
               </button>
             )}
-
-
 
             {module.is_completed && (
               <div className="flex items-center gap-2 px-6 py-3 bg-green-600/20 text-green-400 rounded-lg font-semibold">
@@ -665,9 +626,9 @@ export default function ModuleLearningEnhanced() {
                 <span>Module {currentIndex + 1} of {allModules.length}</span>
                 <span>{Math.round(((currentIndex + 1) / allModules.length) * 100)}% Complete</span>
               </div>
-              <div className="w-full bg-neutral-700 rounded-full h-2">
+              <div className="w-full bg-neutral-800 rounded-full h-2">
                 <div
-                  className="bg-gradient-to-r from-purple-600 to-purple-600 h-2 rounded-full transition-all duration-500"
+                  className="bg-purple-500 h-2 rounded-full transition-[width] duration-500"
                   style={{ width: `${((currentIndex + 1) / allModules.length) * 100}%` }}
                 ></div>
               </div>
