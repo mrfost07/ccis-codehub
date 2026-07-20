@@ -509,14 +509,22 @@ export default function ProfileEnhanced() {
               {selectedBackground === 'highway' && <Hyperspeed className="rounded-2xl" effectOptions={highwayPreset} />}
             </Suspense>
             {selectedBackground === 'gradient' && (
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-purple-600 to-purple-600 rounded-2xl" />
+              <div className="absolute inset-0 bg-neutral-900 rounded-2xl overflow-hidden">
+                <div className="absolute left-1/2 -top-24 h-72 w-[40rem] -translate-x-1/2 rounded-full bg-purple-600/25 blur-3xl" />
+                <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
+              </div>
             )}
             {selectedBackground === 'aurora' && (
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500 via-purple-500 to-purple-600 rounded-2xl animate-pulse" />
+              <div className="absolute inset-0 bg-neutral-900 rounded-2xl overflow-hidden">
+                <div className="absolute -left-20 -top-24 h-72 w-96 rounded-full bg-green-500/20 blur-3xl" />
+                <div className="absolute -right-20 -bottom-24 h-72 w-96 rounded-full bg-purple-600/25 blur-3xl" />
+              </div>
             )}
             {selectedBackground === 'cyber' && (
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-purple-600 to-purple-500 rounded-2xl"
-                style={{ backgroundSize: '200% 200%', animation: 'gradient-shift 3s ease infinite' }} />
+              <div
+                className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-950 via-neutral-900 to-purple-950"
+                style={{ backgroundSize: '200% 200%', animation: 'gradient-shift 6s ease infinite' }}
+              />
             )}
 
             {/* Background Picker Button */}
@@ -530,17 +538,17 @@ export default function ProfileEnhanced() {
 
             {/* Background Picker Dropdown */}
             {showBackgroundPicker && (
-              <div className="absolute top-12 right-3 sm:right-3 left-3 sm:left-auto bg-neutral-800/95 backdrop-blur-lg rounded-lg border border-neutral-700 p-2 z-20 shadow-xl max-h-64 overflow-y-auto">
-                <div className="text-xs text-neutral-400 mb-2 px-2">Select Background</div>
+              <div className="absolute top-12 right-3 sm:right-3 left-3 sm:left-auto sm:w-52 bg-neutral-900 rounded-xl border border-neutral-700/60 p-1 z-20 shadow-xl shadow-black/40 max-h-64 overflow-y-auto animate-scale-in origin-top-right">
+                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 px-3 py-2">Cover style</p>
                 {[
-                  { id: 'hyperspeed' as BackgroundType, name: 'Hyperspeed', icon: <Sparkles className="w-4 h-4" />, color: 'from-purple-500 to-purple-500' },
-                  { id: 'akira' as BackgroundType, name: 'Akira', icon: '🏍️', color: 'from-red-600 to-red-400' },
-                  { id: 'golden' as BackgroundType, name: 'Golden', icon: '✨', color: 'from-amber-500 to-amber-500' },
-                  { id: 'split' as BackgroundType, name: 'Split', icon: '🛤️', color: 'from-purple-500 to-purple-400' },
-                  { id: 'highway' as BackgroundType, name: 'Highway', icon: '🛣️', color: 'from-red-500 to-amber-200' },
-                  { id: 'gradient' as BackgroundType, name: 'Classic', icon: '🎨', color: 'from-purple-600 to-purple-600' },
-                  { id: 'aurora' as BackgroundType, name: 'Aurora', icon: '🌌', color: 'from-green-500 to-purple-500' },
-                  { id: 'cyber' as BackgroundType, name: 'Cyber', icon: '⚡', color: 'from-purple-500 to-purple-500' },
+                  { id: 'gradient' as BackgroundType, name: 'Classic', swatch: 'bg-purple-600' },
+                  { id: 'hyperspeed' as BackgroundType, name: 'Hyperspeed', swatch: 'bg-purple-500' },
+                  { id: 'akira' as BackgroundType, name: 'Akira', swatch: 'bg-red-500' },
+                  { id: 'golden' as BackgroundType, name: 'Golden', swatch: 'bg-amber-400' },
+                  { id: 'split' as BackgroundType, name: 'Split', swatch: 'bg-purple-400' },
+                  { id: 'highway' as BackgroundType, name: 'Highway', swatch: 'bg-red-400' },
+                  { id: 'aurora' as BackgroundType, name: 'Aurora', swatch: 'bg-green-500' },
+                  { id: 'cyber' as BackgroundType, name: 'Cyber', swatch: 'bg-purple-500' },
                 ].map((bg) => (
                   <button
                     key={bg.id}
@@ -549,17 +557,15 @@ export default function ProfileEnhanced() {
                       saveBackgroundPreference(bg.id)
                       setShowBackgroundPicker(false)
                     }}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${selectedBackground === bg.id
-                      ? 'bg-purple-600/30 text-white'
-                      : 'hover:bg-neutral-700/50 text-neutral-300'
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors ${selectedBackground === bg.id
+                      ? 'bg-purple-500/10 text-purple-300'
+                      : 'hover:bg-neutral-800 text-neutral-300 hover:text-white'
                       }`}
                   >
-                    <div className={`w-6 h-6 rounded bg-gradient-to-r ${bg.color} flex items-center justify-center text-xs`}>
-                      {typeof bg.icon === 'string' ? bg.icon : bg.icon}
-                    </div>
-                    <span className="text-sm">{bg.name}</span>
+                    <span className={`w-3.5 h-3.5 rounded-full ${bg.swatch} shrink-0`} />
+                    <span className="text-sm flex-1 text-left">{bg.name}</span>
                     {selectedBackground === bg.id && (
-                      <span className="ml-auto text-purple-400">✓</span>
+                      <CheckCircle className="w-4 h-4 text-purple-400 shrink-0" />
                     )}
                   </button>
                 ))}
@@ -573,7 +579,7 @@ export default function ProfileEnhanced() {
               <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6">
                 {/* Avatar */}
                 <div className="relative -mt-16 sm:-mt-20">
-                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-neutral-900 overflow-hidden bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-neutral-900 overflow-hidden bg-purple-600 flex items-center justify-center">
                     {getProfilePictureUrl() ? (
                       <img
                         src={getProfilePictureUrl()!}
@@ -586,7 +592,7 @@ export default function ProfileEnhanced() {
                   </div>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-0 right-0 p-2 bg-purple-600 rounded-full hover:bg-purple-700 transition shadow-lg"
+                    className="absolute bottom-0 right-0 p-2 bg-purple-600 rounded-full hover:bg-purple-500 transition shadow-lg"
                   >
                     <Camera className="w-4 h-4 text-white" />
                   </button>
@@ -628,7 +634,7 @@ export default function ProfileEnhanced() {
                       <button
                         onClick={handleSave}
                         disabled={saving}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg transition"
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-lg transition"
                       >
                         <Save className="w-4 h-4" />
                         {saving ? 'Saving...' : 'Save'}
@@ -644,7 +650,7 @@ export default function ProfileEnhanced() {
                   ) : (
                     <button
                       onClick={() => setEditing(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition"
+                      className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition"
                     >
                       <Edit2 className="w-4 h-4" />
                       Edit Profile
@@ -659,30 +665,30 @@ export default function ProfileEnhanced() {
                   onClick={() => setShowFollowersModal(true)}
                   className="text-center hover:bg-neutral-800/50 rounded-lg py-2 transition"
                 >
-                  <p className="text-2xl font-bold text-white">{followers.length}</p>
+                  <p className="text-2xl font-bold text-white tabular-nums">{followers.length}</p>
                   <p className="text-sm text-neutral-400">Followers</p>
                 </button>
                 <button
                   onClick={() => setShowFollowingModal(true)}
                   className="text-center hover:bg-neutral-800/50 rounded-lg py-2 transition"
                 >
-                  <p className="text-2xl font-bold text-white">{following.length}</p>
+                  <p className="text-2xl font-bold text-white tabular-nums">{following.length}</p>
                   <p className="text-sm text-neutral-400">Following</p>
                 </button>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-white">{profile?.profile?.total_courses_completed || 0}</p>
+                  <p className="text-2xl font-bold text-white tabular-nums">{profile?.profile?.total_courses_completed || 0}</p>
                   <p className="text-sm text-neutral-400">Courses</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-white">{profile?.profile?.total_projects || 0}</p>
+                  <p className="text-2xl font-bold text-white tabular-nums">{profile?.profile?.total_projects || 0}</p>
                   <p className="text-sm text-neutral-400">Projects</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-white">{profile?.profile?.contribution_points || 0}</p>
+                  <p className="text-2xl font-bold text-white tabular-nums">{profile?.profile?.contribution_points || 0}</p>
                   <p className="text-sm text-neutral-400">Points</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-white">{profile?.profile?.certificates_earned || 0}</p>
+                  <p className="text-2xl font-bold text-white tabular-nums">{profile?.profile?.certificates_earned || 0}</p>
                   <p className="text-sm text-neutral-400">Certificates</p>
                 </div>
               </div>
@@ -691,10 +697,10 @@ export default function ProfileEnhanced() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2 px-4 sm:px-0">
+        <div className="flex gap-1 mb-6 border-b border-neutral-800 overflow-x-auto scrollbar-hide px-4 sm:px-0">
           {[
             { id: 'overview', label: 'Overview' },
-            { id: 'achievements', label: '🏆 Achievements' },
+            { id: 'achievements', label: 'Achievements' },
             { id: 'skills', label: 'Skills' },
             { id: 'activity', label: 'Activity' },
             { id: 'settings', label: 'Settings' },
@@ -708,13 +714,16 @@ export default function ProfileEnhanced() {
                   fetchBadgeCatalog()
                 }
               }}
-              className={`px-4 py-2 rounded-lg font-medium capitalize whitespace-nowrap transition ${
+              className={`relative px-3.5 py-2.5 text-sm font-medium whitespace-nowrap transition-colors ${
                 activeTab === tab.id
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+                  ? 'text-white'
+                  : 'text-neutral-400 hover:text-neutral-200'
               }`}
             >
               {tab.label}
+              {activeTab === tab.id && (
+                <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-purple-500" />
+              )}
             </button>
           ))}
         </div>
@@ -852,7 +861,7 @@ export default function ProfileEnhanced() {
                     />
                     <button
                       onClick={addSkill}
-                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition"
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition"
                     >
                       Add
                     </button>
@@ -921,17 +930,17 @@ export default function ProfileEnhanced() {
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 text-center">
                     <Zap className="w-6 h-6 text-amber-400 mx-auto mb-1" />
-                    <p className="text-2xl font-bold text-white">{achievedSkills?.total ?? 0}</p>
+                    <p className="text-2xl font-bold text-white tabular-nums">{achievedSkills?.total ?? 0}</p>
                     <p className="text-xs text-neutral-400">Skills Earned</p>
                   </div>
                   <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 text-center">
                     <Trophy className="w-6 h-6 text-purple-400 mx-auto mb-1" />
-                    <p className="text-2xl font-bold text-white">{profile?.profile?.certificates_earned ?? 0}</p>
+                    <p className="text-2xl font-bold text-white tabular-nums">{profile?.profile?.certificates_earned ?? 0}</p>
                     <p className="text-xs text-neutral-400">Certificates</p>
                   </div>
                   <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 text-center">
                     <Target className="w-6 h-6 text-green-400 mx-auto mb-1" />
-                    <p className="text-2xl font-bold text-white">{profile?.profile?.total_modules_completed ?? 0}</p>
+                    <p className="text-2xl font-bold text-white tabular-nums">{profile?.profile?.total_modules_completed ?? 0}</p>
                     <p className="text-xs text-neutral-400">Modules Done</p>
                   </div>
                 </div>
@@ -984,7 +993,7 @@ export default function ProfileEnhanced() {
                       <Star className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
                       <p className="text-neutral-400 text-sm">No verified skills yet</p>
                       <p className="text-neutral-600 text-xs mt-1">Complete modules to earn skills automatically</p>
-                      <a href="/learning" className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition">
+                      <a href="/learning" className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-lg transition">
                         <BookOpen className="w-4 h-4" /> Go to Learning
                       </a>
                     </div>
@@ -1246,7 +1255,7 @@ export default function ProfileEnhanced() {
                             className="w-10 h-10 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center text-white font-bold">
+                          <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
                             {follow.follower.username[0]?.toUpperCase()}
                           </div>
                         )}
@@ -1267,7 +1276,7 @@ export default function ProfileEnhanced() {
                         ) : (
                           <button
                             onClick={() => handleFollow(follow.follower.id)}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-lg transition"
+                            className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-lg transition"
                           >
                             <UserPlus className="w-4 h-4" />
                             Follow
@@ -1314,7 +1323,7 @@ export default function ProfileEnhanced() {
                             className="w-10 h-10 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center text-white font-bold">
+                          <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold">
                             {follow.following.username[0]?.toUpperCase()}
                           </div>
                         )}

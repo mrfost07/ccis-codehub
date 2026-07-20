@@ -422,12 +422,27 @@ export default function UserProfileView() {
               case 'highway':
                 return <Hyperspeed className="rounded-2xl" effectOptions={highwayPreset} />
               case 'aurora':
-                return <div className="absolute inset-0 bg-gradient-to-br from-green-500 via-purple-500 to-purple-600 rounded-2xl animate-pulse" />
+                return (
+                  <div className="absolute inset-0 bg-neutral-900 rounded-2xl overflow-hidden">
+                    <div className="absolute -left-20 -top-24 h-72 w-96 rounded-full bg-green-500/20 blur-3xl" />
+                    <div className="absolute -right-20 -bottom-24 h-72 w-96 rounded-full bg-purple-600/25 blur-3xl" />
+                  </div>
+                )
               case 'cyber':
-                return <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-purple-600 to-purple-500 rounded-2xl" style={{ backgroundSize: '200% 200%', animation: 'gradient-shift 3s ease infinite' }} />
+                return (
+                  <div
+                    className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-950 via-neutral-900 to-purple-950"
+                    style={{ backgroundSize: '200% 200%', animation: 'gradient-shift 6s ease infinite' }}
+                  />
+                )
               case 'gradient':
               default:
-                return <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-purple-600 to-purple-600 rounded-2xl" />
+                return (
+                  <div className="absolute inset-0 bg-neutral-900 rounded-2xl overflow-hidden">
+                    <div className="absolute left-1/2 -top-24 h-72 w-[40rem] -translate-x-1/2 rounded-full bg-purple-600/25 blur-3xl" />
+                    <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
+                  </div>
+                )
             }
           })()}
           </Suspense>
@@ -439,7 +454,7 @@ export default function UserProfileView() {
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-3 sm:gap-6">
               {/* Avatar */}
               <div className="relative -mt-12 sm:-mt-16">
-                <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-neutral-900 overflow-hidden bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center">
+                <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full border-4 border-neutral-900 overflow-hidden bg-purple-600 flex items-center justify-center">
                   {getProfilePictureUrl() ? (
                     <img src={getProfilePictureUrl()!} alt={profile.username} className="w-full h-full object-cover" />
                   ) : (
@@ -451,11 +466,11 @@ export default function UserProfileView() {
               </div>
 
               {/* Name and Follow Button */}
-              <div className="flex-1 text-center sm:text-left">
-                <h1 className="text-2xl font-bold text-white">
+              <div className="flex-1 text-center sm:text-left min-w-0">
+                <h1 className="text-2xl font-bold tracking-tight text-white break-words">
                   {profile.first_name} {profile.last_name}
                 </h1>
-                <p className="text-purple-400">@{profile.username}</p>
+                <p className="text-purple-400 truncate">@{profile.username}</p>
 
                 {profile.is_follower && (
                   <span className="inline-flex items-center gap-1 text-xs text-neutral-400 mt-1">
@@ -471,28 +486,30 @@ export default function UserProfileView() {
                     <button
                       onClick={handleUnfollow}
                       disabled={followLoading}
-                      className="flex items-center gap-2 px-4 py-2 bg-neutral-700 hover:bg-red-600 text-white rounded-lg transition disabled:opacity-50"
+                      title="Unfollow"
+                      className="flex items-center gap-2 px-4 py-2 bg-neutral-800 border border-neutral-700 text-neutral-200 hover:border-red-500/50 hover:text-red-400 rounded-lg transition-colors disabled:opacity-50"
                     >
                       <UserMinus className="w-4 h-4" />
-                      {followLoading ? 'Loading...' : 'Following'}
+                      {followLoading ? 'Loading…' : 'Following'}
                     </button>
                   ) : profile.is_pending ? (
                     <button
                       onClick={handleCancelRequest}
                       disabled={followLoading}
-                      className="flex items-center gap-2 px-4 py-2 bg-amber-600/50 hover:bg-red-600 text-amber-200 hover:text-white rounded-lg transition disabled:opacity-50"
+                      title="Cancel request"
+                      className="flex items-center gap-2 px-4 py-2 bg-neutral-800 border border-neutral-700 text-neutral-400 hover:border-red-500/50 hover:text-red-400 rounded-lg transition-colors disabled:opacity-50"
                     >
                       <Clock className="w-4 h-4" />
-                      {followLoading ? 'Loading...' : 'Requested'}
+                      {followLoading ? 'Loading…' : 'Requested'}
                     </button>
                   ) : (
                     <button
                       onClick={handleFollow}
                       disabled={followLoading}
-                      className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors disabled:opacity-50"
                     >
                       <UserPlus className="w-4 h-4" />
-                      {followLoading ? 'Loading...' : 'Follow'}
+                      {followLoading ? 'Loading…' : 'Follow'}
                     </button>
                   )}
                 </div>
@@ -505,22 +522,22 @@ export default function UserProfileView() {
                 onClick={openFollowersModal}
                 className="text-center hover:bg-neutral-800/50 px-2 py-1 sm:px-3 sm:py-2 rounded-lg transition"
               >
-                <p className="text-lg sm:text-xl font-bold text-white">{profile.followers_count}</p>
+                <p className="text-lg sm:text-xl font-bold text-white tabular-nums">{profile.followers_count}</p>
                 <p className="text-xs sm:text-sm text-neutral-400">Followers</p>
               </button>
               <button
                 onClick={openFollowingModal}
                 className="text-center hover:bg-neutral-800/50 px-2 py-1 sm:px-3 sm:py-2 rounded-lg transition"
               >
-                <p className="text-lg sm:text-xl font-bold text-white">{profile.following_count}</p>
+                <p className="text-lg sm:text-xl font-bold text-white tabular-nums">{profile.following_count}</p>
                 <p className="text-xs sm:text-sm text-neutral-400">Following</p>
               </button>
               <div className="text-center px-2 py-1 sm:px-3 sm:py-2">
-                <p className="text-lg sm:text-xl font-bold text-white">{profile.profile?.total_posts || 0}</p>
+                <p className="text-lg sm:text-xl font-bold text-white tabular-nums">{profile.profile?.total_posts || 0}</p>
                 <p className="text-xs sm:text-sm text-neutral-400">Posts</p>
               </div>
               <div className="text-center px-2 py-1 sm:px-3 sm:py-2">
-                <p className="text-lg sm:text-xl font-bold text-white">{profile.profile?.contribution_points || 0}</p>
+                <p className="text-lg sm:text-xl font-bold text-white tabular-nums">{profile.profile?.contribution_points || 0}</p>
                 <p className="text-xs sm:text-sm text-neutral-400">Points</p>
               </div>
             </div>
@@ -685,7 +702,7 @@ export default function UserProfileView() {
                         onClick={() => visitUser(user.id)}
                         className="flex items-center gap-3 p-3 bg-neutral-800/50 hover:bg-neutral-800 rounded-xl cursor-pointer transition"
                       >
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center overflow-hidden">
+                        <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center overflow-hidden">
                           {getAvatarUrl(user.profile_picture) ? (
                             <img src={getAvatarUrl(user.profile_picture)!} alt="" className="w-full h-full object-cover" />
                           ) : (
@@ -747,7 +764,7 @@ export default function UserProfileView() {
                         onClick={() => visitUser(user.id)}
                         className="flex items-center gap-3 p-3 bg-neutral-800/50 hover:bg-neutral-800 rounded-xl cursor-pointer transition"
                       >
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center overflow-hidden">
+                        <div className="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center overflow-hidden">
                           {getAvatarUrl(user.profile_picture) ? (
                             <img src={getAvatarUrl(user.profile_picture)!} alt="" className="w-full h-full object-cover" />
                           ) : (
