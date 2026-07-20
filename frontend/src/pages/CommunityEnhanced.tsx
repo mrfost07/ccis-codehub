@@ -590,50 +590,70 @@ function GroupPostCard({
           </div>
         </div>
       ) : (
-        <p className="text-neutral-300 mb-3 whitespace-pre-wrap">{post.content}</p>
+        <p className="text-neutral-200 text-[15px] leading-relaxed mb-3 whitespace-pre-wrap break-words">{post.content}</p>
       )}
 
       {post.image_url && (
-        <img
-          src={getMediaUrl(post.image_url) || ''}
-          alt=""
-          className="rounded-lg max-h-96 w-full object-cover mb-3"
-        />
+        <div className="rounded-xl overflow-hidden border border-neutral-800 bg-neutral-950 mb-3">
+          <img
+            src={getMediaUrl(post.image_url) || ''}
+            alt="Post attachment"
+            loading="lazy"
+            className="w-full max-h-[70vh] sm:max-h-[32rem] object-contain"
+          />
+        </div>
       )}
 
-      <div className="flex items-center gap-4 pt-3 border-t border-neutral-800">
+      {/* Engagement summary + equal ghost action bar */}
+      {(post.like_count > 0 || post.comment_count > 0) && (
+        <div className="flex items-center gap-3 text-xs text-neutral-500 tabular-nums mb-1">
+          {post.like_count > 0 && (
+            <span className="flex items-center gap-1">
+              <Heart className="w-3 h-3 fill-red-400 text-red-400" />
+              {post.like_count}
+            </span>
+          )}
+          {post.comment_count > 0 && (
+            <button onClick={handleToggleComments} className="hover:text-neutral-300 transition-colors ms-auto">
+              {post.comment_count} comment{post.comment_count !== 1 ? 's' : ''}
+            </button>
+          )}
+        </div>
+      )}
+      <div className="flex items-center border-t border-neutral-800 pt-1 -mx-2">
         <button
           onClick={() => onLike(post.id)}
-          className={`flex items-center gap-1 text-sm ${post.is_liked ? 'text-red-500' : 'text-neutral-400 hover:text-red-400'}`}
+          className={`flex-1 flex items-center justify-center gap-2 h-9 rounded-lg text-sm font-medium transition-colors hover:bg-neutral-800/60 ${post.is_liked ? 'text-red-400' : 'text-neutral-400 hover:text-neutral-200'}`}
         >
           <Heart className={`w-4 h-4 ${post.is_liked ? 'fill-current' : ''}`} />
-          {post.like_count}
+          Like
         </button>
         <button
           onClick={handleToggleComments}
-          className="flex items-center gap-1 text-sm text-neutral-400 hover:text-purple-400"
+          className="flex-1 flex items-center justify-center gap-2 h-9 rounded-lg text-sm font-medium text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/60 transition-colors"
         >
           <MessageCircle className="w-4 h-4" />
-          {post.comment_count}
+          Comment
         </button>
       </div>
 
       {/* Comments Section */}
       {showComments && (
         <div className="mt-4 pt-4 border-t border-neutral-700">
-          {/* Add Comment Form */}
-          <form onSubmit={handleAddComment} className="flex gap-2 mb-4">
+          {/* Add Comment Form — pill input with inline send */}
+          <form onSubmit={handleAddComment} className="relative mb-4">
             <input
               type="text"
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Write a comment..."
-              className="flex-1 px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
+              placeholder="Write a comment…"
+              className="w-full h-9 rounded-full bg-neutral-800 border border-neutral-700 pl-4 pr-10 text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-purple-500 transition-colors"
             />
             <button
               type="submit"
               disabled={!newComment.trim()}
-              className="px-3 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 rounded-lg text-white text-sm"
+              aria-label="Post comment"
+              className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-purple-400 hover:bg-neutral-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -641,8 +661,13 @@ function GroupPostCard({
 
           {/* Comments List */}
           {loadingComments ? (
-            <div className="flex justify-center py-4">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-500"></div>
+            <div className="space-y-3 py-1" aria-hidden="true">
+              {[0, 1].map(i => (
+                <div key={i} className="flex gap-3 animate-pulse">
+                  <div className="w-8 h-8 rounded-full bg-neutral-800 shrink-0" />
+                  <div className="h-10 bg-neutral-800 rounded-2xl w-2/3" />
+                </div>
+              ))}
             </div>
           ) : comments.length > 0 ? (
             <div className="space-y-3">
@@ -660,12 +685,12 @@ function GroupPostCard({
                           <span className="text-white">{comment.author.username.charAt(0).toUpperCase()}</span>
                         )}
                       </div>
-                      <div className="flex-1">
-                        <div className="bg-neutral-800 rounded-lg p-2 relative">
-                          <div className="flex items-center justify-between">
-                            <span className="text-white text-sm font-medium">{comment.author.username}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="inline-block max-w-full bg-neutral-800 rounded-2xl px-3.5 py-2 relative">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-white text-xs font-semibold">{comment.author.username}</span>
                             <div className="flex items-center gap-2">
-                              <span className="text-neutral-500 text-xs">{new Date(comment.created_at).toLocaleDateString()}</span>
+                              <span className="text-neutral-600 text-[11px] tabular-nums">{timeAgo(comment.created_at)}</span>
 
                               {/* 3-dot menu for comment owner */}
                               {isCommentAuthor(comment) && (
@@ -679,7 +704,7 @@ function GroupPostCard({
 
                                   {showCommentMenu[comment.id] && (
                                     <div
-                                      className="absolute right-0 mt-1 w-28 bg-neutral-700 border border-neutral-600 rounded-lg shadow-xl z-50"
+                                      className="absolute right-0 mt-1 w-32 bg-neutral-900 border border-neutral-700/60 rounded-xl shadow-xl shadow-black/40 z-30 p-1 animate-scale-in origin-top-right"
                                       onClick={(e) => e.stopPropagation()}
                                     >
                                       <button
