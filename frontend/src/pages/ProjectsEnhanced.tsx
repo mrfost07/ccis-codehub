@@ -929,155 +929,157 @@ export default function ProjectsEnhanced() {
     )
   }
 
+  const workspaceTabs = [
+    { id: 'teams', label: 'My Teams', icon: UsersRound, count: undefined as number | undefined },
+    { id: 'projects', label: 'Projects', icon: FolderOpen, count: undefined as number | undefined },
+    { id: 'tasks', label: 'All Tasks', icon: ListTodo, count: undefined as number | undefined },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3, count: undefined as number | undefined },
+    { id: 'invitations', label: 'Invitations', icon: Mail, count: invitations.length + teamInvitations.length > 0 ? invitations.length + teamInvitations.length : undefined },
+    { id: 'notifications', label: 'Notifications', icon: Bell, count: unreadCount > 0 ? unreadCount : undefined },
+  ]
+
   return (
     <div className="min-h-screen bg-neutral-950">
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header with Stats Overview */}
-        <div className="mb-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+        {/* Page header (DESIGN_SYSTEM.md §11) */}
+        <div className="relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/60 p-6 sm:p-8 mb-6 sm:mb-8">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2">
-                Projects Hub
-              </h1>
-              <p className="text-neutral-400">
+              <p className="text-xs font-semibold uppercase tracking-wider text-purple-400 mb-2">Workspace</p>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">Projects Hub</h1>
+              <p className="mt-2 text-neutral-400 max-w-3xl leading-relaxed">
                 Manage your projects, tasks, and team collaborations
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              {(invitations.length > 0 || teamInvitations.length > 0) && (
-                <button
-                  onClick={() => setActiveTab('invitations')}
-                  className="relative p-2 bg-neutral-800 rounded-lg hover:bg-neutral-700 transition"
-                >
-                  <Bell className="w-5 h-5 text-neutral-400" />
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
-                    {invitations.length + teamInvitations.length}
-                  </span>
-                </button>
-              )}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
               <Link
                 to="/projects/explore"
-                className="flex items-center gap-2 px-4 py-2 bg-neutral-800 border border-neutral-600 rounded-lg font-medium text-white hover:bg-neutral-700 transition-all text-sm"
+                className="flex items-center gap-2 h-10 px-4 border border-neutral-700 rounded-lg font-medium text-neutral-200 hover:border-purple-500 hover:text-white transition-colors text-sm"
               >
                 <Star className="w-4 h-4 text-purple-400" />
                 Explore
               </Link>
               <button
                 onClick={() => setShowCreateTeamModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-neutral-800 border border-neutral-600 rounded-lg font-medium text-white hover:bg-neutral-700 transition-all"
+                className="flex items-center gap-2 h-10 px-4 bg-neutral-800 border border-neutral-700 rounded-lg font-medium text-neutral-100 hover:bg-neutral-700 transition-colors text-sm"
               >
-                <UsersRound className="w-5 h-5" />
+                <UsersRound className="w-4 h-4" />
                 New Team
               </button>
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg font-medium text-white transition-colors"
+                className="flex items-center gap-2 h-10 px-4 bg-purple-600 hover:bg-purple-500 rounded-lg font-medium text-white transition-colors text-sm"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-4 h-4" />
                 New Project
               </button>
             </div>
           </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-500/20 rounded-lg">
-                  <FolderOpen className="w-5 h-5 text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white tabular-nums">{stats.totalProjects}</p>
-                  <p className="text-xs text-neutral-400">Total Projects</p>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-500/20 rounded-lg">
-                  <Activity className="w-5 h-5 text-green-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white tabular-nums">{stats.activeProjects}</p>
-                  <p className="text-xs text-neutral-400">Active Projects</p>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-500/20 rounded-lg">
-                  <ListTodo className="w-5 h-5 text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white tabular-nums">{stats.totalTasks}</p>
-                  <p className="text-xs text-neutral-400">Total Tasks</p>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-amber-500/20 rounded-lg">
-                  <Users className="w-5 h-5 text-amber-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white tabular-nums">{stats.totalMembers}</p>
-                  <p className="text-xs text-neutral-400">Team Members</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-neutral-400">Overall Task Completion</span>
-              <span className="text-sm font-medium text-white">{taskCompletionRate}%</span>
-            </div>
-            <div className="h-2 bg-neutral-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-purple-500 transition-[width] duration-500"
-                style={{ width: `${taskCompletionRate}%` }}
-              />
-            </div>
-            <div className="flex justify-between mt-2 text-xs text-neutral-500">
-              <span>{stats.completedTasks} completed</span>
-              <span>{stats.inProgressTasks} in progress</span>
-              <span>{stats.totalTasks - stats.completedTasks - stats.inProgressTasks} pending</span>
-            </div>
-          </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-neutral-700 overflow-x-auto">
-          {[
-            { id: 'teams', label: 'My Teams', icon: UsersRound },
-            { id: 'projects', label: 'Projects', icon: FolderOpen },
-            { id: 'tasks', label: 'All Tasks', icon: ListTodo },
-            { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-            { id: 'invitations', label: 'Invitations', icon: Mail, count: invitations.length + teamInvitations.length > 0 ? invitations.length + teamInvitations.length : undefined },
-            { id: 'notifications', label: 'Notifications', icon: Bell, count: unreadCount > 0 ? unreadCount : undefined }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id
-                ? 'text-white border-b-2 border-purple-500'
-                : 'text-neutral-400 hover:text-neutral-200'
-                }`}
-            >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-              {tab.count !== undefined && tab.count > 0 && (
-                <span className="px-1.5 py-0.5 bg-red-500 rounded-full text-xs text-white">
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        {/* Workspace layout: rail + content */}
+        <div className="flex items-start gap-8">
+          {/* Workspace rail (≥lg) */}
+          <aside className="hidden lg:flex flex-col w-60 shrink-0 sticky top-20 gap-6">
+            <nav className="space-y-1">
+              {workspaceTabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${activeTab === tab.id
+                    ? 'bg-purple-500/10 text-purple-300'
+                    : 'text-neutral-400 hover:bg-neutral-800/60 hover:text-white'
+                    }`}
+                >
+                  <tab.icon className="w-4 h-4" />
+                  <span className="flex-1 text-left">{tab.label}</span>
+                  {tab.count !== undefined && tab.count > 0 && (
+                    <span className="rounded-full border border-purple-500/30 bg-purple-500/15 px-1.5 text-xs text-purple-300 tabular-nums">
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </nav>
+
+            {/* Overview */}
+            <div className="border-t border-neutral-800 pt-5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-3 px-1">Overview</p>
+              <div className="space-y-2.5 px-1">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-neutral-400">Projects</span>
+                  <span className="font-semibold text-white tabular-nums">{stats.totalProjects}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-neutral-400">Active</span>
+                  <span className="font-semibold text-white tabular-nums">{stats.activeProjects}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-neutral-400">Tasks</span>
+                  <span className="font-semibold text-white tabular-nums">{stats.totalTasks}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-neutral-400">Members</span>
+                  <span className="font-semibold text-white tabular-nums">{stats.totalMembers}</span>
+                </div>
+              </div>
+              <div className="mt-4 px-1">
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="text-neutral-400">Task completion</span>
+                  <span className="text-neutral-200 font-semibold tabular-nums">{taskCompletionRate}%</span>
+                </div>
+                <div className="h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-purple-500 transition-[width] duration-500"
+                    style={{ width: `${taskCompletionRate}%` }}
+                  />
+                </div>
+                <p className="mt-1.5 text-xs text-neutral-500 tabular-nums">
+                  {stats.completedTasks} done · {stats.inProgressTasks} in progress
+                </p>
+              </div>
+            </div>
+          </aside>
+
+          {/* Content column */}
+          <div className="flex-1 min-w-0">
+            {/* Compact overview (<lg) */}
+            <div className="lg:hidden grid grid-cols-2 gap-3 mb-5">
+              <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-3">
+                <p className="text-xl font-bold text-white tabular-nums">{stats.totalProjects}</p>
+                <p className="text-xs text-neutral-500">Projects</p>
+              </div>
+              <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-3">
+                <p className="text-xl font-bold text-white tabular-nums">{stats.totalTasks}</p>
+                <p className="text-xs text-neutral-500">Tasks · {taskCompletionRate}% done</p>
+              </div>
+            </div>
+
+            {/* Mobile tab bar (<lg) */}
+            <div className="lg:hidden flex gap-2 mb-6 border-b border-neutral-800 overflow-x-auto scrollbar-hide">
+              {workspaceTabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id
+                    ? 'text-white border-b-2 border-purple-500'
+                    : 'text-neutral-400 hover:text-neutral-200'
+                    }`}
+                >
+                  <tab.icon className="w-4 h-4" />
+                  {tab.label}
+                  {tab.count !== undefined && tab.count > 0 && (
+                    <span className="rounded-full border border-purple-500/30 bg-purple-500/15 px-1.5 text-xs text-purple-300 tabular-nums">
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
 
         {/* Content */}
         {loading ? (
@@ -1788,6 +1790,8 @@ export default function ProjectsEnhanced() {
             )}
           </>
         )}
+          </div>
+        </div>
       </div>
 
       {/* Create Project Modal */}

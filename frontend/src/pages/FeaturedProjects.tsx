@@ -18,19 +18,16 @@ export default function FeaturedProjects() {
           Back to Projects Hub
         </Link>
 
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2.5 bg-amber-500/10 rounded-xl border border-amber-500/20">
-              <Star className="w-6 h-6 text-amber-400" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white">Explore Projects</h1>
-              <p className="text-neutral-400 text-sm mt-0.5">
-                Public projects from the CCIS-CodeHub community
-              </p>
-            </div>
-          </div>
+        {/* Page header (DESIGN_SYSTEM.md §11) */}
+        <div className="relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/60 p-6 sm:p-8 mb-6 sm:mb-8">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-purple-400 mb-2 flex items-center gap-1.5">
+            <Star className="w-3.5 h-3.5" /> Community showcase
+          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">Explore Projects</h1>
+          <p className="mt-2 text-neutral-400 max-w-3xl leading-relaxed">
+            Public projects from the CCIS-CodeHub community
+          </p>
         </div>
 
         {/* Grid */}
