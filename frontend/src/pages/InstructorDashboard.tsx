@@ -1306,15 +1306,8 @@ function InstructorDashboard() {
               </div>
               <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
                 <button
-                  onClick={() => navigate('/learning-admin')}
-                  className="flex-1 sm:flex-none px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition flex items-center justify-center gap-2 font-medium"
-                >
-                  <GraduationCap className="w-4 h-4" />
-                  Learning Admin
-                </button>
-                <button
                   onClick={() => setActiveTab('students')}
-                  className="flex-1 sm:flex-none px-4 py-2 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 text-neutral-100 rounded-lg transition flex items-center justify-center gap-2"
+                  className="flex-1 sm:flex-none px-4 py-2 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 text-neutral-100 rounded-lg transition-colors flex items-center justify-center gap-2"
                 >
                   <Users className="w-4 h-4" />
                   View Students
@@ -1362,7 +1355,7 @@ function InstructorDashboard() {
                 <div className="text-center py-4">
                   <p className="text-neutral-400 text-sm mb-3">No career paths yet</p>
                   <button
-                    onClick={() => navigate('/learning-admin')}
+                    onClick={() => { setActiveTab('learning'); setLearningView('paths'); }}
                     className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm"
                   >
                     Create First Path
@@ -1870,7 +1863,7 @@ function InstructorDashboard() {
           <div className="flex justify-between items-center">
             <h2 className="text-xl sm:text-2xl font-bold text-white">Career Paths</h2>
             <button
-              onClick={() => navigate('/learning-admin')}
+              onClick={() => { setActiveTab('learning'); setLearningView('paths'); }}
               className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition flex items-center gap-2 text-sm"
             >
               <PlusCircle className="w-4 h-4" />
@@ -1885,7 +1878,7 @@ function InstructorDashboard() {
               <BookOpen className="w-12 h-12 mx-auto text-neutral-600 mb-4" />
               <p className="text-neutral-400">No career paths created yet</p>
               <button
-                onClick={() => navigate('/learning-admin')}
+                onClick={() => { setActiveTab('learning'); setLearningView('paths'); }}
                 className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg"
               >
                 Create Your First Path
@@ -1931,7 +1924,7 @@ function InstructorDashboard() {
                       Students
                     </button>
                     <button
-                      onClick={() => navigate('/learning-admin')}
+                      onClick={() => { setActiveTab('learning'); setLearningView('paths'); }}
                       className="flex-1 px-3 py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 rounded-lg transition-colors text-sm"
                     >
                       Manage
