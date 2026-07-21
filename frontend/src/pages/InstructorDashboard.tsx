@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Users, BookOpen, ClipboardCheck, Award, TrendingUp,
-  Calendar, FileText, Video, MessageCircle, Settings,
+  Calendar, FileText, Video, Settings,
   PlusCircle, BarChart2, Clock, CheckCircle, GraduationCap, Wand2,
   Eye, ChevronRight, RefreshCw, Edit, Trash2, Play, X, Save, Upload, Home, Radio, Filter, Loader2, Copy, Link, Download,
   Camera, Code2, ShieldCheck, Shield
@@ -1243,17 +1243,10 @@ function InstructorDashboard() {
       </button>
       <button
         onClick={() => setShowPDFExtractor(true)}
-        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-neutral-800/50 backdrop-blur-sm hover:bg-neutral-700 border border-neutral-700/50 rounded-lg text-white transition-colors text-sm whitespace-nowrap"
+        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 rounded-lg text-neutral-100 transition-colors text-sm whitespace-nowrap"
       >
         <Wand2 className="h-4 w-4" />
         AI Content
-      </button>
-      <button
-        onClick={() => navigate('/community')}
-        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-neutral-800/50 backdrop-blur-sm hover:bg-neutral-700 border border-neutral-700/50 rounded-lg text-white transition-colors text-sm whitespace-nowrap"
-      >
-        <MessageCircle className="h-4 w-4" />
-        Community
       </button>
     </div>
   )
