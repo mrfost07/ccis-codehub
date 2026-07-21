@@ -314,13 +314,10 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
 
   // Save career path and get ID
   const saveCareerPath = async () => {
-    console.log('saveCareerPath: extractedContent =', extractedContent)
     if (!extractedContent) {
-      console.log('saveCareerPath: extractedContent is null, returning null')
       return null
     }
 
-    console.log('saveCareerPath: setting saving to true')
     setSaving(true)
     try {
       const pathPayload = {
@@ -334,14 +331,11 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
         is_active: true
       }
 
-      console.log('saveCareerPath: sending payload', pathPayload)
       const response = await api.post('/learning/admin/career-paths/', pathPayload)
-      console.log('saveCareerPath: full response =', response.data)
 
       // Handle different response structures
       // Some APIs return {id, ...} directly, others return {message, data: {id, ...}}
       const pathId = response.data.id || response.data.data?.id
-      console.log('saveCareerPath: extracted pathId =', pathId)
 
       if (!pathId) {
         console.error('saveCareerPath: Could not extract pathId from response')
@@ -353,7 +347,6 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
       return pathId
     } catch (error: any) {
       console.error('Save path error:', error)
-      console.log('saveCareerPath: error response data =', error.response?.data)
       const errorMsg = error.response?.data?.slug?.[0] ||
         error.response?.data?.name?.[0] ||
         'Failed to save career path'
@@ -372,12 +365,10 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
     }
 
     if (saving) {
-      console.log('saveCurrentModule: Already saving, skipping...')
       return null
     }
 
     const moduleData = extractedContent.modules[currentModuleIndex]
-    console.log('saveCurrentModule: Saving module', currentModuleIndex, moduleData.title)
 
     setSaving(true)
     try {
@@ -394,16 +385,13 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
         points_reward: 10
       }
 
-      console.log('saveCurrentModule: Sending payload')
       const response = await api.post('/learning/admin/modules/', modulePayload)
-      console.log('saveCurrentModule: Full Response =', JSON.stringify(response.data, null, 2))
 
       // Handle different response structures - check all possible paths
       const moduleId = response.data.id ||
         response.data.data?.id ||
         response.data.module?.id ||
         (typeof response.data === 'object' && Object.keys(response.data).length > 0 && response.data[Object.keys(response.data).find(k => k !== 'message') || '']?.id)
-      console.log('saveCurrentModule: Extracted moduleId =', moduleId)
 
       if (!moduleId) {
         console.error('saveCurrentModule: Could not extract moduleId from response')
@@ -431,13 +419,11 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
     }
 
     if (saving) {
-      console.log('saveCurrentQuiz: Already saving, skipping...')
       return null
     }
 
     const quizData = extractedContent.quizzes[currentQuizIndex]
     const moduleId = savedModuleIds[quizData.module_index]
-    console.log('saveCurrentQuiz: Quiz', currentQuizIndex, 'for moduleIndex', quizData.module_index, 'moduleId', moduleId)
 
     if (!moduleId) {
       toast.error('Module not found for this quiz')
@@ -457,9 +443,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
         randomize_questions: true
       }
 
-      console.log('saveCurrentQuiz: Sending quiz payload', quizPayload)
       const quizResponse = await api.post('/learning/quizzes/', quizPayload)
-      console.log('saveCurrentQuiz: Quiz Response =', quizResponse.data)
 
       const quizId = quizResponse.data.id || quizResponse.data.data?.id
 
@@ -484,7 +468,6 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
       }
 
       // Return the quiz ID
-      console.log('saveCurrentQuiz: Final quizId =', quizId)
       return quizId
     } catch (error: any) {
       console.error('Save quiz error:', error)
@@ -499,7 +482,6 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
   const handleModuleSave = async (slides: any[], fullContent: string) => {
     // Prevent duplicate saves
     if (savedModulesSet.has(currentModuleIndex)) {
-      console.log('handleModuleSave: Module', currentModuleIndex, 'already saved, moving to next')
       // Just move to next
       if (currentModuleIndex < (extractedContent?.modules.length || 0) - 1) {
         setCurrentModuleIndex(prev => prev + 1)
@@ -553,17 +535,12 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
   const handlePathContinue = async () => {
     if (saving) return // Prevent multiple clicks
 
-    console.log('handlePathContinue called, saving career path...')
     const pathId = await saveCareerPath()
-    console.log('saveCareerPath returned:', pathId)
 
     if (pathId) {
-      console.log('Setting step to modules, currentModuleIndex to 0')
       toast.success('Career path created!')
       setCurrentModuleIndex(0)
       setCurrentStep('modules')
-    } else {
-      console.log('pathId is null, not advancing')
     }
   }
 
@@ -597,24 +574,30 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
   }
 
   return (
-    <div className="bg-neutral-800 rounded-xl border border-neutral-700 overflow-hidden max-h-[90vh] flex flex-col">
-      {/* Header */}
-      <div className="p-4 sm:p-6 border-b border-neutral-700 flex-shrink-0">
+    <div className="bg-neutral-900 rounded-2xl border border-neutral-800 overflow-hidden max-h-[90vh] flex flex-col">
+      {/* Header — hairline accent */}
+      <div className="relative p-4 sm:p-6 border-b border-neutral-800 flex-shrink-0">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
         <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xl font-bold text-white">AI Content Generator</h3>
-            <p className="text-sm text-neutral-400 mt-1">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 hidden sm:block">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+            <h3 className="text-lg font-bold tracking-tight text-white">AI Content Generator</h3>
+            <p className="text-sm text-neutral-400 mt-0.5">
               {currentStep === 'input' && 'Generate learning content from PDF or AI prompt'}
               {currentStep === 'path' && 'Configure your career path details'}
               {currentStep === 'modules' && `Editing Module ${currentModuleIndex + 1} of ${extractedContent?.modules.length || 0}`}
               {currentStep === 'quizzes' && `Editing Quiz ${currentQuizIndex + 1} of ${extractedContent?.quizzes.length || 0}`}
               {currentStep === 'complete' && 'All content has been created!'}
             </p>
+            </div>
           </div>
           {onClose && (
             <button
               onClick={onClose}
-              className="p-2 text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-700 transition"
+              className="p-2 text-neutral-400 hover:text-white rounded-lg hover:bg-neutral-800 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -634,13 +617,13 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
         {/* STEP: Input (PDF or Prompt) */}
         {currentStep === 'input' && (
           <div className="space-y-6">
-            {/* Mode Selector Tabs */}
-            <div className="flex gap-2 p-1 bg-neutral-700 rounded-lg">
+            {/* Mode Selector — segmented control */}
+            <div className="flex gap-1 p-1 bg-neutral-900 border border-neutral-800 rounded-lg">
               <button
                 onClick={() => setInputMode('pdf')}
-                className={`flex-1 flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-medium transition text-sm ${inputMode === 'pdf'
-                  ? 'bg-purple-600 text-white'
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-600'
+                className={`flex-1 flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-md font-medium transition-colors text-sm ${inputMode === 'pdf'
+                  ? 'bg-neutral-800 text-white shadow-sm'
+                  : 'text-neutral-400 hover:text-white'
                   }`}
               >
                 <FileText className="w-4 h-4" />
@@ -648,9 +631,9 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
               </button>
               <button
                 onClick={() => setInputMode('prompt')}
-                className={`flex-1 flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-medium transition text-sm ${inputMode === 'prompt'
-                  ? 'bg-purple-600 text-white'
-                  : 'text-neutral-400 hover:text-white hover:bg-neutral-600'
+                className={`flex-1 flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-md font-medium transition-colors text-sm ${inputMode === 'prompt'
+                  ? 'bg-neutral-800 text-white shadow-sm'
+                  : 'text-neutral-400 hover:text-white'
                   }`}
               >
                 <Sparkles className="w-4 h-4" />
@@ -663,9 +646,9 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
               <div className="space-y-4">
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-lg p-6 sm:p-8 text-center cursor-pointer transition-all ${file
-                    ? 'border-green-500/50 bg-green-500/10'
-                    : 'border-neutral-600 hover:border-purple-500/50 hover:bg-neutral-700/50'
+                  className={`border-2 border-dashed rounded-xl p-6 sm:p-8 text-center cursor-pointer transition-colors ${file
+                    ? 'border-green-500/40 bg-green-500/5'
+                    : 'border-neutral-700 hover:border-purple-500/50 hover:bg-neutral-800/40'
                     }`}
                 >
                   <input
@@ -703,7 +686,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                   <button
                     onClick={handleExtract}
                     disabled={extracting}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg text-white font-medium transition"
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 rounded-lg text-white font-medium transition"
                   >
                     {extracting ? (
                       <>
@@ -733,7 +716,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                     onChange={(e) => setPromptText(e.target.value)}
                     placeholder="E.g., Create a comprehensive Python programming course for beginners covering variables, data types, control flow, functions, and object-oriented programming..."
                     rows={4}
-                    className="w-full px-4 py-3 bg-neutral-700 border border-neutral-600 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-purple-500 resize-none text-sm sm:text-base"
+                    className="w-full px-4 py-3 bg-neutral-900 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-purple-500 resize-none text-sm sm:text-base"
                   />
                 </div>
 
@@ -751,7 +734,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                       <button
                         key={suggestion}
                         onClick={() => setPromptText(`Create a comprehensive ${suggestion} course for college students with detailed modules and practical exercises`)}
-                        className="px-2 sm:px-3 py-1.5 text-xs bg-neutral-700 border border-neutral-600 text-neutral-300 rounded-lg hover:bg-neutral-600 hover:border-purple-500 transition"
+                        className="px-2 sm:px-3 py-1.5 text-xs bg-neutral-900 border border-neutral-700 text-neutral-300 rounded-lg hover:bg-neutral-600 hover:border-purple-500 transition"
                       >
                         {suggestion}
                       </button>
@@ -766,7 +749,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                     <select
                       value={moduleCount}
                       onChange={(e) => setModuleCount(parseInt(e.target.value))}
-                      className="px-2 sm:px-3 py-1.5 sm:py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white text-xs sm:text-sm focus:outline-none focus:border-purple-500"
+                      className="px-2 sm:px-3 py-1.5 sm:py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white text-xs sm:text-sm focus:outline-none focus:border-purple-500"
                     >
                       {[3, 4, 5, 6, 7, 8, 10].map((n) => (
                         <option key={n} value={n}>{n}</option>
@@ -778,7 +761,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                       type="checkbox"
                       checked={includeQuizzes}
                       onChange={(e) => setIncludeQuizzes(e.target.checked)}
-                      className="w-4 h-4 rounded border-neutral-600 bg-neutral-700 text-purple-600 focus:ring-purple-500"
+                      className="w-4 h-4 rounded border-neutral-700 bg-neutral-900 accent-purple-600"
                     />
                     <span className="text-xs sm:text-sm text-neutral-300">Include quizzes</span>
                   </label>
@@ -787,7 +770,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                 <button
                   onClick={handleGenerateFromPrompt}
                   disabled={extracting || !promptText.trim()}
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white font-medium transition"
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white font-medium transition"
                 >
                   {extracting ? (
                     <>
@@ -830,7 +813,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                   type="text"
                   value={extractedContent.path.name}
                   onChange={(e) => updatePath('name', e.target.value)}
-                  className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                  className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 />
               </div>
               <div>
@@ -838,7 +821,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                 <select
                   value={extractedContent.path.program_type}
                   onChange={(e) => updatePath('program_type', e.target.value)}
-                  className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
+                  className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white"
                 >
                   <option value="bsit">BS Information Technology</option>
                   <option value="bscs">BS Computer Science</option>
@@ -850,7 +833,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                 <select
                   value={extractedContent.path.difficulty_level}
                   onChange={(e) => updatePath('difficulty_level', e.target.value)}
-                  className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
+                  className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white"
                 >
                   <option value="beginner">Beginner</option>
                   <option value="intermediate">Intermediate</option>
@@ -863,7 +846,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                   type="number"
                   value={extractedContent.path.estimated_duration}
                   onChange={(e) => updatePath('estimated_duration', parseInt(e.target.value) || 1)}
-                  className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                  className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 />
               </div>
             </div>
@@ -873,12 +856,12 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                 value={extractedContent.path.description}
                 onChange={(e) => updatePath('description', e.target.value)}
                 rows={3}
-                className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500 resize-none"
+                className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500 resize-none"
               />
             </div>
 
             {/* Summary */}
-            <div className="p-4 bg-neutral-700/50 rounded-lg border border-neutral-600">
+            <div className="p-4 bg-neutral-900 rounded-lg border border-neutral-800">
               <h4 className="text-sm font-medium text-neutral-300 mb-2">Content Summary</h4>
               <div className="flex flex-wrap gap-4 text-sm">
                 <div className="flex items-center gap-2">
@@ -899,7 +882,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
               <button
                 onClick={handlePathContinue}
                 disabled={saving}
-                className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 rounded-lg text-white font-medium transition"
+                className="flex items-center gap-2 px-6 py-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 rounded-lg text-white font-medium transition"
               >
                 {saving ? (
                   <>
@@ -987,7 +970,7 @@ export default function PDFContentExtractor({ onContentCreated, onClose }: Props
                   onContentCreated?.({ path_id: savedPathId })
                   onClose?.()
                 }}
-                className="px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg text-white font-medium transition"
+                className="px-6 py-3 bg-purple-600 hover:bg-purple-500 rounded-lg text-white font-medium transition-colors"
               >
                 Done
               </button>

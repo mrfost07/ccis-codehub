@@ -264,18 +264,21 @@ export default function ModuleFormWithEditor({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
-      <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-4 sm:p-6 w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="relative bg-neutral-900 border border-neutral-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 w-full max-w-2xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto shadow-xl shadow-black/40">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
-            <FileText className="w-6 h-6 text-purple-400" />
-            <h3 className="text-xl font-bold text-white">
+            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
+              <FileText className="w-5 h-5" />
+            </div>
+            <h3 className="text-lg font-bold tracking-tight text-white">
               {editingModule ? 'Edit Module' : 'Create New Module'}
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-neutral-700 rounded-lg transition"
+            className="p-2 hover:bg-neutral-800 rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-neutral-400" />
           </button>
@@ -287,7 +290,7 @@ export default function ModuleFormWithEditor({
             <select
               value={basicInfo.career_path}
               onChange={(e) => setBasicInfo({ ...basicInfo, career_path: e.target.value })}
-              className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
+              className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white"
               required
             >
               <option value="">Select a career path</option>
@@ -303,7 +306,7 @@ export default function ModuleFormWithEditor({
               type="text"
               value={basicInfo.title}
               onChange={(e) => setBasicInfo({ ...basicInfo, title: e.target.value })}
-              className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+              className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
               placeholder="e.g., Introduction to Python"
               required
             />
@@ -315,7 +318,7 @@ export default function ModuleFormWithEditor({
               value={basicInfo.description}
               onChange={(e) => setBasicInfo({ ...basicInfo, description: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+              className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
               placeholder="Brief description of the module..."
               required
             />
@@ -327,7 +330,7 @@ export default function ModuleFormWithEditor({
               <select
                 value={basicInfo.module_type}
                 onChange={(e) => setBasicInfo({ ...basicInfo, module_type: e.target.value })}
-                className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white"
               >
                 <option value="text">Text</option>
                 <option value="video">Video</option>
@@ -340,7 +343,7 @@ export default function ModuleFormWithEditor({
               <select
                 value={basicInfo.difficulty_level}
                 onChange={(e) => setBasicInfo({ ...basicInfo, difficulty_level: e.target.value })}
-                className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
+                className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white"
               >
                 <option value="beginner">Beginner</option>
                 <option value="intermediate">Intermediate</option>
@@ -356,7 +359,7 @@ export default function ModuleFormWithEditor({
                 type="number"
                 value={basicInfo.duration_minutes}
                 onChange={(e) => setBasicInfo({ ...basicInfo, duration_minutes: parseInt(e.target.value) || 0 })}
-                className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 min="1"
               />
             </div>
@@ -367,7 +370,7 @@ export default function ModuleFormWithEditor({
                 type="number"
                 value={basicInfo.points_reward}
                 onChange={(e) => setBasicInfo({ ...basicInfo, points_reward: parseInt(e.target.value) || 0 })}
-                className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 min="1"
               />
             </div>
@@ -378,7 +381,7 @@ export default function ModuleFormWithEditor({
                 type="number"
                 value={basicInfo.order}
                 onChange={(e) => setBasicInfo({ ...basicInfo, order: parseInt(e.target.value) || 0 })}
-                className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:outline-none focus:border-purple-500"
+                className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 min="0"
               />
             </div>
@@ -398,7 +401,7 @@ export default function ModuleFormWithEditor({
                   setFile(e.target.files?.[0] || null)
                   setExtractedSlides(null) // Clear previous extraction
                 }}
-                className="flex-1 px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white file:cursor-pointer hover:file:bg-purple-700"
+                className="flex-1 px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-600 file:text-white file:cursor-pointer hover:file:bg-purple-500"
                 accept=".pdf,.docx,.doc"
               />
               {file && (
@@ -406,7 +409,7 @@ export default function ModuleFormWithEditor({
                   type="button"
                   onClick={extractContentFromFile}
                   disabled={extracting}
-                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 disabled:opacity-50 rounded-lg text-white font-medium transition flex items-center gap-2"
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 rounded-lg text-white font-medium transition flex items-center gap-2"
                 >
                   {extracting ? (
                     <>
@@ -441,7 +444,7 @@ export default function ModuleFormWithEditor({
               id="is_locked"
               checked={basicInfo.is_locked}
               onChange={(e) => setBasicInfo({ ...basicInfo, is_locked: e.target.checked })}
-              className="w-4 h-4 bg-neutral-700 border-neutral-600 rounded"
+              className="w-4 h-4 bg-neutral-900 border-neutral-700 rounded accent-purple-600"
             />
             <label htmlFor="is_locked" className="text-sm text-neutral-300">
               Lock this module (requires prerequisites)
@@ -451,14 +454,14 @@ export default function ModuleFormWithEditor({
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-lg transition font-medium"
+              className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition font-medium"
             >
               Next: Add Content →
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition"
+              className="px-6 py-3 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 text-neutral-100 rounded-lg transition-colors"
             >
               Cancel
             </button>

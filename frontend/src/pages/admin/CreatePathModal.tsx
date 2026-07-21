@@ -31,7 +31,7 @@ export default function CreatePathModal({
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="relative bg-neutral-900 border border-neutral-800 rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl shadow-black/40">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-xl font-bold text-white">Create New Career Path</h3>
                     <button

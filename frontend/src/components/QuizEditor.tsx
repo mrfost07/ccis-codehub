@@ -123,7 +123,6 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
         initialQuestions.some((q, i) => q.id !== questions[i]?.id);
 
       if (isDifferent) {
-        console.log('QuizEditor: initialQuestions deeply changed, updating state:', initialQuestions.length)
         setQuestions(initialQuestions)
         setCurrentQuestionIndex(0)
       }
@@ -139,7 +138,6 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
       const contentChanged = JSON.stringify(questions) !== JSON.stringify(prevQuestionsRef.current)
 
       if (contentChanged) {
-        console.log('QuizEditor: Content changed, auto-saving:', questions.length)
         prevQuestionsRef.current = questions
         onSave(questions)
       }
@@ -166,7 +164,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
 
   const deleteQuestion = (index: number) => {
     if (questions.length <= 1) {
-      alert('Quiz must have at least one question')
+      toast.error('Quiz must have at least one question')
       return
     }
     const newQuestions = questions.filter((_, i) => i !== index)
@@ -263,83 +261,8 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
   }
 
   const handleSave = () => {
-    // Generate HTML content from questions
-    const htmlContent = questions.map((q, index) => {
-      let choicesHtml = ''
-
-      if (q.type === 'multiple_choice' && q.choices) {
-        choicesHtml = `
-          <div class="quiz-choices" style="margin-top: 1rem;">
-            ${q.choices.map((choice, i) => `
-              <div class="quiz-choice" style="padding: 0.75rem; margin: 0.5rem 0; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; cursor: pointer; transition: all 0.2s;" data-choice-id="${choice.id}" data-correct="${choice.isCorrect}">
-                <label style="display: flex; align-items: center; cursor: pointer;">
-                  <input type="radio" name="question-${q.id}" value="${choice.id}" style="margin-right: 0.75rem; width: 1.25rem; height: 1.25rem;">
-                  <span style="font-size: 1rem;">${String.fromCharCode(65 + i)}. ${choice.text}</span>
-                </label>
-              </div>
-            `).join('')}
-          </div>
-        `
-      } else if (q.type === 'true_false') {
-        choicesHtml = `
-          <div class="quiz-choices" style="margin-top: 1rem;">
-            <div class="quiz-choice" style="padding: 0.75rem; margin: 0.5rem 0; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; cursor: pointer;">
-              <label style="display: flex; align-items: center; cursor: pointer;">
-                <input type="radio" name="question-${q.id}" value="true" style="margin-right: 0.75rem; width: 1.25rem; height: 1.25rem;">
-                <span style="font-size: 1rem;">True</span>
-              </label>
-            </div>
-            <div class="quiz-choice" style="padding: 0.75rem; margin: 0.5rem 0; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; cursor: pointer;">
-              <label style="display: flex; align-items: center; cursor: pointer;">
-                <input type="radio" name="question-${q.id}" value="false" style="margin-right: 0.75rem; width: 1.25rem; height: 1.25rem;">
-                <span style="font-size: 1rem;">False</span>
-              </label>
-            </div>
-          </div>
-        `
-      } else if (q.type === 'enumeration' || q.type === 'short_answer') {
-        choicesHtml = `
-          <div style="margin-top: 1rem;">
-            <p style="color: #94a3b8; font-size: 0.875rem; margin-bottom: 0.5rem;">ENUMERATION - Type your answer:</p>
-            <input 
-              type="text"
-              placeholder="Enter your answer..." 
-              style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.5rem; color: white; font-size: 1rem;"
-            />
-          </div>
-        `
-      } else {
-        choicesHtml = `
-          <div style="margin-top: 1rem;">
-            <p style="color: #94a3b8; font-size: 0.875rem; margin-bottom: 0.5rem;">ESSAY - Write your answer:</p>
-            <textarea 
-              placeholder="Type your answer here..." 
-              rows="4" 
-              style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.5rem; color: white; font-size: 1rem; resize: vertical;"
-            ></textarea>
-          </div>
-        `
-      }
-
-      return `
-        <div class="module-slide" data-slide="${index + 1}">
-          <h2 style="color: #a78bfa; margin-bottom: 1rem; font-size: 1.5rem; font-weight: bold;">
-            Question ${index + 1}: ${q.title}
-          </h2>
-          <div class="question-content" style="margin-bottom: 1.5rem;">
-            ${q.content}
-          </div>
-          <div class="question-info" style="display: flex; gap: 1rem; margin-bottom: 1rem; font-size: 0.875rem; color: #94a3b8;">
-            <span>📝 ${q.type.replace('_', ' ').toUpperCase()}</span>
-            <span>⭐ ${q.points} ${q.points === 1 ? 'point' : 'points'}</span>
-          </div>
-          ${choicesHtml}
-        </div>
-        ${index < questions.length - 1 ? '<hr class="slide-separator" />' : ''}
-      `
-    }).join('\n')
-
     onSave(questions)
+    toast.success('Quiz saved')
   }
 
   const currentQuestion = questions[currentQuestionIndex]
@@ -384,7 +307,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
           <button
             type="button"
             onClick={() => setIsPreview(!isPreview)}
-            className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg transition flex items-center gap-2"
+            className="px-4 py-2 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 text-neutral-100 rounded-lg transition-colors flex items-center gap-2"
           >
             {isPreview ? <Edit3 className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             {isPreview ? 'Edit' : 'Preview'}
@@ -392,7 +315,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
           <button
             type="button"
             onClick={handleSave}
-            className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium"
+            className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors font-medium"
           >
             Save Quiz
           </button>
@@ -406,9 +329,9 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
             <button
               type="button"
               onClick={() => setCurrentQuestionIndex(index)}
-              className={`px-4 py-2 rounded-lg transition ${currentQuestionIndex === index
+              className={`px-4 py-2 rounded-lg text-sm font-medium tabular-nums transition-colors ${currentQuestionIndex === index
                 ? 'bg-purple-600 text-white'
-                : 'bg-neutral-700 text-neutral-300 hover:bg-neutral-600'
+                : 'bg-neutral-800 border border-neutral-700 text-neutral-300 hover:bg-neutral-700 hover:text-white'
                 }`}
             >
               Q{index + 1}
@@ -417,7 +340,8 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
               <button
                 type="button"
                 onClick={() => deleteQuestion(index)}
-                className="p-2 bg-red-600/20 hover:bg-red-600/40 text-red-400 rounded-lg transition"
+                title="Delete question"
+                className="p-2 text-neutral-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -427,7 +351,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
         <button
           type="button"
           onClick={addQuestion}
-          className="px-4 py-2 bg-green-600/20 hover:bg-green-600/40 text-green-400 rounded-lg transition flex items-center gap-2 flex-shrink-0"
+          className="px-4 py-2 border border-dashed border-neutral-700 text-neutral-300 hover:border-purple-500 hover:text-white rounded-lg transition-colors flex items-center gap-2 flex-shrink-0"
         >
           <Plus className="w-4 h-4" />
           Add Question
@@ -436,7 +360,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
 
       {/* Question Editor */}
       {currentQuestion && (
-        <div className="bg-neutral-800/50 rounded-xl p-4 sm:p-6 border border-neutral-700">
+        <div className="bg-neutral-900 rounded-xl p-4 sm:p-6 border border-neutral-800">
           {/* Question Title */}
           <div className="mb-4">
             <label className="block text-sm font-medium text-neutral-300 mb-2">
@@ -446,7 +370,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
               type="text"
               value={currentQuestion.title}
               onChange={(e) => updateQuestionTitle(currentQuestionIndex, e.target.value)}
-              className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
               placeholder="e.g., What is a variable in Python?"
             />
           </div>
@@ -460,7 +384,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
               <select
                 value={currentQuestion.type}
                 onChange={(e) => updateQuestionType(currentQuestionIndex, e.target.value as Question['type'])}
-                className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
               >
                 <option value="multiple_choice">Multiple Choice</option>
                 <option value="true_false">True/False</option>
@@ -478,7 +402,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
                 min="1"
                 value={currentQuestion.points}
                 onChange={(e) => updateQuestionPoints(currentQuestionIndex, parseInt(e.target.value) || 1)}
-                className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
               />
             </div>
           </div>
@@ -529,7 +453,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
                       type="text"
                       value={choice.text}
                       onChange={(e) => updateChoice(currentQuestionIndex, choice.id, e.target.value)}
-                      className="flex-1 px-3 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white focus:ring-2 focus:ring-purple-500"
+                      className="flex-1 px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg text-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
                       placeholder={`Option ${String.fromCharCode(65 + index)}`}
                     />
                     <button
@@ -556,7 +480,7 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
                 ))}
               </div>
               <p className="text-xs text-neutral-500 mt-2">
-                💡 Click the checkmark to set the correct answer
+                Click the checkmark to set the correct answer.
               </p>
             </div>
           )}
@@ -602,9 +526,10 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
 
           {/* Short Answer / Essay */}
           {(currentQuestion.type === 'short_answer' || currentQuestion.type === 'essay') && (
-            <div className="bg-purple-600/10 border border-purple-600/30 rounded-lg p-4">
-              <p className="text-purple-300 text-sm">
-                📝 This is an open-ended question. Students will type their answer in a text box.
+            <div className="flex items-start gap-2.5 bg-purple-500/5 border border-purple-500/20 rounded-lg p-4">
+              <FileText className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+              <p className="text-neutral-300 text-sm">
+                This is an open-ended question. Students will type their answer in a text box.
                 {currentQuestion.type === 'essay' && ' Essays allow longer responses with multiple paragraphs.'}
               </p>
             </div>
@@ -613,13 +538,14 @@ export default function QuizEditor({ initialQuestions = [], onSave }: QuizEditor
       )}
 
       {/* Summary */}
-      <div className="bg-purple-600/10 border border-purple-600/30 rounded-lg p-4">
-        <div className="flex items-center justify-between">
-          <p className="text-purple-300 text-sm">
-            📝 <strong>{questions.length}</strong> {questions.length === 1 ? 'question' : 'questions'} •
-            ⭐ <strong>{questions.reduce((sum, q) => sum + q.points, 0)}</strong> total points
+      <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-neutral-400 tabular-nums">
+            <strong className="text-white">{questions.length}</strong> {questions.length === 1 ? 'question' : 'questions'}
+            <span className="mx-2 text-neutral-700">·</span>
+            <strong className="text-white">{questions.reduce((sum, q) => sum + q.points, 0)}</strong> total points
           </p>
-          <div className="flex gap-2 text-xs text-purple-400">
+          <div className="flex gap-3 text-xs text-neutral-500 tabular-nums">
             <span>{questions.filter(q => q.type === 'multiple_choice').length} MC</span>
             <span>{questions.filter(q => q.type === 'true_false').length} T/F</span>
             <span>{questions.filter(q => q.type === 'short_answer').length} SA</span>
