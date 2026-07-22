@@ -163,6 +163,8 @@ const LiveQuizSession = () => {
     const [pauseSource, setPauseSource] = useState<'proctor' | 'fullscreen' | 'tab_switch' | 'server' | ''>('');
     const [isQuizClosed, setIsQuizClosed] = useState(false);
     const [closeReason, setCloseReason] = useState('');
+    // Brief "resuming…" loading shown when returning from a pause before the quiz reveals
+    const [resuming, setResuming] = useState(false);
 
     const [violationModal, setViolationModal] = useState({
         isOpen: false,
@@ -273,17 +275,22 @@ const LiveQuizSession = () => {
                 // 'warn' → ViolationWarningModal shown on server response
             }
 
-            // Auto-resume if back in fullscreen and paused due to fullscreen exit
-            if (isFull && isQuizPaused && pauseReason.includes('fullscreen')) {
-                // Notify server of resume
+            // Auto-resume if back in fullscreen and paused due to fullscreen exit —
+            // routed through the brief "Resuming…" loading beat for consistency.
+            if (isFull && isQuizPaused && pauseReason.includes('fullscreen') && !resuming) {
                 if (wsRef.current?.readyState === WebSocket.OPEN) {
                     wsRef.current.send(JSON.stringify({
                         type: 'resume_from_fullscreen',
                         participant_id: sessionState.participantId,
                     }));
                 }
-                setIsQuizPaused(false);
-                setPauseReason('');
+                setResuming(true);
+                window.setTimeout(() => {
+                    setIsQuizPaused(false);
+                    setPauseReason('');
+                    setPauseSource('');
+                    setResuming(false);
+                }, 1200);
             }
         };
 
@@ -296,7 +303,7 @@ const LiveQuizSession = () => {
         };
     }, [
         sessionState.requireFullscreen, sessionState.participantId,
-        gameState.status, fsAction, isQuizPaused, pauseReason, reportViolation
+        gameState.status, fsAction, isQuizPaused, pauseReason, reportViolation, resuming
     ]);
 
     // Tab / window visibility detection
@@ -342,21 +349,35 @@ const LiveQuizSession = () => {
 
     useEffect(() => {
         if (gameState.status !== 'in_progress' || !gameState.currentQuestion) return;
-        if (isQuizPaused || isQuizClosed) return;
+        if (isQuizClosed) return;
 
+        // Wall-clock corrected countdown: decrement by the REAL seconds elapsed
+        // since the last tick, not a fixed 1. Background tabs throttle setInterval,
+        // so when the student returns from an Alt-Tab the pending tick deducts the
+        // full time they were away — leaving the window can never buy time.
+        let lastTick = Date.now();
         const timer = setInterval(() => {
+            const now = Date.now();
+            const elapsed = Math.max(1, Math.round((now - lastTick) / 1000));
+            lastTick = now;
+
+            // Only a legitimate instructor pause ('server') or a proctor pause
+            // freezes the clock. Violation pauses (tab-switch / fullscreen exit)
+            // keep it running — that's the whole point of the pause overlay.
+            if (isQuizPausedRef.current && (pauseSource === 'proctor' || pauseSource === 'server')) return;
+
             setGameState(prev => {
-                if (prev.timeRemaining <= 0) {
-                    clearInterval(timer);
+                const next = prev.timeRemaining - elapsed;
+                if (next <= 0) {
                     if (!isAnswerSubmitted) submitAnswer('');
-                    return prev;
+                    return { ...prev, timeRemaining: 0 };
                 }
-                return { ...prev, timeRemaining: prev.timeRemaining - 1 };
+                return { ...prev, timeRemaining: next };
             });
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [gameState.status, gameState.currentQuestion?.id, isAnswerSubmitted, isQuizPaused, isQuizClosed]);
+    }, [gameState.status, gameState.currentQuestion?.id, isAnswerSubmitted, isQuizClosed, pauseSource]);
 
     // ─────────────────────────────────────────────────────────────────────────
     // WebSocket connection
@@ -880,51 +901,78 @@ const LiveQuizSession = () => {
     // ── QUIZ PAUSED STATE ────────────────────────────────────────────────────
     // ─────────────────────────────────────────────────────────────────────────
 
-    if (isQuizPaused) {
-        return (
-            <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center text-white p-6">
-                {/* Blurred quiz background overlay */}
-                <div className="absolute inset-0 bg-neutral-950/95 backdrop-blur-sm" />
-                <div className="relative z-10 bg-neutral-900 border border-amber-600/50 rounded-2xl p-10 text-center max-w-md shadow-2xl">
-                    <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-5">
-                        <Lock className="w-10 h-10 text-amber-400" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-amber-400 mb-3">Quiz Paused</h2>
-                    <p className="text-neutral-400 mb-8">{pauseReason}</p>
+    if (isQuizPaused || resuming) {
+        // A violation pause (tab-switch / fullscreen exit) keeps the clock running;
+        // a proctor / instructor pause freezes it.
+        const clockRunning = !resuming && !(pauseSource === 'proctor' || pauseSource === 'server');
+        const t = Math.max(0, gameState.timeRemaining);
+        const mmss = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 
-                    {pauseSource === 'proctor' ? (
-                        /* AI Proctor pause — auto-resumes, no button needed */
-                        <div className="flex flex-col items-center gap-3">
-                            <div className="animate-pulse flex items-center gap-2 text-purple-400 text-sm">
-                                <div className="w-2 h-2 rounded-full bg-purple-400 animate-ping" />
-                                Monitoring... will auto-resume when you look at the screen
-                            </div>
+        const doResume = () => {
+            if (!document.fullscreenElement) { enterFullscreen(); return; }
+            setResuming(true);
+            if (wsRef.current?.readyState === WebSocket.OPEN) {
+                wsRef.current.send(JSON.stringify({
+                    type: 'resume_from_fullscreen',
+                    participant_id: sessionState.participantId,
+                }));
+            }
+            // Brief loading beat, then reveal the (still-running) quiz.
+            window.setTimeout(() => {
+                setIsQuizPaused(false);
+                setPauseReason('');
+                setPauseSource('');
+                setResuming(false);
+            }, 1200);
+        };
+
+        return (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-neutral-950/95 backdrop-blur-md text-white p-6">
+                {resuming ? (
+                    /* Resuming loading state */
+                    <div className="text-center">
+                        <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4 text-purple-400" />
+                        <p className="text-lg font-semibold text-white">Resuming…</p>
+                        <p className="text-sm text-neutral-500 mt-1">Bringing you back to the quiz</p>
+                    </div>
+                ) : (
+                    <div className="w-full max-w-md rounded-2xl border border-neutral-800 bg-neutral-900 p-8 text-center shadow-xl shadow-black/40">
+                        <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/30 rounded-full flex items-center justify-center mx-auto mb-5">
+                            <Lock className="w-8 h-8 text-amber-400" />
                         </div>
-                    ) : (
-                        /* Fullscreen/tab-switch pause — needs manual action */
-                        <button
-                            onClick={() => {
-                                if (document.fullscreenElement) {
-                                    if (wsRef.current?.readyState === WebSocket.OPEN) {
-                                        wsRef.current.send(JSON.stringify({
-                                            type: 'resume_from_fullscreen',
-                                            participant_id: sessionState.participantId,
-                                        }));
-                                    }
-                                    setIsQuizPaused(false);
-                                    setPauseReason('');
-                                    setPauseSource('');
-                                } else {
-                                    enterFullscreen();
-                                }
-                            }}
-                            className="flex items-center gap-2 mx-auto px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold transition"
-                        >
-                            <Maximize className="w-5 h-5" />
-                            {document.fullscreenElement ? 'Continue Quiz' : 'Re-enter Fullscreen to Continue'}
-                        </button>
-                    )}
-                </div>
+                        <h2 className="text-xl font-bold tracking-tight text-white mb-2">Quiz Paused</h2>
+                        <p className="text-sm text-neutral-400 mb-6">{pauseReason}</p>
+
+                        {clockRunning && (
+                            /* The deterrent: their time is visibly draining while away */
+                            <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/5 p-4">
+                                <p className="text-xs font-semibold uppercase tracking-wider text-red-400 mb-1">
+                                    The clock is still running
+                                </p>
+                                <p className="text-3xl font-bold text-white tabular-nums">{mmss}</p>
+                                <p className="text-xs text-neutral-500 mt-1">Time left on this question keeps counting down</p>
+                            </div>
+                        )}
+
+                        {pauseSource === 'proctor' ? (
+                            <div className="flex items-center justify-center gap-2 text-purple-400 text-sm">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="absolute inline-flex h-full w-full rounded-full bg-purple-400/60 animate-ping" />
+                                    <span className="relative inline-flex h-2 w-2 rounded-full bg-purple-400" />
+                                </span>
+                                Monitoring — auto-resumes when you look at the screen
+                            </div>
+                        ) : (
+                            <button
+                                onClick={doResume}
+                                className="flex items-center gap-2 mx-auto px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-semibold transition-colors"
+                            >
+                                <Maximize className="w-5 h-5" />
+                                {document.fullscreenElement ? 'Resume Quiz' : 'Re-enter Fullscreen to Continue'}
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
         );
     }
