@@ -26,7 +26,6 @@ interface LobbyState {
     violationPenaltyPoints?: number;
     fullscreenExitAction?: string;
     altTabAction?: string;
-    enableAiProctor?: boolean;
     enableCodeExecution?: boolean;
 }
 
@@ -88,7 +87,6 @@ const QuizLobby = () => {
                             violationPenaltyPoints: lobbyState.violationPenaltyPoints,
                             fullscreenExitAction: lobbyState.fullscreenExitAction,
                             altTabAction: lobbyState.altTabAction,
-                            enableAiProctor: false, // CV proctor removed (Req 17)
                             enableCodeExecution: lobbyState.enableCodeExecution,
                         }
                     });

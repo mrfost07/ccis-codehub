@@ -2,8 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
     Timer, CheckCircle, XCircle, AlertCircle, Play, Terminal,
-    Loader2, Maximize, Camera, CameraOff, ShieldAlert, Lock, Clock,
-    Send, Zap, Code, Eye
+    Loader2, Maximize, ShieldAlert, Lock, Clock,
+    Send, Zap, Code
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import DOMPurify from 'dompurify';
@@ -51,7 +51,6 @@ interface SessionState {
     // Phase 2: action configuration
     fullscreenExitAction?: 'warn' | 'pause' | 'close';
     altTabAction?: 'warn' | 'shuffle' | 'close';
-    enableAiProctor?: boolean;
     enableCodeExecution?: boolean;
     showCorrectAnswers?: boolean;
     showLeaderboard?: boolean;
@@ -73,43 +72,6 @@ interface CodeExecutionResult {
     all_passed: boolean;
     status: string;
     results: TestCaseResult[];
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Proctor camera hook
-// ─────────────────────────────────────────────────────────────────────────────
-
-interface ProctorResult {
-    label: string;
-    confidence: number;
-    is_violation: boolean;
-    calibrating: boolean;
-    violations: number;
-    action: string;
-}
-
-// Inert stub. The server-side CV proctor was removed (it opened the server's
-// webcam — broken for multi-user cloud); anti-cheat is now the in-browser exam
-// lockdown (fullscreen + tab-switch + copy/paste guards). This keeps the old
-// call sites compiling without any camera or WebSocket. (Req 17.)
-function useProctoringCamera(
-    _enabled: boolean,
-    _participantId: string | undefined,
-    _joinCode: string | undefined,
-    _nickname: string | undefined,
-    _onViolation?: (result: ProctorResult) => void,
-    _onStatusUpdate?: (result: ProctorResult) => void,
-) {
-    const videoRef = useRef<HTMLVideoElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    return {
-        videoRef,
-        canvasRef,
-        cameraActive: false as boolean,
-        proctorLabel: 'looking_center' as string,
-        wsConnected: false as boolean,
-        isCalibrating: false as boolean,
-    };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -160,7 +122,7 @@ const LiveQuizSession = () => {
     const isQuizPausedRef = useRef(isQuizPaused);
     isQuizPausedRef.current = isQuizPaused;
     const [pauseReason, setPauseReason] = useState('');
-    const [pauseSource, setPauseSource] = useState<'proctor' | 'fullscreen' | 'tab_switch' | 'server' | ''>('');
+    const [pauseSource, setPauseSource] = useState<'fullscreen' | 'tab_switch' | 'server' | ''>('');
     const [isQuizClosed, setIsQuizClosed] = useState(false);
     const [closeReason, setCloseReason] = useState('');
     // Brief "resuming…" loading shown when returning from a pause before the quiz reveals
@@ -178,49 +140,7 @@ const LiveQuizSession = () => {
     // Always enforce fullscreen and pause on violations
     const fsAction = 'pause' as const;
     const atAction = 'pause' as const;
-    const aiProctorEnabled = sessionState.enableAiProctor ?? false;
     const canShowResult = sessionState.showCorrectAnswers !== false;
-
-    // ── AI Proctor onboarding ─────────────────────────────────────────────────
-    const [proctorReady, setProctorReady] = useState(!aiProctorEnabled);
-    const onboardingVideoRef = useRef<HTMLVideoElement>(null);
-    const [onboardingCamActive, setOnboardingCamActive] = useState(false);
-    const [onboardingCamError, setOnboardingCamError] = useState<string | null>(null);
-    const onboardingStreamRef = useRef<MediaStream | null>(null);
-
-    // Friendly warning messages for proctor labels
-    const proctorWarnings: Record<string, string> = {
-        'no_face': 'Please show your face to the camera',
-        'looking_left': 'Please keep your eyes on the screen',
-        'looking_right': 'Please keep your eyes on the screen',
-        'looking_up': 'Please look at your screen',
-        'looking_down': 'Please look at your screen',
-        'phone_detected': 'Please put your phone away',
-    };
-
-    // ── AI Proctor camera ─────────────────────────────────────────────────────
-    const { videoRef, canvasRef, cameraActive, proctorLabel, wsConnected: proctorWsConnected, isCalibrating } = useProctoringCamera(
-        aiProctorEnabled && proctorReady,
-        sessionState.participantId,
-        joinCode,
-        sessionState.nickname,
-        // onViolation: AI flagged cheating → pause
-        (result) => {
-            const friendlyMsg = proctorWarnings[result.label] || 'Suspicious activity detected';
-            setIsQuizPaused(true);
-            setPauseReason(friendlyMsg);
-            setPauseSource('proctor');
-        },
-    );
-
-    // Auto-resume when AI proctor clears (only for proctor-triggered pauses)
-    useEffect(() => {
-        if (isQuizPaused && pauseSource === 'proctor' && proctorLabel === 'looking_center') {
-            setIsQuizPaused(false);
-            setPauseReason('');
-            setPauseSource('');
-        }
-    }, [proctorLabel, isQuizPaused, pauseSource]);
 
     // ─────────────────────────────────────────────────────────────────────────
     // Violation reporting
@@ -361,10 +281,10 @@ const LiveQuizSession = () => {
             const elapsed = Math.max(1, Math.round((now - lastTick) / 1000));
             lastTick = now;
 
-            // Only a legitimate instructor pause ('server') or a proctor pause
-            // freezes the clock. Violation pauses (tab-switch / fullscreen exit)
-            // keep it running — that's the whole point of the pause overlay.
-            if (isQuizPausedRef.current && (pauseSource === 'proctor' || pauseSource === 'server')) return;
+            // Only a legitimate instructor pause ('server') freezes the clock.
+            // Violation pauses (tab-switch / fullscreen exit) keep it running —
+            // that's the whole point of the pause overlay.
+            if (isQuizPausedRef.current && pauseSource === 'server') return;
 
             setGameState(prev => {
                 const next = prev.timeRemaining - elapsed;
@@ -704,176 +624,6 @@ const LiveQuizSession = () => {
         }
     };
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // ── AI PROCTOR ONBOARDING ────────────────────────────────────────────────
-    // ─────────────────────────────────────────────────────────────────────────
-
-    if (!proctorReady && aiProctorEnabled) {
-        const startOnboardingCamera = async () => {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240 } });
-                onboardingStreamRef.current = stream;
-                if (onboardingVideoRef.current) {
-                    onboardingVideoRef.current.srcObject = stream;
-                    onboardingVideoRef.current.play();
-                }
-                setOnboardingCamActive(true);
-                setOnboardingCamError(null);
-            } catch (err) {
-                setOnboardingCamError('Camera access denied. Please allow camera access and try again.');
-                setOnboardingCamActive(false);
-            }
-        };
-
-        if (!onboardingCamActive && !onboardingCamError) {
-            startOnboardingCamera();
-        }
-
-        const handleProceedToQuiz = () => {
-            onboardingStreamRef.current?.getTracks().forEach(t => t.stop());
-            onboardingStreamRef.current = null;
-            // Wait for OS to fully release camera hardware before backend opens it
-            setTimeout(() => setProctorReady(true), 1500);
-        };
-
-        const handleSkipProctor = () => {
-            onboardingStreamRef.current?.getTracks().forEach(t => t.stop());
-            onboardingStreamRef.current = null;
-            setTimeout(() => setProctorReady(true), 1500);
-        };
-
-        return (
-            <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4 pb-20">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-neutral-950 to-neutral-950" />
-                <div className="relative w-full max-w-lg">
-                    <div className="bg-neutral-900/60 backdrop-blur-xl border border-neutral-800 rounded-2xl p-5 sm:p-8 shadow-2xl">
-                        <div className="text-center mb-6">
-                            <div className="w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Camera className="w-8 h-8 text-purple-400" />
-                            </div>
-                            <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">Camera Setup</h1>
-                            <p className="text-neutral-400 text-sm">
-                                This quiz requires AI proctoring. Please allow camera access to continue.
-                            </p>
-                        </div>
-
-                        <div className="relative w-full aspect-video bg-neutral-800 rounded-xl overflow-hidden mb-6 border border-neutral-700">
-                            <video
-                                ref={onboardingVideoRef}
-                                className="w-full h-full object-cover"
-                                muted
-                                playsInline
-                                style={{ transform: 'scaleX(-1)' }}
-                            />
-                            {!onboardingCamActive && !onboardingCamError && (
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <div className="text-center">
-                                        <Loader2 className="w-8 h-8 animate-spin text-purple-400 mx-auto mb-2" />
-                                        <p className="text-sm text-neutral-400">Requesting camera access...</p>
-                                    </div>
-                                </div>
-                            )}
-                            {onboardingCamActive && (
-                                <div className="absolute bottom-3 left-3 bg-green-600/80 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                                    <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                                    Camera Active
-                                </div>
-                            )}
-                        </div>
-
-                        {onboardingCamError && (
-                            <div className="bg-red-950/30 border border-red-800/40 rounded-xl p-4 mb-4">
-                                <p className="text-sm text-red-300">{onboardingCamError}</p>
-                                <button
-                                    onClick={() => { setOnboardingCamError(null); setOnboardingCamActive(false); }}
-                                    className="text-sm text-red-400 hover:text-red-300 underline mt-2"
-                                >
-                                    Try Again
-                                </button>
-                            </div>
-                        )}
-
-                        <div className="space-y-3 mb-6">
-                            <div className="flex items-center gap-3">
-                                {onboardingCamActive
-                                    ? <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
-                                    : <div className="w-5 h-5 rounded-full border-2 border-neutral-600 shrink-0" />
-                                }
-                                <span className={`text-sm ${onboardingCamActive ? 'text-green-300' : 'text-neutral-400'}`}>
-                                    Camera access granted
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <ShieldAlert className="w-5 h-5 text-purple-400 shrink-0" />
-                                <span className="text-sm text-neutral-400">AI will monitor during quiz</span>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col gap-3">
-                            <button
-                                onClick={handleProceedToQuiz}
-                                disabled={!onboardingCamActive}
-                                className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                            >
-                                <CheckCircle className="w-5 h-5" />
-                                I'm Ready — Start Quiz
-                            </button>
-                            {onboardingCamError && (
-                                <button
-                                    onClick={handleSkipProctor}
-                                    className="w-full py-2.5 border border-neutral-700 text-neutral-400 hover:text-white hover:border-neutral-500 rounded-xl transition-all text-sm"
-                                >
-                                    Continue without camera
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────────
-    // AI Proctor Connecting Screen
-    // ─────────────────────────────────────────────────────────────────────────────
-
-    if (proctorReady && aiProctorEnabled && (!proctorWsConnected || isCalibrating)) {
-        return (
-            <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4 pb-20">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-neutral-950 to-neutral-950" />
-                <div className="relative w-full max-w-md">
-                    <div className="bg-neutral-900/60 backdrop-blur-xl border border-neutral-800 rounded-2xl p-6 sm:p-8 shadow-2xl text-center">
-                        {!proctorWsConnected ? (
-                            /* Connecting to server */
-                            <>
-                                <div className="w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
-                                </div>
-                                <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">Setting Up Proctoring</h1>
-                                <p className="text-neutral-400 text-sm">Connecting to monitoring server...</p>
-                            </>
-                        ) : (
-                            /* Calibrating — show "look at center" */
-                            <>
-                                <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-5 relative">
-                                    <div className="absolute inset-0 rounded-full border-2 border-purple-400/30 animate-ping" />
-                                    <Eye className="w-10 h-10 text-purple-400" />
-                                </div>
-                                <h1 className="text-xl sm:text-2xl font-bold text-white mb-3">Look at the Center of Your Screen</h1>
-                                <p className="text-neutral-400 text-sm mb-6">
-                                    Keep your eyes on the screen while we set up face tracking...
-                                </p>
-                                <div className="w-48 h-2 bg-neutral-700 rounded-full mx-auto overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-purple-500 to-purple-500 rounded-full animate-pulse" style={{ width: '60%' }} />
-                                </div>
-                                <p className="text-neutral-500 text-xs mt-3">This only takes a few seconds</p>
-                            </>
-                        )}
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // ── QUIZ CLOSED STATE ────────────────────────────────────────────────────
@@ -902,9 +652,9 @@ const LiveQuizSession = () => {
     // ─────────────────────────────────────────────────────────────────────────
 
     if (isQuizPaused || resuming) {
-        // A violation pause (tab-switch / fullscreen exit) keeps the clock running;
-        // a proctor / instructor pause freezes it.
-        const clockRunning = !resuming && !(pauseSource === 'proctor' || pauseSource === 'server');
+        // A violation pause (tab-switch / fullscreen exit) keeps the clock
+        // running; a legitimate instructor pause freezes it.
+        const clockRunning = !resuming && pauseSource !== 'server';
         const t = Math.max(0, gameState.timeRemaining);
         const mmss = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 
@@ -954,13 +704,11 @@ const LiveQuizSession = () => {
                             </div>
                         )}
 
-                        {pauseSource === 'proctor' ? (
-                            <div className="flex items-center justify-center gap-2 text-purple-400 text-sm">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="absolute inline-flex h-full w-full rounded-full bg-purple-400/60 animate-ping" />
-                                    <span className="relative inline-flex h-2 w-2 rounded-full bg-purple-400" />
-                                </span>
-                                Monitoring — auto-resumes when you look at the screen
+                        {pauseSource === 'server' ? (
+                            /* Instructor-initiated pause — waits for the instructor to resume */
+                            <div className="flex items-center justify-center gap-2 text-neutral-400 text-sm">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Paused by your instructor — please wait
                             </div>
                         ) : (
                             <button
@@ -1042,18 +790,6 @@ const LiveQuizSession = () => {
                         )}
                     </div>
                     <div className="flex items-center gap-2 sm:gap-4">
-                        {/* AI Proctor status */}
-                        {aiProctorEnabled && (
-                            <div className="flex items-center gap-1.5">
-                                {cameraActive
-                                    ? <Camera className="w-4 h-4 text-green-400" />
-                                    : <CameraOff className="w-4 h-4 text-red-400" />
-                                }
-                                <span className="text-xs text-neutral-400">
-                                    {cameraActive ? 'Proctored' : 'Cam off'}
-                                </span>
-                            </div>
-                        )}
                         {answerResult && canShowResult && (
                             <span className={`text-sm font-medium ${answerResult === 'correct' ? 'text-green-400' : 'text-red-400'}`}>
                                 {answerResult === 'correct' ? `+${pointsEarned}` : 'Wrong'}
