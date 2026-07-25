@@ -3,8 +3,17 @@ Voice Chat API View
 ====================
 Handles voice chat: receives transcribed text from browser STT,
 sends through the existing AI chat pipeline, converts response to speech via ElevenLabs.
+
+STATUS: voice is COMING SOON and disabled by default.
+
+ElevenLabs is a paid service and no key is provisioned in production, so the
+endpoints would otherwise fail with a confusing 500/empty audio. They now
+return 503 + {"coming_soon": true} so the UI can render a clear state.
+
+To enable: set ELEVENLABS_API_KEY and ENABLE_VOICE_FEATURES=True.
 """
 import logging
+from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -13,6 +22,35 @@ from rest_framework.test import APIRequestFactory
 from .services.tts_service import tts_service
 
 logger = logging.getLogger(__name__)
+
+COMING_SOON_PAYLOAD = {
+    'coming_soon': True,
+    'feature': 'voice',
+    'error': 'Voice chat is coming soon.',
+    'detail': 'Voice replies are not enabled yet. You can keep chatting with the AI mentor by text.',
+}
+
+
+def voice_enabled() -> bool:
+    """Voice needs both the feature flag and a configured TTS provider."""
+    return bool(
+        getattr(settings, 'ENABLE_VOICE_FEATURES', False)
+        and tts_service.is_available()
+    )
+
+
+class VoiceStatusView(APIView):
+    """
+    GET /api/ai/voice/status/
+    Lets the frontend render "Coming soon" without probing a failing endpoint.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({
+            'enabled': voice_enabled(),
+            'coming_soon': not voice_enabled(),
+        })
 
 
 class VoiceChatView(APIView):
@@ -23,6 +61,11 @@ class VoiceChatView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        if not voice_enabled():
+            return Response(COMING_SOON_PAYLOAD, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return self._handle(request)
+
+    def _handle(self, request):
         transcript = request.data.get('transcript', '').strip()
         session_id = request.data.get('session_id')
         current_page = request.data.get('current_page', '/')
@@ -115,6 +158,9 @@ class TTSConvertView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        if not voice_enabled():
+            return Response(COMING_SOON_PAYLOAD, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
         text = request.data.get('text', '').strip()
         if not text:
             return Response(
@@ -122,7 +168,10 @@ class TTSConvertView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if not tts_service.is_available:
+        # NOTE: is_available is a method — `if not tts_service.is_available`
+        # was always False (a bound method is truthy), so an unconfigured
+        # provider fell through and returned empty audio instead of a clear flag.
+        if not tts_service.is_available():
             return Response({
                 'audio_base64': None,
                 'tts_available': False,

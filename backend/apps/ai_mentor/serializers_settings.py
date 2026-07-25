@@ -16,34 +16,80 @@ class AIModelConfigSerializer(serializers.ModelSerializer):
         ]
 
 
+# Module level: a comprehension inside `class Meta` cannot see attributes of
+# the enclosing class body, so this must live out here.
+API_KEY_FIELDS = [
+    'gemini_api_key', 'openai_api_key', 'mistral_api_key', 'openrouter_api_key',
+    'anthropic_api_key', 'cohere_api_key', 'huggingface_api_key',
+]
+
+
 class UserAISettingsSerializer(serializers.ModelSerializer):
-    """Serializer for User AI Settings"""
+    """
+    Serializer for User AI Settings.
+
+    API keys are write-only — they are never sent back to the client. Instead
+    `keys` reports, per provider, whether a key is saved and a masked preview
+    so the UI can render "configured" state without ever handling the secret.
+    """
     selected_model = AIModelConfigSerializer(read_only=True)
-    selected_model_id = serializers.UUIDField(write_only=True, required=False)
-    
+    selected_model_id = serializers.UUIDField(write_only=True, required=False, allow_null=True)
+    keys = serializers.SerializerMethodField()
+
+    KEY_FIELDS = API_KEY_FIELDS
+
     class Meta:
         model = UserAISettings
         fields = [
-            'id', 'selected_model', 'selected_model_id',
-            'openai_api_key', 'anthropic_api_key', 'cohere_api_key',
-            'huggingface_api_key', 'custom_api_keys',
+            'id', 'selected_model', 'selected_model_id', 'keys',
+            'gemini_api_key', 'openai_api_key', 'mistral_api_key', 'openrouter_api_key',
+            'anthropic_api_key', 'cohere_api_key', 'huggingface_api_key',
+            'custom_api_keys',
             'temperature', 'max_tokens', 'stream_responses', 'save_history'
         ]
         extra_kwargs = {
-            'openai_api_key': {'write_only': True},
-            'anthropic_api_key': {'write_only': True},
-            'cohere_api_key': {'write_only': True},
-            'huggingface_api_key': {'write_only': True},
+            field: {'write_only': True, 'required': False, 'allow_blank': True}
+            for field in API_KEY_FIELDS
         }
-    
+
+    def get_keys(self, obj):
+        """Per-provider {configured, preview} — never the raw key."""
+        out = {}
+        for provider, field in UserAISettings.PROVIDER_KEY_FIELDS.items():
+            raw = (getattr(obj, field, '') or '').strip()
+            out[provider] = {
+                'configured': bool(raw),
+                # Show only the last 4 chars so a user can tell keys apart.
+                'preview': f'••••{raw[-4:]}' if len(raw) >= 4 else ('••••' if raw else ''),
+            }
+        return out
+
+    def validate(self, attrs):
+        """Reject obviously malformed keys early with a clear message."""
+        for field in self.KEY_FIELDS:
+            if field not in attrs:
+                continue
+            value = (attrs[field] or '').strip()
+            attrs[field] = value
+            if value and len(value) < 8:
+                raise serializers.ValidationError(
+                    {field: 'That key looks too short — please paste the full API key.'}
+                )
+        return attrs
+
     def update(self, instance, validated_data):
         if 'selected_model_id' in validated_data:
             model_id = validated_data.pop('selected_model_id')
-            try:
-                instance.selected_model = AIModelConfig.objects.get(id=model_id)
-            except AIModelConfig.DoesNotExist:
-                pass
-        
+            if model_id is None:
+                instance.selected_model = None
+            else:
+                try:
+                    instance.selected_model = AIModelConfig.objects.get(id=model_id)
+                except AIModelConfig.DoesNotExist:
+                    raise serializers.ValidationError(
+                        {'selected_model_id': 'Unknown model.'}
+                    )
+
         return super().update(instance, validated_data)
 
 

@@ -13,7 +13,7 @@ from .views_settings import (
     UserAISettingsViewSet,
     CustomAIModelViewSet,
 )
-from .views_voice import VoiceChatView, TTSConvertView
+from .views_voice import VoiceChatView, TTSConvertView, VoiceStatusView
 
 router = DefaultRouter()
 router.register(r'profile', AIMentorProfileViewSet, basename='ai-profile')
@@ -27,6 +27,7 @@ router.register(r'custom-models', CustomAIModelViewSet, basename='ai-custom-mode
 urlpatterns = [
     path('', include(router.urls)),
     path('quiz/generate-from-pdf/', GenerateQuizFromPDFView.as_view(), name='quiz-generate-pdf'),
+    path('voice/status/', VoiceStatusView.as_view(), name='ai-voice-status'),
     path('voice/', VoiceChatView.as_view(), name='ai-voice-chat'),
     path('tts/', TTSConvertView.as_view(), name='ai-tts'),
 ]

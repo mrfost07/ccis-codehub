@@ -184,6 +184,9 @@ export default function FloatingAIMentor() {
   const navigate = useNavigate()
 
   // ── Voice Mode State ────────────────────────────────────────────────────
+  // Voice is COMING SOON: the server decides, so the UI never offers a mode
+  // that would 503 mid-conversation.
+  const [voiceEnabled, setVoiceEnabled] = useState(false)
   const [isVoiceMode, setIsVoiceMode] = useState(false)
   const [voiceStatus, setVoiceStatus] = useState<'idle' | 'listening' | 'processing' | 'speaking'>('idle')
   const [voiceTranscript, setVoiceTranscript] = useState<Array<{ role: 'user' | 'ai'; text: string }>>([]
@@ -199,6 +202,16 @@ export default function FloatingAIMentor() {
   // Ref for sessionId to avoid stale closures
   const sessionIdRef = useRef(sessionId)
   useEffect(() => { sessionIdRef.current = sessionId }, [sessionId])
+
+  // Ask the server whether voice is live yet. Any failure keeps it disabled,
+  // so the button degrades to "coming soon" rather than erroring on click.
+  useEffect(() => {
+    let cancelled = false
+    aiAPI.getVoiceStatus?.()
+      .then((res: any) => { if (!cancelled) setVoiceEnabled(!!res?.data?.enabled) })
+      .catch(() => { if (!cancelled) setVoiceEnabled(false) })
+    return () => { cancelled = true }
+  }, [])
 
   // Helper: send voice transcript to AI
   const handleVoiceSend = useCallback(async () => {
@@ -914,15 +927,29 @@ export default function FloatingAIMentor() {
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <button
-                onClick={() => { setIsVoiceMode(!isVoiceMode); if (isVoiceMode && speech.isListening) speech.stopListening(); }}
-                className={`hover:bg-neutral-700/50 rounded-lg p-2 flex items-center justify-center transition-colors ${
-                  isVoiceMode ? 'text-purple-400 bg-purple-500/10' : 'text-neutral-400 hover:text-white'
-                }`}
-                title={isVoiceMode ? 'Switch to chat' : 'Switch to voice'}
-              >
-                {isVoiceMode ? <MessageSquare className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-              </button>
+              {/* Voice mode is COMING SOON — the backend returns 503 until
+                  ENABLE_VOICE_FEATURES and a TTS key are configured, so the
+                  toggle is disabled rather than failing mid-conversation. */}
+              {voiceEnabled ? (
+                <button
+                  onClick={() => { setIsVoiceMode(!isVoiceMode); if (isVoiceMode && speech.isListening) speech.stopListening(); }}
+                  className={`hover:bg-neutral-700/50 rounded-lg p-2 flex items-center justify-center transition-colors ${
+                    isVoiceMode ? 'text-purple-400 bg-purple-500/10' : 'text-neutral-400 hover:text-white'
+                  }`}
+                  title={isVoiceMode ? 'Switch to chat' : 'Switch to voice'}
+                >
+                  {isVoiceMode ? <MessageSquare className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                </button>
+              ) : (
+                <span
+                  className="relative rounded-lg p-2 flex items-center justify-center text-neutral-600 cursor-not-allowed"
+                  title="Voice chat is coming soon"
+                  aria-label="Voice chat — coming soon"
+                >
+                  <Mic className="w-5 h-5" />
+                  <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-amber-400/80" />
+                </span>
+              )}
               <button
                 onClick={createNewConversation}
                 className="text-neutral-400 hover:text-white hover:bg-neutral-700/50 rounded-lg p-2 flex items-center justify-center transition-colors"

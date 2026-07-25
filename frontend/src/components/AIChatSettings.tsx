@@ -33,15 +33,38 @@ interface AIChatSettingsProps {
   onModelChange: (modelId: string) => void
 }
 
+// Providers a user can bring their own key for. `field` matches the backend
+// UserAISettings field name.
+const BYOK_PROVIDERS: Array<{
+  id: string
+  field: string
+  label: string
+  hint: string
+  url: string
+}> = [
+    { id: 'openrouter', field: 'openrouter_api_key', label: 'OpenRouter', hint: 'Free tier available — powers most models here', url: 'https://openrouter.ai/keys' },
+    { id: 'gemini', field: 'gemini_api_key', label: 'Google Gemini', hint: 'Free tier available', url: 'https://aistudio.google.com/app/apikey' },
+    { id: 'mistral', field: 'mistral_api_key', label: 'Mistral', hint: 'Direct Mistral API', url: 'https://console.mistral.ai/api-keys' },
+    { id: 'openai', field: 'openai_api_key', label: 'OpenAI', hint: 'Paid — GPT models', url: 'https://platform.openai.com/api-keys' },
+  ]
+
+interface KeyStatus { configured: boolean; preview: string }
+
 export default function AIChatSettings({ isOpen, onClose, onModelChange }: AIChatSettingsProps) {
-  const [activeTab, setActiveTab] = useState<'models' | 'custom' | 'preferences'>('models')
+  const [activeTab, setActiveTab] = useState<'models' | 'keys' | 'custom' | 'preferences'>('models')
   const [models, setModels] = useState<AIModel[]>([])
   const [selectedModel, setSelectedModel] = useState<string>('')
   const [customModels, setCustomModels] = useState<CustomModel[]>([])
   const [showAddCustom, setShowAddCustom] = useState(false)
   const [loading, setLoading] = useState(false)
 
-  // Provider API keys are configured server-side (.env) or via the Custom tab.
+  // Bring-your-own-key state. `keyStatus` comes from the server (configured +
+  // masked preview only — the raw key is never sent back). `keyDrafts` holds
+  // what the user is currently typing.
+  const [keyStatus, setKeyStatus] = useState<Record<string, KeyStatus>>({})
+  const [keyDrafts, setKeyDrafts] = useState<Record<string, string>>({})
+  const [savingKey, setSavingKey] = useState<string | null>(null)
+
   // Only user-facing preferences live here.
   const [settings, setSettings] = useState({
     temperature: 0.7,
@@ -255,10 +278,29 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
     return newId
   }
 
+  // Save (or clear) one provider's API key. Sending '' removes it and falls
+  // back to the platform's shared key.
+  const saveProviderKey = async (provider: string, field: string) => {
+    const draft = (keyDrafts[field] ?? '').trim()
+    setSavingKey(field)
+    try {
+      const response = await api.post('/ai/settings/', { [field]: draft })
+      if (response.data?.keys) setKeyStatus(response.data.keys)
+      setKeyDrafts(prev => ({ ...prev, [field]: '' }))
+      toast.success(draft ? `${provider} key saved` : `${provider} key removed`)
+    } catch (error: any) {
+      const detail = error?.response?.data?.[field]?.[0] || error?.response?.data?.error
+      toast.error(detail || 'Could not save that key')
+    } finally {
+      setSavingKey(null)
+    }
+  }
+
   const fetchSettings = async () => {
     try {
       const response = await api.get('/ai/settings/')
       setSettings(response.data)
+      if (response.data?.keys) setKeyStatus(response.data.keys)
       // Read preferred model from AIMentorProfile (synced by backend)
       let modelId = response.data.preferred_ai_model || response.data.selected_model?.id || 'mistral_direct'
 
@@ -388,6 +430,7 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
         <div className="flex border-b border-neutral-800 shrink-0">
           {[
             { id: 'models', label: 'Models' },
+            { id: 'keys', label: 'API Keys' },
             { id: 'custom', label: 'Custom' },
             { id: 'preferences', label: 'Prefs' }
           ].map(tab => (
@@ -485,6 +528,72 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
             </div>
           )}
 
+
+          {activeTab === 'keys' && (
+            <div className="p-4 space-y-4">
+              <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
+                <p className="text-xs text-neutral-400 leading-relaxed">
+                  Add your own API key to use your personal quota instead of the
+                  shared platform key — useful if you hit rate limits. Leave a
+                  field empty to keep using the platform key.
+                </p>
+                <p className="mt-2 text-[11px] text-neutral-500">
+                  Keys are stored on your account and never shown again after saving.
+                </p>
+              </div>
+
+              {BYOK_PROVIDERS.map(({ id, field, label, hint, url }) => {
+                const status = keyStatus[id]
+                const draft = keyDrafts[field] ?? ''
+                const busy = savingKey === field
+                return (
+                  <div key={field} className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-3">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-white">{label}</span>
+                        {status?.configured ? (
+                          <span className="inline-flex items-center gap-1 rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[10px] text-green-300">
+                            <CheckCircle2 className="w-3 h-3" /> {status.preview}
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-neutral-800 px-2 py-0.5 text-[10px] text-neutral-500">
+                            Using platform key
+                          </span>
+                        )}
+                      </div>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] text-purple-400 hover:text-purple-300"
+                      >
+                        Get key
+                      </a>
+                    </div>
+                    <p className="text-[11px] text-neutral-500 mb-2">{hint}</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="password"
+                        autoComplete="off"
+                        spellCheck={false}
+                        value={draft}
+                        onChange={(e) => setKeyDrafts(prev => ({ ...prev, [field]: e.target.value }))}
+                        placeholder={status?.configured ? 'Enter a new key to replace' : `Paste your ${label} key`}
+                        className="flex-1 min-w-0 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 focus:border-purple-500 focus:outline-none"
+                      />
+                      <button
+                        onClick={() => saveProviderKey(label, field)}
+                        disabled={busy || (!draft && !status?.configured)}
+                        className="shrink-0 rounded-lg bg-purple-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {busy ? 'Saving…' : draft ? 'Save' : 'Remove'}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
 
           {activeTab === 'custom' && (
             <div className="space-y-4">

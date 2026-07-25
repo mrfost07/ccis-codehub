@@ -33,13 +33,15 @@ class BaseAIService(ABC):
 class GeminiService(BaseAIService):
     """Google Gemini AI Service"""
     
-    def __init__(self):
-        self.api_key = os.getenv('GOOGLE_GEMINI_API_KEY')
+    def __init__(self, api_key: Optional[str] = None):
+        # A caller-supplied key (the user's own) always wins over the server key.
+        self.api_key = api_key or os.getenv('GOOGLE_GEMINI_API_KEY')
         if not self.api_key:
             self.api_key = os.getenv('GEMINI_API_KEY')
+        self.using_user_key = bool(api_key)
         self.model_name = "gemini-2.0-flash"  # Using Gemini 2.0 Flash
         self.base_url = "https://generativelanguage.googleapis.com/v1beta"
-        
+
         if not self.api_key or self.api_key == 'your-gemini-api-key-here':
             logger.warning("Google Gemini API key not configured")
             self.api_key = None
@@ -178,10 +180,11 @@ class GeminiService(BaseAIService):
 class OpenAIService(BaseAIService):
     """OpenAI GPT Service"""
     
-    def __init__(self):
-        self.api_key = os.getenv('OPENAI_API_KEY')
+    def __init__(self, api_key: Optional[str] = None):
+        self.api_key = api_key or os.getenv('OPENAI_API_KEY')
+        self.using_user_key = bool(api_key)
         self.model_name = "gpt-3.5-turbo"
-        
+
         if not self.api_key:
             logger.warning("OpenAI API key not configured")
     
@@ -330,11 +333,12 @@ class LocalAIService(BaseAIService):
 class MistralService(BaseAIService):
     """Mistral AI Service - Direct API access"""
     
-    def __init__(self):
-        self.api_key = os.getenv('MISTRAL_API_KEY')
+    def __init__(self, api_key: Optional[str] = None):
+        self.api_key = api_key or os.getenv('MISTRAL_API_KEY')
+        self.using_user_key = bool(api_key)
         self.model_name = "mistral-small-latest"
         self.base_url = "https://api.mistral.ai/v1"
-        
+
         if not self.api_key:
             logger.warning("Mistral API key not configured")
     
@@ -465,23 +469,29 @@ Format: Short paragraphs. Bullet points for lists. Code blocks for code."""}
 class OpenRouterService(BaseAIService):
     """OpenRouter AI Service - Access multiple models via OpenRouter API"""
     
-    def __init__(self, model: str = None):
+    def __init__(self, model: str = None, api_key: Optional[str] = None):
         # Try Django settings first, then os.getenv
         try:
             from django.conf import settings
-            self.api_key = getattr(settings, 'OPENROUTER_API_KEY', None) or os.getenv('OPENROUTER_API_KEY')
+            server_key = getattr(settings, 'OPENROUTER_API_KEY', None) or os.getenv('OPENROUTER_API_KEY')
             default_model = getattr(settings, 'OPENROUTER_MODEL', None) or os.getenv('OPENROUTER_MODEL', 'google/gemini-2.0-flash-exp:free')
-        except:
-            self.api_key = os.getenv('OPENROUTER_API_KEY')
+        except Exception:
+            server_key = os.getenv('OPENROUTER_API_KEY')
             default_model = os.getenv('OPENROUTER_MODEL', 'google/gemini-2.0-flash-exp:free')
-        
+
+        # A caller-supplied key (the user's own) always wins over the server key.
+        self.api_key = api_key or server_key
+        self.using_user_key = bool(api_key)
+
         self.base_url = "https://openrouter.ai/api/v1"
         self.model_name = model or default_model
-        
-        # Debug logging
-        logger.info(f"OpenRouterService.__init__: model={self.model_name}")
-        logger.info(f"OpenRouterService.__init__: api_key present={bool(self.api_key)}, key_prefix={self.api_key[:20] if self.api_key else 'None'}...")
-        
+
+        # Never log key material — presence only.
+        logger.info(
+            f"OpenRouterService.__init__: model={self.model_name}, "
+            f"api_key_present={bool(self.api_key)}, user_key={self.using_user_key}"
+        )
+
         if not self.api_key:
             logger.warning("OpenRouter API key not configured")
     
@@ -852,32 +862,86 @@ class AIServiceFactory:
         'openai': OpenAIService,
     }
     
+    # Which provider's key each model family needs, for BYOK lookup.
+    MODEL_PROVIDERS = {
+        'mistral_direct': 'mistral',
+        'google_gemini': 'gemini',
+        'gemini_direct': 'gemini',
+        'gemini': 'gemini',
+        'openai_gpt4': 'openai',
+        'openai': 'openai',
+        'anthropic_claude': 'anthropic',
+    }
+
     @classmethod
-    def get_service(cls, model_type: str = None) -> BaseAIService:
-        """Get AI service instance"""
+    def provider_for(cls, model_type: str) -> str:
+        """Map a model key to the provider whose API key it consumes."""
+        if not model_type:
+            return 'openrouter'
+        if model_type in cls.OPENROUTER_MODELS or model_type.startswith('openrouter'):
+            return 'openrouter'
+        return cls.MODEL_PROVIDERS.get(model_type, 'openrouter')
+
+    @staticmethod
+    def _user_key(user, provider: str) -> Optional[str]:
+        """
+        Look up this user's own API key for `provider`.
+
+        Returns None when there is no user, no saved settings, or no key — in
+        which case the service falls back to the server-wide key.
+        """
+        if user is None or not getattr(user, 'is_authenticated', False):
+            return None
+        try:
+            from apps.ai_mentor.models_settings import UserAISettings
+            settings_obj = UserAISettings.objects.filter(user=user).first()
+            if not settings_obj:
+                return None
+            return settings_obj.get_key_for(provider) or None
+        except Exception as exc:  # never let key lookup break a chat request
+            logger.warning(f"AIServiceFactory: user key lookup failed: {exc}")
+            return None
+
+    @classmethod
+    def get_service(cls, model_type: str = None, user=None) -> BaseAIService:
+        """
+        Get AI service instance.
+
+        When `user` is supplied and that user has saved their own API key for
+        the relevant provider, the key is injected into the service so their
+        request is billed to their own account. Otherwise the server key is used.
+        """
         # If no model specified, use env default
         if not model_type:
             default_model = os.getenv('AI_MODEL_DEFAULT', 'openrouter_gemini')
             logger.info(f"AIServiceFactory: No model specified, using default: {default_model}")
             model_type = default_model
-        
-        logger.info(f"AIServiceFactory: Requested model: {model_type}")
-        
+
+        provider = cls.provider_for(model_type)
+        user_key = cls._user_key(user, provider)
+        logger.info(
+            f"AIServiceFactory: model={model_type} provider={provider} "
+            f"using_user_key={bool(user_key)}"
+        )
+
         # Check if this is an OpenRouter model that needs specific model name
         if model_type in cls.OPENROUTER_MODELS:
             openrouter_model = cls.OPENROUTER_MODELS[model_type]
-            logger.info(f"AIServiceFactory: Using OpenRouter model: {openrouter_model}")
-            return OpenRouterService(model=openrouter_model)
-        
+            return OpenRouterService(model=openrouter_model, api_key=user_key)
+
         # Handle legacy google_gemini - check if API key is configured
         if model_type in ('google_gemini', 'gemini_direct', 'gemini'):
-            service = GeminiService()
+            service = GeminiService(api_key=user_key)
             if not service.api_key:
-                # Gemini not configured, fallback to OpenRouter
-                logger.warning(f"GeminiService not configured, falling back to OpenRouter")
-                return OpenRouterService(model='google/gemini-2.0-flash-exp:free')
+                # Gemini not configured, fallback to OpenRouter (server key —
+                # the user's Gemini key obviously doesn't work on OpenRouter).
+                logger.warning("GeminiService not configured, falling back to OpenRouter")
+                return OpenRouterService(
+                    model='google/gemini-2.0-flash-exp:free',
+                    api_key=cls._user_key(user, 'openrouter'),
+                )
             return service
-        
+
         # Handle custom user-defined models (format: "custom_<uuid>")
         if model_type and model_type.startswith('custom_'):
             custom_id = model_type[len('custom_'):]
@@ -886,7 +950,11 @@ class AIServiceFactory:
 
         service_class = cls._services.get(model_type, OpenRouterService)
         logger.info(f"AIServiceFactory: Using service class: {service_class.__name__}")
-        return service_class()
+        try:
+            return service_class(api_key=user_key)
+        except TypeError:
+            # Services without a key parameter (e.g. LocalAIService stub)
+            return service_class()
     
     @classmethod
     def get_available_models(cls) -> List[Dict[str, Any]]:
@@ -922,9 +990,9 @@ class AIServiceFactory:
 
 
 # Helper function for views
-def get_ai_response(prompt: str, model_type: str = None, context: List[Dict] = None, user_role: str = 'student', temperature: float = 0.7, max_tokens: int = 4096, json_mode: bool = False) -> str:
+def get_ai_response(prompt: str, model_type: str = None, context: List[Dict] = None, user_role: str = 'student', temperature: float = 0.7, max_tokens: int = 4096, json_mode: bool = False, user=None) -> str:
     """Helper function to get AI response with role-based prompts and user prefs"""
-    service = AIServiceFactory.get_service(model_type)
+    service = AIServiceFactory.get_service(model_type, user=user)
     # Check if service supports json_mode (MistralService does)
     if hasattr(service.generate_response, '__code__') and 'json_mode' in service.generate_response.__code__.co_varnames:
         return service.generate_response(prompt, context, user_role=user_role, temperature=temperature, max_tokens=max_tokens, json_mode=json_mode)
@@ -1019,7 +1087,7 @@ FORMATTING:
 
 Give a focused response with REAL DATA from the platform:"""
 
-    service = AIServiceFactory.get_service(model_type)
+    service = AIServiceFactory.get_service(model_type, user=user)
     return service.generate_response(enhanced_prompt, context)
 
 
@@ -1060,8 +1128,8 @@ def _format_query_context(query_context: dict) -> str:
     return "\n".join(context_parts) if context_parts else "No specific context data"
 
 
-def analyze_code_with_ai(code: str, language: str = "python", model_type: str = None) -> Dict[str, Any]:
+def analyze_code_with_ai(code: str, language: str = "python", model_type: str = None, user=None) -> Dict[str, Any]:
     """Helper function to analyze code"""
-    service = AIServiceFactory.get_service(model_type)
+    service = AIServiceFactory.get_service(model_type, user=user)
     return service.analyze_code(code, language)
 

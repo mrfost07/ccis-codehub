@@ -48,6 +48,11 @@ ELEVENLABS_API_KEY = env('ELEVENLABS_API_KEY', default='')
 ELEVENLABS_VOICE_ID = env('ELEVENLABS_VOICE_ID', default='hpp4J3VqNfWAUOO0d1Us')  # Bella
 ELEVENLABS_MODEL_ID = env('ELEVENLABS_MODEL_ID', default='eleven_monolingual_v1')
 
+# Voice (speech replies) is COMING SOON — off unless explicitly enabled AND a
+# TTS key is present. ElevenLabs is paid and unprovisioned in production, so
+# leaving it on produced confusing failures instead of a clear "coming soon".
+ENABLE_VOICE_FEATURES = env.bool('ENABLE_VOICE_FEATURES', default=False)
+
 # Application definition
 
 INSTALLED_APPS = [

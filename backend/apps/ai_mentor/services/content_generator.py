@@ -65,7 +65,7 @@ Return JSON format:
 }}"""
 
         try:
-            response = get_ai_response(prompt, model_type=self.model_type)
+            response = get_ai_response(prompt, model_type=self.model_type, user=self.user)
             
             # Clean response
             response = response.strip()
@@ -126,7 +126,7 @@ Return JSON format:
 }}"""
 
         try:
-            response = get_ai_response(prompt, model_type=self.model_type)
+            response = get_ai_response(prompt, model_type=self.model_type, user=self.user)
             
             # Clean response
             response = response.strip()
@@ -179,7 +179,7 @@ Requirements:
 Generate the message (plain text, no JSON):"""
 
         try:
-            message = get_ai_response(prompt, model_type=self.model_type)
+            message = get_ai_response(prompt, model_type=self.model_type, user=self.user)
             return message.strip()
             
         except Exception as e:
@@ -241,7 +241,7 @@ Generate the message (plain text, no JSON):"""
         }}"""
         
         try:
-            response = get_ai_response(prompt, model_type=self.model_type)
+            response = get_ai_response(prompt, model_type=self.model_type, user=self.user)
             
             # Clean response
             response = response.strip()

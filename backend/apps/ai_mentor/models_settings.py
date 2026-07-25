@@ -61,22 +61,56 @@ class UserAISettings(models.Model):
         related_name='users'
     )
     
-    # User's own API keys
+    # User's own API keys ("bring your own key").
+    # NOTE: these are the providers the platform actually has a service for —
+    # gemini / openai / mistral / openrouter. anthropic, cohere and
+    # huggingface are kept for forward compatibility but have no live backend
+    # yet (see AIServiceFactory._services).
+    gemini_api_key = models.CharField(max_length=200, blank=True)
     openai_api_key = models.CharField(max_length=200, blank=True)
+    mistral_api_key = models.CharField(max_length=200, blank=True)
+    openrouter_api_key = models.CharField(max_length=200, blank=True)
     anthropic_api_key = models.CharField(max_length=200, blank=True)
     cohere_api_key = models.CharField(max_length=200, blank=True)
     huggingface_api_key = models.CharField(max_length=200, blank=True)
     custom_api_keys = models.JSONField(default=dict, blank=True)
-    
+
     # Preferences
     temperature = models.FloatField(default=0.7, help_text='0.0 to 1.0')
     max_tokens = models.IntegerField(default=2000)
     stream_responses = models.BooleanField(default=False)
     save_history = models.BooleanField(default=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
+    # provider name -> field holding that provider's key
+    PROVIDER_KEY_FIELDS = {
+        'gemini': 'gemini_api_key',
+        'openai': 'openai_api_key',
+        'mistral': 'mistral_api_key',
+        'openrouter': 'openrouter_api_key',
+        'anthropic': 'anthropic_api_key',
+        'cohere': 'cohere_api_key',
+        'huggingface': 'huggingface_api_key',
+    }
+
+    def get_key_for(self, provider: str) -> str:
+        """
+        Return this user's own API key for `provider`, or '' if they haven't
+        set one (in which case the caller should fall back to the server key).
+        """
+        field = self.PROVIDER_KEY_FIELDS.get((provider or '').lower())
+        if not field:
+            # Allow arbitrary providers via the custom_api_keys JSON bag
+            return (self.custom_api_keys or {}).get(provider, '') or ''
+        return (getattr(self, field, '') or '').strip()
+
+    @property
+    def configured_providers(self) -> list:
+        """Providers this user has supplied their own key for."""
+        return [p for p in self.PROVIDER_KEY_FIELDS if self.get_key_for(p)]
+
     def __str__(self):
         return f"AI Settings for {self.user.username}"
 

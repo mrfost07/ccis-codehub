@@ -332,12 +332,21 @@ export const aiAPI = {
   analyzeCode: (data: any) => api.post('/ai/code-analysis/', data),
   getRecommendations: () => api.get('/ai/recommendations/'),
 
-  // Voice chat
+  // Voice chat — COMING SOON. The backend returns 503 + {coming_soon: true}
+  // until ENABLE_VOICE_FEATURES and a TTS key are set, so check status first.
+  getVoiceStatus: () => api.get('/ai/voice/status/'),
   voiceChat: (data: { transcript: string, session_id: string, current_page?: string }) =>
     api.post('/ai/voice/', data),
   // Standalone TTS
   textToSpeech: (text: string) =>
     api.post('/ai/tts/', { text }),
+
+  // ── User AI settings (bring-your-own API key) ──────────────────────────
+  // GET returns `keys: { <provider>: { configured, preview } }` — never the
+  // raw key. POST a provider's key field to save it, or '' to clear it.
+  // `selected_model_id` is stored as the profile's preferred AI model.
+  getAISettings: () => api.get('/ai/settings/'),
+  saveAISettings: (data: Record<string, any>) => api.post('/ai/settings/', data),
 }
 
 // Jobs API — Phase 6

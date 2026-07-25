@@ -357,7 +357,7 @@ Available courses on the platform: {suggestions}
 
 Generate a helpful response suggesting these alternatives or asking to clarify their search."""
             
-            ai_response_text = get_ai_response(ai_prompt, model_type=model_type, user_role=get_user_role(request.user), temperature=ai_temperature, max_tokens=ai_max_tokens)
+            ai_response_text = get_ai_response(ai_prompt, model_type=model_type, user_role=get_user_role(request.user), temperature=ai_temperature, max_tokens=ai_max_tokens, user=request.user)
             tokens_used = len(ai_response_text.split())
             
             ai_response = AIMessage.objects.create(
@@ -407,7 +407,7 @@ Generate a congratulatory message and suggest they start with the first module."
 
 Generate a helpful response."""
                 
-                ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens)
+                ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens, user=request.user)
                 tokens_used = len(ai_response_text.split())
                 
                 ai_response = AIMessage.objects.create(
@@ -464,7 +464,7 @@ Generate a helpful response."""
 
 Generate a congratulatory message and suggest next steps."""
                     
-                    ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens)
+                    ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens, user=request.user)
                     tokens_used = len(ai_response_text.split())
                     
                     ai_response = AIMessage.objects.create(
@@ -532,7 +532,7 @@ Generated details:
 
 Present these details in a friendly way and ask for confirmation to create the project."""
             
-            ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens)
+            ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens, user=request.user)
             tokens_used = len(ai_response_text.split())
             
             ai_response = AIMessage.objects.create(
@@ -579,7 +579,7 @@ Content: {post_content.get('content','')[:100]}...
 
 Generate a congratulatory message."""
                     
-                    ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens)
+                    ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens, user=request.user)
                     tokens_used = len(ai_response_text.split())
                     
                     ai_response = AIMessage.objects.create(
@@ -644,7 +644,7 @@ Hashtags: {', '.join(post_content.get('hashtags', []))}
 
 Present this content and ask for confirmation to post it."""
             
-            ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens)
+            ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens, user=request.user)
             tokens_used = len(ai_response_text.split())
             
             ai_response = AIMessage.objects.create(
@@ -692,7 +692,7 @@ Encourage them to continue learning and suggest they can ask for help with any c
 
 Encourage them to explore available courses and offer to help them find something that matches their interests."""
             
-            ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens)
+            ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens, user=request.user)
             tokens_used = len(ai_response_text.split())
             
             ai_response = AIMessage.objects.create(
@@ -738,7 +738,7 @@ Ask if they want to work on any of these or create a new project."""
 
 Encourage them to create their first project or join existing ones. Offer to help them get started."""
             
-            ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens)
+            ai_response_text = get_ai_response(ai_prompt, model_type=model_type, temperature=ai_temperature, max_tokens=ai_max_tokens, user=request.user)
             tokens_used = len(ai_response_text.split())
             
             ai_response = AIMessage.objects.create(
@@ -1186,7 +1186,8 @@ class CodeAnalysisViewSet(viewsets.ModelViewSet):
             analysis = analyze_code_with_ai(
                 code=code,
                 language=language,
-                model_type=model_type
+                model_type=model_type,
+                user=request.user
             )
             
             serializer.save(
@@ -1237,7 +1238,7 @@ class LearningRecommendationViewSet(viewsets.ModelViewSet):
         """
         
         try:
-            recommendations = get_ai_response(prompt, model_type)
+            recommendations = get_ai_response(prompt, model_type, user=request.user)
             
             # Create recommendation record
             recommendation = LearningRecommendation.objects.create(
