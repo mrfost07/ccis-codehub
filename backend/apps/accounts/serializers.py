@@ -121,9 +121,14 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'email', 'username', 'first_name', 'last_name', 'role', 
             'program', 'year_level', 'profile_picture', 'bio', 'skills', 
             'career_interests', 'followers_count', 'following_count',
-            'is_active', 'created_at', 'updated_at', 'profile'
+            'is_active', 'email_verified', 'created_at', 'updated_at', 'profile'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'followers_count', 'following_count']
+        # email_verified is set only by the confirmation flow — never writable
+        # from a profile update.
+        read_only_fields = [
+            'id', 'created_at', 'updated_at', 'followers_count', 'following_count',
+            'email_verified',
+        ]
     
     def validate_first_name(self, value):
         return sanitize_string(value)

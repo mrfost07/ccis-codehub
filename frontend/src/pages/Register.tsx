@@ -8,7 +8,7 @@ import { useAuth } from '../contexts/AuthContext'
 import {
   User, Mail, Lock, ChevronRight, ChevronLeft, Check,
   Sprout, Flower2, TreeDeciduous, GraduationCap,
-  Code2, Server, LineChart, Loader2, Eye, EyeOff, ArrowLeft
+  Code2, Server, LineChart, Loader2, Eye, EyeOff, ArrowLeft, MailCheck, MailWarning
 } from 'lucide-react'
 import CaptchaCheckbox from '../components/CaptchaCheckbox'
 
@@ -40,6 +40,10 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  // Step 5: awaiting email confirmation after signup
+  const [registeredEmail, setRegisteredEmail] = useState('')
+  const [emailSent, setEmailSent] = useState(true)
+  const [resending, setResending] = useState(false)
   const [captchaToken, setCaptchaToken] = useState('')
   const [captchaAnswer, setCaptchaAnswer] = useState<number | null>(null)
   const navigate = useNavigate()
@@ -113,6 +117,20 @@ export default function Register() {
     setStep(step - 1)
   }
 
+  const handleResendVerification = async () => {
+    if (!registeredEmail) return
+    setResending(true)
+    try {
+      await authAPI.resendVerification(registeredEmail)
+      setEmailSent(true)
+      toast.success('Confirmation email sent — check your inbox.')
+    } catch {
+      toast.error('Could not send the email right now. Please try again shortly.')
+    } finally {
+      setResending(false)
+    }
+  }
+
   const handleSubmit = async () => {
     if (!validateStep()) return
 
@@ -133,11 +151,19 @@ export default function Register() {
       })
 
       if (response.data.tokens) {
+        // Legacy path: server issued tokens directly (verification disabled)
         setAuthData(response.data.tokens.access, response.data.user, response.data.tokens.refresh)
         setStep(4) // Success step
         setTimeout(() => {
           navigate('/learning')
         }, 2000)
+      } else if (response.data.verification_required) {
+        // Account created but dormant until the emailed link is clicked.
+        // Show a "check your inbox" screen rather than sending them to a
+        // login form that would just reject them.
+        setRegisteredEmail(response.data.email || formData.email)
+        setEmailSent(response.data.email_sent !== false)
+        setStep(5)
       } else {
         toast.success('Registration successful! Please login.')
         navigate('/login')
@@ -188,7 +214,7 @@ export default function Register() {
               <img src="/logo/ccis-logo.png" alt="CCIS CodeHub" className="h-12 w-12 sm:h-14 sm:w-14" />
             </div>
             <h1 className="text-xl font-bold text-white">
-              {step === 4 ? 'Welcome to CCIS CodeHub!' : 'Create Account'}
+              {step === 4 ? 'Welcome to CCIS CodeHub!' : step === 5 ? 'Check your inbox' : 'Create Account'}
             </h1>
           </div>
 
@@ -415,6 +441,53 @@ export default function Register() {
               <h2 className="text-lg font-semibold text-white mb-2">Account Created!</h2>
               <p className="text-sm text-neutral-400 mb-4">Redirecting you to the learning platform...</p>
               <Loader2 className="w-5 h-5 mx-auto text-purple-400 animate-spin" />
+            </div>
+          )}
+
+          {/* Step 5 — account created, waiting on email confirmation */}
+          {step === 5 && (
+            <div className="text-center py-4">
+              <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${emailSent ? 'bg-purple-500/15' : 'bg-amber-500/15'}`}>
+                {emailSent
+                  ? <MailCheck className="w-8 h-8 text-purple-400" />
+                  : <MailWarning className="w-8 h-8 text-amber-400" />}
+              </div>
+
+              <h2 className="text-lg font-semibold text-white mb-2">
+                {emailSent ? 'Confirm your email' : 'Almost there'}
+              </h2>
+
+              {emailSent ? (
+                <p className="text-sm text-neutral-400 mb-1">
+                  We sent a confirmation link to
+                </p>
+              ) : (
+                <p className="text-sm text-neutral-400 mb-1">
+                  Your account was created, but we couldn't send the email to
+                </p>
+              )}
+              <p className="text-sm font-medium text-purple-300 break-all mb-4">{registeredEmail}</p>
+
+              <p className="text-xs text-neutral-500 leading-relaxed mb-6">
+                {emailSent
+                  ? "Click the link in that email to activate your account, then sign in to finish setting up your profile. Check your spam folder if it hasn't arrived."
+                  : 'Request a new link below to activate your account.'}
+              </p>
+
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={resending}
+                className="w-full py-2.5 text-sm font-semibold bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white rounded-xl transition-all"
+              >
+                {resending ? 'Sending…' : 'Resend confirmation email'}
+              </button>
+              <Link
+                to="/login"
+                className="mt-2 block w-full py-2.5 text-sm font-medium bg-neutral-700 hover:bg-neutral-600 text-white rounded-xl transition-all"
+              >
+                Go to sign in
+              </Link>
             </div>
           )}
 

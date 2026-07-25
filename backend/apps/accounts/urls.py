@@ -8,7 +8,7 @@ from .views import (
     UserRegistrationView, UserLoginView, UserProfileView,
     UserViewSet, UserStatsAPIView, PublicUserProfileView, PublicStatsView,
     GoogleOAuthCallbackView, CreateGoogleAccountView,
-    CaptchaChallengeView
+    CaptchaChallengeView, VerifyEmailView, ResendVerificationView
 )
 from .admin_views import AdminDashboardView, AdminUsersView, AdminContentView
 
@@ -24,6 +24,8 @@ urlpatterns = [
     path('captcha/', CaptchaChallengeView.as_view(), name='captcha-challenge'),
     path('register/', UserRegistrationView.as_view(), name='register'),
     path('login/', UserLoginView.as_view(), name='login'),
+    path('verify-email/', VerifyEmailView.as_view(), name='verify-email'),
+    path('resend-verification/', ResendVerificationView.as_view(), name='resend-verification'),
     # JWT refresh — lets the client swap a valid refresh token for a fresh
     # access token instead of forcing a logout every 15 minutes. With rotation
     # enabled, the response also returns a new refresh token. (Req 20.)

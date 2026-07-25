@@ -19,6 +19,7 @@ import ModuleLearningEnhanced from './pages/ModuleLearningEnhanced'
 import LearningEnhanced from './pages/LearningEnhanced'
 import AuthCallback from './pages/AuthCallback'
 import CompleteProfile from './pages/CompleteProfile'
+import VerifyEmail from './pages/VerifyEmail'
 import JoinQuiz from './pages/JoinQuiz'
 import QuizLobby from './pages/QuizLobby'
 import QuizResults from './pages/QuizResults'
@@ -102,6 +103,7 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/complete-profile" element={<CompleteProfile />} />
+              <Route path="/verify-email/:uid/:token" element={<VerifyEmail />} />
               <Route
                 path="/dashboard"
                 element={

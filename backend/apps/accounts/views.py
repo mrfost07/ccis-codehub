@@ -11,6 +11,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q
+from django.utils import timezone
 
 from .models import User, UserProfile
 from .serializers import (
@@ -20,6 +21,98 @@ from .serializers import (
 from .permissions import IsPlatformAdmin
 from .captcha import generate_captcha_challenge, verify_captcha_token
 from .oauth_identity import issue_google_identity_token, verify_google_identity_token
+from .email_verification import (
+    send_verification_email, decode_uid, token_is_valid, mark_verified,
+)
+
+from django.conf import settings as django_settings
+from rest_framework.throttling import AnonRateThrottle
+
+
+def _verification_required() -> bool:
+    return getattr(django_settings, 'REQUIRE_EMAIL_VERIFICATION', True)
+
+
+class VerificationResendThrottle(AnonRateThrottle):
+    """Cap resend attempts so the endpoint can't be used to spam an inbox."""
+    rate = '5/hour'
+
+
+class VerifyEmailView(APIView):
+    """
+    POST /api/auth/verify-email/
+    Body: { "uid": "<uidb64>", "token": "<token>" }
+
+    Confirms an address. Idempotent: a link that was already used reports
+    `already_verified` rather than an error, so a double-click or a prefetching
+    mail client doesn't show the user a scary failure.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        uidb64 = (request.data.get('uid') or '').strip()
+        token = (request.data.get('token') or '').strip()
+
+        if not uidb64 or not token:
+            return Response(
+                {'error': 'Missing verification details.', 'code': 'invalid_link'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = decode_uid(uidb64)
+        if user is None:
+            return Response(
+                {'error': 'This confirmation link is not valid.', 'code': 'invalid_link'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if user.email_verified:
+            return Response({
+                'verified': True,
+                'already_verified': True,
+                'message': 'Your email is already confirmed — you can sign in.',
+            }, status=status.HTTP_200_OK)
+
+        if not token_is_valid(user, token):
+            return Response({
+                'error': 'This confirmation link has expired or already been used.',
+                'code': 'invalid_token',
+                'email': user.email,
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        mark_verified(user)
+        return Response({
+            'verified': True,
+            'already_verified': False,
+            'message': 'Email confirmed! You can now sign in and set up your profile.',
+        }, status=status.HTTP_200_OK)
+
+
+class ResendVerificationView(APIView):
+    """
+    POST /api/auth/resend-verification/
+    Body: { "email": "..." }
+
+    Always responds 200 with the same message so the endpoint can't be used to
+    discover which addresses have accounts.
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [VerificationResendThrottle]
+
+    def post(self, request):
+        email = (request.data.get('email') or '').strip().lower()
+        generic = Response({
+            'message': 'If that address has an unconfirmed account, a new link is on its way.',
+        }, status=status.HTTP_200_OK)
+
+        if not email:
+            return generic
+
+        user = User.objects.filter(email__iexact=email).first()
+        if user and not user.email_verified:
+            send_verification_email(user)
+
+        return generic
 
 
 class CaptchaChallengeView(APIView):
@@ -61,16 +154,29 @@ class UserRegistrationView(APIView):
         serializer = UserRegistrationSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
-            
+
             # Create user profile
             UserProfile.objects.create(user=user)
-            
-            # Don't auto-login after registration - user must login first
+
+            # Send the confirmation link. Signup already succeeded, so a mail
+            # outage must not fail the request — report it instead so the UI
+            # can offer "resend" rather than claiming an email is on its way.
+            email_sent = send_verification_email(user)
+
             return Response({
                 'user': UserSerializer(user).data,
-                'message': 'Registration successful! Please login to continue.'
+                'email': user.email,
+                'verification_required': _verification_required(),
+                'email_sent': email_sent,
+                'message': (
+                    f'Account created. We sent a confirmation link to {user.email} — '
+                    'click it to activate your account.'
+                    if email_sent else
+                    'Account created, but we could not send the confirmation email. '
+                    'Please request a new link.'
+                ),
             }, status=status.HTTP_201_CREATED)
-        
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -96,10 +202,19 @@ class UserLoginView(APIView):
             password = serializer.validated_data['password']
             
             user = authenticate(email=email, password=password)
-            
+
             if user:
+                # Gate sign-in on a confirmed address. A distinct code lets the
+                # UI show a "resend link" affordance instead of a generic error.
+                if _verification_required() and not user.email_verified:
+                    return Response({
+                        'error': 'Please confirm your email address before signing in.',
+                        'code': 'email_not_verified',
+                        'email': user.email,
+                    }, status=status.HTTP_403_FORBIDDEN)
+
                 refresh = RefreshToken.for_user(user)
-                
+
                 return Response({
                     'user': UserSerializer(user).data,
                     'tokens': {
@@ -107,7 +222,7 @@ class UserLoginView(APIView):
                         'access': str(refresh.access_token),
                     }
                 }, status=status.HTTP_200_OK)
-            
+
             return Response(
                 {'error': 'Invalid credentials'},
                 status=status.HTTP_401_UNAUTHORIZED
@@ -775,6 +890,10 @@ class CreateGoogleAccountView(APIView):
                 is_superuser=False,
                 role='student',
                 google_id=google_id,
+                # Google already proved ownership of this address, so there is
+                # nothing for the user to confirm.
+                email_verified=True,
+                email_verified_at=timezone.now(),
                 program=program,
                 year_level=year_level,
             )

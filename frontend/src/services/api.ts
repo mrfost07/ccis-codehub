@@ -126,6 +126,12 @@ export const authAPI = {
     captcha_answer?: number | null;
   }) =>
     noAuthApi.post('/auth/register/', data),
+  // Email confirmation — new accounts must click the emailed link before they
+  // can sign in. Login returns 403 with code 'email_not_verified' until then.
+  verifyEmail: (uid: string, token: string) =>
+    noAuthApi.post('/auth/verify-email/', { uid, token }),
+  resendVerification: (email: string) =>
+    noAuthApi.post('/auth/resend-verification/', { email }),
   getProfile: () => api.get('/auth/profile/'),
   updateProfile: (data: any) => api.put('/auth/profile/', data),
 }

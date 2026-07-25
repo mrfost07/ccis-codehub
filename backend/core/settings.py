@@ -53,6 +53,35 @@ ELEVENLABS_MODEL_ID = env('ELEVENLABS_MODEL_ID', default='eleven_monolingual_v1'
 # leaving it on produced confusing failures instead of a clear "coming soon".
 ENABLE_VOICE_FEATURES = env.bool('ENABLE_VOICE_FEATURES', default=False)
 
+# ---------------------------------------------------------------------------
+# Email
+#
+# These were previously absent, so EMAIL_BACKEND in .env was never read and
+# Django silently fell back to smtp://localhost:25 — every send raised
+# ConnectionRefusedError. Default to the console backend in DEBUG so signup
+# links are printed to the runserver output; production must set real SMTP.
+# ---------------------------------------------------------------------------
+EMAIL_BACKEND = env(
+    'EMAIL_BACKEND',
+    default='django.core.mail.backends.console.EmailBackend' if DEBUG
+    else 'django.core.mail.backends.smtp.EmailBackend'
+)
+EMAIL_HOST = env('EMAIL_HOST', default='')
+EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+EMAIL_USE_SSL = env.bool('EMAIL_USE_SSL', default=False)
+EMAIL_TIMEOUT = env.int('EMAIL_TIMEOUT', default=10)
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='CCIS CodeHub <no-reply@ccis-codehub.space>')
+
+# Require users to confirm their email before they can sign in.
+# NOTE: if this is on while email delivery is broken, nobody can complete
+# signup — the registration response reports whether the mail actually went
+# out, and unverified accounts can always request a new link.
+REQUIRE_EMAIL_VERIFICATION = env.bool('REQUIRE_EMAIL_VERIFICATION', default=True)
+EMAIL_VERIFICATION_TIMEOUT_HOURS = env.int('EMAIL_VERIFICATION_TIMEOUT_HOURS', default=48)
+
 # Application definition
 
 INSTALLED_APPS = [

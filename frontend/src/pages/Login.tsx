@@ -13,6 +13,9 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  // Set when the server rejects sign-in because the address is unconfirmed
+  const [unverifiedEmail, setUnverifiedEmail] = useState('')
+  const [resending, setResending] = useState(false)
   const [captchaToken, setCaptchaToken] = useState('')
   const [captchaAnswer, setCaptchaAnswer] = useState<number | null>(null)
   const [captchaResetKey, setCaptchaResetKey] = useState(0)
@@ -28,6 +31,19 @@ export default function Login() {
   const handleCaptchaExpired = () => {
     setCaptchaToken('')
     setCaptchaAnswer(null)
+  }
+
+  const handleResendVerification = async () => {
+    if (!unverifiedEmail) return
+    setResending(true)
+    try {
+      await authAPI.resendVerification(unverifiedEmail)
+      toast.success('Confirmation email sent — check your inbox.')
+    } catch {
+      toast.error('Could not send the email right now. Please try again shortly.')
+    } finally {
+      setResending(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,7 +73,12 @@ export default function Login() {
       // Reset CAPTCHA on failure so user can re-verify
       handleCaptchaExpired()
       setCaptchaResetKey(k => k + 1)
-      if (error.response?.data?.error) {
+      if (error.response?.data?.code === 'email_not_verified') {
+        // Not a credentials problem — show an inline resend affordance
+        // instead of a toast the user can't act on.
+        setUnverifiedEmail(error.response.data.email || email)
+        toast.error('Please confirm your email address first.')
+      } else if (error.response?.data?.error) {
         toast.error(error.response.data.error)
       } else if (error.response?.data?.detail) {
         toast.error(error.response.data.detail)
@@ -107,6 +128,26 @@ export default function Login() {
           </div>
 
           {/* Form */}
+          {/* Sign-in blocked because the address is unconfirmed — give the
+              user a way out instead of a dead-end error. */}
+          {unverifiedEmail && (
+            <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+              <p className="text-sm font-medium text-amber-200">Confirm your email to continue</p>
+              <p className="mt-1 text-xs leading-relaxed text-amber-200/70">
+                We sent a link to <span className="font-medium">{unverifiedEmail}</span>.
+                Click it to activate your account, then sign in.
+              </p>
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={resending}
+                className="mt-3 rounded-lg bg-amber-500/20 px-3 py-1.5 text-xs font-semibold text-amber-100 transition hover:bg-amber-500/30 disabled:opacity-50"
+              >
+                {resending ? 'Sending…' : 'Resend confirmation email'}
+              </button>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label="Email"
