@@ -22,28 +22,42 @@ class PasswordVerificationThrottle(UserRateThrottle):
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
+@throttle_classes([PasswordVerificationThrottle])
 def verify_admin_password(request):
     """
     Verify settings access key for accessing sensitive settings
-    
+
     POST /api/auth/admin/verify-password/
     Body: { "key": "settings_key" }
     Returns: { "valid": true/false }
     """
     import os
-    
+    import secrets
+
     submitted_key = request.data.get('key', '').strip()
-    correct_key = os.getenv('SYSTEM_SETTINGS_KEY', 'Fostanes_020705')
-    
+    # No fallback: a hardcoded default in source is public to anyone with repo
+    # access. If the deployment forgets to set it, fail closed instead.
+    correct_key = os.getenv('SYSTEM_SETTINGS_KEY', '')
+
     if not submitted_key:
         return Response(
             {'valid': False, 'error': 'Settings key is required'},
             status=status.HTTP_400_BAD_REQUEST
         )
-    
-    # Check if submitted key matches environment variable
-    is_valid = submitted_key == correct_key
-    
+
+    if not correct_key:
+        logger.error(
+            'SYSTEM_SETTINGS_KEY is not configured — refusing settings access. '
+            'Set it in the environment.'
+        )
+        return Response(
+            {'valid': False, 'error': 'Settings access is not configured on this server'},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE
+        )
+
+    # Constant-time comparison so response timing can't leak the key
+    is_valid = secrets.compare_digest(submitted_key, correct_key)
+
     if is_valid:
         logger.info(f"Admin {request.user.username} verified settings access")
         return Response({'valid': True})

@@ -1,6 +1,9 @@
 [Unit]
-Description=CCIS CodeHub Backend (Gunicorn)
+Description=CCIS CodeHub Backend (Daphne ASGI)
 After=network.target
+# Redis backs the Channels layer that live quizzes depend on.
+Wants=redis-server.service
+After=redis-server.service
 
 [Service]
 User=deploy
@@ -8,9 +11,39 @@ Group=www-data
 WorkingDirectory=/home/deploy/CCIS-CodeHub/backend
 Environment="PATH=/home/deploy/CCIS-CodeHub/backend/venv/bin"
 EnvironmentFile=/home/deploy/CCIS-CodeHub/backend/.env
-ExecStart=/home/deploy/CCIS-CodeHub/backend/venv/bin/gunicorn --workers 3 --bind 127.0.0.1:8000 core.wsgi:application
+
+# IMPORTANT: must be the ASGI app, not core.wsgi.
+# WSGI (gunicorn core.wsgi:application) cannot serve WebSockets at all — it
+# silently breaks live quizzes, the instructor monitor, and violation
+# reporting. Daphne speaks both HTTP and WebSocket.
+ExecStart=/home/deploy/CCIS-CodeHub/backend/venv/bin/daphne \
+    -b 127.0.0.1 \
+    -p 8000 \
+    --proxy-headers \
+    core.asgi:application
+
 Restart=always
 RestartSec=3
 
+# Basic hardening
+NoNewPrivileges=true
+PrivateTmp=true
+
 [Install]
 WantedBy=multi-user.target
+
+# ---------------------------------------------------------------------------
+# Scaling note
+# ---------------------------------------------------------------------------
+# Daphne is single-process. It comfortably handles a classroom-sized load, but
+# to use multiple workers switch to uvicorn workers under gunicorn:
+#
+#   pip install uvicorn
+#   ExecStart=.../gunicorn core.asgi:application \
+#       -k uvicorn.workers.UvicornWorker --workers 3 --bind 127.0.0.1:8000 \
+#       --forwarded-allow-ips='127.0.0.1'
+#
+# Multiple workers REQUIRE the Redis channel layer (REDIS_URL set), otherwise
+# each worker gets its own in-memory layer and students land on workers that
+# never receive the instructor's broadcasts.
+# ---------------------------------------------------------------------------

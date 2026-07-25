@@ -338,14 +338,51 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
+# ---------------------------------------------------------------------------
+# CSRF trusted origins
+#
+# Django 4+ requires the scheme-qualified origin for any cross-origin POST
+# (including the admin login form when served over HTTPS behind a proxy).
+# Derived from ALLOWED_HOSTS so it stays in sync, plus FRONTEND_URL.
+# ---------------------------------------------------------------------------
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+if not CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS = [
+        f'https://{host.lstrip(".")}'
+        for host in ALLOWED_HOSTS
+        if host not in ('localhost', '127.0.0.1', '*')
+        and not host.replace('.', '').isdigit()  # skip bare IPs
+    ]
+_frontend_url = env('FRONTEND_URL', default='')
+if _frontend_url.startswith(('http://', 'https://')) and _frontend_url not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(_frontend_url.rstrip('/'))
+
 # Security Settings (for production)
 if not DEBUG:
-    SECURE_SSL_REDIRECT = True
+    # Behind nginx/any reverse proxy, Django only knows the request was HTTPS
+    # from the forwarded header. WITHOUT this, SECURE_SSL_REDIRECT below sees
+    # every proxied request as insecure and redirects forever (ERR_TOO_MANY_
+    # REDIRECTS). nginx must send: proxy_set_header X-Forwarded-Proto $scheme;
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    USE_X_FORWARDED_HOST = True
+
+    # Allow disabling the redirect when TLS is terminated in front of nginx
+    # (or during initial certbot HTTP-01 setup) to avoid a redirect loop.
+    SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=True)
+    SECURE_REDIRECT_EXEMPT = [r'^\.well-known/acme-challenge/']
+
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
+
+    # HSTS — opt-in via env so it isn't switched on before HTTPS actually works
+    # (browsers cache HSTS aggressively and it is painful to undo).
+    SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=0)
+    if SECURE_HSTS_SECONDS:
+        SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=True)
+        SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', default=False)
 
 # Logging
 LOGGING = {
