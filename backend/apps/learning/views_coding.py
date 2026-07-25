@@ -228,6 +228,10 @@ class CodingChallengeViewSet(viewsets.ModelViewSet):
             # Determine status
             if all_passed:
                 sub_status = 'accepted'
+            elif result.get('status') == 'hardcoded_output':
+                # Output matched but wasn't computed from the input — don't let
+                # passing no-input tests dress this up as a partial solution.
+                sub_status = 'wrong_answer'
             elif passed > 0:
                 sub_status = 'partial'
             elif any(r.get('error') == 'timeout' for r in result.get('results', [])):

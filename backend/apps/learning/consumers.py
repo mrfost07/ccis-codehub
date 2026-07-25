@@ -330,18 +330,32 @@ class LiveQuizConsumer(AsyncWebsocketConsumer):
             await self._update_session_status('in_progress')
 
         elif msg_type == 'pause_participant':
-            # Instructor manually pauses a specific student
-            target_channel = data.get('channel_name')
-            if target_channel:
-                await self.channel_layer.send(
-                    target_channel,
-                    {'type': 'quiz_paused', 'reason': data.get('reason', 'Paused by instructor')}
-                )
+            # Instructor manually pauses a specific student. The monitor only
+            # knows participant ids (not channel names), so broadcast a targeted
+            # pause to the room — each student client matches on participant_id.
+            participant_id = data.get('participant_id')
+            reason = data.get('reason', 'Paused by instructor')
+            if participant_id:
+                await self._set_participant_paused(participant_id, True, reason)
+                await self.channel_layer.group_send(self.room_group_name, {
+                    'type': 'participant_pause_state',
+                    'participant_id': str(participant_id),
+                    'paused': True,
+                    'reason': reason,
+                })
+                await self._notify_instructor_pause(participant_id, True, reason)
 
         elif msg_type == 'resume_participant':
-            target_channel = data.get('channel_name')
-            if target_channel:
-                await self.channel_layer.send(target_channel, {'type': 'quiz_resumed'})
+            participant_id = data.get('participant_id')
+            if participant_id:
+                await self._set_participant_paused(participant_id, False)
+                await self.channel_layer.group_send(self.room_group_name, {
+                    'type': 'participant_pause_state',
+                    'participant_id': str(participant_id),
+                    'paused': False,
+                    'reason': '',
+                })
+                await self._notify_instructor_pause(participant_id, False, '')
 
         # ── Student commands ─────────────────────────────────────────────
         elif msg_type == 'request_state':
@@ -385,6 +399,9 @@ class LiveQuizConsumer(AsyncWebsocketConsumer):
             participant_id = data.get('participant_id')
             await self._set_participant_paused(participant_id, False)
             await self.send_json({'type': 'quiz_resumed'})
+            # Clear the pause badge on the instructor monitor
+            if participant_id:
+                await self._notify_instructor_pause(participant_id, False, '')
 
     # ------------------------------------------------------------------ #
     #  Answer submission                                                   #
@@ -438,6 +455,7 @@ class LiveQuizConsumer(AsyncWebsocketConsumer):
             if action == 'pause':
                 # Pause this student's quiz
                 await self._set_participant_paused(participant_id, True, 'fullscreen_exit')
+                await self._notify_instructor_pause(participant_id, True, 'Fullscreen exit')
                 await self.send_json({
                     'type': 'quiz_paused',
                     'reason': 'You exited fullscreen. Re-enter to continue.',
@@ -449,6 +467,11 @@ class LiveQuizConsumer(AsyncWebsocketConsumer):
                 })
 
         elif violation_type == 'tab_switch':
+            if action in ('warn', 'pause'):
+                # Clients always show the pause overlay on tab switch — record
+                # that state so the instructor monitor reflects reality.
+                await self._set_participant_paused(participant_id, True, 'tab_switch')
+                await self._notify_instructor_pause(participant_id, True, 'Tab switch')
             if action == 'shuffle':
                 # Pick a random question from the quiz and send it
                 shuffled_q = await self._get_random_question(participant_id)
@@ -465,6 +488,10 @@ class LiveQuizConsumer(AsyncWebsocketConsumer):
 
         # Always acknowledge with violation summary
         await self.send_json({'type': 'violation_recorded', 'data': result})
+
+        # Flagged-out participants show as paused/closed on the monitor too
+        if result.get('is_flagged') and action == 'close':
+            await self._notify_instructor_pause(participant_id, True, 'Closed: violation limit')
 
         # Notify instructor group
         await self.channel_layer.group_send(
@@ -832,3 +859,29 @@ class LiveQuizConsumer(AsyncWebsocketConsumer):
     async def quiz_session_resumed(self, event):
         """Broadcast session-wide resume to all students."""
         await self.send_json({'type': 'session_resumed'})
+
+    async def participant_pause_state(self, event):
+        """Targeted pause/resume broadcast — clients match on participant_id."""
+        await self.send_json({
+            'type': 'participant_pause_state',
+            'participant_id': event['participant_id'],
+            'paused': event['paused'],
+            'reason': event.get('reason', ''),
+        })
+
+    async def instructor_participant_pause(self, event):
+        """Tell the instructor monitor a participant's pause state changed."""
+        await self.send_json({
+            'type': 'participant_paused' if event['paused'] else 'participant_resumed',
+            'participant_id': event['participant_id'],
+            'reason': event.get('reason', ''),
+        })
+
+    async def _notify_instructor_pause(self, participant_id, paused: bool, reason: str):
+        """Push a pause-state change to the instructor group."""
+        await self.channel_layer.group_send(self.instructor_group, {
+            'type': 'instructor_participant_pause',
+            'participant_id': str(participant_id),
+            'paused': paused,
+            'reason': reason,
+        })

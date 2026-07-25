@@ -2,13 +2,11 @@
  * Main Layout
  * 
  * Layout wrapper for authenticated pages that includes:
- * - Navbar (top, hidden on mobile)
- * - MobileBottomNav (bottom, mobile only)
- * - Content area with proper padding for both navs
+ * - Navbar (which itself renders the mobile bottom dock)
+ * - Content area
  */
 
 import Navbar from '../Navbar'
-import MobileBottomNav from '../MobileBottomNav'
 import { useAuth } from '../../contexts/AuthContext'
 
 interface MainLayoutProps {
@@ -29,13 +27,11 @@ export default function MainLayout({ children, hideNav = false }: MainLayoutProp
             {/* Top Navbar - always visible */}
             <Navbar />
 
-            {/* Main content - with padding for mobile bottom nav */}
-            <main className="flex-1 pb-16 md:pb-0">
+            {/* Main content — bottom spacing for the mobile dock comes from the
+                `has-mobile-nav` body class that MobileBottomNav sets. */}
+            <main className="flex-1">
                 {children}
             </main>
-
-            {/* Mobile Bottom Navigation */}
-            <MobileBottomNav />
         </div>
     )
 }

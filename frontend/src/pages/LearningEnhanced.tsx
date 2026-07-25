@@ -461,7 +461,7 @@ export default function LearningEnhanced() {
   )
 
   return (
-    <div className="min-h-screen bg-neutral-950 pb-24 sm:pb-8">
+    <div className="min-h-screen bg-neutral-950 sm:pb-8">
       <Navbar />
 
       {/* Tab Navigation */}

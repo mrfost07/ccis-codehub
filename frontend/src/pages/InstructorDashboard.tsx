@@ -5,7 +5,7 @@ import {
   Calendar, FileText, Video, Settings,
   PlusCircle, BarChart2, Clock, CheckCircle, GraduationCap, Wand2,
   Eye, ChevronRight, RefreshCw, Edit, Trash2, Play, X, Save, Upload, Home, Radio, Filter, Loader2, Copy, Link, Download,
-  Camera, Code2, ShieldCheck, Shield
+  Camera, Code2, ShieldCheck, Shield, Search
 } from 'lucide-react'
 import DashboardLayout, { SidenavItem } from '../components/layout/DashboardLayout'
 import PDFContentExtractor from '../components/PDFContentExtractor'
@@ -14,10 +14,10 @@ import QuizEditor from '../components/QuizEditor'
 import LiveQuizQuestionEditor from '../components/LiveQuizQuestionEditor'
 import InstructorMonitorPanel from '../components/InstructorMonitorPanel'
 import api from '../services/api'
-import liveQuizService, { LiveQuiz, CreateLiveQuizData } from '../services/liveQuizService'
+import liveQuizService, { LiveQuiz, CreateLiveQuizData, CreateQuestionData } from '../services/liveQuizService'
 import { useCurrentUser } from '../hooks/useApiCache'
 import toast from 'react-hot-toast'
-import { Skeleton, SkeletonCard } from '../components/ui'
+import { Skeleton } from '../components/ui'
 import { getMediaUrl } from '../utils/mediaUrl'
 
 interface CareerPath {
@@ -176,6 +176,7 @@ function InstructorDashboard() {
   // Live Quiz pagination
   const [liveQuizPage, setLiveQuizPage] = useState(1)
   const liveQuizzesPerPage = 9 // 3x3 grid on desktop, responsive on mobile
+  const [liveQuizSearch, setLiveQuizSearch] = useState('')
 
   // Live Quiz states
   const [liveQuizzes, setLiveQuizzes] = useState<LiveQuiz[]>([])
@@ -209,8 +210,15 @@ function InstructorDashboard() {
     violation_penalty_points: 5
   })
   const [creatingLiveQuiz, setCreatingLiveQuiz] = useState(false)
+  // Set when "Host online" is clicked on a module quiz: its questions are
+  // imported into the live quiz right after creation.
+  const [hostSourceQuiz, setHostSourceQuiz] = useState<{ title: string; questions: any[] } | null>(null)
   const [showMonitorPanel, setShowMonitorPanel] = useState(false)
   const [isStartingQuiz, setIsStartingQuiz] = useState(false)
+  // Index of the NEXT question to push in an active live session (0-based).
+  // Set to 1 after Start pushes Q1; drives sequential "Send Next Question".
+  const [liveQIndex, setLiveQIndex] = useState(0)
+  const [sendingNextQ, setSendingNextQ] = useState(false)
 
   // Coding Challenges states
   const [challengesList, setChallengesList] = useState<any[]>([])
@@ -266,8 +274,17 @@ function InstructorDashboard() {
   useEffect(() => {
     if (activeTab === 'learning') {
       fetchLearningData()
+      // Also load counts for the sub-nav badges and the right rail
+      fetchLiveQuizzes()
+      fetchChallenges()
+      fetchVideoCourses()
     }
   }, [activeTab])
+
+  // Reset the live-session question pointer whenever a different quiz is opened.
+  useEffect(() => {
+    setLiveQIndex(0)
+  }, [selectedLiveQuiz?.id])
 
   // Fetch data when learningView changes
   useEffect(() => {
@@ -276,6 +293,7 @@ function InstructorDashboard() {
         fetchModules()
       } else if (learningView === 'quizzes') {
         fetchQuizzes()
+      } else if (learningView === 'online') {
         fetchLiveQuizzes()
       } else if (learningView === 'challenges') {
         fetchChallenges()
@@ -447,8 +465,8 @@ function InstructorDashboard() {
         setDetailTab('overview')
       }
 
-      // Navigate to the quizzes tab
-      setLearningView('quizzes')
+      // Navigate to the online quizzes section
+      setLearningView('online')
     } catch (error: any) {
       const msg = error.response?.data?.detail || 'Failed to create live challenge'
       toast.error(msg)
@@ -811,6 +829,64 @@ function InstructorDashboard() {
     }
   }
 
+  // Map a question parsed from a module quiz into the live-quiz question format.
+  const mapParsedToLiveQuestion = (q: any, index: number): CreateQuestionData => {
+    if (q.type === 'true_false') {
+      const correct = q.choices?.find((c: any) => c.isCorrect)
+      return {
+        question_text: q.title,
+        question_type: 'true_false',
+        order: index,
+        correct_answer: correct?.text?.toLowerCase() === 'false' ? 'false' : 'true',
+        points: q.points || 1,
+      }
+    }
+    if (q.type === 'multiple_choice') {
+      const choices = q.choices || []
+      const correct = choices.find((c: any) => c.isCorrect)
+      const correctLetter = correct?.id && ['A', 'B', 'C', 'D'].includes(correct.id) ? correct.id : 'A'
+      return {
+        question_text: q.title,
+        question_type: 'multiple_choice',
+        order: index,
+        option_a: choices[0]?.text || '',
+        option_b: choices[1]?.text || '',
+        option_c: choices[2]?.text || '',
+        option_d: choices[3]?.text || '',
+        correct_answer: correctLetter,
+        points: q.points || 1,
+      }
+    }
+    // enumeration / essay / short answer all become short_answer live questions
+    return {
+      question_text: q.title,
+      question_type: 'short_answer',
+      order: index,
+      correct_answer: q.correctAnswer || '',
+      points: q.points || 1,
+    }
+  }
+
+  // "Host online": pre-fill the live quiz form from a module quiz and queue its
+  // questions for import once the live quiz is created.
+  const handleHostQuizOnline = (quiz: any) => {
+    const parsed = quiz.content ? parseQuestionsFromContent(quiz.content) : []
+    // Drop the parser's empty placeholder (a question whose choices have no text)
+    const usable = parsed.filter((q: any) =>
+      q.title?.trim() &&
+      (q.type !== 'multiple_choice' || q.choices?.some((c: any) => c.text?.trim()))
+    )
+    setHostSourceQuiz({ title: quiz.title, questions: usable })
+    setLiveQuizForm(prev => ({
+      ...prev,
+      title: quiz.title || '',
+      description: quiz.description || '',
+      time_limit_minutes: quiz.time_limit_minutes || undefined,
+    }))
+    setLearningView('online')
+    setShowCreateLiveQuiz(true)
+  }
+
   const createLiveQuiz = async () => {
     if (creatingLiveQuiz) return
 
@@ -821,7 +897,31 @@ function InstructorDashboard() {
 
     try {
       setCreatingLiveQuiz(true)
-      const quiz = await liveQuizService.createQuiz(liveQuizForm)
+      // Clamp numeric settings so cleared/typo'd inputs never reach the API
+      const quiz = await liveQuizService.createQuiz({
+        ...liveQuizForm,
+        max_participants: Math.min(500, Math.max(1, liveQuizForm.max_participants || 100)),
+        default_question_time: Math.min(300, Math.max(5, liveQuizForm.default_question_time || 30)),
+      })
+
+      // If this live quiz was started from a module quiz, import its questions
+      if (hostSourceQuiz && hostSourceQuiz.questions.length > 0) {
+        let imported = 0
+        for (let i = 0; i < hostSourceQuiz.questions.length; i++) {
+          try {
+            await liveQuizService.createQuestion(quiz.id, mapParsedToLiveQuestion(hostSourceQuiz.questions[i], i))
+            imported++
+          } catch (err) {
+            console.error('Failed to import question', i + 1, err)
+          }
+        }
+        if (imported > 0) {
+          toast.success(`Imported ${imported} question${imported !== 1 ? 's' : ''} from "${hostSourceQuiz.title}"`)
+        } else {
+          toast.error('Questions could not be imported — add them in the question editor')
+        }
+        setHostSourceQuiz(null)
+      }
 
       // Refresh the quiz list
       await fetchLiveQuizzes()
@@ -832,8 +932,9 @@ function InstructorDashboard() {
       setShowCreateLiveQuiz(false)
       resetLiveQuizForm()
 
-      // Auto-open the quiz detail/editor view
-      setSelectedLiveQuiz(quiz)
+      // Auto-open the quiz detail/editor view (re-fetch so imported questions show)
+      const freshQuiz = await liveQuizService.getQuiz(quiz.id).catch(() => quiz)
+      setSelectedLiveQuiz(freshQuiz)
       toast.success(`Quiz "${quiz.title}" created! Add questions below.`)
     } catch (error: any) {
       console.error('Failed to create live quiz:', error)
@@ -857,6 +958,7 @@ function InstructorDashboard() {
   }
 
   const resetLiveQuizForm = () => {
+    setHostSourceQuiz(null)
     setLiveQuizForm({
       title: '',
       description: '',
@@ -879,8 +981,6 @@ function InstructorDashboard() {
   }
 
   const handleQuizQuestionsChange = (questions: any[]) => {
-    console.log('=== handleQuizQuestionsChange called ===')
-    console.log('Number of questions:', questions.length)
     setQuizQuestions(questions)
 
     // Generate HTML content from questions
@@ -951,7 +1051,6 @@ function InstructorDashboard() {
       `
     }).join('\n')
 
-    console.log('Generated HTML content length:', htmlContent.length)
     setQuizForm(prev => ({ ...prev, content: htmlContent }))
   }
 
@@ -966,8 +1065,23 @@ function InstructorDashboard() {
   }
 
   // Edit/Update Functions for Career Paths
+  // Close edit modals with a full state reset so a later "Create" doesn't
+  // open pre-filled with the record that was being edited.
+  const closeEditPathModal = () => {
+    setShowEditPath(false)
+    setEditingPath(null)
+    resetPathForm()
+    setCertificateFile(null)
+  }
+
+  const closeEditQuizModal = () => {
+    setShowEditQuiz(false)
+    setShowQuizEditor(false)
+    setEditingQuiz(null)
+    resetQuizForm()
+  }
+
   const handleEditPath = (path: any) => {
-    console.log('Editing path:', path)
     setEditingPath(path)
     setPathForm({
       name: path.name || '',
@@ -998,7 +1112,6 @@ function InstructorDashboard() {
       } else {
         response = await api.patch(`/learning/admin/career-paths/${editingPath.id}/`, pathForm)
       }
-      console.log('Update successful:', response.data)
       setPaths(paths.map(p => p.id === editingPath.id ? response.data : p))
       setShowEditPath(false)
       setEditingPath(null)
@@ -1014,7 +1127,6 @@ function InstructorDashboard() {
 
   // Edit/Update Functions for Modules
   const handleEditModule = async (module: any) => {
-    console.log('Editing module:', module)
     try {
       const response = await api.get(`/learning/admin/modules/${module.id}/`)
       const fullModule = response.data
@@ -1137,7 +1249,6 @@ function InstructorDashboard() {
 
   // Edit/Update Functions for Quizzes
   const handleEditQuiz = (quiz: any) => {
-    console.log('Editing quiz:', quiz)
     setEditingQuiz(quiz)
     setQuizForm({
       learning_module: quiz.learning_module || '',
@@ -1153,7 +1264,6 @@ function InstructorDashboard() {
     if (quiz.content) {
       try {
         const parsedQuestions = parseQuestionsFromContent(quiz.content)
-        console.log('Parsed questions:', parsedQuestions)
         setQuizQuestions(parsedQuestions)
       } catch (e) {
         console.error('Failed to parse questions:', e)
@@ -1168,10 +1278,7 @@ function InstructorDashboard() {
   }
 
   const updateQuiz = async () => {
-    if (updatingQuiz) {
-      console.log('Quiz update already in progress')
-      return
-    }
+    if (updatingQuiz) return
 
     try {
       setUpdatingQuiz(true)
@@ -1179,12 +1286,11 @@ function InstructorDashboard() {
         ...quizForm,
         content: quizForm.content || ''
       }
-      const response = await api.patch(`/learning/quizzes/${editingQuiz.id}/`, quizData)
-      console.log('Quiz update successful:', response.data)
+      await api.patch(`/learning/quizzes/${editingQuiz.id}/`, quizData)
       setShowEditQuiz(false)
       setEditingQuiz(null)
       setShowQuizEditor(false)
-      setQuizQuestions([])
+      resetQuizForm()
       toast.success('Quiz updated successfully')
       await fetchQuizzes()
     } catch (error: any) {
@@ -1203,14 +1309,59 @@ function InstructorDashboard() {
     { icon: Award, label: 'Certificates', value: stats.total_certificates || 0, color: 'bg-amber-500/10 text-amber-400' }
   ]
 
-  const learningAdminSections = [
+  const learningAdminSections: { id: string; label: string; icon: React.ComponentType<{ className?: string }>; count?: number }[] = [
     { id: 'overview', label: 'Overview', icon: BarChart2 },
-    { id: 'paths', label: 'Career Paths', icon: BookOpen },
-    { id: 'modules', label: 'Modules', icon: FileText },
-    { id: 'quizzes', label: 'Quizzes', icon: ClipboardCheck },
-    { id: 'challenges', label: 'Challenges', icon: Code2 },
-    { id: 'videos', label: 'Video Courses', icon: Video }
+    { id: 'paths', label: 'Career Paths', icon: BookOpen, count: paths.length },
+    { id: 'modules', label: 'Modules', icon: FileText, count: modules.length },
+    { id: 'quizzes', label: 'Quizzes', icon: ClipboardCheck, count: quizzes.length },
+    { id: 'online', label: 'Online Quizzes', icon: Radio, count: liveQuizzes.length },
+    { id: 'challenges', label: 'Challenges', icon: Code2, count: challengesList.length },
+    { id: 'videos', label: 'Video Courses', icon: Video, count: videoCoursesList.length }
   ]
+
+  // Filtered collections for the learning admin views
+  const visiblePaths = paths.filter((path: any) => {
+    const matchesSearch = !pathSearch ||
+      path.name.toLowerCase().includes(pathSearch.toLowerCase()) ||
+      path.description?.toLowerCase().includes(pathSearch.toLowerCase())
+    const matchesProgram = pathProgramFilter === 'all' || path.program_type === pathProgramFilter
+    const matchesStatus = pathStatusFilter === 'all' ||
+      (pathStatusFilter === 'active' && path.is_active) ||
+      (pathStatusFilter === 'inactive' && !path.is_active)
+    const matchesDifficulty = pathDifficultyFilter === 'all' || path.difficulty_level === pathDifficultyFilter
+    return matchesSearch && matchesProgram && matchesStatus && matchesDifficulty
+  })
+  const hasPathFilters = !!pathSearch || pathProgramFilter !== 'all' || pathStatusFilter !== 'all' || pathDifficultyFilter !== 'all'
+
+  const visibleModules = modules.filter((module: any) => {
+    const matchesSearch = !moduleSearch ||
+      module.title.toLowerCase().includes(moduleSearch.toLowerCase()) ||
+      module.description?.toLowerCase().includes(moduleSearch.toLowerCase())
+    const matchesPath = !filterPathId || module.career_path === filterPathId
+    const matchesType = moduleTypeFilter === 'all' || module.module_type === moduleTypeFilter
+    const matchesDifficulty = moduleDifficultyFilter === 'all' || module.difficulty_level === moduleDifficultyFilter
+    return matchesSearch && matchesPath && matchesType && matchesDifficulty
+  })
+  const hasModuleFilters = !!moduleSearch || !!filterPathId || moduleTypeFilter !== 'all' || moduleDifficultyFilter !== 'all'
+
+  const visibleQuizzes = quizzes.filter((quiz: any) => {
+    const matchesSearch = !quizSearch ||
+      quiz.title.toLowerCase().includes(quizSearch.toLowerCase()) ||
+      quiz.description?.toLowerCase().includes(quizSearch.toLowerCase())
+    const matchesModule = quizModuleFilter === 'all' || quiz.learning_module === quizModuleFilter
+    // Find the module to check its career path
+    const quizModule = modules.find((m: any) => m.id === quiz.learning_module)
+    const matchesPath = quizPathFilter === 'all' || quizModule?.career_path === quizPathFilter
+    return matchesSearch && matchesModule && matchesPath
+  })
+  const hasQuizFilters = !!quizSearch || quizPathFilter !== 'all' || quizModuleFilter !== 'all'
+
+  const visibleLiveQuizzes = liveQuizzes.filter((quiz) =>
+    !liveQuizSearch ||
+    quiz.title.toLowerCase().includes(liveQuizSearch.toLowerCase()) ||
+    quiz.join_code.toLowerCase().includes(liveQuizSearch.toLowerCase())
+  )
+  const openLiveQuizzes = liveQuizzes.filter((quiz) => quiz.is_open)
 
   // Sidebar navigation items
   const sidenavItems: SidenavItem[] = [
@@ -1228,24 +1379,24 @@ function InstructorDashboard() {
   const QuickActionsBar = () => (
     <div className="flex flex-wrap gap-2 sm:gap-3 mb-6">
       <button
-        onClick={() => { setActiveTab('paths'); setLearningView('paths'); setShowCreatePath(true); }}
-        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors text-sm whitespace-nowrap"
+        onClick={() => { setActiveTab('learning'); setLearningView('paths'); setShowCreatePath(true); }}
+        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors text-sm whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
       >
-        <PlusCircle className="h-4 w-4" />
+        <PlusCircle className="h-4 w-4" aria-hidden="true" />
         Create Path
       </button>
       <button
-        onClick={() => { setActiveTab('modules'); setLearningView('modules'); setShowCreateModule(true); }}
-        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors text-sm whitespace-nowrap"
+        onClick={() => { setActiveTab('learning'); setLearningView('modules'); setShowCreateModule(true); }}
+        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors text-sm whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
       >
-        <FileText className="h-4 w-4" />
+        <FileText className="h-4 w-4" aria-hidden="true" />
         Create Module
       </button>
       <button
         onClick={() => setShowPDFExtractor(true)}
-        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 rounded-lg text-neutral-100 transition-colors text-sm whitespace-nowrap"
+        className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 rounded-lg text-neutral-100 transition-colors text-sm whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
       >
-        <Wand2 className="h-4 w-4" />
+        <Wand2 className="h-4 w-4" aria-hidden="true" />
         AI Content
       </button>
     </div>
@@ -1259,8 +1410,8 @@ function InstructorDashboard() {
       activeItem={activeTab}
       onItemClick={handleSidenavClick}
     >
-      {/* Quick Actions Bar */}
-      <QuickActionsBar />
+      {/* Quick Actions Bar - overview only; other tabs have their own actions */}
+      {activeTab === 'overview' && <QuickActionsBar />}
       {activeTab === 'overview' && (
         <>
           {/* Personalized greeting */}
@@ -1379,11 +1530,16 @@ function InstructorDashboard() {
 
       {/* Learning Admin Tab - Full Embedded */}
       {activeTab === 'learning' && (
-        <div className="space-y-6">
+        <div className="flex items-start gap-6 2xl:gap-8">
+        {/* Main column */}
+        <div className="flex-1 min-w-0 space-y-5">
           {/* Header with Actions */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <h2 className="text-xl sm:text-2xl font-bold text-white">Learning Administration</h2>
-            <div className="flex gap-2">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">Learning Administration</h2>
+              <p className="text-sm text-neutral-400 mt-1">Create and manage paths, modules, quizzes, challenges and video courses</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
               {learningView === 'paths' && (
                 <button
                   onClick={() => setShowCreatePath(true)}
@@ -1403,22 +1559,22 @@ function InstructorDashboard() {
                 </button>
               )}
               {learningView === 'quizzes' && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowCreateQuiz(true)}
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors flex items-center gap-2 text-sm"
-                  >
-                    <PlusCircle className="w-4 h-4" />
-                    Create Quiz
-                  </button>
-                  <button
-                    onClick={() => setShowCreateLiveQuiz(true)}
-                    className="px-4 py-2 bg-neutral-800 border border-neutral-700 hover:bg-neutral-700 text-neutral-100 rounded-lg transition-colors flex items-center gap-2 text-sm"
-                  >
-                    <Radio className="w-4 h-4" />
-                    Quiz Online
-                  </button>
-                </div>
+                <button
+                  onClick={() => setShowCreateQuiz(true)}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors flex items-center gap-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400"
+                >
+                  <PlusCircle className="w-4 h-4" aria-hidden="true" />
+                  Create Quiz
+                </button>
+              )}
+              {learningView === 'online' && (
+                <button
+                  onClick={() => setShowCreateLiveQuiz(true)}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors flex items-center gap-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                >
+                  <Radio className="w-4 h-4" aria-hidden="true" />
+                  Create Online Quiz
+                </button>
               )}
               {learningView === 'challenges' && (
                 <button
@@ -1442,47 +1598,84 @@ function InstructorDashboard() {
           </div>
 
           {/* Sub-Navigation - Scrollable on mobile */}
-          <div className="overflow-x-auto scrollbar-hide touch-scroll -mx-4 px-4 sm:mx-0 sm:px-0">
-            <div className="flex gap-1 p-1 bg-neutral-900 rounded-lg border border-neutral-800 w-max sm:w-fit">
+          <nav aria-label="Learning admin sections" className="overflow-x-auto scrollbar-hide touch-scroll -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="flex gap-1 p-1 bg-neutral-900 rounded-lg border border-neutral-800 w-max">
               {learningAdminSections.map((section) => {
                 const Icon = section.icon
+                const isActive = learningView === section.id
                 return (
                   <button
                     key={section.id}
                     onClick={() => setLearningView(section.id)}
-                    className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${learningView === section.id
-                      ? 'bg-neutral-800 text-white shadow-sm'
-                      : 'text-neutral-400 hover:text-white'
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60 ${isActive
+                      ? 'bg-purple-500/10 text-purple-300'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-800/60'
                       }`}
                   >
-                    <Icon className="h-4 w-4 flex-shrink-0" />
+                    <Icon className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
                     <span>{section.label}</span>
+                    {typeof section.count === 'number' && (
+                      <span className={`rounded-full px-1.5 text-xs tabular-nums ${isActive
+                        ? 'border border-purple-500/30 bg-purple-500/15 text-purple-300'
+                        : 'bg-neutral-800 text-neutral-500'
+                        }`}>
+                        {section.count}
+                      </span>
+                    )}
                   </button>
                 )
               })}
             </div>
-          </div>
+          </nav>
 
-          {/* Overview Stats */}
+          {/* Overview */}
           {learningView === 'overview' && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              {[
-                { icon: BookOpen, chip: 'bg-purple-500/10 text-purple-400', value: paths.length, label: 'Career Paths', sub: 'Active learning paths' },
-                { icon: FileText, chip: 'bg-purple-500/10 text-purple-400', value: modules.length, label: 'Modules', sub: 'Learning modules' },
-                { icon: ClipboardCheck, chip: 'bg-green-500/10 text-green-400', value: quizzes.length, label: 'Quizzes', sub: 'Assessment quizzes' },
-                { icon: Users, chip: 'bg-amber-500/10 text-amber-400', value: stats.total_enrollments, label: 'Enrollments', sub: 'Total enrollments' },
-              ].map(({ icon: Icon, chip, value, label, sub }) => (
-                <div key={label} className="rounded-xl border border-neutral-800 bg-neutral-900 p-4 sm:p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`p-2.5 rounded-lg ${chip}`}>
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <span className="text-2xl sm:text-3xl font-bold text-white tabular-nums">{value}</span>
+            <div className="space-y-5">
+              {/* Enrollment summary strip */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                {[
+                  { label: 'Total Enrollments', value: stats.total_enrollments || 0, accent: 'text-white' },
+                  { label: 'Completions', value: stats.completed_enrollments || 0, accent: 'text-green-400' },
+                  { label: 'Certificates', value: stats.total_certificates || 0, accent: 'text-amber-400' },
+                  { label: 'Completion Rate', value: `${stats.avg_completion_rate || 0}%`, accent: 'text-purple-400' },
+                ].map((tile) => (
+                  <div key={tile.label} className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+                    <p className="text-xs text-neutral-500 mb-1">{tile.label}</p>
+                    <p className={`text-2xl font-bold tabular-nums ${tile.accent}`}>{loading ? '...' : tile.value}</p>
                   </div>
-                  <h3 className="text-sm sm:text-base font-semibold text-neutral-200">{label}</h3>
-                  <p className="text-xs sm:text-sm text-neutral-500">{sub}</p>
-                </div>
-              ))}
+                ))}
+              </div>
+
+              {/* Content shortcuts - one card per content type */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+                {[
+                  { id: 'paths', icon: BookOpen, label: 'Career Paths', count: paths.length, desc: 'Structured learning journeys', chip: 'bg-purple-500/10 text-purple-400' },
+                  { id: 'modules', icon: FileText, label: 'Modules', count: modules.length, desc: 'Lessons inside each path', chip: 'bg-sky-500/10 text-sky-400' },
+                  { id: 'quizzes', icon: ClipboardCheck, label: 'Quizzes', count: quizzes.length, desc: 'Module assessments', chip: 'bg-green-500/10 text-green-400' },
+                  { id: 'online', icon: Radio, label: 'Online Quizzes', count: liveQuizzes.length, desc: 'Live sessions with join codes', chip: 'bg-amber-500/10 text-amber-400' },
+                  { id: 'challenges', icon: Code2, label: 'Challenges', count: challengesList.length, desc: 'Hands-on coding practice', chip: 'bg-rose-500/10 text-rose-400' },
+                  { id: 'videos', icon: Video, label: 'Video Courses', count: videoCoursesList.length, desc: 'Curated video lessons', chip: 'bg-indigo-500/10 text-indigo-400' },
+                ].map(({ id, icon: Icon, label, count, desc, chip }) => (
+                  <button
+                    key={id}
+                    onClick={() => setLearningView(id)}
+                    className="group rounded-xl border border-neutral-800 bg-neutral-900 p-4 sm:p-5 text-left hover:border-purple-500/40 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`p-2.5 rounded-lg ${chip}`}>
+                        <Icon className="w-5 h-5" aria-hidden="true" />
+                      </div>
+                      <span className="text-2xl font-bold text-white tabular-nums">{count}</span>
+                    </div>
+                    <h3 className="text-sm font-semibold text-neutral-200">{label}</h3>
+                    <p className="text-xs text-neutral-500 mt-0.5">{desc}</p>
+                    <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-purple-400 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity">
+                      Manage <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -1493,17 +1686,17 @@ function InstructorDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="relative sm:col-span-2 lg:col-span-1">
                   <input
-                    type="text"
+                    type="search"
+                    aria-label="Search career paths"
                     placeholder="Search paths..."
                     value={pathSearch}
                     onChange={(e) => setPathSearch(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:outline-none focus:border-purple-500 text-sm"
                   />
-                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" aria-hidden="true" />
                 </div>
                 <select
+                  aria-label="Filter by program"
                   value={pathProgramFilter}
                   onChange={(e) => setPathProgramFilter(e.target.value)}
                   className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
@@ -1514,6 +1707,7 @@ function InstructorDashboard() {
                   <option value="bsis">BSIS</option>
                 </select>
                 <select
+                  aria-label="Filter by status"
                   value={pathStatusFilter}
                   onChange={(e) => setPathStatusFilter(e.target.value as any)}
                   className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
@@ -1523,6 +1717,7 @@ function InstructorDashboard() {
                   <option value="inactive">Draft</option>
                 </select>
                 <select
+                  aria-label="Filter by difficulty"
                   value={pathDifficultyFilter}
                   onChange={(e) => setPathDifficultyFilter(e.target.value)}
                   className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
@@ -1535,19 +1730,22 @@ function InstructorDashboard() {
               </div>
 
               <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
-                {paths.filter((path: any) => {
-                  const matchesSearch = !pathSearch ||
-                    path.name.toLowerCase().includes(pathSearch.toLowerCase()) ||
-                    path.description?.toLowerCase().includes(pathSearch.toLowerCase())
-                  const matchesProgram = pathProgramFilter === 'all' || path.program_type === pathProgramFilter
-                  const matchesStatus = pathStatusFilter === 'all' ||
-                    (pathStatusFilter === 'active' && path.is_active) ||
-                    (pathStatusFilter === 'inactive' && !path.is_active)
-                  const matchesDifficulty = pathDifficultyFilter === 'all' || path.difficulty_level === pathDifficultyFilter
-                  return matchesSearch && matchesProgram && matchesStatus && matchesDifficulty
-                }).length === 0 ? (
+                {paths.length > 0 && (
+                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-neutral-800 text-xs text-neutral-500">
+                    <span>Showing {visiblePaths.length} of {paths.length} path{paths.length !== 1 ? 's' : ''}</span>
+                    {hasPathFilters && (
+                      <button
+                        onClick={() => { setPathSearch(''); setPathProgramFilter('all'); setPathStatusFilter('all'); setPathDifficultyFilter('all') }}
+                        className="text-purple-400 hover:text-purple-300 transition-colors"
+                      >
+                        Clear filters
+                      </button>
+                    )}
+                  </div>
+                )}
+                {paths.length === 0 ? (
                   <div className="text-center py-12">
-                    <BookOpen className="w-12 h-12 mx-auto text-neutral-600 mb-4" />
+                    <BookOpen className="w-12 h-12 mx-auto text-neutral-600 mb-4" aria-hidden="true" />
                     <p className="text-neutral-400">No career paths yet</p>
                     <button
                       onClick={() => setShowCreatePath(true)}
@@ -1556,31 +1754,26 @@ function InstructorDashboard() {
                       Create First Path
                     </button>
                   </div>
+                ) : visiblePaths.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Search className="w-12 h-12 mx-auto text-neutral-600 mb-4" aria-hidden="true" />
+                    <p className="text-neutral-400">No paths match your filters</p>
+                  </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead className="bg-neutral-900/60 border-b border-neutral-800">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Name</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Program</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Modules</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Enrolled</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Status</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Actions</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Name</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Program</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Modules</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Enrolled</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Status</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-800/70">
-                        {paths.filter((path: any) => {
-                          const matchesSearch = !pathSearch ||
-                            path.name.toLowerCase().includes(pathSearch.toLowerCase()) ||
-                            path.description?.toLowerCase().includes(pathSearch.toLowerCase())
-                          const matchesProgram = pathProgramFilter === 'all' || path.program_type === pathProgramFilter
-                          const matchesStatus = pathStatusFilter === 'all' ||
-                            (pathStatusFilter === 'active' && path.is_active) ||
-                            (pathStatusFilter === 'inactive' && !path.is_active)
-                          const matchesDifficulty = pathDifficultyFilter === 'all' || path.difficulty_level === pathDifficultyFilter
-                          return matchesSearch && matchesProgram && matchesStatus && matchesDifficulty
-                        }).map((path: any) => (
+                        {visiblePaths.map((path: any) => (
                           <tr key={path.id} className="hover:bg-neutral-800/40">
                             <td className="px-4 py-3 text-white">{path.name}</td>
                             <td className="px-4 py-3 text-neutral-400 uppercase text-sm">{path.program_type}</td>
@@ -1596,23 +1789,27 @@ function InstructorDashboard() {
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => handleEditPath(path)}
-                                  className="p-1.5 text-purple-400 hover:text-purple-300 rounded hover:bg-purple-900/20"
-                                  title="Edit"
+                                  className="p-1.5 text-purple-400 hover:text-purple-300 rounded hover:bg-purple-900/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60"
+                                  title="Edit path"
+                                  aria-label={`Edit ${path.name}`}
                                 >
-                                  <Edit className="w-4 h-4" />
+                                  <Edit className="w-4 h-4" aria-hidden="true" />
                                 </button>
                                 <button
                                   onClick={() => togglePathStatus(path.id)}
-                                  className="p-1.5 text-neutral-400 hover:text-white rounded hover:bg-neutral-700"
-                                  title={path.is_active ? 'Deactivate' : 'Activate'}
+                                  className="p-1.5 text-neutral-400 hover:text-white rounded hover:bg-neutral-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60"
+                                  title={path.is_active ? 'Deactivate path' : 'Activate path'}
+                                  aria-label={`${path.is_active ? 'Deactivate' : 'Activate'} ${path.name}`}
                                 >
-                                  <Play className="w-4 h-4" />
+                                  <Play className="w-4 h-4" aria-hidden="true" />
                                 </button>
                                 <button
                                   onClick={() => handleDeletePath(path.id)}
-                                  className="p-1.5 text-red-400 hover:text-red-300 rounded hover:bg-red-900/20"
+                                  className="p-1.5 text-red-400 hover:text-red-300 rounded hover:bg-red-900/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60"
+                                  title="Delete path"
+                                  aria-label={`Delete ${path.name}`}
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash2 className="w-4 h-4" aria-hidden="true" />
                                 </button>
                               </div>
                             </td>
@@ -1633,17 +1830,17 @@ function InstructorDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="relative sm:col-span-2 lg:col-span-1">
                   <input
-                    type="text"
+                    type="search"
+                    aria-label="Search modules"
                     placeholder="Search modules..."
                     value={moduleSearch}
                     onChange={(e) => setModuleSearch(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:outline-none focus:border-purple-500 text-sm"
                   />
-                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" aria-hidden="true" />
                 </div>
                 <select
+                  aria-label="Filter by career path"
                   value={filterPathId}
                   onChange={(e) => setFilterPathId(e.target.value)}
                   className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
@@ -1654,6 +1851,7 @@ function InstructorDashboard() {
                   ))}
                 </select>
                 <select
+                  aria-label="Filter by module type"
                   value={moduleTypeFilter}
                   onChange={(e) => setModuleTypeFilter(e.target.value)}
                   className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
@@ -1665,6 +1863,7 @@ function InstructorDashboard() {
                   <option value="interactive">Interactive</option>
                 </select>
                 <select
+                  aria-label="Filter by difficulty"
                   value={moduleDifficultyFilter}
                   onChange={(e) => setModuleDifficultyFilter(e.target.value)}
                   className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
@@ -1676,9 +1875,22 @@ function InstructorDashboard() {
                 </select>
               </div>
               <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
+                {modules.length > 0 && (
+                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-neutral-800 text-xs text-neutral-500">
+                    <span>Showing {visibleModules.length} of {modules.length} module{modules.length !== 1 ? 's' : ''}</span>
+                    {hasModuleFilters && (
+                      <button
+                        onClick={() => { setModuleSearch(''); setFilterPathId(''); setModuleTypeFilter('all'); setModuleDifficultyFilter('all') }}
+                        className="text-purple-400 hover:text-purple-300 transition-colors"
+                      >
+                        Clear filters
+                      </button>
+                    )}
+                  </div>
+                )}
                 {modules.length === 0 ? (
                   <div className="text-center py-12">
-                    <FileText className="w-12 h-12 mx-auto text-neutral-600 mb-4" />
+                    <FileText className="w-12 h-12 mx-auto text-neutral-600 mb-4" aria-hidden="true" />
                     <p className="text-neutral-400">No modules yet</p>
                     <button
                       onClick={() => setShowCreateModule(true)}
@@ -1687,28 +1899,25 @@ function InstructorDashboard() {
                       Create First Module
                     </button>
                   </div>
+                ) : visibleModules.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Search className="w-12 h-12 mx-auto text-neutral-600 mb-4" aria-hidden="true" />
+                    <p className="text-neutral-400">No modules match your filters</p>
+                  </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead className="bg-neutral-900/60 border-b border-neutral-800">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Title</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Career Path</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Type</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Duration</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Actions</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Title</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Career Path</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Type</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Duration</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-800/70">
-                        {modules.filter((module: any) => {
-                          const matchesSearch = !moduleSearch ||
-                            module.title.toLowerCase().includes(moduleSearch.toLowerCase()) ||
-                            module.description?.toLowerCase().includes(moduleSearch.toLowerCase())
-                          const matchesPath = !filterPathId || module.career_path === filterPathId
-                          const matchesType = moduleTypeFilter === 'all' || module.module_type === moduleTypeFilter
-                          const matchesDifficulty = moduleDifficultyFilter === 'all' || module.difficulty_level === moduleDifficultyFilter
-                          return matchesSearch && matchesPath && matchesType && matchesDifficulty
-                        }).map((module: any) => (
+                        {visibleModules.map((module: any) => (
                           <tr key={module.id} className="hover:bg-neutral-800/40">
                             <td className="px-4 py-3 text-white">{module.title}</td>
                             <td className="px-4 py-3 text-neutral-400">{module.career_path_name || 'N/A'}</td>
@@ -1718,16 +1927,19 @@ function InstructorDashboard() {
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => handleEditModule(module)}
-                                  className="p-1.5 text-purple-400 hover:text-purple-300 rounded hover:bg-purple-900/20"
-                                  title="Edit"
+                                  className="p-1.5 text-purple-400 hover:text-purple-300 rounded hover:bg-purple-900/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60"
+                                  title="Edit module"
+                                  aria-label={`Edit ${module.title}`}
                                 >
-                                  <Edit className="w-4 h-4" />
+                                  <Edit className="w-4 h-4" aria-hidden="true" />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteModule(module.id)}
-                                  className="p-1.5 text-red-400 hover:text-red-300 rounded hover:bg-red-900/20"
+                                  className="p-1.5 text-red-400 hover:text-red-300 rounded hover:bg-red-900/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60"
+                                  title="Delete module"
+                                  aria-label={`Delete ${module.title}`}
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash2 className="w-4 h-4" aria-hidden="true" />
                                 </button>
                               </div>
                             </td>
@@ -1748,20 +1960,20 @@ function InstructorDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div className="relative">
                   <input
-                    type="text"
+                    type="search"
+                    aria-label="Search quizzes"
                     placeholder="Search quizzes..."
                     value={quizSearch}
                     onChange={(e) => setQuizSearch(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:outline-none focus:border-green-500 text-sm"
+                    className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:outline-none focus:border-purple-500 text-sm"
                   />
-                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" aria-hidden="true" />
                 </div>
                 <select
+                  aria-label="Filter by career path"
                   value={quizPathFilter}
                   onChange={(e) => setQuizPathFilter(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-green-500"
+                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
                 >
                   <option value="all">All Career Paths</option>
                   {paths.map((p: any) => (
@@ -1769,9 +1981,10 @@ function InstructorDashboard() {
                   ))}
                 </select>
                 <select
+                  aria-label="Filter by module"
                   value={quizModuleFilter}
                   onChange={(e) => setQuizModuleFilter(e.target.value)}
-                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-green-500"
+                  className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
                 >
                   <option value="all">All Modules</option>
                   {modules
@@ -1782,9 +1995,22 @@ function InstructorDashboard() {
                 </select>
               </div>
               <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
+                {quizzes.length > 0 && (
+                  <div className="flex items-center justify-between px-4 py-2.5 border-b border-neutral-800 text-xs text-neutral-500">
+                    <span>Showing {visibleQuizzes.length} of {quizzes.length} quiz{quizzes.length !== 1 ? 'zes' : ''}</span>
+                    {hasQuizFilters && (
+                      <button
+                        onClick={() => { setQuizSearch(''); setQuizPathFilter('all'); setQuizModuleFilter('all') }}
+                        className="text-purple-400 hover:text-purple-300 transition-colors"
+                      >
+                        Clear filters
+                      </button>
+                    )}
+                  </div>
+                )}
                 {quizzes.length === 0 ? (
                   <div className="text-center py-12">
-                    <ClipboardCheck className="w-12 h-12 mx-auto text-neutral-600 mb-4" />
+                    <ClipboardCheck className="w-12 h-12 mx-auto text-neutral-600 mb-4" aria-hidden="true" />
                     <p className="text-neutral-400">No quizzes yet</p>
                     <button
                       onClick={() => setShowCreateQuiz(true)}
@@ -1793,29 +2019,25 @@ function InstructorDashboard() {
                       Create First Quiz
                     </button>
                   </div>
+                ) : visibleQuizzes.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Search className="w-12 h-12 mx-auto text-neutral-600 mb-4" aria-hidden="true" />
+                    <p className="text-neutral-400">No quizzes match your filters</p>
+                  </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead className="bg-neutral-900/60 border-b border-neutral-800">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Title</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Module</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Time Limit</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Passing Score</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Actions</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Title</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Module</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Time Limit</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Passing Score</th>
+                          <th scope="col" className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-neutral-500">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-800/70">
-                        {quizzes.filter((quiz: any) => {
-                          const matchesSearch = !quizSearch ||
-                            quiz.title.toLowerCase().includes(quizSearch.toLowerCase()) ||
-                            quiz.description?.toLowerCase().includes(quizSearch.toLowerCase())
-                          const matchesModule = quizModuleFilter === 'all' || quiz.learning_module === quizModuleFilter
-                          // Find the module to check its career path
-                          const quizModule = modules.find((m: any) => m.id === quiz.learning_module)
-                          const matchesPath = quizPathFilter === 'all' || quizModule?.career_path === quizPathFilter
-                          return matchesSearch && matchesModule && matchesPath
-                        }).map((quiz: any) => (
+                        {visibleQuizzes.map((quiz: any) => (
                           <tr key={quiz.id} className="hover:bg-neutral-800/40">
                             <td className="px-4 py-3 text-white">{quiz.title}</td>
                             <td className="px-4 py-3 text-neutral-400">{quiz.module_title || 'N/A'}</td>
@@ -1824,17 +2046,28 @@ function InstructorDashboard() {
                             <td className="px-4 py-3">
                               <div className="flex gap-2">
                                 <button
-                                  onClick={() => handleEditQuiz(quiz)}
-                                  className="p-1.5 text-purple-400 hover:text-purple-300 rounded hover:bg-purple-900/20"
-                                  title="Edit"
+                                  onClick={() => handleHostQuizOnline(quiz)}
+                                  className="p-1.5 text-amber-400 hover:text-amber-300 rounded hover:bg-amber-900/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
+                                  title="Host as online quiz"
+                                  aria-label={`Host ${quiz.title} as online quiz`}
                                 >
-                                  <Edit className="w-4 h-4" />
+                                  <Radio className="w-4 h-4" aria-hidden="true" />
+                                </button>
+                                <button
+                                  onClick={() => handleEditQuiz(quiz)}
+                                  className="p-1.5 text-purple-400 hover:text-purple-300 rounded hover:bg-purple-900/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60"
+                                  title="Edit quiz"
+                                  aria-label={`Edit ${quiz.title}`}
+                                >
+                                  <Edit className="w-4 h-4" aria-hidden="true" />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteQuiz(quiz.id)}
-                                  className="p-1.5 text-red-400 hover:text-red-300 rounded hover:bg-red-900/20"
+                                  className="p-1.5 text-red-400 hover:text-red-300 rounded hover:bg-red-900/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60"
+                                  title="Delete quiz"
+                                  aria-label={`Delete ${quiz.title}`}
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash2 className="w-4 h-4" aria-hidden="true" />
                                 </button>
                               </div>
                             </td>
@@ -1847,261 +2080,182 @@ function InstructorDashboard() {
               </div>
             </div>
           )}
-        </div>
-      )}
 
-      {/* Courses Tab - Now Career Paths */}
-      {activeTab === 'courses' && (
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl sm:text-2xl font-bold text-white">Career Paths</h2>
-            <button
-              onClick={() => { setActiveTab('learning'); setLearningView('paths'); }}
-              className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition flex items-center gap-2 text-sm"
-            >
-              <PlusCircle className="w-4 h-4" />
-              Create Path
-            </button>
-          </div>
+          {/* Online (Live) Quizzes */}
+          {learningView === 'online' && (
+            <div className="space-y-4">
+              {/* Search */}
+              <div className="relative">
+                <input
+                  type="search"
+                  aria-label="Search online quizzes by title or join code"
+                  placeholder="Search online quizzes by title or join code..."
+                  value={liveQuizSearch}
+                  onChange={(e) => {
+                    setLiveQuizSearch(e.target.value)
+                    setLiveQuizPage(1) // Reset to page 1 on search
+                  }}
+                  className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:outline-none focus:border-amber-500 text-sm"
+                />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" aria-hidden="true" />
+              </div>
 
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">{[0, 1, 2].map(i => <SkeletonCard key={i} />)}</div>
-          ) : careerPaths.length === 0 ? (
-            <div className="text-center py-12">
-              <BookOpen className="w-12 h-12 mx-auto text-neutral-600 mb-4" />
-              <p className="text-neutral-400">No career paths created yet</p>
-              <button
-                onClick={() => { setActiveTab('learning'); setLearningView('paths'); }}
-                className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg"
-              >
-                Create Your First Path
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {careerPaths.map((path) => (
-                <div key={path.id} className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 sm:p-6 hover:border-neutral-700 transition-colors">
-                  <div className="flex justify-between items-start mb-3 sm:mb-4">
-                    <h3 className="text-base sm:text-lg font-semibold text-white">{path.name}</h3>
-                    <span className={`px-2 py-1 text-xs rounded-full ${path.is_active
-                      ? 'bg-green-500/15 text-green-300 border border-green-500/30'
-                      : 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
-                      }`}>
-                      {path.is_active ? 'Active' : 'Draft'}
-                    </span>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-xs sm:text-sm">
-                      <span className="text-neutral-400">Modules</span>
-                      <span className="text-white">{path.total_modules}</span>
-                    </div>
-                    <div className="flex justify-between text-xs sm:text-sm">
-                      <span className="text-neutral-400">Enrolled Students</span>
-                      <span className="text-white">{path.enrolled_count}</span>
-                    </div>
-                    <div className="flex justify-between text-xs sm:text-sm">
-                      <span className="text-neutral-400">Completions</span>
-                      <span className="text-green-400">{path.completed_count}</span>
-                    </div>
-                    <div className="flex justify-between text-xs sm:text-sm">
-                      <span className="text-neutral-400">Program</span>
-                      <span className="text-purple-400">{path.program_type.toUpperCase()}</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <button
-                      onClick={() => fetchEnrolledStudents(path.id, path.name)}
-                      className="flex-1 px-3 py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 rounded-lg transition-colors text-sm flex items-center justify-center gap-1"
-                    >
-                      <Users className="w-4 h-4" />
-                      Students
-                    </button>
-                    <button
-                      onClick={() => { setActiveTab('learning'); setLearningView('paths'); }}
-                      className="flex-1 px-3 py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 rounded-lg transition-colors text-sm"
-                    >
-                      Manage
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+              {/* Quiz Grid with Pagination */}
+              {(() => {
+                const totalPages = Math.ceil(visibleLiveQuizzes.length / liveQuizzesPerPage)
+                // Clamp so deleting/filtering items never strands the user on an empty page
+                const safePage = Math.min(liveQuizPage, Math.max(1, totalPages))
+                const startIndex = (safePage - 1) * liveQuizzesPerPage
+                const endIndex = startIndex + liveQuizzesPerPage
+                const paginatedQuizzes = visibleLiveQuizzes.slice(startIndex, endIndex)
 
-      {/* Live Quizzes Section */}
-      {learningView === 'quizzes' && (
-        <div className="space-y-4">
-          {/* Search */}
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search live quizzes..."
-              value={quizSearch}
-              onChange={(e) => {
-                setQuizSearch(e.target.value)
-                setLiveQuizPage(1) // Reset to page 1 on search
-              }}
-              className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-400 focus:outline-none focus:border-amber-500 text-sm"
-            />
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-
-          {/* Quiz Grid with Pagination */}
-          {(() => {
-            const filteredQuizzes = liveQuizzes.filter((quiz) =>
-              !quizSearch ||
-              quiz.title.toLowerCase().includes(quizSearch.toLowerCase()) ||
-              quiz.join_code.toLowerCase().includes(quizSearch.toLowerCase())
-            )
-
-            const totalPages = Math.ceil(filteredQuizzes.length / liveQuizzesPerPage)
-            const startIndex = (liveQuizPage - 1) * liveQuizzesPerPage
-            const endIndex = startIndex + liveQuizzesPerPage
-            const paginatedQuizzes = filteredQuizzes.slice(startIndex, endIndex)
-
-            if (filteredQuizzes.length === 0) {
-              return (
-                <div className="text-center py-12">
-                  <Radio className="w-12 h-12 mx-auto text-neutral-600 mb-4" />
-                  <p className="text-neutral-400 mb-4">
-                    {quizSearch ? 'No quizzes match your search' : 'No live quizzes yet'}
-                  </p>
-                  {!quizSearch && (
-                    <button
-                      onClick={() => setShowCreateLiveQuiz(true)}
-                      className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
-                    >
-                      Create First Live Quiz
-                    </button>
-                  )}
-                </div>
-              )
-            }
-
-            return (
-              <>
-                {/* Pagination Info */}
-                <div className="flex justify-between items-center text-sm text-neutral-400">
-                  <span>
-                    Showing {startIndex + 1}-{Math.min(endIndex, filteredQuizzes.length)} of {filteredQuizzes.length} quiz{filteredQuizzes.length !== 1 ? 'zes' : ''}
-                  </span>
-                  {totalPages > 1 && (
-                    <span>Page {liveQuizPage} of {totalPages}</span>
-                  )}
-                </div>
-
-                {/* Quiz Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {paginatedQuizzes.map((quiz) => (
-                    <div
-                      key={quiz.id}
-                      onClick={() => setSelectedLiveQuiz(quiz)}
-                      className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 shadow-lg hover:border-amber-500/50 transition-all cursor-pointer group"
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <h3 className="text-lg font-semibold text-white group-hover:text-amber-400 transition truncate pr-2">{quiz.title}</h3>
-                        <span className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ${quiz.is_open ? 'bg-green-500/15 text-green-300 border border-green-500/30' : 'bg-neutral-600/50 text-neutral-400'}`}>
-                          {quiz.status_text || (quiz.is_open ? 'Active' : 'Closed')}
-                        </span>
-                      </div>
-
-                      <div className="space-y-2 mb-4">
-                        <div className="flex items-center gap-2">
-                          <code className="px-2 py-1 bg-neutral-900 text-amber-400 rounded font-mono text-sm">{quiz.join_code}</code>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-neutral-400">Questions</span>
-                          <span className="text-white">{quiz.questions_count || 0}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-neutral-400">Participants</span>
-                          <span className="text-white">{quiz.max_participants}</span>
-                        </div>
-                      </div>
-
-                      <div className="pt-3 border-t border-neutral-700 flex gap-2">
+                if (visibleLiveQuizzes.length === 0) {
+                  return (
+                    <div className="text-center py-12 bg-neutral-900/40 rounded-xl border border-dashed border-neutral-800">
+                      <Radio className="w-12 h-12 mx-auto text-neutral-600 mb-4" aria-hidden="true" />
+                      <p className="text-neutral-400 mb-4">
+                        {liveQuizSearch ? 'No quizzes match your search' : 'No online quizzes yet'}
+                      </p>
+                      {!liveQuizSearch && (
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedLiveQuiz(quiz)
-                          }}
-                          className="flex-1 px-3 py-1.5 bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white rounded-lg transition text-sm"
+                          onClick={() => setShowCreateLiveQuiz(true)}
+                          className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg transition-colors"
                         >
-                          View Details
+                          Create First Online Quiz
+                        </button>
+                      )}
+                    </div>
+                  )
+                }
+
+                return (
+                  <>
+                    {/* Pagination Info */}
+                    <div className="flex justify-between items-center text-sm text-neutral-400">
+                      <span>
+                        Showing {startIndex + 1}-{Math.min(endIndex, visibleLiveQuizzes.length)} of {visibleLiveQuizzes.length} quiz{visibleLiveQuizzes.length !== 1 ? 'zes' : ''}
+                      </span>
+                      {totalPages > 1 && (
+                        <span>Page {safePage} of {totalPages}</span>
+                      )}
+                    </div>
+
+                    {/* Quiz Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-4">
+                      {paginatedQuizzes.map((quiz) => (
+                        <div
+                          key={quiz.id}
+                          onClick={() => setSelectedLiveQuiz(quiz)}
+                          className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 shadow-lg hover:border-amber-500/50 transition-all cursor-pointer group"
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                            <h3 className="text-lg font-semibold text-white group-hover:text-amber-400 transition truncate pr-2">{quiz.title}</h3>
+                            <span className={`px-2 py-1 text-xs rounded-full flex-shrink-0 ${quiz.is_open ? 'bg-green-500/15 text-green-300 border border-green-500/30' : 'bg-neutral-600/50 text-neutral-400'}`}>
+                              {quiz.status_text || (quiz.is_open ? 'Active' : 'Closed')}
+                            </span>
+                          </div>
+
+                          <div className="space-y-2 mb-4">
+                            <div className="flex items-center gap-2">
+                              <code className="px-2 py-1 bg-neutral-950 text-amber-400 rounded font-mono text-sm">{quiz.join_code}</code>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-neutral-400">Questions</span>
+                              <span className="text-white">{quiz.questions_count || 0}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-neutral-400">Participants</span>
+                              <span className="text-white">{quiz.max_participants}</span>
+                            </div>
+                          </div>
+
+                          <div className="pt-3 border-t border-neutral-700 flex gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedLiveQuiz(quiz)
+                              }}
+                              className="flex-1 px-3 py-1.5 bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white rounded-lg transition text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
+                              aria-label={`View details for ${quiz.title}`}
+                            >
+                              View Details
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                      <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-4">
+                        <button
+                          onClick={() => setLiveQuizPage(Math.max(1, safePage - 1))}
+                          disabled={safePage === 1}
+                          className="w-full sm:w-auto px-4 py-2 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition text-sm flex items-center justify-center gap-1"
+                        >
+                          <ChevronRight className="w-4 h-4 rotate-180" aria-hidden="true" />
+                          Previous
+                        </button>
+
+                        <div className="flex gap-2">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1)
+                            .filter(page => {
+                              // Show first page, last page, current page, and pages around current
+                              return page === 1 ||
+                                page === totalPages ||
+                                Math.abs(page - safePage) <= 1
+                            })
+                            .map((page, idx, arr) => {
+                              // Add ellipsis if there's a gap
+                              const showEllipsisBefore = idx > 0 && page - arr[idx - 1] > 1
+                              return (
+                                <div key={page} className="flex items-center gap-1">
+                                  {showEllipsisBefore && <span className="text-neutral-500 px-2">...</span>}
+                                  <button
+                                    onClick={() => setLiveQuizPage(page)}
+                                    aria-label={`Go to page ${page}`}
+                                    aria-current={page === safePage ? 'page' : undefined}
+                                    className={`w-10 h-10 rounded-lg transition text-sm ${page === safePage
+                                      ? 'bg-amber-600 text-white'
+                                      : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-400'
+                                      }`}
+                                  >
+                                    {page}
+                                  </button>
+                                </div>
+                              )
+                            })}
+                        </div>
+
+                        <button
+                          onClick={() => setLiveQuizPage(Math.min(totalPages, safePage + 1))}
+                          disabled={safePage === totalPages}
+                          className="w-full sm:w-auto px-4 py-2 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition text-sm flex items-center justify-center gap-1"
+                        >
+                          Next
+                          <ChevronRight className="w-4 h-4" aria-hidden="true" />
                         </button>
                       </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                  <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-4">
-                    <button
-                      onClick={() => setLiveQuizPage(Math.max(1, liveQuizPage - 1))}
-                      disabled={liveQuizPage === 1}
-                      className="w-full sm:w-auto px-4 py-2 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition text-sm flex items-center justify-center gap-1"
-                    >
-                      <ChevronRight className="w-4 h-4 rotate-180" />
-                      Previous
-                    </button>
-
-                    <div className="flex gap-2">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1)
-                        .filter(page => {
-                          // Show first page, last page, current page, and pages around current
-                          return page === 1 ||
-                            page === totalPages ||
-                            Math.abs(page - liveQuizPage) <= 1
-                        })
-                        .map((page, idx, arr) => {
-                          // Add ellipsis if there's a gap
-                          const showEllipsisBefore = idx > 0 && page - arr[idx - 1] > 1
-                          return (
-                            <div key={page} className="flex items-center gap-1">
-                              {showEllipsisBefore && <span className="text-neutral-500 px-2">...</span>}
-                              <button
-                                onClick={() => setLiveQuizPage(page)}
-                                className={`w-10 h-10 rounded-lg transition text-sm ${page === liveQuizPage
-                                  ? 'bg-amber-600 text-white'
-                                  : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-400'
-                                  }`}
-                              >
-                                {page}
-                              </button>
-                            </div>
-                          )
-                        })}
-                    </div>
-
-                    <button
-                      onClick={() => setLiveQuizPage(Math.min(totalPages, liveQuizPage + 1))}
-                      disabled={liveQuizPage === totalPages}
-                      className="w-full sm:w-auto px-4 py-2 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition text-sm flex items-center justify-center gap-1"
-                    >
-                      Next
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-              </>
-            )
-          })()}
-        </div>
-      )}
+                    )}
+                  </>
+                )
+              })()}
+            </div>
+          )}
 
           {/* Challenges Management */}
           {learningView === 'challenges' && (
             <div className="space-y-4">
               {challengesList.length === 0 ? (
                 <div className="text-center py-12 bg-neutral-900/40 rounded-xl border border-dashed border-neutral-800">
-                  <Code2 className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
+                  <Code2 className="w-12 h-12 text-neutral-600 mx-auto mb-3" aria-hidden="true" />
                   <p className="text-neutral-400">No coding challenges yet</p>
-                  <p className="text-neutral-500 text-sm mt-1">Create your first challenge to get started</p>
+                  <button
+                    onClick={() => setShowCreateChallenge(true)}
+                    className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
+                  >
+                    Create First Challenge
+                  </button>
                 </div>
               ) : (
                 <div className="grid gap-3">
@@ -2129,13 +2283,13 @@ function InstructorDashboard() {
                         <button
                           onClick={() => handleGoLive(c)}
                           disabled={goingLive === c.slug}
-                          className="px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-lg transition flex items-center gap-1.5 text-xs font-medium"
+                          className="px-3 py-1.5 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-lg transition flex items-center gap-1.5 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400"
                           title="Host a live coding competition with this challenge"
                         >
                           {goingLive === c.slug ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
                           ) : (
-                            <Radio className="w-3.5 h-3.5" />
+                            <Radio className="w-3.5 h-3.5" aria-hidden="true" />
                           )}
                           Go Live
                         </button>
@@ -2150,9 +2304,11 @@ function InstructorDashboard() {
                               } catch { toast.error('Failed to delete') }
                             }
                           }}
-                          className="p-2 text-neutral-400 hover:text-red-400 transition"
+                          className="p-2 text-neutral-400 hover:text-red-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60 rounded"
+                          title="Delete challenge"
+                          aria-label={`Delete ${c.title}`}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" aria-hidden="true" />
                         </button>
                       </div>
                     </div>
@@ -2162,16 +2318,19 @@ function InstructorDashboard() {
             </div>
           )}
 
-
-
           {/* Video Courses Management */}
           {learningView === 'videos' && (
             <div className="space-y-4">
               {videoCoursesList.length === 0 ? (
                 <div className="text-center py-12 bg-neutral-900/40 rounded-xl border border-dashed border-neutral-800">
-                  <Video className="w-12 h-12 text-neutral-600 mx-auto mb-3" />
+                  <Video className="w-12 h-12 text-neutral-600 mx-auto mb-3" aria-hidden="true" />
                   <p className="text-neutral-400">No video courses yet</p>
-                  <p className="text-neutral-500 text-sm mt-1">Create your first video course to get started</p>
+                  <button
+                    onClick={() => setShowCreateVideoCourse(true)}
+                    className="mt-4 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
+                  >
+                    Create First Video Course
+                  </button>
                 </div>
               ) : (
                 <div className="grid gap-3">
@@ -2198,9 +2357,11 @@ function InstructorDashboard() {
                             } catch { toast.error('Failed to delete') }
                           }
                         }}
-                        className="p-2 text-neutral-400 hover:text-red-400 transition"
+                        className="p-2 text-neutral-400 hover:text-red-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/60 rounded"
+                        title="Delete video course"
+                        aria-label={`Delete ${vc.title}`}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" aria-hidden="true" />
                       </button>
                     </div>
                   ))}
@@ -2208,6 +2369,118 @@ function InstructorDashboard() {
               )}
             </div>
           )}
+        </div>
+
+        {/* Right rail (≥xl): quick actions, content shortcuts, live sessions */}
+        <aside
+          aria-label="Learning admin shortcuts"
+          className="hidden xl:flex flex-col w-72 shrink-0 sticky top-2 gap-4 max-h-[calc(100vh-5rem)] overflow-y-auto pb-2"
+        >
+          {/* Quick Create */}
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+            <p className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+              <PlusCircle className="w-4 h-4 text-purple-400" aria-hidden="true" />
+              Quick Create
+            </p>
+            <div className="space-y-0.5">
+              {[
+                { label: 'Career Path', icon: BookOpen, action: () => { setLearningView('paths'); setShowCreatePath(true) } },
+                { label: 'Module', icon: FileText, action: () => { setLearningView('modules'); setShowCreateModule(true) } },
+                { label: 'Quiz', icon: ClipboardCheck, action: () => { setLearningView('quizzes'); setShowCreateQuiz(true) } },
+                { label: 'Online Quiz', icon: Radio, action: () => { setLearningView('online'); setShowCreateLiveQuiz(true) } },
+                { label: 'Challenge', icon: Code2, action: () => { setLearningView('challenges'); setShowCreateChallenge(true) } },
+                { label: 'Video Course', icon: Video, action: () => { setLearningView('videos'); setShowCreateVideoCourse(true) } },
+              ].map(({ label, icon: Icon, action }) => (
+                <button
+                  key={label}
+                  onClick={action}
+                  className="w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-neutral-400 hover:bg-neutral-800/60 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60"
+                >
+                  <Icon className="w-4 h-4 text-neutral-500" aria-hidden="true" />
+                  <span className="flex-1 text-left">{label}</span>
+                  <PlusCircle className="w-3.5 h-3.5 text-neutral-600" aria-hidden="true" />
+                </button>
+              ))}
+            </div>
+            <div className="border-t border-neutral-800 mt-2 pt-2">
+              <button
+                onClick={() => setShowPDFExtractor(true)}
+                className="w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-purple-400 hover:bg-purple-500/10 hover:text-purple-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60"
+              >
+                <Wand2 className="w-4 h-4" aria-hidden="true" />
+                <span className="flex-1 text-left">AI Content from PDF</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Find Content */}
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+            <p className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+              <Search className="w-4 h-4 text-purple-400" aria-hidden="true" />
+              Find Content
+            </p>
+            <div className="space-y-0.5">
+              {learningAdminSections.filter(s => s.id !== 'overview').map((section) => {
+                const Icon = section.icon
+                const isActive = learningView === section.id
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => setLearningView(section.id)}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60 ${isActive
+                      ? 'bg-purple-500/10 text-purple-300'
+                      : 'text-neutral-400 hover:bg-neutral-800/60 hover:text-white'
+                      }`}
+                  >
+                    <Icon className="w-4 h-4" aria-hidden="true" />
+                    <span className="flex-1 text-left">{section.label}</span>
+                    <span className={`rounded-full px-1.5 text-xs tabular-nums ${isActive
+                      ? 'border border-purple-500/30 bg-purple-500/15 text-purple-300'
+                      : 'bg-neutral-800 text-neutral-500'
+                      }`}>
+                      {section.count ?? 0}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Live Sessions */}
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900 p-4">
+            <p className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+              <Radio className="w-4 h-4 text-amber-400" aria-hidden="true" />
+              Live Sessions
+              {openLiveQuizzes.length > 0 && (
+                <span className="rounded-full border border-amber-500/30 bg-amber-500/15 px-1.5 text-xs text-amber-300 tabular-nums">
+                  {openLiveQuizzes.length}
+                </span>
+              )}
+            </p>
+            {openLiveQuizzes.length === 0 ? (
+              <p className="text-xs text-neutral-500">No active sessions. Create an online quiz to go live.</p>
+            ) : (
+              <div className="space-y-2">
+                {openLiveQuizzes.slice(0, 4).map((quiz) => (
+                  <button
+                    key={quiz.id}
+                    onClick={() => { setLearningView('online'); setSelectedLiveQuiz(quiz) }}
+                    className="w-full rounded-lg border border-neutral-800 bg-neutral-800/50 hover:border-amber-500/40 p-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
+                  >
+                    <p className="text-sm text-white truncate">{quiz.title}</p>
+                    <p className="text-xs mt-0.5">
+                      <code className="text-amber-400 font-mono">{quiz.join_code}</code>
+                      <span className="text-neutral-500"> · {quiz.questions_count || 0} question{(quiz.questions_count || 0) !== 1 ? 's' : ''}</span>
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </aside>
+        </div>
+      )}
 
       {/* Students Tab - Now with Path Selection */}
       {activeTab === 'students' && (
@@ -2561,11 +2834,11 @@ function InstructorDashboard() {
 
       {/* Create Career Path Modal */}
       {showCreatePath && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-white">Create New Career Path</h3>
-              <button onClick={() => setShowCreatePath(false)} className="text-neutral-400 hover:text-white">
+              <button onClick={() => setShowCreatePath(false)} aria-label="Close dialog" className="text-neutral-400 hover:text-white">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -2623,7 +2896,7 @@ function InstructorDashboard() {
                   <input
                     type="number"
                     value={pathForm.estimated_duration}
-                    onChange={(e) => setPathForm({ ...pathForm, estimated_duration: parseInt(e.target.value) })}
+                    onChange={(e) => setPathForm({ ...pathForm, estimated_duration: parseInt(e.target.value) || 0 })}
                     className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
                     min="1"
                     required
@@ -2644,7 +2917,7 @@ function InstructorDashboard() {
                   <input
                     type="number"
                     value={pathForm.points_reward}
-                    onChange={(e) => setPathForm({ ...pathForm, points_reward: parseInt(e.target.value) })}
+                    onChange={(e) => setPathForm({ ...pathForm, points_reward: parseInt(e.target.value) || 0 })}
                     className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
                     min="1"
                     required
@@ -2734,11 +3007,11 @@ function InstructorDashboard() {
       {/* Create Quiz Modal */}
       {
         showCreateQuiz && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-white">Create New Quiz</h3>
-                <button onClick={() => setShowCreateQuiz(false)} className="text-neutral-400 hover:text-white">
+                <button onClick={() => { setShowCreateQuiz(false); setShowQuizEditor(false) }} aria-label="Close dialog" className="text-neutral-400 hover:text-white">
                   <X className="w-6 h-6" />
                 </button>
               </div>
@@ -2782,7 +3055,7 @@ function InstructorDashboard() {
                     <input
                       type="number"
                       value={quizForm.time_limit_minutes}
-                      onChange={(e) => setQuizForm({ ...quizForm, time_limit_minutes: parseInt(e.target.value) })}
+                      onChange={(e) => setQuizForm({ ...quizForm, time_limit_minutes: parseInt(e.target.value) || 0 })}
                       className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
                       min="1"
                       required
@@ -2793,7 +3066,7 @@ function InstructorDashboard() {
                     <input
                       type="number"
                       value={quizForm.passing_score}
-                      onChange={(e) => setQuizForm({ ...quizForm, passing_score: parseInt(e.target.value) })}
+                      onChange={(e) => setQuizForm({ ...quizForm, passing_score: parseInt(e.target.value) || 0 })}
                       className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
                       min="0"
                       max="100"
@@ -2805,7 +3078,7 @@ function InstructorDashboard() {
                     <input
                       type="number"
                       value={quizForm.max_attempts}
-                      onChange={(e) => setQuizForm({ ...quizForm, max_attempts: parseInt(e.target.value) })}
+                      onChange={(e) => setQuizForm({ ...quizForm, max_attempts: parseInt(e.target.value) || 0 })}
                       className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
                       min="1"
                       required
@@ -2876,7 +3149,7 @@ function InstructorDashboard() {
       {/* PDF Extractor Modal */}
       {
         showPDFExtractor && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
               <PDFContentExtractor
                 onContentCreated={(data) => {
@@ -2893,11 +3166,11 @@ function InstructorDashboard() {
       {/* Edit Path Modal */}
       {
         showEditPath && editingPath && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-white">Edit Career Path</h3>
-                <button onClick={() => setShowEditPath(false)} className="text-neutral-400 hover:text-white">
+                <button onClick={closeEditPathModal} aria-label="Close dialog" className="text-neutral-400 hover:text-white">
                   <X className="w-6 h-6" />
                 </button>
               </div>
@@ -2959,7 +3232,7 @@ function InstructorDashboard() {
                     <input
                       type="number"
                       value={pathForm.estimated_duration}
-                      onChange={(e) => setPathForm({ ...pathForm, estimated_duration: parseInt(e.target.value) })}
+                      onChange={(e) => setPathForm({ ...pathForm, estimated_duration: parseInt(e.target.value) || 0 })}
                       className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
                       min="1"
                       required
@@ -2980,7 +3253,7 @@ function InstructorDashboard() {
                     <input
                       type="number"
                       value={pathForm.points_reward}
-                      onChange={(e) => setPathForm({ ...pathForm, points_reward: parseInt(e.target.value) })}
+                      onChange={(e) => setPathForm({ ...pathForm, points_reward: parseInt(e.target.value) || 0 })}
                       className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
                       min="1"
                       required
@@ -3026,7 +3299,7 @@ function InstructorDashboard() {
                   <button type="submit" className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium">
                     Update Path
                   </button>
-                  <button type="button" onClick={() => setShowEditPath(false)} className="px-6 py-3 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg">
+                  <button type="button" onClick={closeEditPathModal} className="px-6 py-3 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg">
                     Cancel
                   </button>
                 </div>
@@ -3058,11 +3331,11 @@ function InstructorDashboard() {
       {/* Edit Quiz Modal */}
       {
         showEditQuiz && editingQuiz && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-white">Edit Quiz</h3>
-                <button onClick={() => setShowEditQuiz(false)} className="text-neutral-400 hover:text-white">
+                <button onClick={closeEditQuizModal} aria-label="Close dialog" className="text-neutral-400 hover:text-white">
                   <X className="w-6 h-6" />
                 </button>
               </div>
@@ -3110,7 +3383,7 @@ function InstructorDashboard() {
                     <input
                       type="number"
                       value={quizForm.time_limit_minutes}
-                      onChange={(e) => setQuizForm({ ...quizForm, time_limit_minutes: parseInt(e.target.value) })}
+                      onChange={(e) => setQuizForm({ ...quizForm, time_limit_minutes: parseInt(e.target.value) || 0 })}
                       className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
                       min="1"
                       required
@@ -3121,7 +3394,7 @@ function InstructorDashboard() {
                     <input
                       type="number"
                       value={quizForm.passing_score}
-                      onChange={(e) => setQuizForm({ ...quizForm, passing_score: parseInt(e.target.value) })}
+                      onChange={(e) => setQuizForm({ ...quizForm, passing_score: parseInt(e.target.value) || 0 })}
                       className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
                       min="0"
                       max="100"
@@ -3133,7 +3406,7 @@ function InstructorDashboard() {
                     <input
                       type="number"
                       value={quizForm.max_attempts}
-                      onChange={(e) => setQuizForm({ ...quizForm, max_attempts: parseInt(e.target.value) })}
+                      onChange={(e) => setQuizForm({ ...quizForm, max_attempts: parseInt(e.target.value) || 0 })}
                       className="w-full px-4 py-2 bg-neutral-700 border border-neutral-600 rounded-lg text-white"
                       min="1"
                       required
@@ -3196,11 +3469,7 @@ function InstructorDashboard() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowEditQuiz(false)
-                      setShowQuizEditor(false)
-                      setQuizQuestions([])
-                    }}
+                    onClick={closeEditQuizModal}
                     disabled={updatingQuiz}
                     className="px-6 py-3 bg-neutral-700 hover:bg-neutral-600 disabled:bg-neutral-800 text-white rounded-lg"
                   >
@@ -3215,7 +3484,7 @@ function InstructorDashboard() {
 
       {/* Create Live Quiz Modal */}
       {showCreateLiveQuiz && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-neutral-900 rounded-xl border border-neutral-700 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold text-white flex items-center gap-2">
@@ -3227,6 +3496,7 @@ function InstructorDashboard() {
                   setShowCreateLiveQuiz(false)
                   resetLiveQuizForm()
                 }}
+                aria-label="Close dialog"
                 className="text-neutral-400 hover:text-white"
               >
                 <X className="w-6 h-6" />
@@ -3338,7 +3608,7 @@ function InstructorDashboard() {
                     <input
                       type="number"
                       value={liveQuizForm.max_participants}
-                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, max_participants: parseInt(e.target.value) })}
+                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, max_participants: parseInt(e.target.value) || 0 })}
                       min={1}
                       max={500}
                       className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-amber-500"
@@ -3351,7 +3621,7 @@ function InstructorDashboard() {
                     <input
                       type="number"
                       value={liveQuizForm.default_question_time}
-                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, default_question_time: parseInt(e.target.value) })}
+                      onChange={(e) => setLiveQuizForm({ ...liveQuizForm, default_question_time: parseInt(e.target.value) || 0 })}
                       min={5}
                       max={300}
                       className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:outline-none focus:border-amber-500"
@@ -3472,6 +3742,18 @@ function InstructorDashboard() {
                   </label>
                 </div>
               </div>
+
+              {/* Import-from-quiz notice */}
+              {hostSourceQuiz && (
+                <div className="bg-amber-900/20 border border-amber-700/50 rounded-lg p-4 flex items-start gap-2.5">
+                  <ClipboardCheck className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
+                  <p className="text-sm text-amber-300">
+                    {hostSourceQuiz.questions.length > 0
+                      ? `${hostSourceQuiz.questions.length} question${hostSourceQuiz.questions.length !== 1 ? 's' : ''} from "${hostSourceQuiz.title}" will be imported after creation.`
+                      : `No importable questions were found in "${hostSourceQuiz.title}" — you can add questions after creating.`}
+                  </p>
+                </div>
+              )}
 
               {/* Info Notice */}
               <div className="bg-purple-900/20 border border-purple-700/50 rounded-lg p-4">
@@ -3765,6 +4047,7 @@ function InstructorDashboard() {
                                         timeLimit: questions[0].time_limit || selectedLiveQuiz.default_question_time || 30,
                                         totalQuestions: questions.length,
                                       }));
+                                      setLiveQIndex(1);
                                       setTimeout(() => ws.close(), 3000);
                                     }, 500);
                                   } else {
@@ -3773,6 +4056,8 @@ function InstructorDashboard() {
                                 }, 1000);
                                 toast.success(`Session started! Code: ${selectedLiveQuiz.join_code}`);
                                 setShowMonitorPanel(true);
+                                // Reflect the live state immediately so Pause/Stop/Next appear.
+                                setSelectedLiveQuiz(prev => prev ? { ...prev, is_active: true } : prev);
                                 fetchLiveQuizzes();
                               };
                               ws.onerror = () => toast.error('WS connection error.');
@@ -3795,10 +4080,13 @@ function InstructorDashboard() {
                                             timeLimit: questions[0].time_limit || selectedLiveQuiz.default_question_time || 30,
                                             totalQuestions: questions.length,
                                           }));
+                                          setLiveQIndex(1);
                                           setTimeout(() => ws.close(), 3000);
                                         }, 500);
                                       }
                                       toast.success(`Quiz session live! Code: ${selectedLiveQuiz.join_code}`);
+                                      setShowMonitorPanel(true);
+                                      setSelectedLiveQuiz(prev => prev ? { ...prev, is_active: true } : prev);
                                       fetchLiveQuizzes();
                                     }, 1000);
                                   };
@@ -3876,6 +4164,8 @@ function InstructorDashboard() {
                               }, 500);
                             };
                             toast.success('Session ended for all students');
+                            setSelectedLiveQuiz(prev => prev ? { ...prev, is_active: false } : prev);
+                            setLiveQIndex(0);
                             fetchLiveQuizzes();
                           }}
                           className="w-full px-4 py-2 bg-red-700/60 hover:bg-red-600 text-red-200 hover:text-white rounded-lg transition flex items-center justify-center gap-2 text-sm font-medium"
@@ -3888,50 +4178,58 @@ function InstructorDashboard() {
                       )}
 
 
-                      {/* Send Next Question button — for multi-question quizzes */}
-                      {selectedLiveQuiz.is_active && selectedLiveQuiz.questions_count > 1 && (
-                        <button
-                          onClick={async () => {
-                            if (!selectedLiveQuiz) return;
-                            try {
-                              const questions = await liveQuizService.getQuestions(selectedLiveQuiz.id);
-                              if (questions.length === 0) {
-                                toast.error('No questions found');
-                                return;
+                      {/* Send Next Question — advances the session sequentially */}
+                      {selectedLiveQuiz.is_active && selectedLiveQuiz.questions_count > 1 && (() => {
+                        const total = selectedLiveQuiz.questions_count;
+                        const allSent = liveQIndex >= total;
+                        return (
+                          <button
+                            disabled={sendingNextQ || allSent}
+                            onClick={async () => {
+                              if (!selectedLiveQuiz || allSent) return;
+                              setSendingNextQ(true);
+                              try {
+                                const questions = await liveQuizService.getQuestions(selectedLiveQuiz.id);
+                                const idx = liveQIndex;
+                                if (idx >= questions.length) {
+                                  toast('All questions have been sent', { icon: 'ℹ️' });
+                                  return;
+                                }
+                                const q = questions[idx];
+                                const wsBase = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
+                                const ws = new WebSocket(`${wsBase}/quiz/${selectedLiveQuiz.join_code}/`);
+                                ws.onopen = () => {
+                                  ws.send(JSON.stringify({ type: 'instructor_join', join_code: selectedLiveQuiz.join_code }));
+                                  ws.send(JSON.stringify({
+                                    type: 'next_question',
+                                    question: q,
+                                    timeLimit: q.time_limit || selectedLiveQuiz.default_question_time || 30,
+                                    totalQuestions: questions.length,
+                                  }));
+                                  setLiveQIndex(idx + 1);
+                                  toast.success(`Question ${idx + 1} of ${questions.length} sent to all students`);
+                                  setTimeout(() => ws.close(), 1500);
+                                };
+                                ws.onerror = () => toast.error('Connection error — question not sent');
+                              } catch (err) {
+                                toast.error('Failed to send question');
+                              } finally {
+                                setSendingNextQ(false);
                               }
-
-                              // Prompt for which question to send
-                              const currentIndex = prompt(`Enter question number to send (1-${questions.length}):`, '1');
-                              if (!currentIndex) return;
-                              const idx = parseInt(currentIndex, 10) - 1;
-                              if (isNaN(idx) || idx < 0 || idx >= questions.length) {
-                                toast.error(`Invalid question number. Must be 1-${questions.length}`);
-                                return;
-                              }
-
-                              const q = questions[idx];
-                              const wsBase = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
-                              const ws = new WebSocket(`${wsBase}/quiz/${selectedLiveQuiz.join_code}/`);
-                              ws.onopen = () => {
-                                ws.send(JSON.stringify({ type: 'instructor_join', join_code: selectedLiveQuiz.join_code }));
-                                ws.send(JSON.stringify({
-                                  type: 'next_question',
-                                  question: q,
-                                  timeLimit: q.time_limit || selectedLiveQuiz.default_question_time || 30,
-                                  totalQuestions: questions.length,
-                                }));
-                                toast.success(`Question ${idx + 1} sent to all students!`);
-                              };
-                            } catch (err) {
-                              toast.error('Failed to send question');
-                            }
-                          }}
-                          className="w-full px-4 py-2 bg-purple-600/80 hover:bg-purple-600 text-white rounded-lg transition flex items-center justify-center gap-2 text-sm font-medium"
-                        >
-                          <ChevronRight className="w-3.5 h-3.5" />
-                          Send Next Question
-                        </button>
-                      )}
+                            }}
+                            className="w-full px-4 py-2 bg-purple-600/80 hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition flex items-center justify-center gap-2 text-sm font-medium"
+                          >
+                            {sendingNextQ
+                              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              : <ChevronRight className="w-3.5 h-3.5" />}
+                            {allSent
+                              ? 'All questions sent'
+                              : liveQIndex === 0
+                                ? 'Send First Question'
+                                : `Send Next Question (${liveQIndex + 1} of ${total})`}
+                          </button>
+                        );
+                      })()}
 
                       <button
                         onClick={() => {
@@ -4138,7 +4436,7 @@ function InstructorDashboard() {
 
       {/* Create Challenge Modal */}
       {showCreateChallenge && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-white">Create New Coding Challenge</h3>
@@ -4262,7 +4560,7 @@ function InstructorDashboard() {
 
               {/* Test Cases */}
               <div>
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-sm font-medium text-neutral-300">Test Cases</label>
                   <button type="button"
                     onClick={() => setChallengeForm({ ...challengeForm, test_cases: [...challengeForm.test_cases, { input: '', expected_output: '', is_hidden: false }] })}
@@ -4271,6 +4569,10 @@ function InstructorDashboard() {
                     + Add Test Case
                   </button>
                 </div>
+                <p className="text-xs text-neutral-500 mb-3">
+                  Use several test cases with different inputs and mark some as hidden — submissions
+                  that just print the expected output instead of computing it are auto-rejected.
+                </p>
                 <div className="space-y-3">
                   {challengeForm.test_cases.map((tc, i) => (
                     <div key={i} className="p-3 bg-neutral-900/40 rounded-lg border border-neutral-700/50 space-y-2">
@@ -4323,7 +4625,7 @@ function InstructorDashboard() {
 
       {/* Go Live Config Modal */}
       {showGoLiveConfig && goLiveChallenge && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6 w-full max-w-lg">
             <div className="flex justify-between items-center mb-6">
               <div>
@@ -4453,7 +4755,7 @@ function InstructorDashboard() {
       )}
 
       {showCreateVideoCourse && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-white">Create New Video Course</h3>

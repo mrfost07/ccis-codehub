@@ -1,100 +1,408 @@
 import { Link } from 'react-router-dom'
-import { useState, useEffect, useRef, useMemo } from 'react'
-import { motion } from 'framer-motion'
-import { BookOpen, Code2, Bot, Users, Search, Rocket, Pencil } from 'lucide-react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { ScrollSmoother } from 'gsap/ScrollSmoother'
+import { SplitText } from 'gsap/SplitText'
+import { ScrambleTextPlugin } from 'gsap/ScrambleTextPlugin'
+import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin'
+import {
+  BookOpen, Code2, Bot, Users, Search, Rocket, Pencil,
+  ArrowRight, Download, Sparkles, Github, Twitter, Heart, Quote, Check,
+  Menu, X, GraduationCap, Trophy, ChevronDown, Layers, Network, LineChart,
+} from 'lucide-react'
 import { usePublicStats } from '../hooks/useApiCache'
 
-// Isolated TypewriterText component to prevent parent re-renders
-function TypewriterText() {
-  const [typedText, setTypedText] = useState('')
-  const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0)
-  const [isDeleting, setIsDeleting] = useState(false)
+gsap.registerPlugin(ScrollTrigger, ScrollSmoother, SplitText, ScrambleTextPlugin, DrawSVGPlugin)
 
-  const phrases = useMemo(() => [
-    'Master Programming',
-    'Build Amazing Projects',
-    'AI-Powered Learning',
-    'Collaborate with Peers'
-  ], [])
+const prefersReduced = () =>
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-  useEffect(() => {
-    const currentPhrase = phrases[currentPhraseIndex]
-    const timeout = setTimeout(() => {
-      if (!isDeleting) {
-        if (typedText.length < currentPhrase.length) {
-          setTypedText(currentPhrase.slice(0, typedText.length + 1))
-        } else {
-          setTimeout(() => setIsDeleting(true), 2000)
-        }
-      } else {
-        if (typedText.length > 0) {
-          setTypedText(typedText.slice(0, -1))
-        } else {
-          setIsDeleting(false)
-          setCurrentPhraseIndex((currentPhraseIndex + 1) % phrases.length)
-        }
-      }
-    }, isDeleting ? 50 : 100)
-
-    return () => clearTimeout(timeout)
-  }, [typedText, isDeleting, currentPhraseIndex, phrases])
-
-  return (
-    <motion.span
-      className="block bg-gradient-to-r from-purple-400 via-purple-400 to-purple-400 bg-clip-text text-transparent relative"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
-      {typedText}
-      <span className="animate-blink">|</span>
-    </motion.span>
-  )
-}
-
-// Stats interface
 interface PlatformStats {
   total_users: number
   total_courses: number
   total_projects: number
 }
 
-export default function HomeEnhanced() {
-  const [isVisible, setIsVisible] = useState<Record<string, boolean>>({})
+const MARQUEE_ITEMS = [
+  'Python', 'JavaScript', 'React', 'Django', 'Data Structures',
+  'Algorithms', 'Machine Learning', 'Git', 'SQL', 'TypeScript',
+  'Node.js', 'Cloud', 'Networking', 'Cybersecurity',
+]
 
-  // Use cached public stats
+const GRADIENT_CHAR_CLASSES = ['bg-gradient-to-br', 'from-purple-200', 'via-purple-400', 'to-purple-600', 'bg-clip-text', 'text-transparent']
+
+const NAV_LINKS = [
+  { href: '#features', label: 'Features' },
+  { href: '#programs', label: 'Programs' },
+  { href: '#ai-automation', label: 'AI Mentor' },
+  { href: '#faq', label: 'FAQ' },
+]
+
+const PROGRAMS = [
+  {
+    code: 'BSIT',
+    name: 'Information Technology',
+    blurb: 'Build and ship real systems — web apps, networks, and the infrastructure behind them.',
+    topics: ['Web Development', 'Networking', 'Databases', 'Cloud'],
+    icon: Network,
+  },
+  {
+    code: 'BSCS',
+    name: 'Computer Science',
+    blurb: 'Go deep on the theory that makes great engineers — algorithms, AI, and systems thinking.',
+    topics: ['Algorithms', 'Data Structures', 'Machine Learning', 'Theory'],
+    icon: Layers,
+  },
+  {
+    code: 'BSIS',
+    name: 'Information Systems',
+    blurb: 'Bridge tech and business — turn data into decisions organizations actually act on.',
+    topics: ['Business Analytics', 'Data Modeling', 'ERP', 'Project Mgmt'],
+    icon: LineChart,
+  },
+]
+
+const STEPS = [
+  { n: '01', title: 'Pick your path', body: 'Choose the track built for your program and year level.', icon: GraduationCap },
+  { n: '02', title: 'Learn by doing', body: 'Work through modules, then prove it in the code editor.', icon: Code2 },
+  { n: '03', title: 'Get unstuck fast', body: 'Your AI mentor reviews code and explains the why, 24/7.', icon: Bot },
+  { n: '04', title: 'Earn your proof', body: 'Finish with certificates and a portfolio of real projects.', icon: Trophy },
+]
+
+const FAQS = [
+  {
+    q: 'Is CCIS CodeHub really free for students?',
+    a: 'Yes. Every course, coding challenge, and AI mentor feature is free for SNSU CCIS students — just sign up with your student account.',
+  },
+  {
+    q: 'Do I need programming experience to start?',
+    a: 'No. Paths begin at absolute beginner and build up gradually, so first-years start from the fundamentals while advanced students can jump ahead.',
+  },
+  {
+    q: 'How does the AI mentor actually help?',
+    a: 'It reviews your code, explains errors in plain language, and answers questions instantly — so a bug at 2 AM does not cost you a whole night.',
+  },
+  {
+    q: 'Do the certificates mean anything?',
+    a: 'Certificates are issued when you finish a path, and every project you build stays in your portfolio — something concrete to show during OJT and job applications.',
+  },
+  {
+    q: 'Can my instructors track my progress?',
+    a: 'Instructors can see enrollment and progress for their own paths, run live quizzes, and give feedback on submitted work.',
+  },
+]
+
+export default function HomeEnhanced() {
+  const root = useRef<HTMLDivElement>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+
   const { data: statsData } = usePublicStats()
   const stats: PlatformStats = statsData || { total_users: 0, total_courses: 0, total_projects: 0 }
 
-  // Intersection Observer for animations
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setIsVisible((prev) => ({ ...prev, [entry.target.id]: true }))
+  // ScrollSmoother turns <body> into a tall scroll element while our dark
+  // wrapper is pinned one-screen tall — so the body's default (white) shows
+  // through once you scroll. Paint the document root dark for this page and
+  // restore it on unmount so no white ever bleeds through.
+  useLayoutEffect(() => {
+    const prevHtml = document.documentElement.style.backgroundColor
+    const prevBody = document.body.style.backgroundColor
+    document.documentElement.style.backgroundColor = '#0a0a0a' // neutral-950
+    document.body.style.backgroundColor = '#0a0a0a'
+    return () => {
+      document.documentElement.style.backgroundColor = prevHtml
+      document.body.style.backgroundColor = prevBody
+    }
+  }, [])
+
+  // ── Page-level GSAP choreography ──────────────────────────────────────────
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+      const q = gsap.utils.selector(root)
+      const mm = gsap.matchMedia()
+
+      // Reduced motion: reveal the gated hero immediately, nothing else moves.
+      mm.add('(prefers-reduced-motion: reduce)', () => {
+        gsap.set(q('.gsap-gate'), { opacity: 1 })
+      })
+
+      mm.add('(prefers-reduced-motion: no-preference)', () => {
+        const splits: SplitText[] = []
+
+        // 0. Smooth inertial scrolling + data-speed/data-lag parallax layers.
+        //    Fixed chrome (nav, progress, backdrop, grain) lives OUTSIDE the
+        //    wrapper so it stays viewport-fixed while content glides.
+        const smoother = ScrollSmoother.create({
+          wrapper: '#smooth-wrapper',
+          content: '#smooth-content',
+          smooth: 1.15,
+          effects: true,
+          smoothTouch: false, // native feel on touch devices
+        })
+
+        // Route in-page anchors through the smoother so they glide, not jump.
+        const rootEl = root.current as HTMLDivElement
+        const onAnchorClick = (e: MouseEvent) => {
+          const a = (e.target as HTMLElement).closest?.('a[href^="#"]') as HTMLAnchorElement | null
+          if (!a) return
+          const target = a.hash && a.hash.length > 1 ? document.querySelector(a.hash) : null
+          if (target) {
+            e.preventDefault()
+            smoother.scrollTo(target, true, 'top 96px')
+          }
+        }
+        rootEl.addEventListener('click', onAnchorClick)
+
+        // 1. Hero intro — per-character 3D flip-up + scramble-decoded badge.
+        const heroSplit = new SplitText(q('[data-hero-line]'), {
+          type: 'chars',
+          charsClass: 'inline-block will-change-transform',
+        })
+        splits.push(heroSplit)
+        heroSplit.chars.forEach((c) => {
+          if ((c as HTMLElement).closest('[data-gradient-line]')) {
+            (c as HTMLElement).classList.add(...GRADIENT_CHAR_CLASSES)
           }
         })
-      },
-      { threshold: 0.1 }
-    )
+        gsap.set(heroSplit.chars, {
+          yPercent: 130, rotationX: -80, opacity: 0,
+          transformOrigin: '50% 100%', transformPerspective: 700,
+        })
 
-    document.querySelectorAll('[data-animate]').forEach((el) => {
-      observer.observe(el)
-    })
+        const badge = q('[data-scramble]')[0] as HTMLElement | undefined
+        const badgeText = badge?.dataset.scramble || ''
 
-    return () => observer.disconnect()
+        const intro = gsap.timeline({ defaults: { ease: 'power4.out' } })
+        intro
+          .to(q('.gsap-gate'), { opacity: 1, duration: 0.01 })
+          .from(q('[data-nav]'), { yPercent: -100, opacity: 0, duration: 0.8, ease: 'power3.out' }, 0)
+          .to(heroSplit.chars, { yPercent: 0, rotationX: 0, opacity: 1, duration: 1.15, stagger: 0.022 }, 0.1)
+          .from(q('[data-hero-fade]'), { y: 26, opacity: 0, duration: 0.9, stagger: 0.1 }, 0.55)
+        if (badge && badgeText) {
+          intro.to(badge, {
+            duration: 1.4,
+            scrambleText: { text: badgeText, chars: '01<>/{}[]#$_', speed: 0.4 },
+          }, 0.3)
+        }
+
+        // 2. Nav hide-on-scroll-down, return-on-scroll-up.
+        const nav = q('[data-nav]')[0]
+        ScrollTrigger.create({
+          start: 'top top', end: 'max',
+          onUpdate: (self) => {
+            const down = self.direction === 1 && self.scroll() > 320
+            gsap.to(nav, { yPercent: down ? -100 : 0, duration: 0.35, ease: 'power2.out', overwrite: 'auto' })
+          },
+        })
+
+        // 3. Hero content parallax + fade on scroll-out (indicator fades too).
+        gsap.to(q('[data-hero-parallax]'), {
+          yPercent: -12, opacity: 0, ease: 'none',
+          scrollTrigger: { trigger: q('[data-hero]')[0], start: 'top top', end: 'bottom top', scrub: true },
+        })
+        gsap.to(q('[data-scroll-hint]'), {
+          opacity: 0, ease: 'none',
+          scrollTrigger: { trigger: q('[data-hero]')[0], start: 'top top', end: '25% top', scrub: true },
+        })
+
+        // 4. Aurora orbs — slow drift loops (parallax comes from data-speed wrappers).
+        q('[data-orb]').forEach((orb, i) => {
+          gsap.to(orb, {
+            xPercent: i % 2 ? 12 : -10,
+            yPercent: i % 2 ? -14 : 10,
+            scale: 1.15,
+            duration: 9 + i * 3,
+            ease: 'sine.inOut',
+            repeat: -1,
+            yoyo: true,
+          })
+        })
+
+        // 5. Scroll-progress bar under the nav.
+        gsap.fromTo(q('[data-progress]'),
+          { scaleX: 0 },
+          {
+            scaleX: 1, transformOrigin: 'left center', ease: 'none',
+            scrollTrigger: { start: 0, end: 'max', scrub: 0.3 },
+          })
+
+        // 6. Cursor-following glow inside the hero (desktop pointers only).
+        const glow = q('[data-cursor-glow]')[0] as HTMLElement | undefined
+        const hero = q('[data-hero]')[0] as HTMLElement | undefined
+        let onMove: ((e: MouseEvent) => void) | undefined
+        if (glow && hero && window.matchMedia('(pointer: fine)').matches) {
+          const gx = gsap.quickTo(glow, 'x', { duration: 0.6, ease: 'power3' })
+          const gy = gsap.quickTo(glow, 'y', { duration: 0.6, ease: 'power3' })
+          onMove = (e: MouseEvent) => {
+            const r = hero.getBoundingClientRect()
+            gx(e.clientX - r.left - 300)
+            gy(e.clientY - r.top - 300)
+          }
+          hero.addEventListener('mousemove', onMove)
+          gsap.to(glow, { opacity: 1, duration: 1.2, delay: 0.4 })
+        }
+
+        // 7. Section headlines — masked word reveals (plain-text headings only).
+        q('[data-split-words]').forEach((h) => {
+          const sw = new SplitText(h, { type: 'lines,words', linesClass: 'line-mask', wordsClass: 'inline-block will-change-transform' })
+          splits.push(sw)
+          gsap.set(sw.words, { yPercent: 120 })
+          ScrollTrigger.create({
+            trigger: h, start: 'top 85%', once: true,
+            onEnter: () => gsap.to(sw.words, { yPercent: 0, duration: 0.9, ease: 'power4.out', stagger: 0.06 }),
+          })
+        })
+
+        // 8. Hand-drawn SVG underlines, stroked in on arrival.
+        q('[data-underline] path').forEach((path) => {
+          gsap.set(path, { drawSVG: '0%' })
+          ScrollTrigger.create({
+            trigger: path, start: 'top 88%', once: true,
+            onEnter: () => gsap.to(path, { drawSVG: '100%', duration: 0.9, ease: 'power2.inOut', delay: 0.25 }),
+          })
+        })
+
+        // 8b. "How it works" connector — draws left-to-right across the steps.
+        q('[data-draw-line] path').forEach((path) => {
+          gsap.set(path, { drawSVG: '0%' })
+          ScrollTrigger.create({
+            trigger: path, start: 'top 80%', once: true,
+            onEnter: () => gsap.to(path, { drawSVG: '100%', duration: 1.4, ease: 'power2.inOut' }),
+          })
+        })
+
+        // 9. Generic scroll reveals (batched, staggered per row).
+        const reveals = q('[data-reveal]')
+        gsap.set(reveals, { y: 30, autoAlpha: 0 })
+        ScrollTrigger.batch(reveals, {
+          start: 'top 86%',
+          onEnter: (batch) =>
+            gsap.to(batch, { y: 0, autoAlpha: 1, duration: 0.9, ease: 'power3.out', stagger: 0.12, overwrite: true }),
+        })
+
+        // 10. Giant outlined divider type sweeping sideways with scroll.
+        q('[data-scrub-text]').forEach((el, i) => {
+          gsap.fromTo(el,
+            { xPercent: i % 2 ? -18 : 2 },
+            {
+              xPercent: i % 2 ? 2 : -18, ease: 'none',
+              scrollTrigger: { trigger: el, start: 'top bottom', end: 'bottom top', scrub: true },
+            })
+        })
+
+        // 11. Footer mega-type rising from below the fold. End on 'bottom bottom'
+        //     so it settles exactly when the page bottom is reached — otherwise
+        //     the page runs out of scroll before the tween completes and the
+        //     text is left pushed-down and clipped.
+        const mega = q('[data-footer-mega]')[0]
+        if (mega) {
+          gsap.fromTo(mega,
+            { yPercent: 28, opacity: 0.45 },
+            {
+              yPercent: 0, opacity: 1, ease: 'none',
+              scrollTrigger: { trigger: mega, start: 'top bottom', end: 'bottom bottom', scrub: true },
+            })
+        }
+
+        // 12. Velocity skew — cards shear slightly with fast scrolling, then settle.
+        const skewEls = q('[data-skew]')
+        if (skewEls.length) {
+          const proxy = { skew: 0 }
+          const setters = skewEls.map((el) => gsap.quickSetter(el, 'skewY', 'deg'))
+          const clampSkew = gsap.utils.clamp(-3.5, 3.5)
+          ScrollTrigger.create({
+            onUpdate: (self) => {
+              const skew = clampSkew(self.getVelocity() / -400)
+              if (Math.abs(skew) > Math.abs(proxy.skew)) {
+                proxy.skew = skew
+                gsap.to(proxy, {
+                  skew: 0, duration: 0.9, ease: 'power3', overwrite: true,
+                  onUpdate: () => setters.forEach((s) => s(proxy.skew)),
+                })
+              }
+            },
+          })
+        }
+
+        // 13. Testimonials — alternating rotated rise.
+        const cards = q('[data-testimonial]')
+        gsap.set(cards, { y: 64, rotation: (i) => (i % 2 ? 3 : -3), autoAlpha: 0 })
+        ScrollTrigger.batch(cards, {
+          start: 'top 85%',
+          onEnter: (batch) =>
+            gsap.to(batch, { y: 0, rotation: 0, autoAlpha: 1, duration: 1, ease: 'power3.out', stagger: 0.14, overwrite: true }),
+        })
+
+        // 14. AI chat demo — plays only when scrolled into view.
+        const msgs = q('[data-chat]')
+        if (msgs.length) {
+          gsap.set(msgs, { y: 16, autoAlpha: 0 })
+          ScrollTrigger.create({
+            trigger: q('[data-chat-card]')[0], start: 'top 72%', once: true,
+            onEnter: () => gsap.to(msgs, { y: 0, autoAlpha: 1, duration: 0.5, ease: 'power2.out', stagger: 0.85 }),
+          })
+        }
+
+        ScrollTrigger.refresh()
+
+        return () => {
+          rootEl.removeEventListener('click', onAnchorClick)
+          if (hero && onMove) hero.removeEventListener('mousemove', onMove)
+          splits.forEach((s) => s.revert())
+          smoother.kill()
+        }
+      })
+
+      // Pinned horizontal features rail — large screens only.
+      mm.add('(min-width: 1024px) and (prefers-reduced-motion: no-preference)', () => {
+        const q = gsap.utils.selector(root)
+        const section = q('[data-features]')[0] as HTMLElement | undefined
+        const track = q('[data-feature-track]')[0] as HTMLElement | undefined
+        const railProgress = q('[data-rail-progress]')[0] as HTMLElement | undefined
+        if (!section || !track) return
+
+        const getDistance = () => Math.max(0, track.scrollWidth - window.innerWidth)
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: section,
+            start: 'top top',
+            end: () => `+=${getDistance()}`,
+            scrub: 1,
+            pin: true,
+            invalidateOnRefresh: true,
+          },
+        })
+        tl.to(track, { x: () => -getDistance(), ease: 'none' }, 0)
+        if (railProgress) {
+          tl.fromTo(railProgress, { scaleX: 0 }, { scaleX: 1, transformOrigin: 'left center', ease: 'none' }, 0)
+        }
+      })
+    }, root)
+
+    // Recompute trigger positions once web fonts / lazy content settle.
+    const onLoad = () => ScrollTrigger.refresh()
+    window.addEventListener('load', onLoad)
+    document.fonts?.ready?.then(() => ScrollTrigger.refresh()).catch(() => { })
+
+    return () => {
+      window.removeEventListener('load', onLoad)
+      ctx.revert()
+    }
   }, [])
 
   return (
-    <div className="min-h-screen overflow-x-hidden">
-      {/* Clean static backdrop — a single restrained purple glow + faint grid
-          on near-black. Replaces the multi-colour WebGL animation. */}
+    <div ref={root} className="min-h-screen overflow-x-hidden bg-neutral-950 text-white">
+      {/* Scroll progress bar */}
+      <div className="fixed top-0 left-0 right-0 z-[60] h-0.5 bg-transparent">
+        <div data-progress className="h-full w-full origin-left scale-x-0 bg-gradient-to-r from-purple-500 via-purple-400 to-purple-600" />
+      </div>
+
+      {/* Static backdrop — restrained purple glow + faint grid on near-black.
+          Solid base so the fixed layer is always opaque dark regardless of
+          how ScrollSmoother lays out the body. */}
       <div className="fixed inset-0 z-0 pointer-events-none bg-neutral-950">
-        <div
-          className="absolute inset-0"
-          style={{ background: 'radial-gradient(60% 50% at 50% 0%, rgba(139,92,246,0.16), transparent 70%)' }}
-        />
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(60% 50% at 50% 0%, rgba(139,92,246,0.16), transparent 70%)' }} />
         <div
           className="absolute inset-0"
           style={{
@@ -107,479 +415,615 @@ export default function HomeEnhanced() {
         />
       </div>
 
-      {/* Navigation - Minimal */}
-      <nav className="fixed top-0 w-full z-50 bg-neutral-950/90 backdrop-blur-md border-b border-neutral-800/50">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center space-x-2">
+      {/* Film grain overlay */}
+      <div aria-hidden className="grain fixed inset-[-100%] z-[55] pointer-events-none opacity-[0.05]" />
+
+      {/* Navigation — floating glass pill */}
+      <nav data-nav className="fixed top-3 sm:top-4 inset-x-0 z-50 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="relative flex items-center justify-between gap-4 h-14 rounded-2xl border border-white/10 bg-neutral-950/70 backdrop-blur-xl px-3 sm:px-4 shadow-lg shadow-black/40">
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-2 shrink-0">
               <img src="/logo/ccis-logo.png" alt="CCIS" className="w-8 h-8" />
-              <span className="text-xl font-semibold text-white">CCIS CodeHub</span>
+              <span className="text-base font-semibold tracking-tight text-white">CCIS CodeHub</span>
             </Link>
-            <Link
-              to="/login"
-              className="px-4 py-2 text-sm text-neutral-400 hover:text-white transition-colors"
-            >
-              Login
-            </Link>
+
+            {/* Center links (desktop) */}
+            <div className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
+              {NAV_LINKS.map((l) => (
+                <a
+                  key={l.href}
+                  href={l.href}
+                  className="px-3.5 py-2 text-sm text-neutral-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+                >
+                  {l.label}
+                </a>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Link to="/login" className="hidden sm:inline-flex px-3.5 py-2 text-sm text-neutral-300 hover:text-white transition-colors">
+                Login
+              </Link>
+              <Link
+                to="/register"
+                className="group inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-500 transition-colors shadow-lg shadow-purple-600/25"
+              >
+                Get Started
+                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+              </Link>
+              {/* Mobile menu toggle */}
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                className="md:hidden p-2 -mr-1 text-neutral-300 hover:text-white transition-colors"
+                aria-label="Toggle menu"
+                aria-expanded={menuOpen}
+              >
+                {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </div>
           </div>
+
+          {/* Mobile dropdown */}
+          {menuOpen && (
+            <div className="md:hidden mt-2 rounded-2xl border border-white/10 bg-neutral-950/90 backdrop-blur-xl p-2 shadow-lg shadow-black/40">
+              {NAV_LINKS.map((l) => (
+                <a
+                  key={l.href}
+                  href={l.href}
+                  onClick={() => setMenuOpen(false)}
+                  className="block px-3 py-2.5 text-sm text-neutral-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                >
+                  {l.label}
+                </a>
+              ))}
+              <Link
+                to="/login"
+                onClick={() => setMenuOpen(false)}
+                className="block sm:hidden px-3 py-2.5 text-sm text-neutral-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+              >
+                Login
+              </Link>
+            </div>
+          )}
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative z-10 min-h-screen flex items-center justify-center px-4 pt-20">
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Minimal Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mb-8"
-          >
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-sm text-neutral-300">SNSU CCIS Learning Platform</span>
-          </motion.div>
+      <div id="smooth-wrapper">
+        <div id="smooth-content">
 
-          {/* Main Heading - Clean & Minimal */}
-          <motion.h1
-            className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight mb-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-          >
-            <span className="block text-white">Learn. Build.</span>
-            <span className="block bg-gradient-to-r from-purple-400 via-purple-400 to-purple-400 bg-clip-text text-transparent">
-              Grow.
-            </span>
-          </motion.h1>
-
-          {/* Subtitle - Simple & Clean */}
-          <motion.p
-            className="text-lg sm:text-xl text-neutral-400 mb-10 max-w-2xl mx-auto leading-relaxed"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            Master programming with structured courses, hands-on projects,
-            and AI-powered mentoring designed for CCIS students.
-          </motion.p>
-
-          {/* CTA Buttons - Minimal Style */}
-          <motion.div
-            className="flex flex-col sm:flex-row justify-center gap-4 mb-16"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          >
-            <Link
-              to="/register"
-              className="px-8 py-3.5 text-base font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-500 transition-colors"
-            >
-              Get Started — It's Free
-            </Link>
-
-            <Link
-              to="/learning"
-              className="px-8 py-3.5 text-base font-medium text-neutral-300 bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
-            >
-              Browse Courses
-            </Link>
-          </motion.div>
-
-          {/* Stats - Clean Minimal Design */}
-          <motion.div
-            className="flex flex-wrap justify-center gap-12 sm:gap-16"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-          >
-            <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-white">{stats.total_users}+</div>
-              <div className="text-sm text-neutral-500 mt-1">Students</div>
+          {/* Hero */}
+          <section data-hero className="relative z-10 min-h-screen flex items-center justify-center px-4 sm:px-6 pt-28 pb-24">
+            {/* Aurora orbs (parallax wrappers carry data-speed) */}
+            <div data-speed="0.85" className="pointer-events-none absolute -top-20 -left-24 z-0">
+              <div
+                data-orb
+                className="h-[460px] w-[460px] rounded-full blur-3xl"
+                style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.16), transparent 62%)' }}
+              />
             </div>
-            <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-white">{stats.total_courses}+</div>
-              <div className="text-sm text-neutral-500 mt-1">Courses</div>
+            <div data-speed="1.15" className="pointer-events-none absolute bottom-0 -right-32 z-0">
+              <div
+                data-orb
+                className="h-[520px] w-[520px] rounded-full blur-3xl"
+                style={{ background: 'radial-gradient(circle, rgba(88,28,135,0.22), transparent 60%)' }}
+              />
             </div>
-            <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-bold text-white">{stats.total_projects}+</div>
-              <div className="text-sm text-neutral-500 mt-1">Projects</div>
-            </div>
-          </motion.div>
-        </div>
 
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            className="w-6 h-10 rounded-full border-2 border-neutral-700 flex justify-center pt-2"
-          >
-            <div className="w-1 h-2 bg-neutral-500 rounded-full" />
-          </motion.div>
-        </div>
-      </section >
-
-      {/* Features Section */}
-      < section id="features" className="relative z-10 py-24 px-4" >
-        <div className="max-w-5xl mx-auto">
-          {/* Section Header */}
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-3">
-              Everything you need
-            </h2>
-            <p className="text-lg text-neutral-400">
-              Tools and features designed for CCIS students
-            </p>
-          </div>
-
-          {/* Features Grid */}
-          <div className="grid sm:grid-cols-2 gap-6">
-            <MilestoneCard
-              icon={<BookOpen className="w-8 h-8 text-purple-400" />}
-              title="Learning Paths"
-              description="Structured courses for BSIT, BSCS, and BSIS with real-world projects"
-              features={["40+ Courses", "Certificates", "Progress Tracking"]}
-              gradient="from-purple-500 to-purple-500"
-              position="left"
-              index={0}
+            {/* cursor-follow glow */}
+            <div
+              data-cursor-glow
+              className="pointer-events-none absolute top-0 left-0 h-[600px] w-[600px] rounded-full opacity-0 blur-3xl"
+              style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.18), transparent 60%)' }}
             />
 
-            <MilestoneCard
-              icon={<Code2 className="w-8 h-8 text-purple-400" />}
-              title="Live Projects"
-              description="Collaborate on real projects and build your portfolio"
-              features={["GitHub Integration", "Team Work", "Peer Review"]}
-              gradient="from-purple-500 to-purple-500"
-              position="right"
-              index={1}
-            />
+            <div className="gsap-gate relative w-full max-w-5xl mx-auto">
+              <div data-hero-parallax className="text-center">
 
-            <MilestoneCard
-              icon={<Bot className="w-8 h-8 text-purple-400" />}
-              title="AI Mentor"
-              description="Get instant help with code and learn concepts faster"
-              features={["24/7 Available", "Code Analysis", "Smart Suggestions"]}
-              gradient="from-purple-500 to-purple-500"
-              position="left"
-              index={2}
-            />
-
-            <MilestoneCard
-              icon={<Users className="w-8 h-8 text-purple-400" />}
-              title="Community"
-              description="Connect with fellow developers and grow together"
-              features={["Forums", "Code Sharing", "Mentorship"]}
-              gradient="from-purple-500 to-purple-700"
-              position="right"
-              index={3}
-            />
-          </div>
-        </div>
-      </section >
-
-      {/* AI Automation Section */}
-      < section id="ai-automation" className="relative z-10 py-32 px-4" >
-        <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <ScrollAnimateWrapper animateFrom="left">
-              <div>
-                <div className="inline-block bg-gradient-to-r from-purple-500/10 to-purple-500/10 border border-purple-500/20 rounded-full px-4 py-2 mb-6">
-                  <span className="text-sm text-purple-300">Revolutionary AI Technology</span>
-                </div>
-                <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
-                  AI That
-                  <span className="block bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent">
-                    Works For You
+                {/* Masthead rule — institution left, programs right */}
+                <div data-hero-fade className="flex items-center justify-between gap-4 border-t border-white/10 pt-4 mb-16 sm:mb-20">
+                  <span
+                    data-scramble="SNSU · College of Computing & Information Sciences"
+                    className="font-mono text-[10px] sm:text-[11px] uppercase tracking-[0.22em] text-neutral-500"
+                  >
+                    SNSU · College of Computing &amp; Information Sciences
                   </span>
-                </h2>
-                <p className="text-xl text-neutral-300 mb-8 leading-relaxed">
-                  Our AI Mentor doesn't just answer questions—it automates your entire learning workflow.
-                  Search courses, enroll, create projects, and post updates with simple natural language commands.
+                  <span className="hidden sm:block font-mono text-[11px] uppercase tracking-[0.22em] text-neutral-600 shrink-0">
+                    BSIT / BSCS / BSIS
+                  </span>
+                </div>
+
+                {/* Display headline — three stacked lines, centered */}
+                <h1 className="font-bold tracking-[-0.035em] leading-[0.86] text-[clamp(3.25rem,9.5vw,7rem)]">
+                  <span className="line-mask">
+                    <span data-hero-line className="block text-white">Learn.</span>
+                  </span>
+                  <span className="line-mask">
+                    <span data-hero-line className="block text-white">Build.</span>
+                  </span>
+                  <span className="line-mask">
+                    <span data-hero-line data-gradient-line className="block pb-2">Grow.</span>
+                  </span>
+                </h1>
+
+                <p data-hero-fade className="mx-auto mt-8 max-w-lg text-lg text-neutral-400 leading-relaxed">
+                  Structured courses, hands-on projects, and an AI mentor that reads your
+                  code and explains the why — built around the CCIS curriculum.
                 </p>
-                <div className="space-y-4">
-                  <AIFeature
-                    icon={<Search className="w-7 h-7 text-purple-400" />}
-                    title="Smart Search"
-                    description="'Find React courses' → AI finds, displays, and enrolls you instantly"
-                  />
-                  <AIFeature
-                    icon={<Rocket className="w-7 h-7 text-purple-400" />}
-                    title="Auto Projects"
-                    description="'Create a todo app' → AI generates and creates your project"
-                  />
-                  <AIFeature
-                    icon={<Pencil className="w-7 h-7 text-purple-400" />}
-                    title="Content Generation"
-                    description="'Write a post' → AI writes and publishes for you"
-                  />
+
+                {/* One decisive CTA, one quiet link */}
+                <div data-hero-fade className="mt-10 flex flex-col items-center gap-5">
+                  <Magnetic>
+                    <Link
+                      to="/register"
+                      className="group inline-flex items-center justify-center gap-2 px-9 py-4 text-base font-semibold text-white bg-purple-600 rounded-full hover:bg-purple-500 transition-colors shadow-xl shadow-purple-600/25"
+                    >
+                      Start learning free
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                    </Link>
+                  </Magnetic>
+                  <Link
+                    to="/learning"
+                    className="text-sm text-neutral-500 underline-offset-4 transition-colors hover:text-white hover:underline"
+                  >
+                    or browse the course catalog
+                  </Link>
+                </div>
+
+                {/* Stats — thin centered row on a hairline */}
+                <div data-hero-fade className="mt-16 sm:mt-20 border-t border-white/10 pt-6 flex justify-center gap-x-12 sm:gap-x-20">
+                  <HeroStat end={stats.total_users} label="Students" />
+                  <HeroStat end={stats.total_courses} label="Courses" />
+                  <HeroStat end={stats.total_projects} label="Projects" />
                 </div>
               </div>
-            </ScrollAnimateWrapper>
+            </div>
 
-            <ScrollAnimateWrapper animateFrom="right">
-              <div className="relative">
-                <div className="relative bg-neutral-950/80 backdrop-blur-xl border border-neutral-800/50 rounded-2xl p-8">
+            {/* Scroll indicator */}
+            <div data-scroll-hint className="hidden lg:flex absolute bottom-6 left-1/2 -translate-x-1/2">
+              <div className="w-6 h-10 rounded-full border-2 border-neutral-700 flex justify-center pt-2">
+                <div className="w-1 h-2 bg-neutral-500 rounded-full animate-bounce" />
+              </div>
+            </div>
+          </section>
+
+          {/* Tech marquee */}
+          <section className="relative z-10 py-8 border-y border-neutral-900">
+            <Marquee items={MARQUEE_ITEMS} />
+          </section>
+
+          {/* Features — pinned horizontal rail on desktop, stacked grid on mobile */}
+          <section data-features id="features" className="relative z-10">
+            <div className="py-24 lg:py-0 lg:h-screen lg:flex lg:flex-col lg:justify-center lg:overflow-hidden">
+              <div className="max-w-5xl mx-auto px-4 text-center mb-14 lg:mb-12">
+                <h2 data-split-words className="text-3xl sm:text-4xl font-bold text-white mb-2">Everything you need</h2>
+                <svg data-underline viewBox="0 0 220 12" className="mx-auto w-44 text-purple-500" fill="none" aria-hidden>
+                  <path d="M4 9 C 58 2, 162 2, 216 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+                <p data-reveal className="text-lg text-neutral-400 mt-3">Tools and features designed for CCIS students</p>
+              </div>
+
+              <div
+                data-feature-track
+                className="max-w-5xl mx-auto px-4 grid sm:grid-cols-2 gap-6 lg:max-w-none lg:mx-0 lg:w-max lg:grid-cols-none lg:flex lg:gap-8 lg:px-[10vw] will-change-transform"
+              >
+                <FeatureCard index="01" icon={<BookOpen className="w-7 h-7 text-purple-400" />} title="Learning Paths"
+                  description="Structured courses for BSIT, BSCS, and BSIS with real-world projects"
+                  features={['40+ Courses', 'Certificates', 'Progress Tracking']} />
+                <FeatureCard index="02" icon={<Code2 className="w-7 h-7 text-purple-400" />} title="Live Projects"
+                  description="Collaborate on real projects and build your portfolio"
+                  features={['GitHub Integration', 'Team Work', 'Peer Review']} />
+                <FeatureCard index="03" icon={<Bot className="w-7 h-7 text-purple-400" />} title="AI Mentor"
+                  description="Get instant help with code and learn concepts faster"
+                  features={['24/7 Available', 'Code Analysis', 'Smart Suggestions']} />
+                <FeatureCard index="04" icon={<Users className="w-7 h-7 text-purple-400" />} title="Community"
+                  description="Connect with fellow developers and grow together"
+                  features={['Forums', 'Code Sharing', 'Mentorship']} />
+              </div>
+
+              {/* Rail progress (desktop pin only) */}
+              <div className="hidden lg:block max-w-xs mx-auto mt-12 h-px w-40 bg-neutral-800 overflow-hidden rounded-full">
+                <div data-rail-progress className="h-full w-full origin-left scale-x-0 bg-purple-500" />
+              </div>
+            </div>
+          </section>
+
+          {/* Outlined scrub-type divider */}
+          <section aria-hidden className="relative z-10 py-14 overflow-hidden select-none">
+            <div data-scrub-text className="whitespace-nowrap text-[11vw] leading-none font-black tracking-tight outline-text will-change-transform">
+              LEARN · BUILD · SHIP · LEARN · BUILD · SHIP ·
+            </div>
+          </section>
+
+          {/* Programs */}
+          <section id="programs" className="relative z-10 py-24 px-4">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center mb-14">
+                <span data-reveal className="inline-flex items-center gap-2 rounded-full border border-purple-500/20 bg-purple-500/10 px-4 py-1.5 text-sm text-purple-300 mb-5">
+                  <GraduationCap className="w-4 h-4" /> For every CCIS program
+                </span>
+                <h2 data-split-words className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3">
+                  Find the path that fits you
+                </h2>
+                <p data-reveal className="text-lg text-neutral-400 max-w-2xl mx-auto">
+                  Curriculum-aligned tracks for each degree — so what you learn here counts where it matters.
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-5">
+                {PROGRAMS.map((p) => <ProgramCard key={p.code} {...p} />)}
+              </div>
+            </div>
+          </section>
+
+          {/* AI Automation */}
+          <section id="ai-automation" className="relative z-10 py-28 px-4">
+            <div className="max-w-6xl mx-auto">
+              <div className="grid lg:grid-cols-2 gap-12 items-center">
+                <div>
+                  <div data-reveal className="inline-flex items-center gap-2 bg-purple-500/10 border border-purple-500/20 rounded-full px-4 py-2 mb-6">
+                    <Sparkles className="w-4 h-4 text-purple-300" />
+                    <span className="text-sm text-purple-300">Revolutionary AI Technology</span>
+                  </div>
+                  <h2 data-reveal className="text-4xl sm:text-5xl font-bold text-white mb-2">
+                    AI That
+                    <span className="block bg-gradient-to-br from-purple-200 via-purple-400 to-purple-600 bg-clip-text text-transparent pb-1">
+                      Works For You
+                    </span>
+                  </h2>
+                  <svg data-underline viewBox="0 0 220 12" className="w-40 text-purple-500 mb-5" fill="none" aria-hidden>
+                    <path d="M4 8 C 46 3, 100 10, 216 4" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                  </svg>
+                  <p data-reveal className="text-xl text-neutral-300 mb-8 leading-relaxed">
+                    Our AI Mentor doesn't just answer questions — it automates your entire learning workflow.
+                    Search courses, enroll, create projects, and post updates with simple natural-language commands.
+                  </p>
                   <div className="space-y-4">
-                    <ChatMessage
-                      type="user"
-                      message="Find React courses"
-                      delay="0"
-                    />
-                    <ChatMessage
-                      type="ai"
-                      message="🔍 Found 2 React courses! Would you like to enroll?"
-                      delay="1000"
-                    />
-                    <ChatMessage
-                      type="user"
-                      message="Enroll me"
-                      delay="2000"
-                    />
-                    <ChatMessage
-                      type="ai"
-                      message="🎉 You're enrolled! Let's start Module 1..."
-                      delay="3000"
-                    />
+                    <div data-reveal>
+                      <AIFeature icon={<Search className="w-6 h-6 text-purple-400" />} title="Smart Search"
+                        description="'Find React courses' → AI finds, displays, and enrolls you instantly" />
+                    </div>
+                    <div data-reveal>
+                      <AIFeature icon={<Rocket className="w-6 h-6 text-purple-400" />} title="Auto Projects"
+                        description="'Create a todo app' → AI generates and creates your project" />
+                    </div>
+                    <div data-reveal>
+                      <AIFeature icon={<Pencil className="w-6 h-6 text-purple-400" />} title="Content Generation"
+                        description="'Write a post' → AI writes and publishes for you" />
+                    </div>
+                  </div>
+                </div>
+
+                <div data-reveal data-lag="0.25">
+                  <div data-chat-card data-skew className="relative bg-neutral-900/60 backdrop-blur-xl border border-neutral-800 rounded-2xl p-6 sm:p-8">
+                    <div className="flex items-center gap-2 mb-6 pb-4 border-b border-neutral-800">
+                      <Bot className="w-5 h-5 text-purple-400" />
+                      <span className="text-sm font-medium text-white">AI Mentor</span>
+                      <span className="ml-auto flex items-center gap-1.5 text-xs text-green-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" /> Online
+                      </span>
+                    </div>
+                    <div className="space-y-3">
+                      <ChatBubble type="user" text="Find React courses" />
+                      <ChatBubble type="ai" icon={<Search className="w-3.5 h-3.5" />} text="Found 2 React courses! Would you like to enroll?" />
+                      <ChatBubble type="user" text="Enroll me" />
+                      <ChatBubble type="ai" icon={<Check className="w-3.5 h-3.5" />} text="You're enrolled! Let's start Module 1..." />
+                    </div>
                   </div>
                 </div>
               </div>
-            </ScrollAnimateWrapper>
-          </div>
-        </div>
-      </section >
-
-      {/* Testimonials Section */}
-      < section id="testimonials" className="relative z-10 py-32 px-4" >
-        <div className="max-w-7xl mx-auto">
-          <ScrollAnimateWrapper>
-            <div className="text-center mb-20">
-              <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
-                Loved by
-                <span className="block bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent">
-                  SNSU Students
-                </span>
-              </h2>
             </div>
-          </ScrollAnimateWrapper>
+          </section>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <ScrollAnimateWrapper delay={0}>
-              <TestimonialCard
-                name="Senjai Arbois"
-                role="BSCS 3rd Year"
-                message="The AI mentor helped me understand complex algorithms! The platform's learning paths are perfectly structured for our curriculum."
-                avatar="👨‍💻"
-              />
-            </ScrollAnimateWrapper>
-            <ScrollAnimateWrapper delay={200}>
-              <TestimonialCard
-                name="Loyloy Becera"
-                role="BSCS 3rd Year"
-                message="Amazing platform! I went from struggling with React to building full-stack applications. The project collaboration features are game-changing!"
-                avatar="👨‍🎓"
-              />
-            </ScrollAnimateWrapper>
-            <ScrollAnimateWrapper delay={400}>
-              <TestimonialCard
-                name="Yombot"
-                role="BSCS 3rd Year"
-                message="The community is incredibly supportive! Got instant help with my coding problems and made great friends. This platform is perfect for SNSU students!"
-                avatar="👨‍💼"
-              />
-            </ScrollAnimateWrapper>
-          </div>
-        </div>
-      </section >
+          {/* How it works */}
+          <section id="how-it-works" className="relative z-10 py-24 px-4">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center mb-16">
+                <span data-reveal className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-1.5 text-sm text-neutral-300 mb-5">
+                  <Rocket className="w-4 h-4 text-purple-400" /> From zero to shipped
+                </span>
+                <h2 data-split-words className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3">
+                  How it works
+                </h2>
+                <p data-reveal className="text-lg text-neutral-400">Four steps. No guesswork.</p>
+              </div>
 
-      {/* CTA Section */}
-      < section className="relative z-10 py-32 px-4" >
-        <ScrollAnimateWrapper>
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="relative">
-              <div className="relative bg-neutral-900/50 backdrop-blur-md border border-neutral-700/50 rounded-3xl p-12">
+              <div className="relative">
+                {/* Connecting line (desktop) — drawn in on arrival */}
+                <svg
+                  data-draw-line aria-hidden
+                  className="hidden lg:block absolute left-0 right-0 top-[38px] w-full text-purple-500/30"
+                  viewBox="0 0 1000 2" preserveAspectRatio="none" fill="none"
+                >
+                  <path d="M60 1 H 940" stroke="currentColor" strokeWidth="2" strokeDasharray="6 8" strokeLinecap="round" />
+                </svg>
+
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6 relative">
+                  {STEPS.map((s) => <StepCard key={s.n} {...s} />)}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Testimonials */}
+          <section id="testimonials" className="relative z-10 py-28 px-4">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center mb-16">
+                <h2 data-reveal className="text-4xl sm:text-5xl font-bold text-white">
+                  Loved by
+                  <span className="block bg-gradient-to-br from-purple-200 via-purple-400 to-purple-600 bg-clip-text text-transparent pb-1">
+                    SNSU Students
+                  </span>
+                </h2>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-6">
+                <TestimonialCard name="Senjai Arbois" role="BSCS 3rd Year"
+                  message="The AI mentor helped me understand complex algorithms! The learning paths are perfectly structured for our curriculum." />
+                <TestimonialCard name="Loyloy Becera" role="BSCS 3rd Year"
+                  message="Amazing platform! I went from struggling with React to building full-stack applications. The collaboration features are game-changing." />
+                <TestimonialCard name="Yombot" role="BSCS 3rd Year"
+                  message="The community is incredibly supportive! Got instant help with my coding problems and made great friends along the way." />
+              </div>
+            </div>
+          </section>
+
+          {/* FAQ */}
+          <section id="faq" className="relative z-10 py-24 px-4">
+            <div className="max-w-3xl mx-auto">
+              <div className="text-center mb-12">
+                <h2 data-split-words className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3">
+                  Questions, answered
+                </h2>
+                <p data-reveal className="text-lg text-neutral-400">
+                  Everything you need to know before you start.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {FAQS.map((f, i) => <FaqItem key={f.q} {...f} defaultOpen={i === 0} />)}
+              </div>
+
+              <p data-reveal className="text-center text-neutral-500 text-sm mt-10">
+                Still curious?{' '}
+                <Link to="/register" className="text-purple-400 hover:text-purple-300 transition-colors">
+                  Create a free account
+                </Link>{' '}
+                and look around.
+              </p>
+            </div>
+          </section>
+
+          {/* CTA */}
+          <section className="relative z-10 py-28 px-4">
+            <div data-reveal className="max-w-4xl mx-auto text-center">
+              <div className="relative bg-neutral-900/50 backdrop-blur-md border border-neutral-800 rounded-3xl p-8 sm:p-12 overflow-hidden">
+                <div aria-hidden className="border-beam" />
+                <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
                 <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
                   Ready to Start Your
-                  <span className="block bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent">
+                  <span className="block bg-gradient-to-br from-purple-200 via-purple-400 to-purple-600 bg-clip-text text-transparent pb-1">
                     Coding Journey?
                   </span>
                 </h2>
                 <p className="text-xl text-neutral-300 mb-8">
-                  Join {stats.total_users > 0 ? `${stats.total_users}+` : ''} SNSU CCIS students already learning smarter with AI
+                  Join {stats.total_users > 0 ? `${stats.total_users}+ ` : ''}SNSU CCIS students already learning smarter with AI
                 </p>
                 <div className="flex flex-col sm:flex-row justify-center gap-4">
-                  <Link
-                    to="/register"
-                    className="inline-flex items-center justify-center space-x-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-600 rounded-xl text-lg font-bold hover:from-purple-500 hover:to-purple-500 transition-all transform hover:scale-105"
-                  >
-                    <span>Start Learning Now</span>
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                    </svg>
-                  </Link>
-                  <a
-                    href="/app/ccis-codehub.apk"
-                    download
-                    className="inline-flex items-center justify-center space-x-2 px-8 py-4 bg-white/5 border border-white/10 rounded-xl text-lg font-bold text-neutral-300 hover:bg-white/10 hover:text-white transition-all transform hover:scale-105"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
-                    <span>Get the App</span>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  </a>
+                  <Magnetic>
+                    <Link
+                      to="/register"
+                      className="group inline-flex items-center justify-center gap-2 px-8 py-4 bg-purple-600 rounded-xl text-lg font-semibold text-white hover:bg-purple-500 transition-colors"
+                    >
+                      Start Learning Now
+                      <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-0.5" />
+                    </Link>
+                  </Magnetic>
+                  <Magnetic>
+                    <a
+                      href="/app/ccis-codehub.apk"
+                      download
+                      className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/5 border border-white/10 rounded-xl text-lg font-semibold text-neutral-300 hover:bg-white/10 hover:text-white transition-colors"
+                    >
+                      <Download className="w-5 h-5" />
+                      Get the App
+                    </a>
+                  </Magnetic>
                 </div>
               </div>
             </div>
-          </div>
-        </ScrollAnimateWrapper>
-      </section >
+          </section>
 
-      {/* Footer */}
-      < footer className="relative z-10 border-t border-neutral-800 py-12 px-4" >
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <img src="/logo/ccis-logo.png" alt="CCIS" className="w-6 h-6" />
-                <span className="text-xl font-bold bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent">
-                  CCIS CodeHub
-                </span>
+          {/* Footer */}
+          <footer className="relative z-10 border-t border-neutral-800 pt-12 px-4 overflow-hidden">
+            <div className="max-w-6xl mx-auto">
+              <div className="grid md:grid-cols-4 gap-8 mb-8">
+                <div>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <img src="/logo/ccis-logo.png" alt="CCIS" className="w-6 h-6" />
+                    <span className="text-xl font-bold text-white">CCIS CodeHub</span>
+                  </div>
+                  <p className="text-neutral-400 text-sm">Empowering SNSU CCIS students with AI-powered learning</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white mb-3">Platform</h3>
+                  <ul className="space-y-2 text-neutral-400 text-sm">
+                    <li><Link to="/learning" className="hover:text-purple-400 transition-colors">Learning</Link></li>
+                    <li><Link to="/projects" className="hover:text-purple-400 transition-colors">Projects</Link></li>
+                    <li><Link to="/community" className="hover:text-purple-400 transition-colors">Community</Link></li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white mb-3">Resources</h3>
+                  <ul className="space-y-2 text-neutral-400 text-sm">
+                    <li><a href="#features" className="hover:text-purple-400 transition-colors">Features</a></li>
+                    <li><a href="#programs" className="hover:text-purple-400 transition-colors">Programs</a></li>
+                    <li><a href="#ai-automation" className="hover:text-purple-400 transition-colors">AI Mentor</a></li>
+                    <li><a href="#how-it-works" className="hover:text-purple-400 transition-colors">How it works</a></li>
+                    <li><a href="#faq" className="hover:text-purple-400 transition-colors">FAQ</a></li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white mb-3">Connect</h3>
+                  <div className="flex space-x-3">
+                    <a href="#" aria-label="Twitter" className="text-neutral-400 hover:text-purple-400 transition-colors"><Twitter className="w-5 h-5" /></a>
+                    <a href="#" aria-label="GitHub" className="text-neutral-400 hover:text-purple-400 transition-colors"><Github className="w-5 h-5" /></a>
+                  </div>
+                </div>
               </div>
-              <p className="text-neutral-400 text-sm">
-                Empowering SNSU CCIS students with AI-powered learning
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-white mb-3">Platform</h3>
-              <ul className="space-y-2 text-neutral-400 text-sm">
-                <li><Link to="/learning" className="hover:text-purple-400 transition">Learning</Link></li>
-                <li><Link to="/projects" className="hover:text-purple-400 transition">Projects</Link></li>
-                <li><Link to="/community" className="hover:text-purple-400 transition">Community</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-white mb-3">Resources</h3>
-              <ul className="space-y-2 text-neutral-400 text-sm">
-                <li><a href="#" className="hover:text-purple-400 transition">Documentation</a></li>
-                <li><a href="#" className="hover:text-purple-400 transition">Tutorials</a></li>
-                <li><a href="#" className="hover:text-purple-400 transition">API</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-white mb-3">Connect</h3>
-              <div className="flex space-x-4">
-                <a href="#" className="text-neutral-400 hover:text-purple-400 transition">
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z" /></svg>
-                </a>
-                <a href="#" className="text-neutral-400 hover:text-purple-400 transition">
-                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
-                </a>
+              <div className="border-t border-neutral-800 pt-8 text-center text-neutral-500 text-sm flex items-center justify-center gap-1.5">
+                <span>&copy; 2025 CCIS CodeHub. Built with</span>
+                <Heart className="w-3.5 h-3.5 text-purple-400 fill-purple-400" />
+                <span>for SNSU Students.</span>
               </div>
             </div>
-          </div>
 
-          <div className="border-t border-neutral-800 pt-8 text-center text-neutral-400 text-sm">
-            <p>&copy; 2025 CCIS CodeHub. Built with ❤️ for SNSU Students.</p>
-          </div>
+            {/* Footer mega-type — leading-[0.95] + pb give the caps room so the
+                overflow-hidden rise-mask never crops the bottom of the letters. */}
+            <div aria-hidden className="mt-8 pb-6 select-none overflow-hidden">
+              <div data-footer-mega className="text-center whitespace-nowrap text-[11vw] leading-[0.95] font-black tracking-tight outline-text-purple will-change-transform">
+                CCIS CODEHUB
+              </div>
+            </div>
+          </footer>
+
         </div>
-      </footer >
-    </div >
-  )
-}
-
-// Components
-function CounterStat({ end, suffix, label }: { end: number; suffix?: string; label: string }) {
-  const [count, setCount] = useState(0)
-  const ref = useRef<HTMLDivElement>(null)
-
-  // Animate when end value is available and > 0
-  useEffect(() => {
-    if (end > 0) {
-      setCount(0) // Reset before animating
-      let start = 0
-      const duration = 2000
-      const increment = end / (duration / 16)
-
-      const timer = setInterval(() => {
-        start += increment
-        if (start >= end) {
-          setCount(end)
-          clearInterval(timer)
-        } else {
-          setCount(Math.floor(start))
-        }
-      }, 16)
-
-      return () => clearInterval(timer)
-    }
-  }, [end])
-
-  return (
-    <div ref={ref} className="text-center">
-      <div className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-purple-400 bg-clip-text text-transparent mb-2">
-        {count}{suffix}
       </div>
-      <div className="text-neutral-400 text-sm">{label}</div>
     </div>
   )
 }
 
-function MilestoneCard({ icon, title, description, features, index }: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  features: string[];
-  gradient?: string;
-  position?: 'left' | 'right';
-  index: number;
-}) {
-  const [isVisible, setIsVisible] = useState(false)
+/* ───────────────────────────── Sub-components ───────────────────────────── */
+
+// Magnetic hover — pulls the wrapped element toward the cursor (fine pointers).
+function Magnetic({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null)
-
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setTimeout(() => setIsVisible(true), index * 100)
-        }
-      },
-      { threshold: 0.2 }
-    )
+    const el = ref.current
+    if (!el || prefersReduced() || !window.matchMedia('(pointer: fine)').matches) return
+    const xTo = gsap.quickTo(el, 'x', { duration: 0.5, ease: 'power3' })
+    const yTo = gsap.quickTo(el, 'y', { duration: 0.5, ease: 'power3' })
+    const move = (e: MouseEvent) => {
+      const r = el.getBoundingClientRect()
+      xTo((e.clientX - (r.left + r.width / 2)) * 0.35)
+      yTo((e.clientY - (r.top + r.height / 2)) * 0.35)
+    }
+    const leave = () => { xTo(0); yTo(0) }
+    el.addEventListener('mousemove', move)
+    el.addEventListener('mouseleave', leave)
+    return () => { el.removeEventListener('mousemove', move); el.removeEventListener('mouseleave', leave) }
+  }, [])
+  return <div ref={ref} className="inline-block">{children}</div>
+}
 
-    if (ref.current) observer.observe(ref.current)
-    return () => observer.disconnect()
-  }, [index])
+// Count-up number that animates the first time it scrolls into view.
+function HeroStat({ end, label }: { end: number; label: string }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !end) return
+    if (prefersReduced()) { el.textContent = String(end); return }
+    let done = false
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !done) {
+        done = true
+        const obj = { v: 0 }
+        gsap.to(obj, {
+          v: end, duration: 1.8, ease: 'power2.out',
+          onUpdate: () => { el.textContent = Math.floor(obj.v).toLocaleString() },
+        })
+      }
+    }, { threshold: 0.5 })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [end])
+  return (
+    <div className="text-center">
+      <div className="text-3xl sm:text-4xl font-bold text-white tabular-nums leading-none tracking-tight">
+        <span ref={ref}>0</span><span className="text-purple-500">+</span>
+      </div>
+      <div className="mt-2.5 font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-500">{label}</div>
+    </div>
+  )
+}
+
+// Velocity-reactive seamless marquee.
+function Marquee({ items }: { items: string[] }) {
+  const wrap = useRef<HTMLDivElement>(null)
+  const track = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    if (prefersReduced()) return
+    const ctx = gsap.context(() => {
+      const loop = gsap.timeline({ repeat: -1 })
+        .to(track.current, { xPercent: -50, duration: 30, ease: 'none' })
+      let target = 1
+      const st = ScrollTrigger.create({
+        trigger: wrap.current, start: 'top bottom', end: 'bottom top',
+        onUpdate: (self) => { target = 1 + Math.min(Math.abs(self.getVelocity()) / 180, 7) },
+      })
+      const tick = () => {
+        loop.timeScale(gsap.utils.interpolate(loop.timeScale(), target, 0.08))
+        target = gsap.utils.interpolate(target, 1, 0.03)
+      }
+      gsap.ticker.add(tick)
+      return () => { gsap.ticker.remove(tick); st.kill(); loop.kill() }
+    }, wrap)
+    return () => ctx.revert()
+  }, [])
 
   return (
-    <div
-      ref={ref}
-      className={`transition-all duration-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-        }`}
-    >
-      <div className="bg-neutral-900/40 border border-neutral-800/50 rounded-xl p-6 hover:border-neutral-700/50 transition-colors">
-        {/* Icon & Title Row */}
+    <div ref={wrap} className="marquee-mask overflow-hidden">
+      <div ref={track} className="flex w-max items-center gap-8 pr-8">
+        {[...items, ...items].map((item, i) => (
+          <div key={i} className="flex items-center gap-8 shrink-0">
+            <span className="text-lg font-medium text-neutral-500 whitespace-nowrap">{item}</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500/60" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Feature card with a subtle 3D tilt toward the cursor.
+function FeatureCard({ index, icon, title, description, features }: {
+  index: string
+  icon: React.ReactNode
+  title: string
+  description: string
+  features: string[]
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const onMove = (e: React.MouseEvent) => {
+    const el = ref.current
+    if (!el || prefersReduced() || !window.matchMedia('(pointer: fine)').matches) return
+    const r = el.getBoundingClientRect()
+    const px = (e.clientX - r.left) / r.width - 0.5
+    const py = (e.clientY - r.top) / r.height - 0.5
+    gsap.to(el, { rotateY: px * 6, rotateX: -py * 6, duration: 0.4, ease: 'power2.out', transformPerspective: 900 })
+  }
+  const onLeave = () => {
+    if (ref.current) gsap.to(ref.current, { rotateX: 0, rotateY: 0, duration: 0.6, ease: 'power3.out' })
+  }
+  return (
+    <div data-reveal className="tilt-perspective lg:w-[400px] lg:shrink-0">
+      <div
+        ref={ref}
+        onMouseMove={onMove}
+        onMouseLeave={onLeave}
+        className="group relative h-full bg-neutral-900/40 border border-neutral-800/60 rounded-xl p-6 hover:border-purple-500/40 transition-colors"
+        style={{ transformStyle: 'preserve-3d' }}
+      >
+        <span className="absolute top-5 right-6 text-xs font-mono text-neutral-700 group-hover:text-purple-500/70 transition-colors">{index}</span>
         <div className="flex items-center gap-4 mb-4">
-          <div className="p-2 bg-neutral-800/50 rounded-lg">{icon}</div>
+          <div className="p-2.5 bg-neutral-800/60 rounded-lg group-hover:bg-purple-500/10 transition-colors">{icon}</div>
           <h3 className="text-xl font-semibold text-white">{title}</h3>
         </div>
-
-        {/* Description */}
         <p className="text-neutral-400 mb-5 leading-relaxed">{description}</p>
-
-        {/* Features */}
         <div className="flex flex-wrap gap-2">
-          {features.map((feature, idx) => (
-            <span
-              key={idx}
-              className="px-3 py-1 text-xs font-medium text-neutral-300 bg-neutral-800/50 rounded-full"
-            >
-              {feature}
-            </span>
+          {features.map((f) => (
+            <span key={f} className="px-3 py-1 text-xs font-medium text-neutral-300 bg-neutral-800/60 rounded-full">{f}</span>
           ))}
         </div>
       </div>
@@ -587,10 +1031,107 @@ function MilestoneCard({ icon, title, description, features, index }: {
   )
 }
 
-function AIFeature({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+// Degree-program card with a hover sheen and topic chips.
+function ProgramCard({ code, name, blurb, topics, icon: Icon }: {
+  code: string
+  name: string
+  blurb: string
+  topics: string[]
+  icon: React.ComponentType<{ className?: string }>
+}) {
   return (
-    <div className="flex items-start space-x-4 p-4 bg-neutral-900/50 backdrop-blur-md rounded-xl border border-neutral-700/50 hover:border-neutral-500/50 transition-colors">
-      <div className="p-2 bg-neutral-800/50 rounded-lg shrink-0">{icon}</div>
+    <div data-reveal data-skew className="group relative h-full overflow-hidden rounded-2xl border border-neutral-800/70 bg-neutral-900/40 p-6 transition-colors hover:border-purple-500/40 will-change-transform">
+      {/* hover sheen */}
+      <div className="pointer-events-none absolute -inset-px opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+        style={{ background: 'radial-gradient(120% 80% at 50% 0%, rgba(139,92,246,0.12), transparent 60%)' }} />
+
+      <div className="relative">
+        <div className="flex items-center justify-between mb-5">
+          <span className="rounded-lg border border-purple-500/25 bg-purple-500/10 px-2.5 py-1 font-mono text-xs font-semibold tracking-wider text-purple-300">
+            {code}
+          </span>
+          <Icon className="w-5 h-5 text-neutral-600 transition-colors group-hover:text-purple-400" />
+        </div>
+
+        <h3 className="text-xl font-semibold text-white mb-2">{name}</h3>
+        <p className="text-sm leading-relaxed text-neutral-400 mb-5">{blurb}</p>
+
+        <div className="flex flex-wrap gap-1.5 mb-6">
+          {topics.map((t) => (
+            <span key={t} className="rounded-full bg-neutral-800/70 px-2.5 py-1 text-xs text-neutral-300">{t}</span>
+          ))}
+        </div>
+
+        <Link
+          to="/learning"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-purple-400 transition-colors hover:text-purple-300"
+        >
+          Explore path
+          <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+// Numbered step in the "How it works" rail.
+function StepCard({ n, title, body, icon: Icon }: {
+  n: string
+  title: string
+  body: string
+  icon: React.ComponentType<{ className?: string }>
+}) {
+  return (
+    <div data-reveal className="relative text-center lg:text-left">
+      {/* Node sits above the dashed connector line */}
+      <div className="relative z-10 mx-auto lg:mx-0 mb-5 flex h-[76px] w-[76px] items-center justify-center rounded-2xl border border-neutral-800 bg-neutral-900 shadow-lg shadow-black/40">
+        <Icon className="w-7 h-7 text-purple-400" />
+        <span className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-purple-600 font-mono text-[11px] font-bold text-white ring-4 ring-neutral-950">
+          {n}
+        </span>
+      </div>
+      <h3 className="mb-1.5 text-lg font-semibold text-white">{title}</h3>
+      <p className="text-sm leading-relaxed text-neutral-400">{body}</p>
+    </div>
+  )
+}
+
+// Accessible FAQ accordion row.
+function FaqItem({ q, a, defaultOpen = false }: { q: string; a: string; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen)
+  const panel = useRef<HTMLDivElement>(null)
+
+  return (
+    <div data-reveal className="overflow-hidden rounded-xl border border-neutral-800/70 bg-neutral-900/40 transition-colors hover:border-neutral-700">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+      >
+        <span className="font-medium text-white">{q}</span>
+        <ChevronDown className={`w-4 h-4 shrink-0 text-neutral-500 transition-transform duration-300 ${open ? 'rotate-180 text-purple-400' : ''}`} />
+      </button>
+      <div
+        ref={panel}
+        style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
+        className="grid transition-[grid-template-rows] duration-300 ease-out"
+      >
+        <div className="overflow-hidden">
+          <p className="px-5 pb-4 text-sm leading-relaxed text-neutral-400">{a}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AIFeature({ icon, title, description }: {
+  icon: React.ReactNode
+  title: string
+  description: string
+}) {
+  return (
+    <div className="flex items-start gap-4 p-4 bg-neutral-900/50 rounded-xl border border-neutral-800 hover:border-purple-500/30 transition-colors">
+      <div className="p-2 bg-neutral-800/60 rounded-lg shrink-0">{icon}</div>
       <div>
         <h4 className="font-semibold text-white mb-1">{title}</h4>
         <p className="text-sm text-neutral-400">{description}</p>
@@ -599,70 +1140,35 @@ function AIFeature({ icon, title, description }: { icon: React.ReactNode; title:
   )
 }
 
-function ChatMessage({ type, message, delay }: { type: 'user' | 'ai'; message: string; delay: string }) {
-  const [visible, setVisible] = useState(false)
-
-  useEffect(() => {
-    const timer = setTimeout(() => setVisible(true), parseInt(delay))
-    return () => clearTimeout(timer)
-  }, [delay])
-
-  if (!visible) return null
-
+function ChatBubble({ type, text, icon }: { type: 'user' | 'ai'; text: string; icon?: React.ReactNode }) {
   return (
-    <div className={`flex ${type === 'user' ? 'justify-end' : 'justify-start'} animate-slide-in`}>
-      <div className={`max-w-[80%] p-4 rounded-2xl backdrop-blur-md ${type === 'user'
-        ? 'bg-neutral-900/50 border border-neutral-700/50'
-        : 'bg-neutral-900/50 border border-neutral-700/50'
-        }`}>
-        <p className="text-sm">{message}</p>
+    <div data-chat className={`flex ${type === 'user' ? 'justify-end' : 'justify-start'}`}>
+      <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm flex items-center gap-2 ${
+        type === 'user'
+          ? 'bg-purple-600 text-white rounded-br-md'
+          : 'bg-neutral-800 text-neutral-100 border border-neutral-700 rounded-bl-md'
+      }`}>
+        {icon && <span className="text-purple-300 shrink-0">{icon}</span>}
+        <span>{text}</span>
       </div>
     </div>
   )
 }
 
-// Replaced with Framer Motion version
-function ScrollAnimateWrapper({ children, animateFrom = 'bottom', delay = 0 }: {
-  children: React.ReactNode;
-  animateFrom?: 'left' | 'right' | 'bottom' | 'top';
-  delay?: number;
-}) {
-  const getInitial = () => {
-    switch (animateFrom) {
-      case 'left': return { opacity: 0, x: -50 }
-      case 'right': return { opacity: 0, x: 50 }
-      case 'top': return { opacity: 0, y: -50 }
-      case 'bottom': return { opacity: 0, y: 50 }
-      default: return { opacity: 0, y: 50 }
-    }
-  }
-
+function TestimonialCard({ name, role, message }: { name: string; role: string; message: string }) {
+  const initials = name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase()
   return (
-    <motion.div
-      initial={getInitial()}
-      whileInView={{ opacity: 1, x: 0, y: 0 }}
-      viewport={{ once: false, margin: "-100px" }}
-      transition={{ duration: 0.8, delay: delay / 1000 }}
-    >
-      {children}
-    </motion.div>
-  )
-}
-
-
-function TestimonialCard({ name, role, message, avatar }: {
-  name: string;
-  role: string;
-  message: string;
-  avatar: string;
-}) {
-  return (
-    <div className="group bg-neutral-900/50 backdrop-blur-md border border-neutral-700/50 rounded-2xl p-8 hover:border-neutral-500/50 transition-all transform hover:-translate-y-2">
-      <div className="text-5xl mb-4">{avatar}</div>
-      <p className="text-neutral-300 mb-6 leading-relaxed italic">"{message}"</p>
-      <div>
-        <div className="font-semibold text-white">{name}</div>
-        <div className="text-sm text-purple-400">{role}</div>
+    <div data-testimonial data-skew className="group h-full bg-neutral-900/50 border border-neutral-800 rounded-2xl p-8 hover:border-purple-500/30 transition-all hover:-translate-y-1 will-change-transform">
+      <Quote className="w-8 h-8 text-purple-500/40 mb-4" />
+      <p className="text-neutral-300 mb-6 leading-relaxed">{message}</p>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-purple-500/15 border border-purple-500/25 flex items-center justify-center text-sm font-semibold text-purple-300">
+          {initials}
+        </div>
+        <div>
+          <div className="font-semibold text-white">{name}</div>
+          <div className="text-sm text-purple-400">{role}</div>
+        </div>
       </div>
     </div>
   )

@@ -7,7 +7,7 @@ import { useSpeechRecognition } from '../hooks/useSpeechRecognition'
 import { useAudioPlayback } from '../hooks/useAudioPlayback'
 import { AIActionHandler, ConfirmationCallback, SearchResult, ActionButton, generateSearchActionButtons } from '../services/aiActionHandler'
 import toast from 'react-hot-toast'
-import { Menu, Plus, Settings, X, Bot, MessageSquare, Send, ChevronRight, Trash2, Mic, MicOff, Phone, Volume2 } from 'lucide-react'
+import { Menu, Plus, Settings, X, Bot, MessageSquare, ChevronRight, Trash2, Mic, MicOff, Search, BookOpen, Square, AlertTriangle } from 'lucide-react'
 
 // Enhanced formatted message component for rendering AI responses with proper markdown styling
 const FormattedMessage = ({ content }: { content: string }) => {
@@ -130,16 +130,6 @@ const formatInlineMarkdown = (text: string): React.ReactNode => {
   return segments.length === 1 ? segments[0] : <>{segments}</>
 }
 
-// Legacy helper function (kept for compatibility)
-const cleanText = (text: string): string => {
-  // Remove markdown formatting for plain text contexts
-  return text
-    .replace(/\*\*(.+?)\*\*/g, '$1')  // Remove bold markers
-    .replace(/\*(.+?)\*/g, '$1')      // Remove italic markers
-    .replace(/`([^`]+)`/g, '$1')      // Remove code markers
-}
-
-
 interface Message {
   role: 'user' | 'ai'
   content: string
@@ -161,7 +151,6 @@ export default function FloatingAIMentor() {
   const [isIdle, setIsIdle] = useState(true) // Start in idle mode (minimized)
   const [showSettings, setShowSettings] = useState(false)
   const [showConversations, setShowConversations] = useState(false)
-  const [selectedModelId, setSelectedModelId] = useState('gemini')
   const [messages, setMessages] = useState<Message[]>([])
   const [sessions, setSessions] = useState<Session[]>([])
   const [input, setInput] = useState('')
@@ -186,7 +175,6 @@ export default function FloatingAIMentor() {
   const [pendingStreamText, setPendingStreamText] = useState('')
   const [isFirstMessage, setIsFirstMessage] = useState(true)
   const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(new Set())
-  const [showSuggestions, setShowSuggestions] = useState(true)
   const [userRole, setUserRole] = useState<string>('student')
   const streamingIntervalRef = useRef<number | null>(null)
   const actionHandlerRef = useRef<AIActionHandler | null>(null)
@@ -388,6 +376,19 @@ export default function FloatingAIMentor() {
     }
   }, [])
 
+  // Open the mentor from anywhere via window.dispatchEvent(new CustomEvent('open-ai-mentor')).
+  // Single source of truth: the floating widget IS the AI mentor. (Loading of
+  // conversations is handled by the isOpen effect above.)
+  useEffect(() => {
+    const openMentor = () => {
+      if (idleTimerRef.current) { clearTimeout(idleTimerRef.current); idleTimerRef.current = null }
+      setIsIdle(false)
+      setIsOpen(true)
+    }
+    window.addEventListener('open-ai-mentor', openMentor)
+    return () => window.removeEventListener('open-ai-mentor', openMentor)
+  }, [])
+
   // Early return AFTER all hooks are called
   if (!shouldShow()) {
     return null
@@ -453,7 +454,7 @@ export default function FloatingAIMentor() {
             project: null
           })
           const newSession = response.data
-          setSessions([newSession, ...sessions])
+          setSessions(prev => [newSession, ...prev])
           setSessionId(newSession.id)
           streamAIResponse("Hi! I'm your CCIS-CodeHub AI Mentor. How can I help you today?")
         } catch (createError) {
@@ -480,7 +481,7 @@ export default function FloatingAIMentor() {
         project: null
       })
       const newSession = response.data
-      setSessions([newSession, ...sessions])
+      setSessions(prev => [newSession, ...prev])
       setSessionId(newSession.id)
       setMessages([])
       setShowConversations(false)
@@ -807,7 +808,6 @@ export default function FloatingAIMentor() {
 
   const handleSuggestionClick = async (suggestionValue: string) => {
     setUsedSuggestions(prev => new Set([...prev, suggestionValue]))
-    setShowSuggestions(false)
 
     // Directly send the message (don't just fill the input)
     const userMessage: Message = { role: 'user', content: suggestionValue }
@@ -885,7 +885,7 @@ export default function FloatingAIMentor() {
       {!isOpen && !isIdle && (
         <button
           onClick={handleToggle}
-          className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-purple-600 to-purple-600 rounded-full shadow-2xl hover:scale-110 transition-all duration-300 z-[60] flex items-center justify-center"
+          className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-purple-600 hover:bg-purple-500 rounded-full shadow-2xl hover:scale-110 transition-all duration-300 z-[60] flex items-center justify-center"
         >
           <Bot className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
         </button>
@@ -1045,7 +1045,7 @@ export default function FloatingAIMentor() {
                         ? 'bg-neutral-700 cursor-wait'
                         : voiceStatus === 'speaking'
                           ? 'bg-purple-500/30 cursor-not-allowed ring-4 ring-purple-500/20 shadow-[0_0_30px_rgba(168,85,247,0.3)]'
-                          : 'bg-gradient-to-br from-purple-600 to-purple-600 hover:from-purple-500 hover:to-purple-500 hover:scale-105 shadow-[0_0_30px_rgba(147,51,234,0.3)] hover:shadow-[0_0_50px_rgba(147,51,234,0.5)]'
+                          : 'bg-purple-600 hover:bg-purple-500 hover:scale-105 shadow-[0_0_30px_rgba(147,51,234,0.3)] hover:shadow-[0_0_50px_rgba(147,51,234,0.5)]'
                   }`}
                 >
                   {voiceStatus === 'listening'
@@ -1118,7 +1118,7 @@ export default function FloatingAIMentor() {
               <>
                 {messages.map((msg, idx) => (
                   <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] ${msg.role === 'user' ? 'bg-gradient-to-r from-purple-600 to-purple-600 text-white' : 'bg-neutral-800/80 backdrop-blur-sm border border-neutral-700/50 text-neutral-100'} rounded-2xl overflow-hidden shadow-md`}>
+                    <div className={`max-w-[85%] ${msg.role === 'user' ? 'bg-purple-600 text-white' : 'bg-neutral-800/80 backdrop-blur-sm border border-neutral-700/50 text-neutral-100'} rounded-2xl overflow-hidden shadow-md`}>
                       <div className="p-3 text-sm">
                         {msg.role === 'ai' ? (
                           <FormattedMessage content={msg.content} />
@@ -1129,12 +1129,18 @@ export default function FloatingAIMentor() {
 
                       {msg.searchResults && (
                         <div className="border-t border-neutral-700 p-3 space-y-2">
-                          <div className="text-xs font-semibold text-purple-400 mb-2">🔍 Found {msg.searchResults.total} results</div>
+                          <div className="text-xs font-semibold text-purple-400 mb-2 flex items-center gap-1.5">
+                            <Search className="w-3.5 h-3.5" />
+                            Found {msg.searchResults.total} results
+                          </div>
                           {msg.searchResults.paths && msg.searchResults.paths.length > 0 && (
                             <div className="space-y-1">
                               {msg.searchResults.paths.slice(0, 3).map((path) => (
                                 <div key={path.id} className="bg-neutral-700/50 p-2 rounded text-xs">
-                                  <div className="font-medium flex items-center gap-1"><span>{path.icon}</span><span>{path.name}</span></div>
+                                  <div className="font-medium flex items-center gap-1.5">
+                                    <BookOpen className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                                    <span>{path.name}</span>
+                                  </div>
                                   <div className="text-neutral-400 text-[10px] mt-1">{path.module_count} modules</div>
                                 </div>
                               ))}
@@ -1144,8 +1150,11 @@ export default function FloatingAIMentor() {
                             <div className="space-y-1">
                               {msg.searchResults.modules.slice(0, 2).map((module) => (
                                 <div key={module.id} className="bg-neutral-700/50 p-2 rounded text-xs">
-                                  <div className="font-medium">📘 {module.title}</div>
-                                  <div className="text-neutral-400 text-[10px]">{module.path_name}</div>
+                                  <div className="font-medium flex items-center gap-1.5">
+                                    <BookOpen className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+                                    <span>{module.title}</span>
+                                  </div>
+                                  <div className="text-neutral-400 text-[10px] mt-1">{module.path_name}</div>
                                 </div>
                               ))}
                             </div>
@@ -1199,8 +1208,8 @@ export default function FloatingAIMentor() {
 
             {isStreaming && (
               <div className="flex justify-center my-2">
-                <button onClick={stopStreaming} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs rounded-lg transition-colors flex items-center gap-2">
-                  <span>⏹</span><span>Stop Generating</span>
+                <button onClick={stopStreaming} className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-200 text-xs rounded-lg transition-colors flex items-center gap-2">
+                  <Square className="w-3 h-3 fill-current" /><span>Stop Generating</span>
                 </button>
               </div>
             )}
@@ -1232,20 +1241,14 @@ export default function FloatingAIMentor() {
               <input
                 type="text"
                 value={input}
-                onChange={(e) => {
-                  setInput(e.target.value)
-                  // Show suggestions again when input is cleared
-                  if (e.target.value.length === 0) {
-                    setShowSuggestions(true)
-                  }
-                }}
+                onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask anything..."
                 className="flex-1 px-4 py-2.5 bg-neutral-800/50 backdrop-blur-sm border border-neutral-700/50 rounded-xl focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500/50 text-sm placeholder:text-neutral-500 transition-all"
               />
               <button
                 type="submit"
                 disabled={loading || isStreaming}
-                className="px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700 rounded-xl transition disabled:opacity-50 shadow-lg shadow-purple-500/20"
+                className="px-4 py-2.5 bg-purple-600 hover:bg-purple-500 rounded-xl transition disabled:opacity-50 shadow-lg shadow-purple-500/20"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-white">
                   <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
@@ -1261,17 +1264,16 @@ export default function FloatingAIMentor() {
       <AIChatSettings
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
-        onModelChange={(modelId) => {
-          setSelectedModelId(modelId)
-          setShowSettings(false)
-        }}
+        onModelChange={() => setShowSettings(false)}
       />
 
       {confirmationDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
-          <div className="bg-neutral-800 border border-neutral-700 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
             <div className="flex items-start gap-3 mb-4">
-              <span className="text-3xl">⚠️</span>
+              <div className="shrink-0 w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-amber-400" />
+              </div>
               <div>
                 <h3 className="text-lg font-bold text-white mb-2">Confirm Action</h3>
                 <p className="text-neutral-300 text-sm">{confirmationDialog.message}</p>

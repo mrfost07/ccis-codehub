@@ -158,12 +158,36 @@ class CodeExecutor:
                 result['is_hidden'] = tc.get('is_hidden', False)
                 results.append(result)
 
-        passed = sum(1 for r in results if r['passed'])
+            passed = sum(1 for r in results if r['passed'])
+            status = 'completed'
+
+            # Anti-hardcode gate: printed output is a valid answer format, but
+            # it must be COMPUTED from the input. A submission that passes by
+            # printing predetermined answers (never reading the input, or
+            # carrying every expected answer as a literal while its output
+            # doesn't react to input changes) is demoted to failed.
+            if passed == len(results):
+                verdict = self._detect_hardcoding(lang, code, test_cases, run_cmd, tmpdir, results)
+                if verdict:
+                    message = (
+                        'Output matches, but the solution appears hardcoded: '
+                        'it does not compute the answer from the input. '
+                        'Read the input and derive the result with your algorithm '
+                        'instead of printing predetermined answers.'
+                    )
+                    for r, tc in zip(results, test_cases):
+                        if (tc.get('input') or '').strip():
+                            r['passed'] = False
+                            r['error'] = 'hardcoded_output'
+                            r['stderr'] = message
+                    passed = sum(1 for r in results if r['passed'])
+                    status = 'hardcoded_output'
+
         return {
             'passed': passed,
             'total': len(results),
-            'all_passed': passed == len(results),
-            'status': 'completed',
+            'all_passed': passed == len(results) and status == 'completed',
+            'status': status,
             'results': results,
         }
 
@@ -186,17 +210,7 @@ class CodeExecutor:
             )
             stdout = proc.stdout[:MAX_OUTPUT_BYTES]
             stderr = proc.stderr[:MAX_OUTPUT_BYTES]
-            # Normalize: strip trailing whitespace per line, ignore leading/trailing blank lines,
-            # and collapse whitespace around punctuation (e.g. [0, 1] == [0,1])
-            def _norm(s: str) -> str:
-                lines = s.strip().splitlines()
-                cleaned = '\n'.join(line.rstrip() for line in lines)
-                # Collapse spaces around commas, colons, brackets
-                cleaned = re.sub(r'\s*,\s*', ',', cleaned)
-                cleaned = re.sub(r'\[\s+', '[', cleaned)
-                cleaned = re.sub(r'\s+\]', ']', cleaned)
-                return cleaned
-            passed = _norm(stdout) == _norm(expected)
+            passed = self._normalize_output(stdout) == self._normalize_output(expected)
             return {
                 'passed': passed,
                 'stdout': stdout,
@@ -220,6 +234,126 @@ class CodeExecutor:
                 'error': 'runtime_error',
                 'expected': expected,
             }
+
+    @staticmethod
+    def _normalize_output(s: str) -> str:
+        """
+        Normalize program output for comparison: strip trailing whitespace per
+        line, ignore leading/trailing blank lines, and collapse whitespace
+        around punctuation (e.g. [0, 1] == [0,1]) — so answers delivered via
+        print()/console.log are graded on content, not formatting.
+        """
+        lines = s.strip().splitlines()
+        cleaned = '\n'.join(line.rstrip() for line in lines)
+        cleaned = re.sub(r'\s*,\s*', ',', cleaned)
+        cleaned = re.sub(r'\[\s+', '[', cleaned)
+        cleaned = re.sub(r'\s+\]', ']', cleaned)
+        return cleaned
+
+    # ── Hardcoded-output ("print cheese") detection ─────────────────────
+
+    # Language constructs that consume stdin. If none appear and the code was
+    # not auto-wrapped (the harness feeds stdin in as arguments), the program
+    # cannot possibly be using the test input.
+    _INPUT_READ_MARKERS = {
+        'python': ('input(', 'sys.stdin', 'open(0'),
+        'javascript': ('process.stdin', 'readline', 'readFileSync(0', 'prompt('),
+        'java': ('System.in', 'Scanner', 'BufferedReader', 'System.console'),
+        'cpp': ('cin', 'scanf', 'getline', 'getchar', 'fgets', 'gets(', 'stdin'),
+    }
+
+    def _reads_input(self, language: str, code: str) -> bool:
+        return any(marker in code for marker in self._INPUT_READ_MARKERS.get(language, ()))
+
+    @staticmethod
+    def _string_literals(code: str) -> set:
+        """Extract quoted string literals with common escape sequences resolved."""
+        literals = set()
+        for m in re.finditer(r'"((?:[^"\\\n]|\\.)*)"|\'((?:[^\'\\\n]|\\.)*)\'', code):
+            raw = m.group(1) if m.group(1) is not None else m.group(2)
+            resolved = (raw.replace('\\n', '\n').replace('\\t', '\t').replace('\\r', '')
+                           .replace('\\"', '"').replace("\\'", "'").replace('\\\\', '\\'))
+            literals.add(resolved.strip())
+        return literals
+
+    def _expected_as_literals(self, code: str, expected_outputs: list) -> bool:
+        """True if EVERY expected answer appears verbatim in the source."""
+        literals = self._string_literals(code)
+        for expected in expected_outputs:
+            answer = (expected or '').strip()
+            if not answer:
+                return False
+            if answer in literals:
+                continue
+            # Numeric answers are often printed unquoted, e.g. print(8)
+            if re.fullmatch(r'-?\d+(\.\d+)?', answer) and re.search(
+                r'(?<![\w.])' + re.escape(answer) + r'(?![\w.])', code
+            ):
+                continue
+            return False
+        return True
+
+    @staticmethod
+    def _mutated_inputs(stdin_data: str) -> list:
+        """
+        Build up to 3 mutated variants of a test input. A genuine algorithm's
+        output reacts to at least one of them; hardcoded output reacts to none.
+        The mutations preserve line/argument counts so auto-wrapped functions
+        receive the same arity.
+        """
+        mutations = []
+        shifted = ''.join(str((int(c) + 1) % 10) if c.isdigit() else c for c in stdin_data)
+        if shifted != stdin_data:
+            mutations.append(shifted)
+        zeroed = re.sub(r'-?\d+', '0', stdin_data)
+        if zeroed != stdin_data and zeroed not in mutations:
+            mutations.append(zeroed)
+        reversed_lines = '\n'.join(line[::-1] for line in stdin_data.splitlines())
+        if reversed_lines != stdin_data and reversed_lines not in mutations:
+            mutations.append(reversed_lines)
+        appended = '\n'.join(line + 'x' for line in stdin_data.splitlines())
+        if appended != stdin_data and appended not in mutations:
+            mutations.append(appended)
+        return mutations[:3]
+
+    def _detect_hardcoding(self, language: str, code: str, test_cases: list,
+                           run_cmd: list, tmpdir: str, results: list) -> str | None:
+        """
+        Decide whether an all-passing submission actually computed its answers.
+
+        Returns a verdict label, or None when the solution is legitimate.
+        Tiers:
+          0. No test case has input → pure-output problem; printing the output
+             IS the intended algorithm (e.g. "print Hello World"). Accept.
+          1. Inputs exist but the code neither reads stdin nor was auto-wrapped
+             → it provably ignores the input. Reject.
+          2. Every expected answer appears as a literal in the source AND the
+             output stays identical for every mutated input on the probed
+             tests → lookup-table/hardcoded answers. Reject.
+        """
+        input_tests = [
+            (i, tc) for i, tc in enumerate(test_cases)
+            if (tc.get('input') or '').strip()
+        ]
+        if not input_tests:
+            return None  # Tier 0: printing the expected output is the solution
+
+        # Tier 1 — deterministic
+        if not self._reads_input(language, code) and self._auto_wrap(language, code) == code:
+            return 'ignores_input'
+
+        # Tier 2 — literal corroboration first (cheap), probes second (subprocess)
+        expected_outputs = [tc.get('expected_output', '') for _, tc in input_tests]
+        if not self._expected_as_literals(code, expected_outputs):
+            return None
+
+        for index, tc in input_tests[:2]:  # cap probe cost
+            base_output = self._normalize_output(results[index]['stdout'])
+            for mutated in self._mutated_inputs(tc.get('input', '')):
+                probe = self._run_single_with_cmd(run_cmd, mutated, '', tmpdir)
+                if self._normalize_output(probe['stdout']) != base_output:
+                    return None  # output reacts to input — genuinely computed
+        return 'hardcoded_literals'
 
     def _compile(self, language: str, config: dict, src_path: str, tmpdir: str) -> str | None:
         """Compile code if language requires it. Returns error string or None."""

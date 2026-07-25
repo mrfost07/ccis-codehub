@@ -195,9 +195,10 @@ const LiveQuizSession = () => {
                 // 'warn' → ViolationWarningModal shown on server response
             }
 
-            // Auto-resume if back in fullscreen and paused due to fullscreen exit —
+            // Auto-resume if back in fullscreen and paused by a violation —
             // routed through the brief "Resuming…" loading beat for consistency.
-            if (isFull && isQuizPaused && pauseReason.includes('fullscreen') && !resuming) {
+            // Instructor pauses ('server') only end when the instructor resumes.
+            if (isFull && isQuizPaused && pauseSource !== 'server' && !resuming) {
                 if (wsRef.current?.readyState === WebSocket.OPEN) {
                     wsRef.current.send(JSON.stringify({
                         type: 'resume_from_fullscreen',
@@ -223,23 +224,42 @@ const LiveQuizSession = () => {
         };
     }, [
         sessionState.requireFullscreen, sessionState.participantId,
-        gameState.status, fsAction, isQuizPaused, pauseReason, reportViolation, resuming
+        gameState.status, fsAction, isQuizPaused, pauseSource, reportViolation, resuming
     ]);
 
-    // Tab / window visibility detection
+    // Tab / window visibility detection. The `blur` listener is the closest a
+    // browser gets to detecting a switch to another application/process: it
+    // fires when focus moves to another window even if this tab stays visible.
     useEffect(() => {
+        const flagTabSwitch = () => {
+            if (isQuizPausedRef.current) return; // already paused — don't double-report
+            reportViolation('tab_switch');
+            // Always pause on tab switch
+            setIsQuizPaused(true);
+            setPauseReason('You switched tabs or windows. Return to fullscreen to continue.');
+            setPauseSource('tab_switch');
+        };
+
         const handleVisChange = () => {
-            if (document.hidden && gameState.status === 'in_progress') {
-                reportViolation('tab_switch');
-                // Always pause on tab switch
-                setIsQuizPaused(true);
-                setPauseReason('You switched tabs or windows. Return to fullscreen to continue.');
-                setPauseSource('tab_switch');
-            }
+            if (document.hidden && gameState.status === 'in_progress') flagTabSwitch();
+        };
+
+        const handleBlur = () => {
+            // Give visibilitychange a beat to handle the hidden-tab case first,
+            // then flag only if focus genuinely moved to another app/window.
+            window.setTimeout(() => {
+                if (gameState.status === 'in_progress' && !document.hasFocus() && !document.hidden) {
+                    flagTabSwitch();
+                }
+            }, 150);
         };
 
         document.addEventListener('visibilitychange', handleVisChange);
-        return () => document.removeEventListener('visibilitychange', handleVisChange);
+        window.addEventListener('blur', handleBlur);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisChange);
+            window.removeEventListener('blur', handleBlur);
+        };
     }, [gameState.status, atAction, reportViolation]);
 
     // Copy-paste prevention
@@ -289,7 +309,9 @@ const LiveQuizSession = () => {
             setGameState(prev => {
                 const next = prev.timeRemaining - elapsed;
                 if (next <= 0) {
-                    if (!isAnswerSubmitted) submitAnswer('');
+                    // Ref guard: the state flag can lag a tick behind, which
+                    // would fire duplicate empty submissions at 0 seconds.
+                    if (!isAnswerSubmittedRef.current) submitAnswer('');
                     return { ...prev, timeRemaining: 0 };
                 }
                 return { ...prev, timeRemaining: next };
@@ -390,6 +412,15 @@ const LiveQuizSession = () => {
                 // Unpause if paused (new question = fresh start)
                 setIsQuizPaused(false);
                 setPauseReason('');
+                setPauseSource('');
+                // Fullscreen is mandatory once the quiz is running — if the
+                // student never entered it, hold them at the pause overlay
+                // (its button provides the user gesture the browser requires).
+                if (!document.fullscreenElement) {
+                    setIsQuizPaused(true);
+                    setPauseReason('Fullscreen is required for this quiz. Enter fullscreen to continue.');
+                    setPauseSource('fullscreen');
+                }
                 break;
             }
 
@@ -427,6 +458,7 @@ const LiveQuizSession = () => {
             case 'quiz_resumed':
                 setIsQuizPaused(false);
                 setPauseReason('');
+                setPauseSource('');
                 toast.success('Quiz resumed!');
                 break;
 
@@ -434,12 +466,29 @@ const LiveQuizSession = () => {
             case 'session_paused':
                 setIsQuizPaused(true);
                 setPauseReason(data.reason || 'Session paused by instructor.');
+                setPauseSource('server'); // instructor pause freezes the clock
                 break;
 
             case 'session_resumed':
                 setIsQuizPaused(false);
                 setPauseReason('');
+                setPauseSource('');
                 toast.success('Session resumed by instructor!');
+                break;
+
+            // ── Instructor pause/resume targeted at one participant ──────
+            case 'participant_pause_state':
+                if (data.participant_id !== String(sessionState.participantId)) break;
+                if (data.paused) {
+                    setIsQuizPaused(true);
+                    setPauseReason(data.reason || 'Paused by your instructor.');
+                    setPauseSource('server'); // instructor pause freezes the clock
+                } else {
+                    setIsQuizPaused(false);
+                    setPauseReason('');
+                    setPauseSource('');
+                    toast.success('Resumed by your instructor!');
+                }
                 break;
 
             // ── Phase 2: Quiz closed by server ───────────────────────────

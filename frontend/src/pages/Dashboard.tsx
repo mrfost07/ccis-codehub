@@ -79,7 +79,9 @@ export default function Dashboard() {
   const quickActions = [
     { icon: BookOpen, title: 'Continue Learning', description: 'Resume your learning journey', link: '/learning' },
     { icon: FolderOpen, title: 'View Projects', description: 'Check your active projects', link: '/projects' },
-    { icon: Sparkles, title: 'Ask AI Mentor', description: 'Get help with coding problems', link: '/ai-mentor' },
+    // The AI Mentor is the always-available floating widget — open it rather than
+    // navigating to a (non-existent) /ai-mentor route.
+    { icon: Sparkles, title: 'Ask AI Mentor', description: 'Get help with coding problems', onClick: () => window.dispatchEvent(new CustomEvent('open-ai-mentor')) },
   ]
 
   return (
@@ -147,22 +149,26 @@ export default function Dashboard() {
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {quickActions.map(({ icon: Icon, title, description, link }) => (
-                <Link
-                  key={title}
-                  to={link}
-                  className="group rounded-xl border border-neutral-800 bg-neutral-900 p-5 sm:p-6 transition-all duration-200 hover:border-neutral-700 hover:shadow-card-hover"
-                >
-                  <div className="inline-flex p-2.5 rounded-lg bg-purple-500/10 text-purple-400 mb-3 sm:mb-4">
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <h3 className="text-base sm:text-lg font-semibold text-white mb-1">
-                    {title}
-                    <ArrowUpRight className="inline-block w-4 h-4 ml-1 -mt-0.5 text-neutral-600 transition-all group-hover:text-purple-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                  </h3>
-                  <p className="text-sm text-neutral-400 leading-relaxed">{description}</p>
-                </Link>
-              ))}
+              {quickActions.map(({ icon: Icon, title, description, link, onClick }) => {
+                const cardClass = "group text-left w-full rounded-xl border border-neutral-800 bg-neutral-900 p-5 sm:p-6 transition-all duration-200 hover:border-neutral-700 hover:shadow-card-hover"
+                const inner = (
+                  <>
+                    <div className="inline-flex p-2.5 rounded-lg bg-purple-500/10 text-purple-400 mb-3 sm:mb-4">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-base sm:text-lg font-semibold text-white mb-1">
+                      {title}
+                      <ArrowUpRight className="inline-block w-4 h-4 ml-1 -mt-0.5 text-neutral-600 transition-all group-hover:text-purple-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                    </h3>
+                    <p className="text-sm text-neutral-400 leading-relaxed">{description}</p>
+                  </>
+                )
+                return link ? (
+                  <Link key={title} to={link} className={cardClass}>{inner}</Link>
+                ) : (
+                  <button key={title} type="button" onClick={onClick} className={cardClass}>{inner}</button>
+                )
+              })}
             </div>
           </>
         )}

@@ -432,8 +432,8 @@ export default function LiveQuizQuestionEditor({
                         className="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 border border-purple-600/30 rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
                     >
                         {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                        <span className="hidden xs:inline">{uploading ? 'Extracting...' : 'Upload PDF'}</span>
-                        <span className="xs:hidden">{uploading ? '...' : 'PDF'}</span>
+                        <span className="hidden sm:inline">{uploading ? 'Extracting...' : 'Upload PDF'}</span>
+                        <span className="sm:hidden">{uploading ? '...' : 'PDF'}</span>
                     </button>
                     <button
                         type="button"
@@ -687,7 +687,7 @@ export default function LiveQuizQuestionEditor({
                             </div>
 
                             <div>
-                                <div className="flex items-center justify-between mb-1.5">
+                                <div className="flex items-center justify-between mb-1">
                                     <label className="text-xs font-medium text-neutral-400">Test Cases</label>
                                     <button
                                         type="button"
@@ -700,6 +700,9 @@ export default function LiveQuizQuestionEditor({
                                         <Plus className="w-3 h-3" /> Add Test
                                     </button>
                                 </div>
+                                <p className="text-[10px] text-neutral-500 mb-1.5">
+                                    Vary the inputs across tests — answers that are printed without being computed are auto-rejected.
+                                </p>
                                 <div className="space-y-2">
                                     {currentQuestion.test_cases.map((tc: TestCase, tcIdx: number) => (
                                         <div key={tcIdx} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-start">

@@ -40,17 +40,14 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
   const [customModels, setCustomModels] = useState<CustomModel[]>([])
   const [showAddCustom, setShowAddCustom] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [testingModel, setTestingModel] = useState<string | null>(null)
 
+  // Provider API keys are configured server-side (.env) or via the Custom tab.
+  // Only user-facing preferences live here.
   const [settings, setSettings] = useState({
     temperature: 0.7,
     max_tokens: 2000,
     stream_responses: false,
     save_history: true,
-    openai_api_key: '',
-    anthropic_api_key: '',
-    cohere_api_key: '',
-    huggingface_api_key: ''
   })
 
   const [newCustomModel, setNewCustomModel] = useState<CustomModel>({
@@ -239,14 +236,16 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
     }
   }, [isOpen])
 
-  // Map legacy model IDs to new model IDs
-  // Note: gemini_direct is NOT migrated - it uses direct Gemini API with user's key
+  // Map ONLY truly-legacy model IDs to their current equivalents. This must stay
+  // in sync with the backend's legacy_model_map (google_gemini/gemini ->
+  // openrouter_gemini). Never migrate a still-selectable model (e.g.
+  // openrouter_gemini) or it silently overwrites the user's real choice.
+  // Note: gemini_direct is NOT migrated - it uses the direct Gemini API.
   const migrateModelId = (oldId: string): string => {
     const migrationMap: Record<string, string> = {
-      'google_gemini': 'mistral_direct',
-      'gemini': 'mistral_direct',
-      'openrouter': 'mistral_direct',
-      'openrouter_gemini': 'mistral_direct',
+      'google_gemini': 'openrouter_gemini',
+      'gemini': 'openrouter_gemini',
+      'openrouter': 'openrouter_gemini',
       'openrouter_mistral': 'mistral_direct',
     }
     const newId = migrationMap[oldId] || oldId
@@ -296,11 +295,14 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
     setLoading(true)
     console.log('Saving settings with selectedModel:', selectedModel)
     try {
-      // Exclude old preferred_ai_model from settings to avoid overriding new selection
-      const { preferred_ai_model, ...settingsWithoutModel } = settings as any
+      // Send only the fields we own — never echo back read-only/server fields
+      // (id, selected_model, preferred_ai_model) or blank write-only API keys.
       const payload = {
-        ...settingsWithoutModel,
-        selected_model_id: selectedModel  // This is the NEW model to save
+        temperature: settings.temperature,
+        max_tokens: settings.max_tokens,
+        stream_responses: settings.stream_responses,
+        save_history: settings.save_history,
+        selected_model_id: selectedModel,  // The model to persist as preferred
       }
       console.log('Sending payload:', payload)
       await api.post('/ai/settings/', payload)
@@ -323,25 +325,6 @@ export default function AIChatSettings({ isOpen, onClose, onModelChange }: AICha
       }
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleTestModel = async (modelId: string) => {
-    setTestingModel(modelId)
-    try {
-      // All OpenRouter models are ready
-      if (modelId.startsWith('openrouter')) {
-        const modelName = models.find(m => m.id === modelId)?.display_name || 'OpenRouter'
-        toast.success(`${modelName} is ready!`)
-      } else if (modelId === 'gemini_direct') {
-        toast.success('Gemini (Direct) is ready!')
-      } else {
-        toast.error('This model is not available yet')
-      }
-    } catch (error) {
-      toast.error('Test failed')
-    } finally {
-      setTestingModel(null)
     }
   }
 

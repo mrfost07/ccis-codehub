@@ -106,8 +106,14 @@ const SelfPacedQuizSession = () => {
     const [violations, setViolations] = useState(0);
     const [showViolationPanel, setShowViolationPanel] = useState(false);
     const autoAdvanceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Brief "Resuming…" loading beat when returning from a pause
+    const [resuming, setResuming] = useState(false);
 
     const [fullscreenReady, setFullscreenReady] = useState(false); // Set once the user enters fullscreen
+
+    // Ref mirror so event handlers read the current pause state, not a stale capture
+    const isQuizPausedRef = useRef(isQuizPaused);
+    isQuizPausedRef.current = isQuizPaused;
 
     // Always enforce fullscreen and pause on violations
     const fsAction = 'pause' as const;
@@ -139,6 +145,73 @@ const SelfPacedQuizSession = () => {
     }, [fullscreenReady, enterFullscreen]);
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Violation-reporting socket
+    //
+    // Self-paced students answer over REST, but violations must still reach
+    // the backend so counts/penalties are recorded and the instructor's live
+    // monitor shows them. Reuses the same quiz WebSocket as live mode.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    const wsRef = useRef<WebSocket | null>(null);
+
+    useEffect(() => {
+        if (!joinCode || !fullscreenReady || !sessionState.participantId) return;
+
+        const wsBase = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws';
+        const socket = new WebSocket(`${wsBase}/quiz/${joinCode}/`);
+        wsRef.current = socket;
+
+        socket.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                // The server can close the session when the violation limit is
+                // exceeded — respect it even though pausing is handled locally.
+                if (data.type === 'quiz_closed') {
+                    setIsQuizClosed(true);
+                    setCloseReason(data.reason || 'Your session was closed.');
+                    if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
+                }
+            } catch { /* ignore malformed frames */ }
+        };
+
+        return () => {
+            wsRef.current = null;
+            socket.close();
+        };
+    }, [joinCode, fullscreenReady, sessionState.participantId]);
+
+    const reportViolation = useCallback(
+        (type: 'fullscreen_exit' | 'tab_switch' | 'copy_paste') => {
+            if (wsRef.current?.readyState === WebSocket.OPEN && sessionState.participantId) {
+                wsRef.current.send(JSON.stringify({
+                    type: 'report_violation',
+                    participant_id: sessionState.participantId,
+                    violation_type: type,
+                }));
+            }
+        },
+        [sessionState.participantId]
+    );
+
+    // Resume with a brief loading beat; also clears the server-side pause flag
+    // so the instructor monitor stops showing this student as paused.
+    const resumeWithBeat = useCallback(() => {
+        setResuming(true);
+        if (wsRef.current?.readyState === WebSocket.OPEN && sessionState.participantId) {
+            wsRef.current.send(JSON.stringify({
+                type: 'resume_from_fullscreen',
+                participant_id: sessionState.participantId,
+            }));
+        }
+        window.setTimeout(() => {
+            setIsQuizPaused(false);
+            setPauseReason('');
+            setPauseSource('');
+            setResuming(false);
+        }, 1200);
+    }, [sessionState.participantId]);
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Fullscreen change detection
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -148,6 +221,7 @@ const SelfPacedQuizSession = () => {
             setIsFullscreen(isFull);
 
             if (!isFull && quizActive) {
+                reportViolation('fullscreen_exit');
                 setViolations(v => {
                     const newCount = v + 1;
                     if (newCount >= maxViolations) {
@@ -165,9 +239,9 @@ const SelfPacedQuizSession = () => {
                 }
             }
 
-            if (isFull && isQuizPaused && pauseReason.includes('fullscreen')) {
-                setIsQuizPaused(false);
-                setPauseReason('');
+            // Back in fullscreen while paused — resume via the loading beat
+            if (isFull && isQuizPaused && !resuming) {
+                resumeWithBeat();
             }
         };
 
@@ -177,34 +251,54 @@ const SelfPacedQuizSession = () => {
             document.removeEventListener('fullscreenchange', handleFsChange);
             document.removeEventListener('webkitfullscreenchange', handleFsChange);
         };
-    }, [sessionState.requireFullscreen, quizActive, fsAction, isQuizPaused, pauseReason, maxViolations]);
+    }, [sessionState.requireFullscreen, quizActive, fsAction, isQuizPaused, resuming, resumeWithBeat, reportViolation, maxViolations]);
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Tab switch detection (MANDATORY)
+    // Tab switch detection (MANDATORY). The `blur` listener also catches
+    // switching to another application while this tab stays visible — the
+    // closest a browser gets to detecting other processes.
     // ─────────────────────────────────────────────────────────────────────────
 
     useEffect(() => {
-        const handleVisChange = () => {
-            if (document.hidden && quizActive) {
-                setViolations(v => {
-                    const newCount = v + 1;
-                    if (newCount >= maxViolations) {
-                        setIsQuizClosed(true);
-                        setCloseReason(`Quiz closed: maximum violations (${maxViolations}) reached.`);
-                    }
-                    return newCount;
-                });
+        const flagTabSwitch = () => {
+            if (isQuizPausedRef.current) return; // already paused — don't stack violations
+            reportViolation('tab_switch');
+            setViolations(v => {
+                const newCount = v + 1;
+                if (newCount >= maxViolations) {
+                    setIsQuizClosed(true);
+                    setCloseReason(`Quiz closed: maximum violations (${maxViolations}) reached.`);
+                }
+                return newCount;
+            });
 
-                // Always pause on tab switch
-                setIsQuizPaused(true);
-                setPauseReason('You switched tabs or windows. Return to fullscreen to continue.');
-                setPauseSource('tab_switch');
-            }
+            // Always pause on tab switch
+            setIsQuizPaused(true);
+            setPauseReason('You switched tabs or windows. Return to fullscreen to continue.');
+            setPauseSource('tab_switch');
+        };
+
+        const handleVisChange = () => {
+            if (document.hidden && quizActive) flagTabSwitch();
+        };
+
+        const handleBlur = () => {
+            // Let visibilitychange handle the hidden-tab case first, then flag
+            // only if focus genuinely moved to another app/window.
+            window.setTimeout(() => {
+                if (quizActive && !document.hasFocus() && !document.hidden) {
+                    flagTabSwitch();
+                }
+            }, 150);
         };
 
         document.addEventListener('visibilitychange', handleVisChange);
-        return () => document.removeEventListener('visibilitychange', handleVisChange);
-    }, [quizActive, atAction, maxViolations]);
+        window.addEventListener('blur', handleBlur);
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisChange);
+            window.removeEventListener('blur', handleBlur);
+        };
+    }, [quizActive, atAction, maxViolations, reportViolation]);
 
     // ─────────────────────────────────────────────────────────────────────────
     // Copy-paste prevention (MANDATORY)
@@ -215,6 +309,7 @@ const SelfPacedQuizSession = () => {
 
         const block = (e: ClipboardEvent) => {
             e.preventDefault();
+            reportViolation('copy_paste');
             setViolations(v => v + 1);
             toast.error('Copy/paste is not allowed during the quiz.', { duration: 2000 });
         };
@@ -227,7 +322,7 @@ const SelfPacedQuizSession = () => {
             document.removeEventListener('paste', block);
             document.removeEventListener('cut', block);
         };
-    }, [quizActive]);
+    }, [quizActive, reportViolation]);
 
     // ─────────────────────────────────────────────────────────────────────────
     // Per-question timer
@@ -257,11 +352,19 @@ const SelfPacedQuizSession = () => {
     }, []);
 
     useEffect(() => {
-        if (!quizActive || isQuizPaused || !currentQuestion || isAnswerSubmitted) return;
+        // NOTE: violation pauses do NOT stop this timer — the pause overlay
+        // blocks answering while the clock keeps draining, same as live mode.
+        // Wall-clock corrected so throttled background tabs can't buy time.
+        if (!quizActive || !currentQuestion || isAnswerSubmitted) return;
 
+        let lastTick = Date.now();
         const timer = setInterval(() => {
+            const now = Date.now();
+            const elapsed = Math.max(1, Math.round((now - lastTick) / 1000));
+            lastTick = now;
+
             setTimeRemaining(prev => {
-                if (prev <= 1) {
+                if (prev <= elapsed) {
                     clearInterval(timer);
                     // Auto-submit with no answer when time runs out
                     if (!isAnswerSubmitted) {
@@ -269,34 +372,39 @@ const SelfPacedQuizSession = () => {
                     }
                     return 0;
                 }
-                return prev - 1;
+                return prev - elapsed;
             });
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [currentIndex, quizActive, isQuizPaused, isAnswerSubmitted]);
+    }, [currentIndex, quizActive, isAnswerSubmitted]);
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Total quiz timer
+    // Total quiz timer (also keeps running through violation pauses)
     // ─────────────────────────────────────────────────────────────────────────
 
     useEffect(() => {
-        if (totalTimeRemaining === null || !quizActive || isQuizPaused) return;
+        if (totalTimeRemaining === null || !quizActive) return;
 
+        let lastTick = Date.now();
         const timer = setInterval(() => {
+            const now = Date.now();
+            const elapsed = Math.max(1, Math.round((now - lastTick) / 1000));
+            lastTick = now;
+
             setTotalTimeRemaining(prev => {
                 if (prev === null) return null;
-                if (prev <= 1) {
+                if (prev <= elapsed) {
                     clearInterval(timer);
                     handleFinishQuiz();
                     return 0;
                 }
-                return prev - 1;
+                return prev - elapsed;
             });
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [totalTimeRemaining, quizActive, isQuizPaused]);
+    }, [totalTimeRemaining === null, quizActive]);
 
     // ─────────────────────────────────────────────────────────────────────────
     // Submit answer via REST
@@ -479,36 +587,53 @@ const SelfPacedQuizSession = () => {
     // Paused overlay
     // ─────────────────────────────────────────────────────────────────────────
 
-    if (isQuizPaused) {
+    if (isQuizPaused || resuming) {
+        const t = Math.max(0, timeRemaining);
+        const mmss = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+
         return (
             <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4 pb-20">
-                <div className="bg-amber-950/50 border border-amber-800 rounded-2xl p-5 sm:p-8 max-w-md w-full text-center">
-                    <AlertCircle className="w-12 h-12 sm:w-16 sm:h-16 text-amber-400 mx-auto mb-4 animate-pulse" />
-                    <h2 className="text-2xl font-bold text-white mb-2">Quiz Paused</h2>
-                    <p className="text-amber-300 mb-6">{pauseReason}</p>
+                {resuming ? (
+                    /* Resuming loading state */
+                    <div className="text-center">
+                        <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4 text-purple-400" />
+                        <p className="text-lg font-semibold text-white">Resuming…</p>
+                        <p className="text-sm text-neutral-500 mt-1">Bringing you back to the quiz</p>
+                    </div>
+                ) : (
+                    <div className="bg-amber-950/50 border border-amber-800 rounded-2xl p-5 sm:p-8 max-w-md w-full text-center">
+                        <AlertCircle className="w-12 h-12 sm:w-16 sm:h-16 text-amber-400 mx-auto mb-4 animate-pulse" />
+                        <h2 className="text-2xl font-bold text-white mb-2">Quiz Paused</h2>
+                        <p className="text-amber-300 mb-6">{pauseReason}</p>
 
-                    {document.fullscreenElement ? (
-                        <button
-                            onClick={() => {
-                                setIsQuizPaused(false);
-                                setPauseReason('');
-                                setPauseSource('');
-                            }}
-                            className="px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl transition-colors flex items-center gap-2 mx-auto"
-                        >
-                            <CheckCircle className="w-5 h-5" />
-                            Continue Quiz
-                        </button>
-                    ) : (
-                        <button
-                            onClick={enterFullscreen}
-                            className="px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-colors flex items-center gap-2 mx-auto"
-                        >
-                            <Expand className="w-5 h-5" />
-                            Re-enter Fullscreen
-                        </button>
-                    )}
-                </div>
+                        {/* The deterrent: their time is visibly draining while away */}
+                        <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/5 p-4">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-red-400 mb-1">
+                                The clock is still running
+                            </p>
+                            <p className="text-3xl font-bold text-white tabular-nums">{mmss}</p>
+                            <p className="text-xs text-neutral-500 mt-1">Time left on this question keeps counting down</p>
+                        </div>
+
+                        {document.fullscreenElement ? (
+                            <button
+                                onClick={resumeWithBeat}
+                                className="px-6 py-3 bg-green-600 hover:bg-green-500 text-white rounded-xl transition-colors flex items-center gap-2 mx-auto"
+                            >
+                                <CheckCircle className="w-5 h-5" />
+                                Continue Quiz
+                            </button>
+                        ) : (
+                            <button
+                                onClick={enterFullscreen}
+                                className="px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl transition-colors flex items-center gap-2 mx-auto"
+                            >
+                                <Expand className="w-5 h-5" />
+                                Re-enter Fullscreen
+                            </button>
+                        )}
+                    </div>
+                )}
             </div>
         );
     }
