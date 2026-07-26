@@ -167,7 +167,14 @@ ok "env file in place"
 # 5. Python backend
 # ---------------------------------------------------------------------------
 log "[5/9] Backend (venv, migrations, static)"
-sudo -u "$DEPLOY_USER" bash -eu <<EOF
+# A root-run step can leave root-owned caches in the deploy user's home, which
+# silently disables pip's cache and makes npm fail outright. Fix ownership and
+# use `sudo -H` so HOME actually points at the deploy user's home.
+mkdir -p /home/"$DEPLOY_USER"/.cache /home/"$DEPLOY_USER"/.npm
+chown "$DEPLOY_USER:$DEPLOY_USER" /home/"$DEPLOY_USER"
+chown -R "$DEPLOY_USER:$DEPLOY_USER" /home/"$DEPLOY_USER"/.cache /home/"$DEPLOY_USER"/.npm
+
+sudo -H -u "$DEPLOY_USER" bash -eu <<EOF
 cd "$APP_DIR/backend"
 [ -d venv ] || python3 -m venv venv
 ./venv/bin/pip install -q --upgrade pip
@@ -194,12 +201,25 @@ VITE_LOG_LEVEL=error
 EOF
     ok "generated frontend/.env.production for ${DOMAIN}"
 fi
-sudo -u "$DEPLOY_USER" bash -eu <<EOF
+# Do NOT swallow npm's output: hiding stderr here made a failed build look like
+# a silent early exit with no clue what went wrong. Log it, and print the tail
+# on failure.
+BUILD_LOG=/tmp/ccis-frontend-build.log
+echo "  building (this takes a few minutes; log: $BUILD_LOG)"
+if ! sudo -H -u "$DEPLOY_USER" bash -eu >"$BUILD_LOG" 2>&1 <<EOF
 cd "$APP_DIR/frontend"
-npm ci --no-audit --no-fund --silent 2>/dev/null || npm install --no-audit --no-fund --silent
-npm run build --silent
+export NODE_OPTIONS=--max-old-space-size=2048
+npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+npm run build
 EOF
-[ -f "$APP_DIR/frontend/dist/index.html" ] || die "frontend build produced no dist/index.html"
+then
+    echo
+    echo "  ---- last 40 lines of $BUILD_LOG ----"
+    tail -40 "$BUILD_LOG"
+    echo "  -------------------------------------"
+    die "frontend build failed (full log: $BUILD_LOG)"
+fi
+[ -f "$APP_DIR/frontend/dist/index.html" ] || die "build reported success but produced no dist/index.html (log: $BUILD_LOG)"
 ok "built $(du -sh "$APP_DIR/frontend/dist" | cut -f1) into frontend/dist"
 
 # ---------------------------------------------------------------------------
