@@ -19,7 +19,8 @@ source venv/bin/activate
 echo "[2/4] Installing Python dependencies..."
 pip install --upgrade pip
 pip install -r requirements.txt
-pip install gunicorn
+# NOTE: no gunicorn — the app is served by daphne (ASGI) for WebSocket support;
+# daphne is already pinned in requirements.txt.
 
 # Run migrations
 echo "[3/4] Running database migrations..."
