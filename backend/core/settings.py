@@ -61,6 +61,14 @@ ENABLE_VOICE_FEATURES = env.bool('ENABLE_VOICE_FEATURES', default=False)
 # ConnectionRefusedError. Default to the console backend in DEBUG so signup
 # links are printed to the runserver output; production must set real SMTP.
 # ---------------------------------------------------------------------------
+# Public URL of the SPA. Used to build absolute links in outgoing email
+# (confirmation, password reset) and as a trusted CSRF origin.
+# MUST be scheme-qualified — a bare host or empty value produces a relative
+# link like "/verify-email/..." which is unusable from an email client.
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:3000').rstrip('/')
+if not FRONTEND_URL.startswith(('http://', 'https://')):
+    FRONTEND_URL = f'https://{FRONTEND_URL}' if FRONTEND_URL else 'http://localhost:3000'
+
 EMAIL_BACKEND = env(
     'EMAIL_BACKEND',
     default='django.core.mail.backends.console.EmailBackend' if DEBUG
@@ -387,9 +395,8 @@ if not CSRF_TRUSTED_ORIGINS:
         if host not in ('localhost', '127.0.0.1', '*')
         and not host.replace('.', '').isdigit()  # skip bare IPs
     ]
-_frontend_url = env('FRONTEND_URL', default='')
-if _frontend_url.startswith(('http://', 'https://')) and _frontend_url not in CSRF_TRUSTED_ORIGINS:
-    CSRF_TRUSTED_ORIGINS.append(_frontend_url.rstrip('/'))
+if FRONTEND_URL and FRONTEND_URL not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(FRONTEND_URL)
 
 # Security Settings (for production)
 if not DEBUG:

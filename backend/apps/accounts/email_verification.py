@@ -35,7 +35,18 @@ def build_verification_link(user) -> str:
     """Absolute frontend URL the user clicks to confirm their address."""
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = email_verification_token.make_token(user)
+
     frontend = (getattr(settings, 'FRONTEND_URL', '') or '').rstrip('/')
+    if not frontend.startswith(('http://', 'https://')):
+        # A relative link is silently useless in an email client — surface it
+        # instead of mailing a dead link.
+        logger.error(
+            'FRONTEND_URL is not an absolute URL (%r); verification links will '
+            'not work. Set FRONTEND_URL=https://your-domain in the environment.',
+            frontend,
+        )
+        frontend = frontend or 'http://localhost:3000'
+
     return f'{frontend}/verify-email/{uid}/{token}'
 
 
