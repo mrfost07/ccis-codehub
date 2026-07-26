@@ -276,7 +276,11 @@ fi
 # ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
-SCHEME="http"; grep -q "listen 443" /etc/nginx/sites-available/ccis-codehub 2>/dev/null && SCHEME="https"
+# Match only a real directive, not the words "listen 443 ssl" inside the
+# explanatory comment at the top of the conf — that made the summary claim
+# https:// on an HTTP-only deploy.
+SCHEME="http"
+grep -qE '^\s*listen\s+443' /etc/nginx/sites-available/ccis-codehub 2>/dev/null && SCHEME="https"
 log "Done"
 echo "  Site      : ${SCHEME}://${DOMAIN}"
 echo "  Health    : curl -I ${SCHEME}://${DOMAIN}/api/health/"
