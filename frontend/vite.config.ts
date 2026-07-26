@@ -24,29 +24,25 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
     chunkSizeWarningLimit: 900,
-    rollupOptions: {
-      output: {
-        // Split heavy libraries into their own cacheable chunks so the initial
-        // load stays small and vendor code is cached across app deploys.
-        manualChunks(id: string) {
-          if (!id.includes('node_modules')) return
-          if (id.includes('monaco-editor') || id.includes('@monaco-editor')) return 'monaco'
-          if (id.includes('/three/') || id.includes('three-')) return 'three'
-          if (id.includes('recharts') || id.includes('/d3-') || id.includes('victory-')) return 'charts'
-          if (id.includes('framer-motion')) return 'motion'
-          if (
-            id.includes('react-markdown') || id.includes('remark') ||
-            id.includes('micromark') || id.includes('mdast') ||
-            id.includes('prismjs') || id.includes('katex') || id.includes('hast')
-          ) return 'markdown'
-          if (
-            id.includes('/react/') || id.includes('/react-dom/') ||
-            id.includes('react-router') || id.includes('@tanstack')
-          ) return 'react-vendor'
-          return 'vendor'
-        },
-      },
-    },
+    // NOTE: no manualChunks.
+    //
+    // The previous config pulled react/react-dom into a "react-vendor" chunk
+    // while React-dependent libraries (recharts, framer-motion, monaco,
+    // react-markdown …) fell through to "vendor". Rollup then emitted "vendor"
+    // ahead of "react-vendor", so those libraries ran before React existed and
+    // the app died on load with:
+    //
+    //     TypeError: Cannot read properties of undefined (reading 'memo')
+    //
+    // producing a blank page in production only — dev serves unbundled modules,
+    // so the ordering problem never appears there.
+    //
+    // Rollup's automatic chunking already splits by the real import graph and
+    // gets the ordering right. Route-level code splitting (React.lazy in
+    // App.tsx) is what actually keeps the initial payload small. If manual
+    // chunks are ever reintroduced, every React-dependent package must sit in
+    // the SAME chunk as react/react-dom, and the built output must be verified
+    // by serving dist/ — not just by a successful build.
   },
 })
 
