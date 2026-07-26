@@ -249,12 +249,20 @@ class UserProfileView(APIView):
         logger.info(f"Profile update request for user: {user.username}")
         logger.info(f"Request data: {request.data}")
 
-        # Normalize incoming data for both JSON and multipart
-        if isinstance(request.data, dict):
-            data = request.data.copy()
+        # Normalize incoming data for both JSON and multipart.
+        #
+        # QueryDict subclasses dict, so an `isinstance(request.data, dict)` test
+        # matches multipart uploads as well and used to take the .copy() branch.
+        # QueryDict.copy() is a DEEP copy, which tries to pickle the uploaded
+        # file's open handle and blows up with
+        #   TypeError: cannot pickle 'BufferedRandom' instances
+        # — so every avatar upload returned a 500. Detect the QueryDict by its
+        # .dict() method instead and take a shallow copy either way; the actual
+        # file is read from request.FILES below, never from here.
+        if hasattr(request.data, 'dict'):
+            data = request.data.dict()      # QueryDict (multipart / form-encoded)
         else:
-            # For multipart data
-            data = request.data.dict() if hasattr(request.data, 'dict') else {}
+            data = dict(request.data)       # plain dict (JSON body)
 
         # Parse array-like JSON fields if sent as strings in multipart
         for key in ['skills', 'career_interests']:
