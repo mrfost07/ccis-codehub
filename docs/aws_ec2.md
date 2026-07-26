@@ -1,5 +1,23 @@
 # AWS EC2 Deployment Guide — CCIS-CodeHub
 
+> ## ⚠️ SUPERSEDED — do not follow this guide
+>
+> This documents the **old AWS EC2 host** (`13.219.220.21`), which is no longer
+> the deployment target. Production now runs on a different VM and **every
+> connection detail below is wrong for it**:
+>
+> | | This guide (old) | Current target |
+> |---|---|---|
+> | IP | `13.219.220.21` | `104.207.92.63` |
+> | SSH user | `ubuntu` | `root` |
+> | SSH key | `MyKey.pem` | `spaceship` |
+> | SSH port | 22 (default) | **22022** |
+> | Project path | `~/ccis-codehub` | `/home/deploy/CCIS-CodeHub` |
+> | Server | `gunicorn` (WSGI) | `daphne` (ASGI — required for WebSockets) |
+>
+> Use **[../deploy/PRODUCTION_CHECKLIST.md](../deploy/PRODUCTION_CHECKLIST.md)**
+> and the scripts in `deploy/` instead. Kept for historical reference only.
+
 ## Server Details
 
 | Item | Value |
