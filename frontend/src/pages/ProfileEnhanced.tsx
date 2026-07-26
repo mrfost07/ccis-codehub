@@ -11,6 +11,7 @@ import toast from 'react-hot-toast'
 // three.js-backed background — lazy so it only downloads when a user actually
 // picks an animated profile background.
 const Hyperspeed = lazy(() => import('../components/backgrounds/Hyperspeed'))
+import { useAuth } from '../contexts/AuthContext'
 import { getMediaUrl } from '../utils/mediaUrl'
 import { LoadingState } from '../components/ui'
 
@@ -223,6 +224,10 @@ interface UserProfile {
 }
 
 export default function ProfileEnhanced() {
+  // The navbar (and every other consumer) reads the user from AuthContext,
+  // not from this page's local `profile` state. Without refreshing it after a
+  // save the avatar/username stay stale until the next full reload.
+  const { refreshUser } = useAuth()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
@@ -394,6 +399,7 @@ export default function ProfileEnhanced() {
       toast.success('Profile updated successfully!')
       setEditing(false)
       fetchProfile()
+      await refreshUser()
     } catch (error: any) {
       console.error('Failed to update profile:', error)
       console.error('Error response:', error.response?.data)
@@ -435,6 +441,8 @@ export default function ProfileEnhanced() {
       await api.put('/auth/profile/', formData)
       toast.success('Profile picture updated!')
       fetchProfile()
+      // Propagate to the navbar / anything else reading AuthContext.
+      await refreshUser()
     } catch (error) {
       console.error('Failed to upload image:', error)
       toast.error('Failed to upload image')
