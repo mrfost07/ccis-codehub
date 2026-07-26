@@ -122,6 +122,15 @@ else
 fi
 chown -R "$DEPLOY_USER:$DEPLOY_USER" "$APP_DIR"
 
+# Uploaded media is served straight off disk by nginx, which runs as www-data.
+# Give it group ownership + read/traverse, otherwise every image 403s while the
+# rest of the site works fine. (chown -R deploy:deploy over media/ is exactly
+# what breaks this.) Never delete anything here — these are user uploads.
+if [ -d "$APP_DIR/backend/media" ]; then
+    chown -R "$DEPLOY_USER:www-data" "$APP_DIR/backend/media"
+    chmod -R u=rwX,g=rX,o=rX "$APP_DIR/backend/media"
+fi
+
 # ---------------------------------------------------------------------------
 # 4. Backend environment file
 #    deploy/.env.production is gitignored, so it is NOT present after a clone.

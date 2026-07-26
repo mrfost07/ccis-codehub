@@ -229,6 +229,13 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# Uploads are written by the app user but served directly by nginx, which runs
+# as a different user. Django defaults these to None, meaning the process umask
+# decides — a restrictive umask silently produces unreadable files and every
+# image 403s. Pin them so uploads are always readable by the web server.
+FILE_UPLOAD_PERMISSIONS = 0o644
+FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
