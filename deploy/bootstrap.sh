@@ -104,13 +104,20 @@ fi
 # ---------------------------------------------------------------------------
 log "[3/9] Source code"
 if [ -d "$APP_DIR/.git" ]; then
+    # Take ownership BEFORE any git call. A repo cloned by root cannot be
+    # operated on as the deploy user — git aborts with "dubious ownership".
+    chown -R "$DEPLOY_USER:$DEPLOY_USER" "$APP_DIR"
+    # root also reads this repo (below, and for future manual pulls).
+    git config --global --add safe.directory "$APP_DIR" 2>/dev/null || true
+    sudo -u "$DEPLOY_USER" git config --global --add safe.directory "$APP_DIR" 2>/dev/null || true
+
     sudo -u "$DEPLOY_USER" git -C "$APP_DIR" fetch --all -q
     sudo -u "$DEPLOY_USER" git -C "$APP_DIR" reset --hard origin/main -q
     ok "updated to $(git -C "$APP_DIR" rev-parse --short HEAD)"
 else
     mkdir -p "$(dirname "$APP_DIR")"
     git clone -q "$REPO" "$APP_DIR"
-    chown -R "$DEPLOY_USER:$DEPLOY_USER" "$APP_DIR"
+    git config --global --add safe.directory "$APP_DIR" 2>/dev/null || true
     ok "cloned into $APP_DIR"
 fi
 chown -R "$DEPLOY_USER:$DEPLOY_USER" "$APP_DIR"
