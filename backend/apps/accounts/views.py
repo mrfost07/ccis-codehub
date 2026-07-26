@@ -749,6 +749,18 @@ class GoogleOAuthCallbackView(APIView):
             # ========== LOGIN MODE ==========
             if mode == 'login':
                 if user:
+                    # Signing in with Google proves the user owns this address,
+                    # so an account that registered by email/password but never
+                    # confirmed is verified here rather than staying locked out.
+                    if not user.email_verified:
+                        user.email_verified = True
+                        user.email_verified_at = timezone.now()
+                        if not user.google_id:
+                            google_id = google_user.get('id') or google_user.get('sub')
+                            if google_id:
+                                user.google_id = google_id
+                        user.save(update_fields=['email_verified', 'email_verified_at', 'google_id'])
+
                     # Existing user - log them in
                     refresh = RefreshToken.for_user(user)
                     return Response({

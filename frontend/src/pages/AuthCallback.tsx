@@ -5,7 +5,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import api from '../services/api';
+import { authAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
 export default function AuthCallback() {
@@ -69,7 +69,7 @@ export default function AuthCallback() {
 
         try {
             // Exchange code for user info via backend with mode
-            const response = await api.post('/auth/google/callback/', {
+            const response = await authAPI.googleCallback({
                 code,
                 redirect_uri: `${window.location.origin}/auth/callback`,
                 mode,

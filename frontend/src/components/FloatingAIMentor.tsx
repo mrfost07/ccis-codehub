@@ -205,13 +205,18 @@ export default function FloatingAIMentor() {
 
   // Ask the server whether voice is live yet. Any failure keeps it disabled,
   // so the button degrades to "coming soon" rather than erroring on click.
+  //
+  // Only call when signed in: this component mounts on public pages too, and a
+  // logged-out request would 401 → the api interceptor would try to refresh,
+  // fail, and redirect a visitor to /login. (See ConditionalAIMentor.)
   useEffect(() => {
+    if (!isAuthenticated()) { setVoiceEnabled(false); return }
     let cancelled = false
     aiAPI.getVoiceStatus?.()
       .then((res: any) => { if (!cancelled) setVoiceEnabled(!!res?.data?.enabled) })
       .catch(() => { if (!cancelled) setVoiceEnabled(false) })
     return () => { cancelled = true }
-  }, [])
+  }, [location.pathname])
 
   // Helper: send voice transcript to AI
   const handleVoiceSend = useCallback(async () => {

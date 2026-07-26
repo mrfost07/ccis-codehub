@@ -132,6 +132,13 @@ export const authAPI = {
     noAuthApi.post('/auth/verify-email/', { uid, token }),
   resendVerification: (email: string) =>
     noAuthApi.post('/auth/resend-verification/', { email }),
+  // Google OAuth — use the token-less client. These run while logged out, and
+  // attaching a stale/expired token makes DRF reject the request with 401 even
+  // though the endpoint is AllowAny, which then triggers a refresh + redirect.
+  googleCallback: (data: { code: string; redirect_uri: string; mode: string }) =>
+    noAuthApi.post('/auth/google/callback/', data),
+  googleCreateAccount: (data: { identity_token: string | null; profile_data: any }) =>
+    noAuthApi.post('/auth/google/create-account/', data),
   getProfile: () => api.get('/auth/profile/'),
   updateProfile: (data: any) => api.put('/auth/profile/', data),
 }

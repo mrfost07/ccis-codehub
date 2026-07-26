@@ -16,7 +16,7 @@ import logging
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from rest_framework.test import APIRequestFactory
 from .services.tts_service import tts_service
@@ -43,8 +43,13 @@ class VoiceStatusView(APIView):
     """
     GET /api/ai/voice/status/
     Lets the frontend render "Coming soon" without probing a failing endpoint.
+
+    Public: this only reports a global feature flag (no per-user data), and
+    the widget that reads it mounts on public pages. Requiring auth here made
+    every logged-out page load 401, which the client turns into a refresh
+    attempt and a redirect.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get(self, request):
         return Response({

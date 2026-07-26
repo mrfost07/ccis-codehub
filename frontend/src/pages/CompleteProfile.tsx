@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import api from '../services/api';
+import { authAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -92,7 +92,7 @@ export default function CompleteProfile() {
         try {
             const identityToken =
                 location.state?.identityToken || localStorage.getItem('google_identity_token');
-            const response = await api.post('/auth/google/create-account/', {
+            const response = await authAPI.googleCreateAccount({
                 identity_token: identityToken,
                 profile_data: formData,
             });
