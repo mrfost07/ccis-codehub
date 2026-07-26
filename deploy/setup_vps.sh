@@ -13,7 +13,11 @@ set -euo pipefail
 # session and locks you out. Detected from sshd_config; override with:
 #     SSH_PORT=22022 bash setup_vps.sh
 # ---------------------------------------------------------------------------
-DETECTED_PORT="$(grep -oP '^\s*Port\s+\K[0-9]+' /etc/ssh/sshd_config 2>/dev/null | head -1 || true)"
+# Detect from the live listener first — on Ubuntu 24.04 the real Port usually
+# lives in a sshd_config.d/ drop-in while the main file has it commented out,
+# so reading only /etc/ssh/sshd_config wrongly reports 22.
+DETECTED_PORT="$(ss -tlnpH 2>/dev/null | awk '/sshd/ {n=split($4,a,":"); print a[n]}' | sort -un | head -1)"
+[ -n "$DETECTED_PORT" ] || DETECTED_PORT="$(grep -rhoP '^\s*Port\s+\K[0-9]+' /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf 2>/dev/null | head -1)"
 SSH_PORT="${SSH_PORT:-${DETECTED_PORT:-22}}"
 
 echo "=========================================="

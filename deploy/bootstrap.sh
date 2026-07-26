@@ -32,10 +32,40 @@ die()  { echo -e "\n\033[31m✗ $*\033[0m\n" >&2; exit 1; }
 # 0. Firewall port safety — opening the wrong port then enabling ufw would
 #    sever this very SSH session.
 # ---------------------------------------------------------------------------
-DETECTED_PORT="$(grep -oP '^\s*Port\s+\K[0-9]+' /etc/ssh/sshd_config 2>/dev/null | head -1 || true)"
-SSH_PORT="${SSH_PORT:-${DETECTED_PORT:-22}}"
-ss -tlnH "sport = :${SSH_PORT}" 2>/dev/null | grep -q . \
-  || die "Nothing is listening on port ${SSH_PORT}. Re-run with: SSH_PORT=<your port> sudo -E bash deploy/bootstrap.sh"
+detect_ssh_port() {
+    # 1. Explicit override always wins.
+    [ -n "${SSH_PORT:-}" ] && { echo "$SSH_PORT"; return; }
+
+    # 2. The port of THIS session, when sudo preserved it (sudo -E).
+    #    $SSH_CONNECTION = "<client ip> <client port> <server ip> <server port>"
+    if [ -n "${SSH_CONNECTION:-}" ]; then
+        awk '{print $4}' <<<"$SSH_CONNECTION" | grep -qE '^[0-9]+$' \
+            && { awk '{print $4}' <<<"$SSH_CONNECTION"; return; }
+    fi
+
+    # 3. What sshd is actually listening on — authoritative, and independent of
+    #    where the config happens to live.
+    local live
+    live="$(ss -tlnpH 2>/dev/null | awk '/sshd/ {n=split($4,a,":"); print a[n]}' | sort -un | head -1)"
+    [ -n "$live" ] && { echo "$live"; return; }
+
+    # 4. Config files. On Ubuntu 24.04 the real Port is usually in a drop-in
+    #    under sshd_config.d/ (cloud-init), while the main file has it commented
+    #    out — checking only the main file is why this used to guess 22.
+    local cfg
+    cfg="$(grep -rhoP '^\s*Port\s+\K[0-9]+' /etc/ssh/sshd_config /etc/ssh/sshd_config.d/*.conf 2>/dev/null | head -1)"
+    [ -n "$cfg" ] && { echo "$cfg"; return; }
+
+    echo 22
+}
+
+SSH_PORT="$(detect_ssh_port)"
+if ! ss -tlnH "sport = :${SSH_PORT}" 2>/dev/null | grep -q .; then
+    echo
+    echo "  sshd listeners found:"
+    ss -tlnpH 2>/dev/null | awk '/sshd/ {print "    " $4}' || echo "    (none)"
+    die "Nothing is listening on port ${SSH_PORT}. Re-run with: sudo SSH_PORT=<your port> SKIP_TLS=${SKIP_TLS} bash deploy/bootstrap.sh"
+fi
 ok "SSH port ${SSH_PORT} will stay open"
 
 # ---------------------------------------------------------------------------
