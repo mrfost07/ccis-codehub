@@ -1,6 +1,6 @@
 # Production Readiness — CCIS CodeHub
 
-Audit date: 2026-07-25. Target: single VPS (`13.219.220.21`) serving
+Audit date: 2026-07-25. Target: single VPS (`104.207.92.63`, Ubuntu 24.04, SSH on port 22022) serving
 `ccis-codehub.space`, nginx in front, Django + Channels behind it, Neon
 Postgres, Redis for the channel layer.
 
@@ -139,6 +139,58 @@ overridable via env.
 - No `.env` file with real secrets is tracked by git.
 - Frontend production build correctly bakes the production API/WS URLs.
 - `AllowedHostsOriginValidator` guards WebSocket origins.
+
+---
+
+## 3b. Before the first deploy to this VM
+
+Three things must be in place first — none of them can be done from the repo.
+
+### 1. DNS (blocks TLS)
+
+`ccis-codehub.space` currently has **no A record**, and `www` does not resolve
+at all. Certbot cannot issue a certificate until it does. At your domain
+registrar add:
+
+| Type | Host | Value |
+|---|---|---|
+| A | `@` | `104.207.92.63` |
+| A | `www` | `104.207.92.63` |
+
+Verify before running certbot (must print the IP):
+
+```bash
+dig +short ccis-codehub.space
+```
+
+### 2. SSH key access
+
+The box currently accepts `publickey,password` but the `spaceship` key is not
+in root's `authorized_keys`, so key-based login fails. On the server:
+
+```bash
+mkdir -p ~/.ssh && chmod 700 ~/.ssh
+echo 'PASTE_YOUR_PUBLIC_KEY_HERE' >> ~/.ssh/authorized_keys
+chmod 600 ~/.ssh/authorized_keys
+```
+
+Consider disabling password auth afterwards (`PasswordAuthentication no` in
+`/etc/ssh/sshd_config`, then `systemctl restart ssh`).
+
+### 3. ⚠️ Firewall / SSH port
+
+**SSH on this box is port 22022, not 22.** The old `setup_vps.sh` ran
+`ufw allow OpenSSH` (which only opens 22) followed by `ufw --force enable` —
+that would have cut the session and locked you out with no way back in except
+provider console access.
+
+`setup_vps.sh` now detects the port from `sshd_config`, refuses to run if
+nothing is listening on it, and opens 22022/80/443 explicitly. If detection
+ever fails, pass it manually:
+
+```bash
+SSH_PORT=22022 sudo -E bash deploy/setup_vps.sh
+```
 
 ---
 
