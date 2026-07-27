@@ -31,6 +31,26 @@ COMPILE_TIMEOUT = 15  # seconds for compilation step
 MAX_OUTPUT_BYTES = 16_384  # 16 KB
 
 
+def _sandbox_env() -> dict:
+    """
+    Minimal environment for student code.
+
+    Submitted code inherits the server's environment by default, so a
+    "solution" of `print(os.environ["DATABASE_URL"])` would hand the student
+    full Postgres credentials, DJANGO_SECRET_KEY and every API key. Pass only
+    what an interpreter genuinely needs to start.
+    """
+    keep = ('PATH', 'SYSTEMROOT', 'COMSPEC', 'LANG', 'LC_ALL', 'TMPDIR', 'TEMP', 'TMP')
+    env = {k: os.environ[k] for k in keep if k in os.environ}
+    env.setdefault('PATH', '/usr/local/bin:/usr/bin:/bin')
+    # Keep interpreters from importing anything outside the temp dir.
+    env['PYTHONPATH'] = ''            # no imports from the server's site-packages
+    env['PYTHONDONTWRITEBYTECODE'] = '1'
+    env['NODE_OPTIONS'] = ''          # ignore any inherited node flags
+    # PYTHONHOME is deliberately left unset — an empty value breaks CPython.
+    return env
+
+
 def _posix_cpu_limit():
     """
     Return a preexec_fn that caps child CPU time on POSIX, or None elsewhere.
@@ -206,6 +226,7 @@ class CodeExecutor:
                 text=True,
                 timeout=TIMEOUT,
                 cwd=cwd,
+                env=_sandbox_env(),   # never inherit the server's secrets
                 preexec_fn=_posix_cpu_limit(),
             )
             stdout = proc.stdout[:MAX_OUTPUT_BYTES]
@@ -373,7 +394,8 @@ class CodeExecutor:
         ]
 
         try:
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=COMPILE_TIMEOUT, cwd=tmpdir)
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=COMPILE_TIMEOUT,
+                                  cwd=tmpdir, env=_sandbox_env())
             if proc.returncode != 0:
                 return proc.stderr[:MAX_OUTPUT_BYTES] or proc.stdout[:MAX_OUTPUT_BYTES]
             return None
