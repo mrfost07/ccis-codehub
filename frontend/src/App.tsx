@@ -5,6 +5,7 @@ import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './contexts/AuthContext'
 import { LoadingState } from './components/ui'
 import FloatingAIMentor from './components/FloatingAIMentor'
+import ErrorBoundary from './components/ErrorBoundary'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
 import HomeEnhanced from './pages/HomeEnhanced'
@@ -70,6 +71,12 @@ function ConditionalAIMentor() {
   return <FloatingAIMentor />
 }
 
+/** Error boundary that clears itself when the user navigates elsewhere. */
+function RoutedErrorBoundary({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation()
+  return <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -97,6 +104,7 @@ function App() {
               }}
             />
             <Suspense fallback={<div className="min-h-screen bg-neutral-950 flex items-center justify-center"><LoadingState /></div>}>
+            <RoutedErrorBoundary>
             <Routes>
               <Route path="/" element={<HomeEnhanced />} />
               <Route path="/login" element={<Login />} />
@@ -350,6 +358,7 @@ function App() {
               />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            </RoutedErrorBoundary>
             </Suspense>
             <ConditionalAIMentor />
           </div>

@@ -932,10 +932,13 @@ class ChatRoomViewSet(viewsets.ReadOnlyModelViewSet):
             deleted_for_everyone=True
         ).exclude(
             deleted_for__user=request.user
-        ).select_related('sender', 'reply_to').prefetch_related('reactions').order_by('created_at')
-        
-        # Limit to last 100 messages
-        messages = messages[:100]
+        ).select_related('sender', 'reply_to').prefetch_related('reactions', 'deleted_for')
+
+        # Newest 100, returned oldest-first for display.
+        # This previously did .order_by('created_at')[:100], which slices the
+        # OLDEST 100 — so once a room passed 100 messages every new message
+        # became invisible and the chat appeared frozen.
+        messages = list(messages.order_by('-created_at')[:100])[::-1]
         
         serializer = ChatMessageSerializer(messages, many=True, context={'request': request})
         return Response(serializer.data)

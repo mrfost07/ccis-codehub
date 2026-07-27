@@ -383,9 +383,12 @@ class ChatMessageSerializer(serializers.ModelSerializer):
     
     def get_is_deleted_for_me(self, obj):
         request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return obj.deleted_for.filter(user=request.user).exists()
-        return False
+        if not (request and request.user.is_authenticated):
+            return False
+        # Iterate the prefetched rows instead of .filter().exists(), which would
+        # issue one query PER MESSAGE. The chat polls every 3s, so a 100-message
+        # room cost 100 extra queries per poll per connected user.
+        return any(d.user_id == request.user.id for d in obj.deleted_for.all())
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
