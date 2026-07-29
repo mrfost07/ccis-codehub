@@ -112,7 +112,9 @@ class LiveQuizSerializer(serializers.ModelSerializer):
         return name or obj.instructor.username
 
     def get_questions_count(self, obj):
-        return obj.live_questions.count()
+        # The same rows are serialised into `questions` above, so count the
+        # loaded collection rather than issuing a COUNT per quiz.
+        return len(obj.live_questions.all())
     
     def create(self, validated_data):
         """Auto-assign current user as instructor"""

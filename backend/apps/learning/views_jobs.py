@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from django.db import models as db_models
 
 from .models import JobCache, SavedJob
-from .job_service import sync_jobs, compute_skill_match
+from .job_service import sync_jobs, compute_skill_match, get_user_skill_names
 
 logger = logging.getLogger(__name__)
 
@@ -49,11 +49,20 @@ class JobViewSet(viewsets.ReadOnlyModelViewSet):
 
         return qs.order_by('-posted_at', '-cached_at')
 
-    def _serialize_job(self, job, user, saved_ids=None):
+    def _serialize_job(self, job, user, saved_ids=None, user_skills=None):
         """Convert a JobCache instance to a response dict with skill match."""
-        match = compute_skill_match(user, job)
-        is_saved = (saved_ids is not None and str(job.id) in saved_ids) or \
-                   SavedJob.objects.filter(user=user, job=job).exists()
+        # user_skills is resolved once by the caller; without it this queried
+        # the user's achieved skills once per job.
+        match = compute_skill_match(user, job, user_skills=user_skills)
+
+        # When the caller supplies saved_ids it is the complete set, so trust
+        # it. The previous `A or B` fell through to the database for every job
+        # NOT in the set — i.e. for most of them — which defeated the whole
+        # point of collecting saved_ids up front.
+        if saved_ids is not None:
+            is_saved = str(job.id) in saved_ids
+        else:
+            is_saved = SavedJob.objects.filter(user=user, job=job).exists()
 
         return {
             'id':               str(job.id),
@@ -91,12 +100,18 @@ class JobViewSet(viewsets.ReadOnlyModelViewSet):
             SavedJob.objects.filter(user=request.user, job__in=jobs).values_list('job_id', flat=True)
         )
 
+        # Resolved once for the page rather than per job.
+        user_skills = get_user_skill_names(request.user)
+
         return Response({
             'count':      total,
             'page':       page,
             'page_size':  page_size,
             'total_pages': (total + page_size - 1) // page_size,
-            'results':    [self._serialize_job(j, request.user, saved_ids) for j in jobs],
+            'results':    [
+                self._serialize_job(j, request.user, saved_ids, user_skills)
+                for j in jobs
+            ],
         })
 
     def retrieve(self, request, *args, **kwargs):
@@ -126,9 +141,13 @@ class JobViewSet(viewsets.ReadOnlyModelViewSet):
             .select_related('job')
             .order_by('-saved_at')
         )
+        # Every row here is saved by definition, so pass the id set rather
+        # than letting each row re-check the database.
+        user_skills = get_user_skill_names(request.user)
+        saved_ids = {str(sv.job_id) for sv in saves}
         data = []
         for sv in saves:
-            item = self._serialize_job(sv.job, request.user)
+            item = self._serialize_job(sv.job, request.user, saved_ids, user_skills)
             item['saved_at'] = sv.saved_at.isoformat()
             item['notes']    = sv.notes
             item['is_saved'] = True

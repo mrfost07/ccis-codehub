@@ -8,13 +8,15 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db import IntegrityError
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Prefetch, Q
 from django.utils import timezone
 import json
 import logging
 
 logger = logging.getLogger(__name__)
 
+from apps.accounts.models import User
+from apps.accounts.queries import annotate_user_stats
 from apps.learning.models import (
     LiveQuiz,
     LiveQuizQuestion,
@@ -493,9 +495,17 @@ class LiveQuizQuestionViewSet(viewsets.ModelViewSet):
 
 class LiveQuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for viewing quiz sessions"""
+    # quiz__live_questions: nested by LiveQuizSerializer and counted by
+    # questions_count. participants__student__profile: the participant
+    # serializer exposes the student's profile, whose project/task counts were
+    # six queries per participant — annotate_user_stats folds them into the
+    # prefetch. See apps/accounts/queries.py.
     queryset = LiveQuizSession.objects.select_related(
         'quiz', 'quiz__instructor', 'current_question'
-    ).prefetch_related('participants__student')
+    ).prefetch_related(
+        'quiz__live_questions',
+        Prefetch('participants__student', queryset=annotate_user_stats(User.objects.all())),
+    )
     serializer_class = LiveQuizSessionSerializer
     permission_classes = [IsAuthenticated]
     

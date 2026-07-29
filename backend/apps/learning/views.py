@@ -451,7 +451,11 @@ class QuizViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Filter quizzes by learning_module if provided"""
-        queryset = Quiz.objects.all()
+        # QuizSerializer nests the questions (with their choices) and reads
+        # learning_module — two queries per quiz otherwise.
+        queryset = Quiz.objects.select_related('learning_module').prefetch_related(
+            'questions__choices',
+        )
         learning_module = self.request.query_params.get('learning_module', None)
         if learning_module:
             queryset = queryset.filter(learning_module_id=learning_module)
@@ -761,8 +765,20 @@ class UserProgressViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        queryset = UserProgress.objects.filter(user=self.request.user)
-        
+        # UserProgressSerializer nests the whole CareerPathSerializer, so each
+        # row re-ran that serializer's module/enrolled counts and prerequisites
+        # M+1 times. Prefetch through the shared annotated queryset so the
+        # nested representation is built from one extra query, not four per row.
+        queryset = UserProgress.objects.filter(
+            user=self.request.user
+        ).select_related('user').prefetch_related(
+            # Prefetch, not select_related, for both: the nested serializers
+            # need the annotations and prefetched M2Ms that select_related
+            # cannot carry, so a plain join still left three queries per row.
+            Prefetch('career_path', queryset=annotated_career_paths()),
+            Prefetch('learning_module', queryset=annotated_modules()),
+        )
+
         # Filter by career_path if provided
         career_path = self.request.query_params.get('career_path')
         if career_path:
@@ -792,15 +808,25 @@ class CertificateViewSet(viewsets.ReadOnlyModelViewSet):
         """
         user = request.user
         paths = CareerPath.objects.filter(is_active=True).prefetch_related('modules')
+
+        # Two queries for the whole response instead of two per career path
+        # (a COUNT and an EXISTS each), which is what made this ~17 round-trips
+        # to return 1 KB.
+        completed_by_path = dict(
+            UserProgress.objects.filter(user=user, is_completed=True)
+            .values_list('career_path_id').annotate(n=Count('id'))
+        )
+        certified_paths = set(
+            Certificate.objects.filter(user=user).values_list('career_path_id', flat=True)
+        )
+
         result = []
         for path in paths:
-            total = path.modules.count()
+            total = len(path.modules.all())   # already prefetched above
             if total == 0:
                 continue
-            completed = UserProgress.objects.filter(
-                user=user, career_path=path, is_completed=True
-            ).count()
-            has_cert = Certificate.objects.filter(user=user, career_path=path).exists()
+            completed = completed_by_path.get(path.id, 0)
+            has_cert = path.id in certified_paths
             result.append({
                 'path_id': str(path.id),
                 'path_name': path.name,
@@ -1044,7 +1070,14 @@ class ModuleProgressViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return ModuleProgress.objects.filter(user=self.request.user)
+        # ModuleProgressSerializer nests LearningModuleSerializer, which needs
+        # career_path, a quiz count and prerequisites — annotated_modules()
+        # supplies all three in one query instead of three per row.
+        return ModuleProgress.objects.filter(
+            user=self.request.user
+        ).select_related('user').prefetch_related(
+            Prefetch('module', queryset=annotated_modules()),
+        )
     
     @action(detail=True, methods=['post'])
     def start(self, request, pk=None):

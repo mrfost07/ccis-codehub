@@ -180,20 +180,35 @@ def cleanup_stale_jobs(days: int = 30) -> int:
 
 # ─── Skill match ──────────────────────────────────────────────────────────────
 
-def compute_skill_match(user, job) -> dict:
+def get_user_skill_names(user) -> set:
     """
-    Compare user's AchievedSkills against job.skills_required.
-    Returns {score: 0-100, matched: [...], missing: [...], total_required: N}
+    The user's achieved skill names, fetched once.
+
+    Callers looping over jobs should resolve this a single time and pass it to
+    compute_skill_match — the skills do not vary per job, and re-querying them
+    per row cost one round-trip each.
     """
     try:
         from .models import AchievedSkill
-        user_skills = set(
+        return set(
             AchievedSkill.objects
             .filter(user=user)
             .values_list('skill_name', flat=True)
         )
     except Exception:
-        user_skills = set()
+        return set()
+
+
+def compute_skill_match(user, job, user_skills=None) -> dict:
+    """
+    Compare user's AchievedSkills against job.skills_required.
+    Returns {score: 0-100, matched: [...], missing: [...], total_required: N}
+
+    Pass `user_skills` (from get_user_skill_names) when calling this in a loop;
+    it is looked up per call otherwise.
+    """
+    if user_skills is None:
+        user_skills = get_user_skill_names(user)
 
     user_lower = {s.lower() for s in user_skills}
     job_skills  = {s.lower() for s in (job.skills_required or [])}
