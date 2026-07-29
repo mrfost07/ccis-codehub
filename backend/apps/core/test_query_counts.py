@@ -16,7 +16,21 @@ That is the actual definition of the bug: cost that scales with row count.
 A test written this way cannot be silenced by adding one more legitimate
 query, and cannot pass a reintroduced N+1.
 
-    python manage.py test apps.core.tests_query_counts
+These run against in-memory SQLite (pytest.ini points at core.settings_test),
+and that is deliberate: a query COUNT is the same on every backend, so it is
+what these tests can pin. Wall-clock is not — latency is count x round-trip,
+and the round-trip belongs to wherever the database lives. Pointing the suite
+at Neon would also create and drop a test database on the production instance.
+To measure real latency against Neon, use the read-only sweep:
+
+    python manage.py measure_queries
+
+The file must stay named test_*.py: pytest.ini sets
+`python_files = tests.py test_*.py *_tests.py`, and an earlier name of
+tests_query_counts.py matched none of them, so every guard here was silently
+uncollected by `pytest apps` for its first day of existence.
+
+    pytest apps/core/test_query_counts.py -q
 """
 from django.test import TestCase
 from django.urls import reverse
