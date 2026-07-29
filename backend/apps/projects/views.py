@@ -389,7 +389,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
         projects = (
             Project.objects
             .filter(visibility='public')
-            .select_related('owner', 'team')
+            # team__leader is read below for the leader contributor; without it
+            # that is a user lookup per project.
+            .select_related('owner', 'team', 'team__leader')
             .prefetch_related('team__memberships__user')
             .order_by('-updated_at')[:24]
         )
@@ -415,8 +417,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
             add_contributor(p.owner, 'owner')
             if p.team:
                 add_contributor(p.team.leader, 'leader')
-                for m in p.team.memberships.filter(status='accepted').select_related('user'):
-                    add_contributor(m.user, m.role)
+                # Filtered in Python: .filter() would issue a fresh query and
+                # discard the team__memberships__user prefetch above.
+                for m in p.team.memberships.all():
+                    if m.status == 'accepted':
+                        add_contributor(m.user, m.role)
 
             results.append({
                 'id': str(p.id),

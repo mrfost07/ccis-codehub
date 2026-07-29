@@ -572,14 +572,14 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def instructors(self, request):
         """Get list of all instructors"""
-        instructors = User.objects.filter(role='instructor')
+        instructors = annotate_user_stats(User.objects.filter(role='instructor'))
         serializer = UserSerializer(instructors, many=True)
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'])
     def students(self, request):
         """Get list of all students"""
-        students = User.objects.filter(role='student')
+        students = annotate_user_stats(User.objects.filter(role='student'))
         serializer = UserSerializer(students, many=True)
         return Response(serializer.data)
     

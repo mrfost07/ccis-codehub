@@ -391,10 +391,16 @@ def admin_projects(request):
     if not (request.user.is_staff or request.user.is_superuser or request.user.role == 'admin'):
         return Response({'error': 'Admin access required'}, status=403)
     
+    from django.db.models import Count, Q
     from apps.projects.models import Project, Team
     
     # Get all projects with related data
-    projects = Project.objects.select_related('owner', 'team').all().order_by('-created_at')
+    # Counts annotated rather than run per project. distinct=True because the
+    # two joins would otherwise multiply each other's rows.
+    projects = Project.objects.select_related('owner', 'team').annotate(
+        active_members=Count('memberships', filter=Q(memberships__is_active=True), distinct=True),
+        tasks_total=Count('tasks', distinct=True),
+    ).order_by('-created_at')
     
     project_list = []
     for p in projects:
@@ -410,8 +416,8 @@ def admin_projects(request):
             'owner': str(p.owner.id),
             'owner_name': p.owner.username,
             'owner_picture': p.owner.profile_picture.url if p.owner.profile_picture else None,
-            'member_count': p.memberships.filter(is_active=True).count() + 1,
-            'task_count': p.tasks.count(),
+            'member_count': p.active_members + 1,
+            'task_count': p.tasks_total,
             'created_at': p.created_at.isoformat(),
         })
     

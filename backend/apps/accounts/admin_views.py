@@ -23,41 +23,60 @@ class AdminDashboardView(views.APIView):
 
     def get(self, request):
         """Get dashboard statistics"""
-        # User statistics
-        total_users = User.objects.count()
-        total_students = User.objects.filter(role='student').count()
-        total_instructors = User.objects.filter(role='instructor').count()
-        new_users_today = User.objects.filter(
-            created_at__gte=timezone.now() - timedelta(days=1)
-        ).count()
-        
-        # Learning statistics
-        total_courses = CareerPath.objects.count()
-        active_courses = CareerPath.objects.filter(is_active=True).count()
+        # Nineteen separate COUNT queries, several of them guarded by an
+        # additional .exists() that cost another round-trip and changed
+        # nothing (count() already returns 0 on an empty table). Grouped into
+        # one aggregate per table: same numbers, a third of the round-trips,
+        # which matters because the database is ~230 ms away.
+        day_ago = timezone.now() - timedelta(days=1)
+
+        user_stats = User.objects.aggregate(
+            total=Count('id'),
+            students=Count('id', filter=Q(role='student')),
+            instructors=Count('id', filter=Q(role='instructor')),
+            new_today=Count('id', filter=Q(created_at__gte=day_ago)),
+        )
+        total_users = user_stats['total']
+        total_students = user_stats['students']
+        total_instructors = user_stats['instructors']
+        new_users_today = user_stats['new_today']
+
+        course_stats = CareerPath.objects.aggregate(
+            total=Count('id'),
+            active=Count('id', filter=Q(is_active=True)),
+        )
+        total_courses = course_stats['total']
+        active_courses = course_stats['active']
         total_enrollments = UserProgress.objects.count()
-        
-        # Community statistics
-        total_posts = Post.objects.count()
+
+        post_stats = Post.objects.aggregate(
+            total=Count('id'),
+            today=Count('id', filter=Q(created_at__gte=day_ago)),
+        )
+        total_posts = post_stats['total']
+        posts_today = post_stats['today']
         total_comments = Comment.objects.count()
-        posts_today = Post.objects.filter(
-            created_at__gte=timezone.now() - timedelta(days=1)
-        ).count()
-        
-        # Project statistics
-        total_projects = Project.objects.count() if Project.objects.exists() else 0
-        active_projects = Project.objects.filter(status='active').count() if Project.objects.exists() else 0
-        
-        # Competition statistics
-        total_competitions = Competition.objects.count() if Competition.objects.exists() else 0
-        active_competitions = Competition.objects.filter(
-            status='active'
-        ).count() if Competition.objects.exists() else 0
-        
-        # AI Mentor statistics
-        total_ai_sessions = ProjectMentorSession.objects.count()
-        ai_sessions_today = ProjectMentorSession.objects.filter(
-            started_at__gte=timezone.now() - timedelta(days=1)
-        ).count()
+
+        project_stats = Project.objects.aggregate(
+            total=Count('id'),
+            active=Count('id', filter=Q(status='active')),
+        )
+        total_projects = project_stats['total']
+        active_projects = project_stats['active']
+
+        competition_stats = Competition.objects.aggregate(
+            total=Count('id'),
+            active=Count('id', filter=Q(status='active')),
+        )
+        total_competitions = competition_stats['total']
+        active_competitions = competition_stats['active']
+
+        ai_stats = ProjectMentorSession.objects.aggregate(
+            total=Count('id'),
+            today=Count('id', filter=Q(started_at__gte=day_ago)),
+        )
+        total_ai_sessions = ai_stats['total']
+        ai_sessions_today = ai_stats['today']
         
         # Recent activities
         recent_users = User.objects.order_by('-created_at')[:5]
@@ -130,8 +149,12 @@ class AdminUsersView(viewsets.ModelViewSet):
                 Q(last_name__icontains=search)
             )
         
-        # Paginate
-        users = users.order_by('-created_at')[:100]  # Limit to 100 for now
+        # Annotated so the two counts below come from this query instead of
+        # two more per user — 100 users meant 200 extra round-trips.
+        users = users.annotate(
+            posts_total=Count('posts', distinct=True),
+            comments_total=Count('comments', distinct=True),
+        ).order_by('-created_at')[:100]  # Limit to 100 for now
         
         user_data = []
         for user in users:
@@ -147,8 +170,8 @@ class AdminUsersView(viewsets.ModelViewSet):
                 'is_active': user.is_active,
                 'created_at': user.created_at,
                 'last_login': user.last_login,
-                'posts_count': user.posts.count(),
-                'comments_count': user.comments.count(),
+                'posts_count': user.posts_total,
+                'comments_count': user.comments_total,
             })
         
         return Response({

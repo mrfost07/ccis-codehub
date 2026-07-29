@@ -114,7 +114,11 @@ class ProjectMentorSessionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return ProjectMentorSession.objects.filter(user=self.request.user)
+        # The serializer nests each session's messages, which was one query
+        # per session.
+        return ProjectMentorSession.objects.filter(
+            user=self.request.user
+        ).prefetch_related('messages')
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
