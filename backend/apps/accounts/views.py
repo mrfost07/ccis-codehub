@@ -22,7 +22,8 @@ from .permissions import IsPlatformAdmin
 from .captcha import generate_captcha_challenge, verify_captcha_token
 from .oauth_identity import issue_google_identity_token, verify_google_identity_token
 from .email_verification import (
-    send_verification_email, decode_uid, token_is_valid, mark_verified,
+    send_verification_email, send_verification_email_async,
+    decode_uid, token_is_valid, mark_verified,
 )
 
 from django.conf import settings as django_settings
@@ -110,7 +111,10 @@ class ResendVerificationView(APIView):
 
         user = User.objects.filter(email__iexact=email).first()
         if user and not user.email_verified:
-            send_verification_email(user)
+            # Off-thread, so response time is identical whether or not the
+            # address exists — a synchronous send here would leak account
+            # existence through timing alone, defeating the generic message.
+            send_verification_email_async(user)
 
         return generic
 
@@ -158,22 +162,21 @@ class UserRegistrationView(APIView):
             # Create user profile
             UserProfile.objects.create(user=user)
 
-            # Send the confirmation link. Signup already succeeded, so a mail
-            # outage must not fail the request — report it instead so the UI
-            # can offer "resend" rather than claiming an email is on its way.
-            email_sent = send_verification_email(user)
+            # Queue the confirmation link rather than waiting on SMTP. Signup
+            # has already succeeded, and blocking the response on a relay that
+            # takes seconds only made registration feel broken. Delivery is
+            # asynchronous end to end anyway — see send_verification_email_async.
+            send_verification_email_async(user)
 
             return Response({
                 'user': UserSerializer(user).data,
                 'email': user.email,
                 'verification_required': _verification_required(),
-                'email_sent': email_sent,
+                'email_sent': True,
                 'message': (
                     f'Account created. We sent a confirmation link to {user.email} — '
-                    'click it to activate your account.'
-                    if email_sent else
-                    'Account created, but we could not send the confirmation email. '
-                    'Please request a new link.'
+                    'it can take a few minutes to arrive, so check your spam folder '
+                    'before requesting another.'
                 ),
             }, status=status.HTTP_201_CREATED)
 

@@ -71,10 +71,32 @@ ssh -i ~/.ssh/spaceship -p 22022 root@104.207.92.63
 cd /home/deploy/CCIS-CodeHub
 git pull
 sudo bash deploy/bootstrap.sh
+sudo bash deploy/verify.sh      # confirm it actually works
 ```
 
 Then **hard-refresh** the browser (`Ctrl+Shift+R`) — asset filenames are
 content-hashed, but `index.html` can be cached.
+
+### verify.sh — prove the deploy worked
+
+`bootstrap.sh` finishing successfully means the *commands* succeeded, not that
+the site works. Every incident in §6 got past a clean bootstrap. `verify.sh`
+checks the things that actually broke, and exits non-zero if any fail:
+
+| Check | Catches |
+|---|---|
+| services + daphne | a WSGI server that cannot serve WebSockets |
+| `/`, redirect, health, `/static/` | the basics |
+| media serves an image, missing file 404s | the `chown` that took uploads offline |
+| WS `101`, foreign origin `403` | dead live quizzes; a wide-open socket |
+| entry bundle present and >100 KB | the all-200s blank page |
+| code runs **and** cannot read secrets | a regression of the credential leak |
+| newest chat message is in the slice | the oldest-100 bug returning |
+| `.env` sanity, `EMAIL_BACKEND`, MX | signup mail silently going nowhere |
+
+The WebSocket check sends an `Origin` header deliberately — Channels'
+`AllowedHostsOriginValidator` rejects requests without one, so a test that
+omits it reports a broken deploy when nothing is wrong.
 
 That is the whole loop. `bootstrap.sh` is idempotent: it pulls, rebuilds,
 migrates, restarts, and re-applies permissions every time, and skips whatever
@@ -242,34 +264,80 @@ Recorded so a recurrence is recognisable. Each is fixed in the commit shown.
 - `deploy_all.sh` copied `deploy/.env.production` unconditionally, but that
   file is gitignored and absent after a clone — it would have started a backend
   with no configuration. `bootstrap.sh` stops with instructions instead.
+- Verification mail was sent **on the request thread**, so registration blocked
+  for the whole SMTP conversation (seconds, up to the 10s `EMAIL_TIMEOUT`) and
+  concurrent signups each tied up a daphne worker. Waiting bought nothing — a
+  successful send only means Gmail accepted the message, not that it arrived.
+  Now dispatched to a daemon thread. This also removed a timing side-channel on
+  `/resend-verification/`: the endpoint returns an identical message for every
+  address so it cannot be used to probe for accounts, but the synchronous send
+  made the real-account path measurably slower, leaking what the wording hid.
 
 ---
 
 ## 7. Known issues
 
-### 🔴 Email to `@ssct.edu.ph` cannot be delivered
+### ✅ Email to `@ssct.edu.ph` — RESOLVED (2026-07-29)
 
-Not an application bug. SSCT's DNS is unreachable from the internet:
+**Mail now delivers.** The domain was re-delegated away from the unreachable
+nameservers, and re-probing confirms it:
 
 ```
-.edu.ph delegates ssct.edu.ph → ns1/ns2.dinagatislands.ph
-both resolve to the same IP   → 27.110.161.109
-that host                     → no ICMP, no UDP/53, no TCP/53
-Google, Cloudflare, Quad9     → SERVFAIL for every ssct.edu.ph hostname
+was:  ssct.edu.ph → ns1/ns2.dinagatislands.ph → 27.110.161.109 → no DNS response
+now:  ssct.edu.ph → ns1/ns2.itanong.academy
+      MX  1 aspmx.l.google.com (+4 alt)  — Google Workspace
+      3/3 lookups via 8.8.8.8 in 234-330 ms
 ```
 
-Gmail accepts the message (`accepted=1`), cannot resolve the MX, retries, and
-eventually bounces. No sender-side configuration can work around this — mail
-delivery requires the recipient domain to be publicly resolvable. By contrast
-`snsu.edu.ph` resolves correctly and is on Google Workspace.
+**Why the first emails arrived late.** Gmail was accepting each message and
+queueing it, then retrying on a widening backoff (a minute, then five, then
+tens of minutes) because it could not resolve the recipient domain. Deferral,
+not rejection — so nothing bounced and nothing was lost. When DNS started
+working the queue flushed and the backlog landed at once. This was never a
+rate limit or a sending quota.
 
-**Current mitigation:** `REQUIRE_EMAIL_VERIFICATION=False`. Accounts are created
-and usable; the `@ssct.edu.ph` restriction still limits who can register. The
-whole verification flow is intact — set the flag back to `True` once DNS is
-fixed, no code changes needed.
+**Re-enabling verification — do it in this order.** It is *not* just flipping
+the flag. Every account created while verification was off has
+`email_verified=False`, and login 403s on that once the flag is on. That
+includes your admin account, and the "resend link" recovery path needs working
+mail — so a naive flip can lock everyone out of the platform at once.
 
-**For IT:** `ssct.edu.ph` is delegated to two nameservers that share a single
-unreachable IP, so external email to the domain fails campus-wide.
+```bash
+cd /home/deploy/CCIS-CodeHub/backend
+
+# 1. see who would be affected (read-only, changes nothing)
+sudo -u deploy ./venv/bin/python manage.py grandfather_verified_emails
+
+# 2. mark those existing accounts verified
+sudo -u deploy ./venv/bin/python manage.py grandfather_verified_emails --commit
+
+# 3. NOW turn enforcement on
+sed -i 's/^REQUIRE_EMAIL_VERIFICATION=.*/REQUIRE_EMAIL_VERIFICATION=True/' .env
+grep -q '^REQUIRE_EMAIL_VERIFICATION=' .env || echo 'REQUIRE_EMAIL_VERIFICATION=True' >> .env
+sudo systemctl restart ccis-backend
+
+# 4. confirm you can still sign in before closing the SSH session
+```
+
+Everyone who signs up *after* this still has to confirm their address —
+grandfathering only covers accounts that predate enforcement.
+
+If you get locked out anyway, verify a single account directly:
+
+```bash
+sudo -u deploy ./venv/bin/python manage.py shell -c \
+  "from apps.accounts.models import User; from django.utils import timezone; \
+   User.objects.filter(email='you@ssct.edu.ph').update(email_verified=True, email_verified_at=timezone.now())"
+```
+
+**Still worth flagging to IT (🟡):** neither `ns1.itanong.academy` nor
+`ns2.itanong.academy` has a resolvable A record, and `itanong.academy` itself
+publishes no NS records. Resolvers answer for `ssct.edu.ph` anyway — presumably
+via glue in the `.ph` parent zone — but a delegation whose nameserver hostnames
+do not themselves resolve is fragile. `snsu.edu.ph` is cleanly configured.
+
+Mail send no longer blocks the signup request either (see §6), so a slow relay
+can no longer stall registrations.
 
 ### 🔴 Rotate the root password
 

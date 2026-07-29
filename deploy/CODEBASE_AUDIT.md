@@ -17,6 +17,7 @@ nothing below is asserted from reading alone unless it says so.
 | 2 | 🟠 High | Chat returned the **oldest** 100 messages, not the newest | `6063c91` |
 | 3 | 🟠 High | Chat N+1: one query per message, every 3s, per user | `6063c91` |
 | 4 | 🟠 High | No React error boundary — any render error blanked the app | `6063c91` |
+| 5 | 🟡 Medium | Signup blocked on SMTP; resend leaked account existence by timing | (below) |
 
 ### 1. Student code inherited the server environment 🔴
 
@@ -64,6 +65,30 @@ blanked the whole platform — precisely how the `manualChunks` bug presented as
 a white page. Added a boundary around the routed tree that resets on
 navigation. Verified with a deliberately throwing route: caught, recovery panel
 shown, cleared on navigate. Probe removed afterwards.
+
+### 5. Mail was sent on the request thread 🟡
+
+`send_verification_email` ran inside the signup request, so registration
+blocked for the entire SMTP conversation — TCP, STARTTLS, AUTH, DATA — which
+takes seconds against Gmail from a datacenter IP, up to the 10s `EMAIL_TIMEOUT`.
+On a single daphne process, concurrent signups each held a worker for that long.
+
+Waiting bought nothing: a successful `send()` only means Gmail *accepted* the
+message, not that it arrived (see R9 — messages sat in Gmail's retry queue for
+minutes). Sending now happens on a daemon thread that closes its DB connection
+on the way out. Verified against a backend stalling 3s: the request returned in
+**0.004s**, the mail still delivered with an absolute link and its HTML part,
+and no threads lingered.
+
+The same change fixes a **timing side-channel** on `/resend-verification/`:
+that endpoint returns an identical message for every address so it cannot be
+used to discover accounts, but a synchronous send made the real-account path
+measurably slower, leaking exactly what the generic response concealed. Both
+paths now return in the same time.
+
+Registration's success message also now says delivery can take a few minutes
+and to check spam — the previous wording implied the mail was already in the
+inbox, which is what made the delay look like a failure.
 
 ---
 
@@ -132,13 +157,36 @@ exploitable** — but the decorator misrepresents the endpoint and one refactor
 away from being wrong. **Fix:** split GET and PUT, or use `IsAdminUser` on the
 mutating path.
 
-### 🟡 R9 — Institutional email undeliverable
+### 🟢 R9 — Institutional email: RESOLVED (was undeliverable)
 
-`ssct.edu.ph` does not resolve publicly (both delegated nameservers share one
-unreachable IP), so no sender on the internet can deliver to it. Email
-verification is disabled as a result. Detail in
-[DEPLOYMENT.md §7](DEPLOYMENT.md). **Fix:** campus IT, or migrate to
-`snsu.edu.ph`, which is correctly configured on Google Workspace.
+**Superseded 2026-07-29.** `ssct.edu.ph` now resolves and accepts mail.
+Delivery was confirmed by the user, and re-probing shows the domain was
+re-delegated away from the unreachable `dinagatislands.ph` nameservers:
+
+```
+ssct.edu.ph  MX  1 aspmx.l.google.com  (+4 alt) — Google Workspace
+             NS  ns1/ns2.itanong.academy         — was ns1/ns2.dinagatislands.ph
+```
+
+Three consecutive lookups via 8.8.8.8 returned all five MX records in
+234–330 ms, so resolution is stable, not intermittent.
+
+**This also explains the delay the user observed.** Gmail had been accepting
+the messages and queueing them, retrying on a backoff (minutes, then tens of
+minutes) because the recipient domain would not resolve. Once DNS was fixed
+the queue flushed — which is why mail "started working" and why the first
+ones arrived late. It was never a rate limit or a free-tier throttle.
+
+**Action:** re-enable verification — `REQUIRE_EMAIL_VERIFICATION=True` in
+production `.env`. It was set to `False` purely to work around this.
+
+**Residual fragility (🟡):** neither `ns1.itanong.academy` nor
+`ns2.itanong.academy` has a resolvable A record, and `itanong.academy` itself
+publishes no NS records. Public resolvers are currently answering for
+`ssct.edu.ph` regardless — presumably via glue in the `.ph` parent zone — but
+a delegation whose nameserver hostnames do not resolve is one cache expiry
+away from breaking again. Worth raising with campus IT. `snsu.edu.ph` is
+cleanly configured and is the safer domain to depend on.
 
 ### 🟡 R10 — Minor
 

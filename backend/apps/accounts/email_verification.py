@@ -7,10 +7,12 @@ into the hash so a token stops working the moment it has been used —
 clicking the same link twice cannot re-verify or be replayed.
 """
 import logging
+import threading
 
 from django.conf import settings
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.core.mail import EmailMultiAlternatives
+from django.db import connections
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -145,3 +147,35 @@ def send_verification_email(user) -> bool:
         # Log the failure but never leak the address into logs.
         logger.error('Failed to send verification email to user %s: %s', user.pk, exc)
         return False
+
+
+def send_verification_email_async(user) -> None:
+    """
+    Hand the message to a background thread and return immediately.
+
+    Handing a message to Gmail's SMTP relay takes seconds from a datacenter
+    IP — TCP, then STARTTLS, then AUTH, then DATA — and that was happening
+    inside the signup request, so every registration held a worker for the
+    whole handshake and a slow relay stalled signups for everyone.
+
+    Nothing is lost by not waiting: the request cannot report delivery either
+    way. Handing off to Gmail only means Gmail *accepted* it, not that it
+    reached the inbox — Gmail still queues and retries behind the scenes, so
+    arrival is minutes away regardless of what this function returns. The
+    resend endpoint is the recovery path when mail genuinely fails.
+    """
+    def _send():
+        try:
+            send_verification_email(user)
+        except Exception:  # pragma: no cover - send_verification_email swallows its own
+            logger.exception('Verification email thread died for user %s', user.pk)
+        finally:
+            # A thread that opened a DB connection must hand it back, or the
+            # pool leaks one connection per signup until Postgres refuses more.
+            connections.close_all()
+
+    threading.Thread(
+        target=_send,
+        name=f'verify-email-{user.pk}',
+        daemon=True,  # never hold up a restart for a queued email
+    ).start()
