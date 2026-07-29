@@ -131,9 +131,11 @@ cat > /etc/pgbouncer/pgbouncer.ini <<EOF
 ;; want from the TLS SNI field. PgBouncer never sends SNI, so Neon refuses the
 ;; connection with "Endpoint ID is not specified". Of the workarounds Neon
 ;; documents for SNI-less clients, only one fits PgBouncer: prefixing the
-;; password with the endpoint ID. (`options=endpoint=...` is the obvious
-;; candidate and does NOT work — PgBouncer rejects `options` as an
-;; unrecognized connection parameter and refuses to start.)
+;; password with the endpoint ID. An options=endpoint=... parameter is the
+;; obvious candidate and does NOT work on any PgBouncer version: it is
+;; rejected as an unrecognized connection parameter and the daemon refuses
+;; to start. (Do not put backticks in this comment — the heredoc that writes
+;; this file is unquoted, so they run as command substitution.)
 ;;
 ;;     endpoint=<endpoint_id>\$<password>
 ;;
