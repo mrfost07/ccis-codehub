@@ -218,13 +218,22 @@ else:
     }
 
 
-# Tests run against in-memory SQLite, never the configured database.
+# `manage.py test` runs against in-memory SQLite, never the configured database.
 #
 # Two reasons. Local development and production currently share one Neon
 # instance, so a test run creating and dropping a database is pointed at live
 # student data. And every query to Neon costs ~230 ms from here, which makes a
 # suite that asserts query counts unusably slow.
-if 'test' in sys.argv:
+#
+# The subcommand is matched exactly: `'test' in sys.argv` would also fire for
+# any unrelated command that happens to take an argument called test —
+# `manage.py loaddata test`, `manage.py createsuperuser --username test` — and
+# silently point that command at an empty throwaway database.
+#
+# pytest does not need this: pytest.ini sets DJANGO_SETTINGS_MODULE to
+# core.settings_test, which hard-overrides DATABASES on import. This block
+# covers the one remaining way to reach the real database from a test runner.
+if sys.argv[1:2] == ['test']:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
