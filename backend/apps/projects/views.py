@@ -9,6 +9,15 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404
 from django.db import models, transaction
 
+from .queries import shaped_projects
+
+# Routes whose response is built by ProjectSerializer, and therefore the only
+# ones that benefit from the full project shape. A route missing from this set
+# still returns correct data — it just loads what it touches lazily, which for
+# actions that never serialise a project is nothing.
+SERIALIZED_PROJECT_ACTIONS = frozenset({
+    'list', 'retrieve', 'create', 'update', 'partial_update',
+})
 from .models import (
     Project, ProjectMembership, ProjectTask, TaskLabel,
     CodeReview, ReviewComment, ProjectFile, ProjectActivity,
@@ -47,17 +56,16 @@ class ProjectViewSet(viewsets.ModelViewSet):
         # team__leader is needed by is_team_leader() and assignable_members;
         # tasks__project because ProjectTaskSerializer reads project.name and
         # calls project.is_team_leader().
-        queryset = Project.objects.select_related(
-            'owner', 'team', 'team__leader',
-        ).prefetch_related(
-            'memberships__user',
-            'tasks__assigned_to',
-            'tasks__created_by',
-            'tasks__project__team__leader',
-            'team__memberships__user',
-            # TeamMembershipSerializer exposes invited_by.username
-            'team__memberships__invited_by',
-        )
+        #
+        # Only the routes that serialise a project need that shape. get_object()
+        # goes through here too, so applying it unconditionally made every
+        # detail action pay six prefetch queries for a row it never serialises
+        # — activities/ measured 11 queries to return a list of activities, and
+        # progress/ 14 to return a handful of integers.
+        if getattr(self, 'action', None) in SERIALIZED_PROJECT_ACTIONS:
+            queryset = shaped_projects()
+        else:
+            queryset = Project.objects.select_related('owner', 'team', 'team__leader')
 
         # Filter by visibility
         queryset = queryset.filter(
@@ -189,7 +197,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def activities(self, request, slug=None):
         """Get project activities"""
         project = self.get_object()
-        activities = project.activities.all()[:50]  # Latest 50 activities
+        # select_related('user'): ProjectActivitySerializer exposes
+        # user.username, which was one query per activity — up to 50 here.
+        activities = project.activities.select_related('user')[:50]
         serializer = ProjectActivitySerializer(activities, many=True)
         return Response(serializer.data)
     
@@ -216,37 +226,58 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Calculate project progress
-        total_tasks = project.tasks.count()
-        completed_tasks = project.tasks.filter(status='done').count()
-        in_progress_tasks = project.tasks.filter(status='in_progress').count()
-        todo_tasks = project.tasks.filter(status='todo').count()
-        
-        # Task breakdown by priority
-        high_priority = project.tasks.filter(priority='high').count()
-        medium_priority = project.tasks.filter(priority='medium').count()
-        low_priority = project.tasks.filter(priority='low').count()
-        
-        # Member statistics
-        members = ProjectMembership.objects.filter(project=project, is_active=True)
+        # Calculate project progress: seven separate COUNTs over the same
+        # table, folded into one pass.
+        task_totals = project.tasks.aggregate(
+            total=models.Count('id'),
+            done=models.Count('id', filter=models.Q(status='done')),
+            in_progress=models.Count('id', filter=models.Q(status='in_progress')),
+            todo=models.Count('id', filter=models.Q(status='todo')),
+            high=models.Count('id', filter=models.Q(priority='high')),
+            medium=models.Count('id', filter=models.Q(priority='medium')),
+            low=models.Count('id', filter=models.Q(priority='low')),
+        )
+        total_tasks = task_totals['total']
+        completed_tasks = task_totals['done']
+        in_progress_tasks = task_totals['in_progress']
+        todo_tasks = task_totals['todo']
+
+        high_priority = task_totals['high']
+        medium_priority = task_totals['medium']
+        low_priority = task_totals['low']
+
+        # Member statistics — was three queries per member. Grouped by assignee
+        # instead, so the cost no longer scales with team size.
+        per_assignee = {
+            row['assigned_to']: row
+            for row in project.tasks.values('assigned_to').annotate(
+                total=models.Count('id'),
+                done=models.Count('id', filter=models.Q(status='done')),
+                in_progress=models.Count('id', filter=models.Q(status='in_progress')),
+            )
+        }
+        members = ProjectMembership.objects.filter(
+            project=project, is_active=True
+        ).select_related('user')
         member_stats = []
-        
+
         for member in members:
-            assigned_tasks = project.tasks.filter(assigned_to=member.user)
-            completed_count = assigned_tasks.filter(status='done').count()
+            assigned = per_assignee.get(member.user_id) or {}
+            completed_count = assigned.get('done', 0)
             member_stats.append({
                 'user': member.user.username,
                 'role': member.role,
-                'total_tasks': assigned_tasks.count(),
+                'total_tasks': assigned.get('total', 0),
                 'completed_tasks': completed_count,
-                'in_progress_tasks': assigned_tasks.filter(status='in_progress').count(),
+                'in_progress_tasks': assigned.get('in_progress', 0),
                 # ProjectMembership has no contribution_points field; use completed
                 # task count as the contribution measure. (Req 14 — was AttributeError.)
                 'contribution_score': completed_count
             })
         
-        # Recent activities
-        recent_activities = project.activities.all()[:10]
+        # Recent activities. select_related('user') because the serializer
+        # exposes user.username — one query per activity otherwise.
+        recent_activities = project.activities.select_related('user')[:10]
         
         # Progress percentage
         progress_percentage = (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
@@ -1078,7 +1109,8 @@ class TeamViewSet(viewsets.ModelViewSet):
     def projects(self, request, slug=None):
         """Get all projects under this team"""
         team = self.get_object()
-        projects = team.projects.all()
+        # Shaped: ProjectSerializer is heavy and this route served it raw.
+        projects = shaped_projects(team.projects.all())
         return Response(ProjectSerializer(projects, many=True, context={'request': request}).data)
 
 

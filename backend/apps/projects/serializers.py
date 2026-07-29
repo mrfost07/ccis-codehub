@@ -82,8 +82,11 @@ class TeamDetailSerializer(TeamSerializer):
         fields = TeamSerializer.Meta.fields + ['projects']
     
     def get_projects(self, obj):
+        # Shaped: ProjectSerializer reads memberships, tasks and their users,
+        # so serialising raw rows here cost several queries per project.
+        from .queries import shaped_projects
         from .serializers import ProjectSerializer
-        return ProjectSerializer(obj.projects.all()[:5], many=True).data
+        return ProjectSerializer(shaped_projects(obj.projects.all())[:5], many=True).data
 
 
 # ============== Project Notification Serializer ==============

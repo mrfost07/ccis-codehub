@@ -99,13 +99,20 @@ class PublicUserProfileSerializer(serializers.ModelSerializer):
         ]
     
     def get_total_projects(self, obj):
+        # Prefers the annotation from annotate_user_stats, like
+        # UserProfileSerializer above. This is the serializer non-admins get
+        # from /api/auth/users/, and it was still doing two counts per user —
+        # the endpoint measured 3 queries for an admin and 15 for a student.
+        user = getattr(obj, 'user', None)
+        owned = getattr(user, 'owned_projects_total', None) if user else None
+        member = getattr(user, 'member_projects_total', None) if user else None
+        if owned is not None and member is not None:
+            return owned + member
         try:
             from apps.projects.models import Project, ProjectMembership
-            user = obj.user
-            owned = Project.objects.filter(owner=user).count()
-            member = ProjectMembership.objects.filter(user=user, is_active=True).count()
-            return owned + member
-        except:
+            return (Project.objects.filter(owner=obj.user).count()
+                    + ProjectMembership.objects.filter(user=obj.user, is_active=True).count())
+        except Exception:
             return 0
 
 

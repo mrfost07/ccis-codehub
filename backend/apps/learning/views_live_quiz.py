@@ -65,7 +65,11 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
 
         if user_role in ['instructor', 'admin']:
             # Instructors see their own quizzes
-            return LiveQuiz.objects.filter(instructor=user).order_by('-created_at')
+            # LiveQuizSerializer nests live_questions and counts them, and
+            # reads instructor.first_name/last_name — one query each per quiz.
+            return LiveQuiz.objects.filter(instructor=user).select_related(
+                'instructor'
+            ).prefetch_related('live_questions').order_by('-created_at')
         # Students don't see quiz list
         return LiveQuiz.objects.none()
     
@@ -389,40 +393,72 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
                 'completed_at': participant.left_at.isoformat() if participant.left_at else None
             })
         
-        # Aggregate stats
-        total_questions = quiz.live_questions.count()
-        total_participants = all_participants.count()
-        avg_score = all_participants.aggregate(Avg('total_score'))['total_score__avg'] or 0
-        avg_accuracy = all_participants.aggregate(Avg('total_correct'))['total_correct__avg'] or 0
-        
-        # Per-question analytics — optimized: single aggregate per question
-        question_analytics = []
-        questions = quiz.live_questions.all().order_by('order')
-        for question in questions:
-            responses = LiveQuizResponse.objects.filter(
-                question=question,
-                participant__session__quiz=quiz
+        # Aggregate stats.
+        #
+        # The participant rows are already in memory from building the
+        # leaderboard above, so these are computed from that list instead of
+        # sending four more aggregates (two Avgs, a count and a filtered count)
+        # back to the database for rows it just returned.
+        questions = list(quiz.live_questions.all().order_by('order'))
+        total_questions = len(questions)
+        participants = list(all_participants)
+        total_participants = len(participants)
+        if total_participants:
+            avg_score = sum(p.total_score for p in participants) / total_participants
+            avg_accuracy = sum(p.total_correct for p in participants) / total_participants
+            completed_participants = sum(
+                1 for p in participants if p.total_attempted >= total_questions
             )
-            total_responses = responses.count()
-            correct_count = responses.filter(is_correct=True).count()
-            avg_time = responses.aggregate(Avg('response_time_seconds'))['response_time_seconds__avg'] or 0
+        else:
+            avg_score = avg_accuracy = completed_participants = 0
 
-            # OPTIMIZATION: single aggregate instead of 4 individual COUNT queries
+        # Per-question analytics.
+        #
+        # This loop ran four queries per question — a count, a filtered count,
+        # an Avg and a six-way distribution aggregate. A 25-question quiz was
+        # therefore ~100 round-trips and this endpoint measured 108 queries,
+        # the highest in the codebase. Both of the queries below are grouped by
+        # question and run once for the whole quiz.
+        quiz_responses = LiveQuizResponse.objects.filter(
+            participant__session__quiz=quiz
+        )
+        per_question = {
+            row['question_id']: row
+            for row in quiz_responses.values('question_id').annotate(
+                total=Count('id'),
+                correct=Count('id', filter=Q(is_correct=True)),
+                avg_time=Avg('response_time_seconds'),
+            )
+        }
+        # Case-insensitive bucketing, matching the answer_text__iexact filters
+        # this replaces — iexact does not trim, so neither does this.
+        DISTRIBUTION_KEYS = ['A', 'B', 'C', 'D', 'True', 'False']
+        answer_counts = {}
+        for row in quiz_responses.values('question_id', 'answer_text').annotate(
+            n=Count('id')
+        ):
+            key = (row['answer_text'] or '').lower()
+            for label in DISTRIBUTION_KEYS:
+                if key == label.lower():
+                    bucket = answer_counts.setdefault(row['question_id'], {})
+                    bucket[label] = bucket.get(label, 0) + row['n']
+                    break
+
+        question_analytics = []
+        for question in questions:
+            stats_row = per_question.get(question.id) or {}
+            total_responses = stats_row.get('total', 0)
+            correct_count = stats_row.get('correct', 0)
+            avg_time = stats_row.get('avg_time') or 0
+
             answer_distribution = {}
             if question.question_type in ('multiple_choice', 'true_false'):
-                from django.db.models import Count, Q
-                dist = responses.aggregate(
-                    A=Count('id', filter=Q(answer_text__iexact='A')),
-                    B=Count('id', filter=Q(answer_text__iexact='B')),
-                    C=Count('id', filter=Q(answer_text__iexact='C')),
-                    D=Count('id', filter=Q(answer_text__iexact='D')),
-                    True_=Count('id', filter=Q(answer_text__iexact='True')),
-                    False_=Count('id', filter=Q(answer_text__iexact='False')),
-                )
-                answer_distribution = {k: v for k, v in {
-                    'A': dist['A'], 'B': dist['B'], 'C': dist['C'], 'D': dist['D'],
-                    'True': dist['True_'], 'False': dist['False_'],
-                }.items() if v > 0}
+                bucket = answer_counts.get(question.id, {})
+                answer_distribution = {
+                    label: bucket[label]
+                    for label in DISTRIBUTION_KEYS
+                    if bucket.get(label, 0) > 0
+                }
 
             question_analytics.append({
                 'question_id': str(question.id),
@@ -462,9 +498,8 @@ class LiveQuizViewSet(viewsets.ModelViewSet):
                 'total_participants': total_participants,
                 'average_score': round(avg_score, 2),
                 'average_accuracy': round((avg_accuracy / max(total_questions, 1)) * 100, 1),
-                'completion_rate': round((all_participants.filter(
-                    total_attempted__gte=total_questions
-                ).count() / max(total_participants, 1)) * 100, 1),
+                'completion_rate': round(
+                    (completed_participants / max(total_participants, 1)) * 100, 1),
                 'hardest_question': hardest['question_text'] if hardest else None,
                 'easiest_question': easiest['question_text'] if easiest else None
             },
@@ -505,6 +540,10 @@ class LiveQuizSessionViewSet(viewsets.ReadOnlyModelViewSet):
     ).prefetch_related(
         'quiz__live_questions',
         Prefetch('participants__student', queryset=annotate_user_stats(User.objects.all())),
+    ).order_by(
+        # LiveQuizSession has no Meta.ordering, so this paginated as an
+        # unordered list — pages could repeat or skip sessions.
+        '-created_at', 'id',
     )
     serializer_class = LiveQuizSessionSerializer
     permission_classes = [IsAuthenticated]
