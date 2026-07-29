@@ -3,6 +3,7 @@ Django settings for core project.
 """
 
 import os
+import sys
 from pathlib import Path
 from datetime import timedelta
 import environ
@@ -191,6 +192,7 @@ if DATABASE_URL:
         # connection to each transaction, so anything bound to a session — a
         # server-side cursor above all — breaks with "cursor does not exist".
         DATABASES['default']['DISABLE_SERVER_SIDE_CURSORS'] = True
+
 elif env('DB_NAME', default=None):
     # Use individual env vars
     DATABASES = {
@@ -212,6 +214,21 @@ else:
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+
+
+# Tests run against in-memory SQLite, never the configured database.
+#
+# Two reasons. Local development and production currently share one Neon
+# instance, so a test run creating and dropping a database is pointed at live
+# student data. And every query to Neon costs ~230 ms from here, which makes a
+# suite that asserts query counts unusably slow.
+if 'test' in sys.argv:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:',
         }
     }
 

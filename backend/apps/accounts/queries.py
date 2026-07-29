@@ -41,4 +41,9 @@ def annotate_user_stats(queryset):
             filter=Q(assigned_tasks__status='done'),
             distinct=True,
         ),
+    ).order_by(
+        # Explicit despite User.Meta.ordering: annotate() adds a GROUP BY, and
+        # QuerySet.ordered is False for grouped queries, so DRF would paginate
+        # this as unordered and pages could repeat or skip users.
+        '-created_at', 'id',
     )

@@ -40,6 +40,12 @@ def annotated_career_paths(base=None):
         # multiplies rows, and without it both counts come out inflated.
         modules_total=Count('modules', distinct=True),
         enrolled_total=Count('userprogress__user', distinct=True),
+    ).order_by(
+        # Repeating Meta.ordering explicitly is not redundant: annotate() sets
+        # a GROUP BY, and QuerySet.ordered reports False whenever a query is
+        # grouped, so DRF paginates this as an unordered list and pages can
+        # repeat or skip rows.
+        'program_type', 'difficulty_level', 'name', 'id',
     )
 
 
@@ -459,7 +465,10 @@ class QuizViewSet(viewsets.ModelViewSet):
         learning_module = self.request.query_params.get('learning_module', None)
         if learning_module:
             queryset = queryset.filter(learning_module_id=learning_module)
-        return queryset
+        # Quiz has no Meta.ordering, and paginating an unordered queryset gives
+        # the database licence to return rows in any order per query — so page
+        # 2 can repeat or skip rows from page 1.
+        return queryset.order_by('-created_at', 'id')
     
     def get_permissions(self):
         """Allow read-only access for unauthenticated users on list/retrieve"""
@@ -796,9 +805,11 @@ class CertificateViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
+        # Certificate has no Meta.ordering; paginating unordered lets the
+        # database return rows in any order, so pages can repeat or skip.
         return Certificate.objects.filter(
             user=self.request.user
-        ).select_related('career_path', 'user', 'enrollment')
+        ).select_related('career_path', 'user', 'enrollment').order_by('-issued_at', 'id')
     
     @action(detail=False, methods=['get'])
     def eligibility(self, request):
