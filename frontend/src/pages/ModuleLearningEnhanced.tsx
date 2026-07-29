@@ -75,11 +75,21 @@ export default function ModuleLearningEnhanced() {
       const moduleData = response.data
       setModule(moduleData)
 
-      // Fetch quiz for this module
+      // Fetch quiz for this module.
+      //
+      // The list endpoint identifies the module's quiz but omits `content` —
+      // the quiz body, which this page both gates on and renders. So take the
+      // id from the list and load that one quiz through its detail route;
+      // without this the quiz never appears after finishing a module.
       try {
         const quizResponse = await api.get(`/learning/quizzes/?learning_module=${moduleId}`)
         const quizzes = quizResponse.data.results || quizResponse.data || []
-        setQuiz(quizzes.length > 0 ? quizzes[0] : null)
+        if (quizzes.length > 0) {
+          const quizDetail = await api.get(`/learning/quizzes/${quizzes[0].id}/`)
+          setQuiz(quizDetail.data)
+        } else {
+          setQuiz(null)
+        }
       } catch (quizError) {
         console.error('Error fetching quiz:', quizError)
         setQuiz(null)

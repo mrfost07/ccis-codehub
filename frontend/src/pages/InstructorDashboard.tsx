@@ -868,19 +868,32 @@ function InstructorDashboard() {
 
   // "Host online": pre-fill the live quiz form from a module quiz and queue its
   // questions for import once the live quiz is created.
-  const handleHostQuizOnline = (quiz: any) => {
-    const parsed = quiz.content ? parseQuestionsFromContent(quiz.content) : []
+  const handleHostQuizOnline = async (quiz: any) => {
+    // The questions to import are parsed out of `content`, which the list
+    // endpoint omits — hosting straight from a list row would silently create
+    // a live quiz with no questions. Resolve the full quiz first.
+    let fullQuiz: any
+    try {
+      const response = await api.get(`/learning/quizzes/${quiz.id}/`)
+      fullQuiz = response.data
+    } catch (error: any) {
+      console.error('Failed to fetch quiz:', error)
+      toast.error('Failed to load quiz questions')
+      return
+    }
+
+    const parsed = fullQuiz.content ? parseQuestionsFromContent(fullQuiz.content) : []
     // Drop the parser's empty placeholder (a question whose choices have no text)
     const usable = parsed.filter((q: any) =>
       q.title?.trim() &&
       (q.type !== 'multiple_choice' || q.choices?.some((c: any) => c.text?.trim()))
     )
-    setHostSourceQuiz({ title: quiz.title, questions: usable })
+    setHostSourceQuiz({ title: fullQuiz.title, questions: usable })
     setLiveQuizForm(prev => ({
       ...prev,
-      title: quiz.title || '',
-      description: quiz.description || '',
-      time_limit_minutes: quiz.time_limit_minutes || undefined,
+      title: fullQuiz.title || '',
+      description: fullQuiz.description || '',
+      time_limit_minutes: fullQuiz.time_limit_minutes || undefined,
     }))
     setLearningView('online')
     setShowCreateLiveQuiz(true)
@@ -1247,22 +1260,42 @@ function InstructorDashboard() {
   }
 
   // Edit/Update Functions for Quizzes
-  const handleEditQuiz = (quiz: any) => {
-    setEditingQuiz(quiz)
+  //
+  // The `quiz` handed in here is a row from the list endpoint, which omits
+  // `content` — that field is the entire quiz body and was 93% of the list
+  // payload. Every question lives inside it (see parseQuestionsFromContent),
+  // and updateQuiz PATCHes it straight back, so filling this form from a list
+  // row would save an empty body and destroy the quiz's questions.
+  //
+  // Fetch the full quiz first, exactly as handleEditModule does, and refuse to
+  // open the editor at all if that fetch fails — an editor holding no content
+  // is one Save away from data loss.
+  const handleEditQuiz = async (quiz: any) => {
+    let fullQuiz: any
+    try {
+      const response = await api.get(`/learning/quizzes/${quiz.id}/`)
+      fullQuiz = response.data
+    } catch (error: any) {
+      console.error('Failed to fetch quiz:', error)
+      toast.error('Failed to load quiz for editing')
+      return
+    }
+
+    setEditingQuiz(fullQuiz)
     setQuizForm({
-      learning_module: quiz.learning_module || '',
-      title: quiz.title || '',
-      description: quiz.description || '',
-      content: quiz.content || '',
-      time_limit_minutes: quiz.time_limit_minutes || 30,
-      passing_score: quiz.passing_score || 70,
-      max_attempts: quiz.max_attempts || 3,
-      randomize_questions: quiz.randomize_questions ?? true
+      learning_module: fullQuiz.learning_module || '',
+      title: fullQuiz.title || '',
+      description: fullQuiz.description || '',
+      content: fullQuiz.content || '',
+      time_limit_minutes: fullQuiz.time_limit_minutes || 30,
+      passing_score: fullQuiz.passing_score || 70,
+      max_attempts: fullQuiz.max_attempts || 3,
+      randomize_questions: fullQuiz.randomize_questions ?? true
     })
 
-    if (quiz.content) {
+    if (fullQuiz.content) {
       try {
-        const parsedQuestions = parseQuestionsFromContent(quiz.content)
+        const parsedQuestions = parseQuestionsFromContent(fullQuiz.content)
         setQuizQuestions(parsedQuestions)
       } catch (e) {
         console.error('Failed to parse questions:', e)
