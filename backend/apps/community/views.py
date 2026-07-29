@@ -18,6 +18,10 @@ from .models import (
     Hashtag, Notification, Report, UserFollow, Badge, UserBadge,
     Organization, OrganizationMembership, OrganizationInvitation
 )
+from .queries import (
+    shaped_chat_messages, shaped_comments, shaped_memberships,
+    shaped_organizations,
+)
 from .serializers import (
     PostSerializer, CommentSerializer, PostLikeSerializer,
     CommentLikeSerializer, PostTagSerializer, HashtagSerializer,
@@ -37,17 +41,27 @@ class PostViewSet(viewsets.ModelViewSet):
     ordering_fields = ['created_at', 'like_count', 'comment_count', 'view_count']
     ordering = ['-created_at']
     
-    def get_queryset(self):
-        """Get posts with optional filtering"""
-        queryset = Post.objects.select_related('author', 'organization')
+    def _shaped_posts(self, queryset=None):
+        """Posts with everything PostSerializer reads.
 
-        # Annotate "did the current user like this" as a single subquery instead
-        # of one PostLike query per post in the serializer (N+1 on the feed).
+        Annotates "did the current user like this" as a single subquery instead
+        of one PostLike query per post in the serializer (N+1 on the feed).
+        Shared with organization_feed, which built its own queryset and so lost
+        the annotation and fell back to the per-post query.
+        """
+        if queryset is None:
+            queryset = Post.objects.all()
+        queryset = queryset.select_related('author', 'organization')
         user = self.request.user
         if user.is_authenticated:
             queryset = queryset.annotate(
                 _is_liked=Exists(PostLike.objects.filter(post=OuterRef('pk'), user=user))
             )
+        return queryset
+
+    def get_queryset(self):
+        """Get posts with optional filtering"""
+        queryset = self._shaped_posts()
 
         # Filter by post type
         post_type = self.request.query_params.get('type')
@@ -192,10 +206,11 @@ class PostViewSet(viewsets.ModelViewSet):
     def comments(self, request, pk=None):
         """Get all comments for a post"""
         post = self.get_object()
-        comments = Comment.objects.filter(
-            post=post, parent__isnull=True
-        ).select_related('author').order_by('created_at')
-        
+        comments = shaped_comments(
+            Comment.objects.filter(post=post, parent__isnull=True),
+            user=request.user,
+        ).order_by('created_at')
+
         serializer = CommentSerializer(comments, many=True, context={'request': request})
         return Response(serializer.data)
     
@@ -288,9 +303,9 @@ class PostViewSet(viewsets.ModelViewSet):
                 return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         
         # Explicitly filter by organization_id to ensure only org posts are returned
-        posts = Post.objects.filter(
-            organization_id=org.id
-        ).select_related('author', 'organization').order_by('-created_at')
+        posts = self._shaped_posts(
+            Post.objects.filter(organization_id=org.id)
+        ).order_by('-created_at')
         
         page = self.paginate_queryset(posts)
         if page is not None:
@@ -308,8 +323,10 @@ class CommentViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """Get comments filtered by post"""
-        queryset = Comment.objects.select_related('author', 'post').all()
-        
+        queryset = shaped_comments(
+            Comment.objects.select_related('post'), user=self.request.user,
+        )
+
         # Filter by post ID - THIS IS CRITICAL to show only comments for the specific post
         post_id = self.request.query_params.get('post')
         if post_id:
@@ -786,20 +803,28 @@ class UserFollowViewSet(viewsets.ModelViewSet):
             is_active=True
         ).select_related()[:100]  # Limit to 100 for performance
         
+        # Every accepted follow edge touching any candidate, in one query.
+        # This loop previously ran two queries PER CANDIDATE, and the candidate
+        # list is capped at 100 — so it approached 200 queries as the user base
+        # grew, which at ~230 ms per round-trip is most of a minute.
+        candidate_ids = {u.id for u in potential_users}
+        followers_of = {}   # candidate id -> set of ids following them
+        followed_by = {}    # candidate id -> set of ids they follow
+        edges = UserFollow.objects.filter(status='accepted').filter(
+            Q(following_id__in=candidate_ids) | Q(follower_id__in=candidate_ids)
+        ).values_list('follower_id', 'following_id')
+        for follower_id, following_id in edges:
+            if following_id in candidate_ids:
+                followers_of.setdefault(following_id, set()).add(follower_id)
+            if follower_id in candidate_ids:
+                followed_by.setdefault(follower_id, set()).add(following_id)
+
         # Calculate mutual scores
         user_scores = []
         for user in potential_users:
-            # Get this user's followers and following
-            user_followers = set(UserFollow.objects.filter(
-                following=user,
-                status='accepted'
-            ).values_list('follower_id', flat=True))
-            
-            user_following = set(UserFollow.objects.filter(
-                follower=user,
-                status='accepted'
-            ).values_list('following_id', flat=True))
-            
+            user_followers = followers_of.get(user.id, set())
+            user_following = followed_by.get(user.id, set())
+
             # Calculate mutual score
             mutual_score = 0
             
@@ -847,7 +872,9 @@ class UserFollowViewSet(viewsets.ModelViewSet):
 class BadgeViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for Badge model"""
     serializer_class = BadgeSerializer
-    queryset = Badge.objects.all()
+    # order_by: Badge has no Meta.ordering, so this paginated as an unordered
+    # list and the database could return badges in any order per page.
+    queryset = Badge.objects.all().order_by('name', 'id')
     
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def my_badges(self, request):
@@ -932,7 +959,8 @@ class ChatRoomViewSet(viewsets.ReadOnlyModelViewSet):
             deleted_for_everyone=True
         ).exclude(
             deleted_for__user=request.user
-        ).select_related('sender', 'reply_to').prefetch_related('reactions', 'deleted_for')
+        )
+        messages = shaped_chat_messages(messages)
 
         # Newest 100, returned oldest-first for display.
         # This previously did .order_by('created_at')[:100], which slices the
@@ -952,8 +980,8 @@ class ChatMessageViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Get messages"""
         room_id = self.request.query_params.get('room')
-        queryset = ChatMessage.objects.select_related('sender', 'reply_to').prefetch_related('reactions')
-        
+        queryset = shaped_chat_messages()
+
         if room_id:
             queryset = queryset.filter(room_id=room_id)
         
@@ -1038,7 +1066,9 @@ class ChatNicknameViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return ChatNickname.objects.filter(user=self.request.user)
+        # order_by: one row per user (OneToOne), but the model has no
+        # Meta.ordering so DRF still paginates it as an unordered list.
+        return ChatNickname.objects.filter(user=self.request.user).order_by('id')
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -1073,8 +1103,8 @@ class OrganizationViewSet(viewsets.ModelViewSet):
     lookup_field = 'slug'
     
     def get_queryset(self):
-        queryset = Organization.objects.all()
-        
+        queryset = shaped_organizations(user=self.request.user)
+
         # Filter by type
         org_type = self.request.query_params.get('type')
         if org_type:
@@ -1444,9 +1474,12 @@ class OrganizationViewSet(viewsets.ModelViewSet):
                 return Response({'error': 'Access denied'}, status=status.HTTP_403_FORBIDDEN)
         
         status_filter = request.query_params.get('status', 'active')
-        members = OrganizationMembership.objects.filter(
-            organization=org, status=status_filter
-        ).select_related('user', 'invited_by')
+        members = shaped_memberships(
+            OrganizationMembership.objects.filter(
+                organization=org, status=status_filter,
+            ),
+            user=request.user,
+        )
         
         return Response(OrganizationMembershipSerializer(members, many=True, context={'request': request}).data)
     
@@ -1462,9 +1495,12 @@ class OrganizationViewSet(viewsets.ModelViewSet):
         if not admin_membership and not request.user.is_staff:
             return Response({'error': 'Admin permission required'}, status=status.HTTP_403_FORBIDDEN)
         
-        pending = OrganizationMembership.objects.filter(
-            organization=org, status='pending'
-        ).select_related('user')
+        pending = shaped_memberships(
+            OrganizationMembership.objects.filter(
+                organization=org, status='pending',
+            ),
+            user=request.user,
+        )
         
         return Response(OrganizationMembershipSerializer(pending, many=True, context={'request': request}).data)
     

@@ -105,7 +105,12 @@ class AIMentorProfileViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return AIMentorProfile.objects.filter(user=self.request.user)
+        # order_by: the model has no Meta.ordering, so DRF paginated this as an
+        # unordered list and the database was free to return rows in any order
+        # per page. id breaks created_at ties.
+        return AIMentorProfile.objects.filter(
+            user=self.request.user
+        ).order_by('-created_at', 'id')
 
 
 class ProjectMentorSessionViewSet(viewsets.ModelViewSet):

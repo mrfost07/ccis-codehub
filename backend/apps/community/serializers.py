@@ -140,16 +140,24 @@ class CommentSerializer(serializers.ModelSerializer):
     def get_is_liked(self, obj):
         """Check if current user has liked this comment"""
         request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return CommentLike.objects.filter(comment=obj, user=request.user).exists()
-        return False
-    
+        if not (request and request.user.is_authenticated):
+            return False
+        # my_likes comes from shaped_comments and holds only this viewer's rows.
+        mine = getattr(obj, 'my_likes', None)
+        if mine is not None:
+            return bool(mine)
+        return CommentLike.objects.filter(comment=obj, user=request.user).exists()
+
     def get_replies(self, obj):
         """Get replies to this comment"""
-        if obj.parent is None:
+        # parent_id, not parent: touching .parent loads the whole parent row,
+        # which is one query per reply on top of the replies lookup itself.
+        if obj.parent_id is not None:
+            return []
+        replies = getattr(obj, 'ordered_replies', None)
+        if replies is None:
             replies = Comment.objects.filter(parent=obj).order_by('created_at')
-            return CommentSerializer(replies, many=True, context=self.context).data
-        return []
+        return CommentSerializer(replies, many=True, context=self.context).data
 
 
 class PostLikeSerializer(serializers.ModelSerializer):
@@ -418,33 +426,55 @@ class OrganizationSerializer(serializers.ModelSerializer):
             return obj.cover_image.url
         return None
     
+    def _viewer_membership(self, obj):
+        """(prefetched, membership) for the requesting user.
+
+        my_membership is attached by shaped_organizations and holds at most one
+        row — unique_together on (organization, user). Returning whether it was
+        prefetched lets each method fall back to its own query when this
+        serializer is nested somewhere unshaped.
+        """
+        rows = getattr(obj, 'my_membership', None)
+        if rows is None:
+            return False, None
+        return True, (rows[0] if rows else None)
+
     def get_is_member(self, obj):
         request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return OrganizationMembership.objects.filter(
-                organization=obj, user=request.user, status='active'
-            ).exists()
-        return False
-    
+        if not (request and request.user.is_authenticated):
+            return False
+        prefetched, membership = self._viewer_membership(obj)
+        if prefetched:
+            return membership is not None and membership.status == 'active'
+        return OrganizationMembership.objects.filter(
+            organization=obj, user=request.user, status='active'
+        ).exists()
+
     def get_membership_status(self, obj):
         request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            membership = OrganizationMembership.objects.filter(
-                organization=obj, user=request.user
-            ).first()
-            if membership:
-                return membership.status
-        return None
-    
+        if not (request and request.user.is_authenticated):
+            return None
+        prefetched, membership = self._viewer_membership(obj)
+        if prefetched:
+            return membership.status if membership else None
+        membership = OrganizationMembership.objects.filter(
+            organization=obj, user=request.user
+        ).first()
+        return membership.status if membership else None
+
     def get_user_role(self, obj):
         request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            membership = OrganizationMembership.objects.filter(
-                organization=obj, user=request.user, status='active'
-            ).first()
-            if membership:
+        if not (request and request.user.is_authenticated):
+            return None
+        prefetched, membership = self._viewer_membership(obj)
+        if prefetched:
+            if membership is not None and membership.status == 'active':
                 return membership.role
-        return None
+            return None
+        membership = OrganizationMembership.objects.filter(
+            organization=obj, user=request.user, status='active'
+        ).first()
+        return membership.role if membership else None
 
 
 class OrganizationMembershipSerializer(serializers.ModelSerializer):

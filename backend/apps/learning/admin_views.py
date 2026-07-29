@@ -798,18 +798,30 @@ class AdminCareerPathViewSet(viewsets.ModelViewSet):
             'status': e.status,
         } for e in recent_enrollments]
         
-        # Overall stats
+        # Overall stats: one aggregate per table instead of nine separate
+        # counts. Four of those hit Enrollment alone — avg_completion_rate
+        # recounted completed enrollments a second time and then counted the
+        # whole table again just for its denominator.
+        path_totals = CareerPath.objects.aggregate(
+            total=Count('id'),
+            active=Count('id', filter=models.Q(is_active=True)),
+        )
+        enrollment_totals = Enrollment.objects.aggregate(
+            all_statuses=Count('id'),
+            active_or_completed=Count(
+                'id', filter=models.Q(status__in=['active', 'completed'])),
+            completed=Count('id', filter=models.Q(status='completed')),
+        )
         stats = {
-            'total_paths': CareerPath.objects.count(),
-            'active_paths': CareerPath.objects.filter(is_active=True).count(),
+            'total_paths': path_totals['total'],
+            'active_paths': path_totals['active'],
             'total_modules': LearningModule.objects.count(),
             'total_quizzes': Quiz.objects.count(),
-            'total_enrollments': Enrollment.objects.filter(status__in=['active', 'completed']).count(),
-            'completed_enrollments': Enrollment.objects.filter(status='completed').count(),
+            'total_enrollments': enrollment_totals['active_or_completed'],
+            'completed_enrollments': enrollment_totals['completed'],
             'total_certificates': Certificate.objects.count(),
-            'avg_completion_rate': Enrollment.objects.filter(
-                status='completed'
-            ).count() * 100 // max(Enrollment.objects.count(), 1),
+            'avg_completion_rate': enrollment_totals['completed'] * 100 // max(
+                enrollment_totals['all_statuses'], 1),
         }
         
         return Response({

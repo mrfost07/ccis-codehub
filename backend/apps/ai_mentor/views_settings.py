@@ -184,7 +184,10 @@ class CustomAIModelViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return CustomAIModel.objects.filter(user=self.request.user)
+        # order_by: no Meta.ordering on the model, so this paginated unordered.
+        return CustomAIModel.objects.filter(
+            user=self.request.user
+        ).order_by('-created_at', 'id')
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
