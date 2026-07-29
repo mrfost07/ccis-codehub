@@ -86,48 +86,21 @@ case "$UP_PASS" in
     *"'"*) die "upstream password contains a single quote; rotate it in Neon first" ;;
 esac
 
+# Neon's SNI workaround: the endpoint id travels in the password field.
+# '$' rather than ';' as the separator because ';' starts a comment in the
+# PgBouncer ini format. The \$ keeps it literal through this heredoc.
+SERVER_PASS="endpoint=${ENDPOINT_ID}\$${UP_PASS}"
+
 # ---------------------------------------------------------------------------
 hdr "Installing PgBouncer"
-
-pgb_version() { pgbouncer --version 2>/dev/null | head -1 | awk '{print $NF}'; }
-
-# PgBouncer only learned the `options` connect-string parameter in 1.23, and
-# without it there is no way to tell Neon which endpoint to route to (it does
-# not send TLS SNI). Ubuntu 24.04 ships 1.22, which fails to even load the
-# config: "unrecognized connection parameter: options".
-version_ok() {
-    local v; v=$(pgb_version) || return 1
-    [ -n "$v" ] || return 1
-    local major=${v%%.*} minor=${v#*.}; minor=${minor%%.*}
-    [ "$major" -gt 1 ] || { [ "$major" -eq 1 ] && [ "$minor" -ge 23 ]; }
-}
-
 if ! command -v pgbouncer >/dev/null 2>&1; then
     DEBIAN_FRONTEND=noninteractive apt-get update -qq
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq pgbouncer >/dev/null || true
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq pgbouncer >/dev/null
 fi
-
-if ! version_ok; then
-    echo "  distro pgbouncer is $(pgb_version || echo none) — need >= 1.23 for 'options'"
-    echo "  adding the PostgreSQL APT repository"
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq curl ca-certificates gnupg >/dev/null
-    install -d /usr/share/postgresql-common/pgdg
-    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
-        -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
-    CODENAME=$(. /etc/os-release && echo "$VERSION_CODENAME")
-    echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${CODENAME}-pgdg main" \
-        > /etc/apt/sources.list.d/pgdg.list
-    DEBIAN_FRONTEND=noninteractive apt-get update -qq
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --only-upgrade pgbouncer >/dev/null \
-        || DEBIAN_FRONTEND=noninteractive apt-get install -y -qq pgbouncer >/dev/null
-fi
-
-version_ok || die "pgbouncer $(pgb_version || echo none) is too old and no newer build is available.
-  Nothing has been changed — the site is untouched.
-  PgBouncer >= 1.23 is required because Neon identifies the target project from
-  TLS SNI, which PgBouncer does not send, and the only alternative is the
-  'options' connect-string parameter added in 1.23."
-ok "pgbouncer $(pgb_version)"
+# Any version works. `options` in a connect string does NOT — PgBouncer rejects
+# it outright ("unrecognized connection parameter: options"), on 1.22 and 1.25
+# alike. The endpoint is passed through the password instead; see below.
+ok "pgbouncer $(pgbouncer --version 2>/dev/null | head -1 | awk '{print $NF}')"
 
 # ---------------------------------------------------------------------------
 hdr "Writing configuration"
@@ -152,21 +125,26 @@ cat > /etc/pgbouncer/pgbouncer.ini <<EOF
 [databases]
 ;; Django connects to this name; PgBouncer dials Neon over TLS on its behalf.
 ;;
-;; Two things here are not obvious and both are required:
+;; The password looks wrong. It is not.
 ;;
-;; 1. options='endpoint=...'
-;;    Neon multiplexes every project behind one hostname and identifies the
-;;    target from the TLS SNI field. PgBouncer does not send SNI, so Neon
-;;    rejects the connection with "Endpoint ID is not specified". Passing the
-;;    endpoint ID as a startup option is Neon's documented workaround for
-;;    clients without SNI. The ID is the first label of the hostname, minus
-;;    the '-pooler' suffix.
+;; Neon puts every project behind one hostname and works out which one you
+;; want from the TLS SNI field. PgBouncer never sends SNI, so Neon refuses the
+;; connection with "Endpoint ID is not specified". Of the workarounds Neon
+;; documents for SNI-less clients, only one fits PgBouncer: prefixing the
+;; password with the endpoint ID. (`options=endpoint=...` is the obvious
+;; candidate and does NOT work — PgBouncer rejects `options` as an
+;; unrecognized connection parameter and refuses to start.)
 ;;
-;; 2. user=/password=
-;;    Without explicit server credentials PgBouncer forwards whatever the
-;;    client sent — which is the LOCAL password from userlist.txt, not the
-;;    Neon one — and authentication fails after the routing succeeds.
-$UP_DB = host=$UP_HOST port=$UP_PORT dbname=$UP_DB user=$UP_USER password='$UP_PASS' options='endpoint=$ENDPOINT_ID'
+;;     endpoint=<endpoint_id>\$<password>
+;;
+;; Per Neon's docs this downgrades authentication from scram-sha-256 to plain
+;; password. That is acceptable here only because server_tls_sslmode=require
+;; below means the exchange happens inside TLS.
+;;
+;; user=/password= must both be explicit: without them PgBouncer forwards
+;; whatever the client sent, which is the LOCAL password from userlist.txt,
+;; not the Neon one.
+$UP_DB = host=$UP_HOST port=$UP_PORT dbname=$UP_DB user=$UP_USER password='$SERVER_PASS'
 
 [pgbouncer]
 listen_addr = 127.0.0.1
