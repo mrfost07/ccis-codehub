@@ -36,34 +36,53 @@ class UserProfileSerializer(serializers.ModelSerializer):
                           'total_likes_received', 'total_comments', 'contribution_points',
                           'current_streak', 'longest_streak', 'certificates_earned']
     
+    # These three fields cost SIX queries per user. On a list endpoint that is
+    # 6N, and against a database ~250 ms away /api/auth/users/ spent 10 s on
+    # 39 queries to return 6 KB. Each now prefers an annotation supplied by
+    # annotate_user_stats() below, falling back to the live count so the
+    # serializer stays correct wherever it is used un-annotated.
+    def _annotated(self, obj, name):
+        user = getattr(obj, 'user', None)
+        return getattr(user, name, None) if user is not None else None
+
     def get_total_projects(self, obj):
+        owned = self._annotated(obj, 'owned_projects_total')
+        member = self._annotated(obj, 'member_projects_total')
+        if owned is not None and member is not None:
+            return owned + member
         try:
             from apps.projects.models import Project, ProjectMembership
             user = obj.user
-            owned = Project.objects.filter(owner=user).count()
-            member = ProjectMembership.objects.filter(user=user, is_active=True).count()
-            return owned + member
-        except:
+            return (Project.objects.filter(owner=user).count()
+                    + ProjectMembership.objects.filter(user=user, is_active=True).count())
+        except Exception:
             return obj.total_projects
-    
+
     def get_tasks_completed(self, obj):
+        annotated = self._annotated(obj, 'tasks_done_total')
+        if annotated is not None:
+            return annotated
         try:
             from apps.projects.models import ProjectTask
             return ProjectTask.objects.filter(assigned_to=obj.user, status='done').count()
-        except:
+        except Exception:
             return 0
-    
+
     def get_active_projects(self, obj):
+        owned = self._annotated(obj, 'owned_active_total')
+        member = self._annotated(obj, 'member_active_total')
+        if owned is not None and member is not None:
+            return owned + member
         try:
             from apps.projects.models import Project, ProjectMembership
             user = obj.user
-            owned = Project.objects.filter(owner=user, status__in=['active', 'in_progress']).count()
-            member = ProjectMembership.objects.filter(
-                user=user, is_active=True, 
-                project__status__in=['active', 'in_progress']
-            ).count()
-            return owned + member
-        except:
+            owned_n = Project.objects.filter(
+                owner=user, status__in=['active', 'in_progress']).count()
+            member_n = ProjectMembership.objects.filter(
+                user=user, is_active=True,
+                project__status__in=['active', 'in_progress']).count()
+            return owned_n + member_n
+        except Exception:
             return 0
 
 

@@ -159,14 +159,38 @@ DATABASE_URL = env('DATABASE_URL', default=None)
 if DATABASE_URL:
     # Parse DATABASE_URL for Neon PostgreSQL
     import dj_database_url
+
+    # Is this a local connection pooler (PgBouncer) rather than Neon direct?
+    #
+    # Why it matters: opening a connection to Neon costs ~2 SECONDS from this
+    # deployment — TCP, then TLS, then SCRAM channel binding, across a long
+    # distance. Django cannot amortise that under ASGI, because its connection
+    # registry is scoped per async task, so CONN_MAX_AGE does not actually
+    # reuse anything and every request pays the full handshake before doing any
+    # work. Measured on production: /api/ (no database) 0.26 s, /api/health/
+    # (one SELECT 1) 2.24 s.
+    #
+    # Pointing at a local PgBouncer removes it: Django connects over loopback
+    # in microseconds and PgBouncer keeps the expensive TLS sessions to Neon
+    # warm. See deploy/setup-pgbouncer.sh.
+    _is_local_pool = any(h in DATABASE_URL for h in ('@127.0.0.1', '@localhost'))
+
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
             conn_max_age=600,
             conn_health_checks=True,
-            ssl_require=True,
+            # A loopback hop to PgBouncer needs no TLS; PgBouncer itself still
+            # talks TLS to Neon. Forcing it here would break the local socket.
+            ssl_require=not _is_local_pool,
         )
     }
+
+    if _is_local_pool:
+        # PgBouncer in transaction pooling mode hands a different server
+        # connection to each transaction, so anything bound to a session — a
+        # server-side cursor above all — breaks with "cursor does not exist".
+        DATABASES['default']['DISABLE_SERVER_SIDE_CURSORS'] = True
 elif env('DB_NAME', default=None):
     # Use individual env vars
     DATABASES = {

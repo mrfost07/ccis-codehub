@@ -18,10 +18,20 @@ class CareerPathSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at']
     
+    # Both counts prefer an annotation supplied by the viewset. Doing them
+    # per-object issued one query each, per row — on a remote database where a
+    # round-trip costs ~250 ms, nine career paths meant ~20 extra queries and
+    # several seconds for a 7 KB response. The fallbacks keep the serializer
+    # correct when it is used outside the annotated queryset (detail routes,
+    # nested use), just slower.
     def get_total_modules(self, obj):
-        return obj.modules.count()
-    
+        annotated = getattr(obj, 'modules_total', None)
+        return annotated if annotated is not None else obj.modules.count()
+
     def get_enrolled_count(self, obj):
+        annotated = getattr(obj, 'enrolled_total', None)
+        if annotated is not None:
+            return annotated
         return UserProgress.objects.filter(career_path=obj).values('user').distinct().count()
     
     def get_certificate_template_url(self, obj):
@@ -47,7 +57,9 @@ class LearningModuleSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'created_at', 'updated_at']
     
     def get_quiz_count(self, obj):
-        return obj.quizzes.count()
+        # Prefer the viewset's annotation; see CareerPathSerializer above.
+        annotated = getattr(obj, 'quiz_total', None)
+        return annotated if annotated is not None else obj.quizzes.count()
     
     def get_file_url(self, obj):
         """Get the full URL for the file"""

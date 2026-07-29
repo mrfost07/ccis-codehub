@@ -5,6 +5,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from django.db.models import Count, Prefetch
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
@@ -23,9 +24,28 @@ from .serializers import (
 from .badge_service import grant_badges_after_module, grant_badges_after_path
 from .leaderboard_service import update_leaderboard_score
 
+def annotated_career_paths(base=None):
+    """
+    CareerPath queryset shaped for CareerPathSerializer.
+
+    The serializer needs a module count, a distinct enrolled-user count and the
+    `prerequisites` M2M. Resolved per object those are four queries per row.
+    Shared so everywhere the serializer is used — directly, or nested inside
+    EnrollmentSerializer — gets the same treatment, not just the obvious
+    endpoint.
+    """
+    qs = CareerPath.objects.all() if base is None else base
+    return qs.prefetch_related('prerequisites').annotate(
+        # distinct=True is required: joining modules and userprogress together
+        # multiplies rows, and without it both counts come out inflated.
+        modules_total=Count('modules', distinct=True),
+        enrolled_total=Count('userprogress__user', distinct=True),
+    )
+
+
 class CareerPathViewSet(viewsets.ModelViewSet):
     """ViewSet for CareerPath"""
-    queryset = CareerPath.objects.filter(is_active=True)
+    queryset = annotated_career_paths(CareerPath.objects.filter(is_active=True))
     serializer_class = CareerPathSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     lookup_field = 'id'  # Changed from 'slug' to 'id' for UUID lookup
@@ -96,7 +116,14 @@ class CareerPathViewSet(viewsets.ModelViewSet):
 
 class LearningModuleViewSet(viewsets.ModelViewSet):
     """ViewSet for LearningModule"""
-    queryset = LearningModule.objects.all()
+    # select_related: the serializer exposes career_path.name, which was
+    # fetching the parent row once per module.
+    # annotate: quiz_count was a COUNT per module.
+    queryset = LearningModule.objects.select_related(
+        'career_path'
+    ).prefetch_related('prerequisites').annotate(
+        quiz_total=Count('quizzes', distinct=True),
+    )
     serializer_class = LearningModuleSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     
@@ -935,7 +962,15 @@ class EnrollmentViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return Enrollment.objects.filter(user=self.request.user)
+        # EnrollmentSerializer nests the full CareerPathSerializer and exposes
+        # user.username, so an un-shaped queryset cost ~5 queries per row.
+        # Prefetch (not select_related) for career_path because the nested
+        # serializer needs the annotations, which select_related cannot carry.
+        return Enrollment.objects.filter(user=self.request.user).select_related(
+            'user'
+        ).prefetch_related(
+            Prefetch('career_path', queryset=annotated_career_paths())
+        )
     
     def create(self, request, *args, **kwargs):
         """Enroll user in a career path"""

@@ -19,6 +19,7 @@ from .serializers import (
     UserRegistrationSerializer, UserLoginSerializer
 )
 from .permissions import IsPlatformAdmin
+from .queries import annotate_user_stats
 from .captcha import generate_captcha_challenge, verify_captcha_token
 from .oauth_identity import issue_google_identity_token, verify_google_identity_token
 from .email_verification import (
@@ -240,7 +241,10 @@ class UserProfileView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     
     def get(self, request):
-        user = request.user
+        # Re-fetch through the annotated queryset: request.user is a plain
+        # instance, so the serializer would otherwise fall back to per-field
+        # counts and issue several extra round-trips for one profile.
+        user = annotate_user_stats(User.objects.filter(pk=request.user.pk)).first() or request.user
         serializer = UserSerializer(user)
         return Response(serializer.data)
     
@@ -401,7 +405,9 @@ class UserViewSet(viewsets.ModelViewSet):
     Security: Uses PublicUserSerializer for list/retrieve to prevent IDOR.
     Full data (including email) only visible to owner or admin.
     """
-    queryset = User.objects.all()
+    # Annotated so the profile serializer's project/task counts come from the
+    # list query instead of six extra queries per user. See queries.py.
+    queryset = annotate_user_stats(User.objects.all())
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
     
@@ -583,7 +589,7 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.get_object()
         
         # Import here to avoid circular imports
-        from apps.learning.models import UserProgress, UserCertificate
+        from apps.learning.models import UserProgress, Certificate as UserCertificate
         
         progress = UserProgress.objects.filter(user=user)
         certificates = UserCertificate.objects.filter(user=user)
@@ -607,38 +613,52 @@ class UserStatsAPIView(APIView):
         user = request.user
         
         # Import here to avoid circular imports
-        from apps.learning.models import UserProgress, UserCertificate
+        from apps.learning.models import UserProgress, Certificate as UserCertificate
         from apps.projects.models import Project, ProjectMembership
         from apps.community.models import Post, Comment
         
-        # Learning stats
-        user_progress = UserProgress.objects.filter(user=user)
-        certificates = UserCertificate.objects.filter(user=user)
-        
-        # Project stats
-        owned_projects = Project.objects.filter(owner=user)
-        member_projects = ProjectMembership.objects.filter(user=user, is_active=True)
-        
-        # Community stats
-        posts = Post.objects.filter(author=user)
-        comments = Comment.objects.filter(author=user)
-        
+        # This endpoint returned a hard 500 for every user: it imported a model
+        # that does not exist (UserCertificate; it is Certificate) and filtered
+        # on UserProgress.progress and read p.total_points, neither of which is
+        # a field on that model. Rewritten against the real schema.
+        #
+        # The counts are also aggregated rather than summed in Python. The old
+        # `sum(p.likes.count() for p in posts)` ran one query per post, which on
+        # a database ~250 ms away is seconds of latency for a single number.
+        from django.db.models import Count as _Count
+
+        learning = UserProgress.objects.filter(user=user).aggregate(
+            enrolled=_Count('id'),
+            completed=_Count('id', filter=Q(is_completed=True)),
+        )
+        projects = Project.objects.filter(owner=user).aggregate(
+            owned=_Count('id'),
+            completed=_Count('id', filter=Q(status='completed')),
+        )
+        community = Post.objects.filter(author=user).aggregate(
+            posts=_Count('id', distinct=True),
+            likes_received=_Count('likes', distinct=True),
+        )
+
+        # Points live on the profile, not on progress rows.
+        profile = getattr(user, 'profile', None)
+
         stats = {
             'learning': {
-                'enrolled_courses': user_progress.count(),
-                'completed_courses': user_progress.filter(progress=100).count(),
-                'certificates': certificates.count(),
-                'total_points': sum(p.total_points for p in user_progress)
+                'enrolled_courses': learning['enrolled'],
+                'completed_courses': learning['completed'],
+                'certificates': UserCertificate.objects.filter(user=user).count(),
+                'total_points': getattr(profile, 'contribution_points', 0) or 0,
             },
             'projects': {
-                'owned': owned_projects.count(),
-                'member_of': member_projects.count(),
-                'completed': owned_projects.filter(status='completed').count()
+                'owned': projects['owned'],
+                'member_of': ProjectMembership.objects.filter(user=user, is_active=True).count(),
+                'completed': projects['completed'],
             },
             'community': {
-                'posts': posts.count(),
-                'comments': comments.count(),
-                'likes_received': sum(p.likes.count() for p in posts)
+                'posts': community['posts'],
+                'comments': Comment.objects.filter(author=user).count(),
+                'likes_received': community['likes_received'],
             },
             'profile': {
                 'role': user.role,

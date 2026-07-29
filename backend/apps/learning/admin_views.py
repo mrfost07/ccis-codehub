@@ -495,31 +495,58 @@ class AdminCareerPathViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
+        from django.db.models import Count, Q
+
         from .models import Enrollment, Quiz
-        
+
+        # This was 7 standalone COUNTs plus 3 more for every program type — ~19
+        # round-trips to return 0.3 KB. Each round-trip costs ~250 ms against a
+        # remote database, so the endpoint took ~5 s to produce a handful of
+        # integers. Same numbers, grouped in one pass per table.
+        ACTIVE_OR_DONE = ['active', 'completed']
+
+        paths = CareerPath.objects.aggregate(
+            total=Count('id'),
+            active=Count('id', filter=Q(is_active=True)),
+        )
+        enrollments = Enrollment.objects.aggregate(
+            total=Count('id', filter=Q(status__in=ACTIVE_OR_DONE)),
+            completed=Count('id', filter=Q(status='completed')),
+        )
+
+        # One grouped query each instead of one per program type.
+        paths_by = dict(
+            CareerPath.objects.values_list('program_type').annotate(n=Count('id'))
+        )
+        modules_by = dict(
+            LearningModule.objects.values_list('career_path__program_type')
+            .annotate(n=Count('id'))
+        )
+        enrollments_by = dict(
+            Enrollment.objects.filter(status__in=ACTIVE_OR_DONE)
+            .values_list('career_path__program_type').annotate(n=Count('id'))
+        )
+
         stats = {
-            'total_paths': CareerPath.objects.count(),
-            'active_paths': CareerPath.objects.filter(is_active=True).count(),
+            'total_paths': paths['total'],
+            'active_paths': paths['active'],
             'total_modules': LearningModule.objects.count(),
             'total_quizzes': Quiz.objects.count(),
-            'total_enrollments': Enrollment.objects.filter(status__in=['active', 'completed']).count(),
-            'completed_enrollments': Enrollment.objects.filter(status='completed').count(),
+            'total_enrollments': enrollments['total'],
+            'completed_enrollments': enrollments['completed'],
             'total_students': UserProgress.objects.values('user').distinct().count(),
-            'by_program': {}
+            # Every program type still appears, including ones with no rows —
+            # a grouped query omits empty groups, so default to 0.
+            'by_program': {
+                program: {
+                    'paths': paths_by.get(program, 0),
+                    'modules': modules_by.get(program, 0),
+                    'enrollments': enrollments_by.get(program, 0),
+                }
+                for program, _label in CareerPath.PROGRAM_CHOICES
+            },
         }
-        
-        # Stats by program
-        for choice in CareerPath.PROGRAM_CHOICES:
-            program = choice[0]
-            stats['by_program'][program] = {
-                'paths': CareerPath.objects.filter(program_type=program).count(),
-                'modules': LearningModule.objects.filter(career_path__program_type=program).count(),
-                'enrollments': Enrollment.objects.filter(
-                    career_path__program_type=program, 
-                    status__in=['active', 'completed']
-                ).count()
-            }
-        
+
         return Response(stats)
     
     @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
@@ -706,9 +733,25 @@ class AdminCareerPathViewSet(viewsets.ModelViewSet):
         from django.db.models import Count, Avg
         
         # Get all career paths with enrollment counts
+        # modules_total replaces a path.modules.count() inside the loop below,
+        # which was one query per career path.
+        #
+        # distinct=True on ALL THREE is required, not just the new one: adding
+        # the modules join multiplies the enrollment rows, so without it the
+        # existing enrolled/completed counts would silently start reporting
+        # inflated numbers.
         paths = CareerPath.objects.annotate(
-            enrolled_count=Count('enrollments', filter=models.Q(enrollments__status__in=['active', 'completed'])),
-            completed_count=Count('enrollments', filter=models.Q(enrollments__status='completed'))
+            enrolled_count=Count(
+                'enrollments',
+                filter=models.Q(enrollments__status__in=['active', 'completed']),
+                distinct=True,
+            ),
+            completed_count=Count(
+                'enrollments',
+                filter=models.Q(enrollments__status='completed'),
+                distinct=True,
+            ),
+            modules_total=Count('modules', distinct=True),
         ).order_by('-is_featured', 'name')
         
         # Serialize paths with stats
@@ -721,7 +764,7 @@ class AdminCareerPathViewSet(viewsets.ModelViewSet):
                 'program_type': path.program_type,
                 'difficulty_level': path.difficulty_level,
                 'is_active': path.is_active,
-                'total_modules': path.modules.count(),
+                'total_modules': path.modules_total,
                 'enrolled_count': path.enrolled_count,
                 'completed_count': path.completed_count,
                 'created_at': path.created_at,

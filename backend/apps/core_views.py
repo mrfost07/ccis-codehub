@@ -196,10 +196,15 @@ def admin_analytics(request):
     
     # Instructors with student counts (students enrolled in their courses)
     instructors_qs = users.filter(role='instructor')
+    # Hoisted out of the loop: this is a total over ALL enrollments and does not
+    # depend on the instructor, so running it per row was N identical queries
+    # for one number. (It is a placeholder value — see the note below — but it
+    # should at least not cost a round-trip per instructor.)
+    # TODO: scope this to the instructor's own career paths; today every
+    # instructor is shown the platform-wide enrollment total.
+    student_count = Enrollment.objects.count()
     instructor_list = []
     for instructor in instructors_qs:
-        # Count students enrolled in career paths (simplified - all enrollments)
-        student_count = Enrollment.objects.count()  # In real scenario, filter by instructor's courses
         instructor_list.append({
             'id': str(instructor.id),
             'username': instructor.username,
@@ -293,14 +298,21 @@ def admin_analytics(request):
     # Posts by type
     posts_by_type = list(posts.values('post_type').annotate(count=Count('id')))
     
-    # Engagement metrics
+    # Engagement metrics — four separate round-trips against `posts` collapsed
+    # into one aggregate. Same numbers; the database is ~250 ms away, so every
+    # avoided query is a quarter-second off this dashboard.
+    post_agg = posts.aggregate(
+        total=Count('id'),
+        # Sum the per-post view counts, not the number of posts. (Req 28.)
+        views=Sum('view_count'),
+        recent=Count('id', filter=Q(created_at__gte=thirty_days_ago)),
+    )
     engagement = {
-        'total_posts': posts.count(),
+        'total_posts': post_agg['total'],
         'total_comments': Comment.objects.count(),
         'total_likes': PostLike.objects.count(),
-        # Sum the per-post view counts, not the number of posts. (Req 28.)
-        'total_views': posts.aggregate(total=Sum('view_count'))['total'] or 0,
-        'recent_posts': posts.filter(created_at__gte=thirty_days_ago).count(),
+        'total_views': post_agg['views'] or 0,
+        'recent_posts': post_agg['recent'],
     }
     
     # Post trend (last 30 days)
@@ -313,11 +325,18 @@ def admin_analytics(request):
     )
     
     # ========== SUMMARY STATS ==========
+    # Four counts over the same table in one pass.
+    user_agg = users.aggregate(
+        total=Count('id'),
+        students=Count('id', filter=Q(role='student')),
+        instructors=Count('id', filter=Q(role='instructor')),
+        admins=Count('id', filter=Q(role='admin')),
+    )
     summary = {
-        'total_users': users.count(),
-        'total_students': users.filter(role='student').count(),
-        'total_instructors': users.filter(role='instructor').count(),
-        'total_admins': users.filter(role='admin').count(),
+        'total_users': user_agg['total'],
+        'total_students': user_agg['students'],
+        'total_instructors': user_agg['instructors'],
+        'total_admins': user_agg['admins'],
         'total_career_paths': path_stats['total'],
         'total_modules': modules.count(),
         'total_quizzes': quizzes.count(),
