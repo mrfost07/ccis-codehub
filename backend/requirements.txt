@@ -70,3 +70,6 @@ python-docx==1.1.0
 
 # Production Server
 gunicorn==21.2.0
+
+# Error tracking (inert unless SENTRY_DSN is set)
+sentry-sdk==2.19.2

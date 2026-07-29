@@ -479,6 +479,23 @@ for _line in _input_lines:
     except (ValueError, SyntaxError):
         _args.append(_line)
 
+# Arguments may be written one-per-line OR comma-separated on a single line
+# ("[2,7,11,15], 9"). literal_eval turns the second form into a single tuple,
+# which would then be passed as ONE argument and raise TypeError. Unpack it,
+# but only when the function actually takes more parameters than we have args
+# — otherwise a function that legitimately expects a tuple would break.
+if len(_args) == 1 and isinstance(_args[0], tuple):
+    try:
+        import inspect as _inspect
+        _wanted = len([
+            _p for _p in _inspect.signature({main_func}).parameters.values()
+            if _p.kind in (_p.POSITIONAL_ONLY, _p.POSITIONAL_OR_KEYWORD)
+        ])
+        if _wanted == len(_args[0]) and _wanted > 1:
+            _args = list(_args[0])
+    except (ValueError, TypeError):
+        pass
+
 _result = {main_func}(*_args)
 print(_format_output(_result))
 '''

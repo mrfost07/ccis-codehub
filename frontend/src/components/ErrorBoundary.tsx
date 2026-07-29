@@ -10,6 +10,7 @@
  */
 import { Component, ErrorInfo, ReactNode } from 'react'
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react'
+import { reportBoundaryError } from '../lib/sentry'
 
 interface Props {
     children: ReactNode
@@ -34,6 +35,9 @@ export default class ErrorBoundary extends Component<Props, State> {
         // Keep this in the console — the server never sees client render errors,
         // so this is the only record of what actually broke.
         console.error('[ErrorBoundary]', error, info.componentStack)
+        // ...and report it, so a blank page is not something we hear about
+        // from a student first. No-ops when Sentry is not configured.
+        reportBoundaryError(error, info.componentStack)
     }
 
     componentDidUpdate(prev: Props) {

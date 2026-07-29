@@ -1,8 +1,13 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import { initSentry } from './lib/sentry'
 import './styles/index.css'
 import './styles/global.css'
+
+// Before anything renders, so errors during the first paint are captured too.
+// No-ops when VITE_SENTRY_DSN is unset.
+initSentry()
 
 // Ensure the root element has proper styles
 const rootElement = document.getElementById('root')

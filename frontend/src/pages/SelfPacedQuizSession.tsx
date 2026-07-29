@@ -7,6 +7,7 @@ import {
 import { toast } from 'react-hot-toast';
 import DOMPurify from 'dompurify';
 import Editor from '@monaco-editor/react';
+import '../lib/monacoSetup';   // bundle Monaco locally; see the module for why
 import liveQuizService from '../services/liveQuizService';
 
 // ─────────────────────────────────────────────────────────────────────────────

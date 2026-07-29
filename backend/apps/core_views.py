@@ -76,12 +76,70 @@ def root_view(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def health_check(request):
-    """Health check endpoint"""
-    return Response({
-        'status': 'healthy',
-        'service': 'CCIS-CodeHub API',
-        'timestamp': __import__('datetime').datetime.now().isoformat()
-    })
+    """
+    Liveness + dependency check, for uptime monitors.
+
+    This used to return {'status': 'healthy'} unconditionally, which meant a
+    monitor pointed at it stayed green while Postgres was unreachable and every
+    real request 500'd — false confidence is worse than no monitor.
+
+    It now actually touches each dependency and returns 503 when one is down,
+    so an uptime check fires on the failures that matter:
+
+      database — no database, no logins, no submissions, nothing.
+      redis    — the channel layer. REST keeps working and live quizzes
+                 silently stop connecting, which is the failure mode least
+                 likely to be noticed and worst to discover mid-exam.
+
+    Kept AllowAny and cheap (two trivial round-trips) so it can be polled
+    every minute without becoming load of its own.
+    """
+    import logging
+    from datetime import datetime, timezone as _tz
+
+    logger = logging.getLogger(__name__)
+    checks: dict[str, str] = {}
+    healthy = True
+
+    try:
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT 1')
+            cursor.fetchone()
+        checks['database'] = 'ok'
+    except Exception as exc:
+        healthy = False
+        checks['database'] = 'error'
+        logger.error('Health check: database unreachable: %s', exc)
+
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        layer = get_channel_layer()
+        if layer is None:
+            checks['redis'] = 'not_configured'
+        else:
+            # A round-trip through the layer proves Redis is actually
+            # reachable; constructing the layer alone does not connect.
+            async_to_sync(layer.group_add)('healthcheck', 'healthcheck.probe')
+            async_to_sync(layer.group_discard)('healthcheck', 'healthcheck.probe')
+            checks['redis'] = 'ok'
+    except Exception as exc:
+        healthy = False
+        checks['redis'] = 'error'
+        logger.error('Health check: channel layer unreachable: %s', exc)
+
+    return Response(
+        {
+            'status': 'healthy' if healthy else 'unhealthy',
+            'service': 'CCIS-CodeHub API',
+            'checks': checks,
+            'timestamp': datetime.now(_tz.utc).isoformat(),
+        },
+        # 503 so uptime monitors and load balancers treat it as down. Detail
+        # stays in the body; nothing here reveals credentials or topology.
+        status=200 if healthy else 503,
+    )
 
 
 @api_view(['GET'])

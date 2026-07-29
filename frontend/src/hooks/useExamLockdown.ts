@@ -153,18 +153,26 @@ export function useExamLockdown(options: ExamLockdownOptions): ExamLockdownState
     const onCut = blockClip('cut')
     const onPaste = blockClip('paste')
     const onContext = (e: Event) => e.preventDefault()
-    const onSelectStart = (e: Event) => e.preventDefault()
+
+    // NOTE: 'selectstart' is deliberately NOT blocked.
+    //
+    // It used to be cancelled document-wide, which also cancels selection
+    // inside the code editor — selecting a line to replace it, double-clicking
+    // a word, drag-selecting a block. That is core editing, not cheating, and
+    // this hook is active the whole time a challenge is open.
+    //
+    // It bought nothing anyway: taking a copy of the text is already stopped by
+    // the 'copy' and 'cut' handlers below, which fire regardless of how the
+    // selection was made. Blocking selection only punished honest editing.
     document.addEventListener('copy', onCopy)
     document.addEventListener('cut', onCut)
     document.addEventListener('paste', onPaste)
     document.addEventListener('contextmenu', onContext)
-    document.addEventListener('selectstart', onSelectStart)
     return () => {
       document.removeEventListener('copy', onCopy)
       document.removeEventListener('cut', onCut)
       document.removeEventListener('paste', onPaste)
       document.removeEventListener('contextmenu', onContext)
-      document.removeEventListener('selectstart', onSelectStart)
     }
   }, [active, blockClipboard, registerViolation])
 

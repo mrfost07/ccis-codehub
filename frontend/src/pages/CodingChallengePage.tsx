@@ -5,14 +5,8 @@ import {
     Loader2, AlertCircle, Trophy, History, Eye, EyeOff
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
-import Editor from 'react-simple-code-editor'
-import Prism from 'prismjs'
-import 'prismjs/components/prism-python'
-import 'prismjs/components/prism-javascript'
-import 'prismjs/components/prism-java'
-import 'prismjs/components/prism-c'
-import 'prismjs/components/prism-cpp'
-import 'prismjs/themes/prism-tomorrow.css'
+import Editor, { type OnMount } from '@monaco-editor/react'
+import '../lib/monacoSetup'   // bundle Monaco locally; see the module for why
 import Navbar from '../components/Navbar'
 import BadgeUnlockToast from '../components/BadgeUnlockToast'
 import codingService, { CodingChallenge, CodingSubmissionResult, SubmissionHistory } from '../services/codingService'
@@ -25,11 +19,12 @@ const LANGUAGE_LABELS: Record<string, string> = {
     cpp: 'C++',
 }
 
-const PRISM_LANG: Record<string, any> = {
-    python: Prism.languages.python,
-    javascript: Prism.languages.javascript,
-    java: Prism.languages.java,
-    cpp: Prism.languages.cpp,
+// Our language keys -> Monaco's language ids.
+const MONACO_LANG: Record<string, string> = {
+    python: 'python',
+    javascript: 'javascript',
+    java: 'java',
+    cpp: 'cpp',
 }
 
 export default function CodingChallengePage() {
@@ -118,6 +113,32 @@ export default function CodingChallengePage() {
 
     const handleCodeChange = (code: string) => {
         setCodeDrafts(prev => ({ ...prev, [language]: code }))
+    }
+
+    /**
+     * Monaco handles Ctrl+V internally, so the document-level clipboard block in
+     * useExamLockdown is not enough on its own — the editor would swallow the
+     * keystroke before the document listener could cancel it. Bind the paste
+     * commands to a no-op and report the attempt, so pasting an external
+     * solution is blocked and recorded the same way it is elsewhere.
+     */
+    const handleEditorMount: OnMount = (editor, monaco) => {
+        const blockPaste = () => {
+            toast.error('Copy/paste is disabled during coding challenges.', { duration: 2000 })
+        }
+        const K = monaco.KeyMod, C = monaco.KeyCode
+        editor.addCommand(K.CtrlCmd | C.KeyV, blockPaste)
+        editor.addCommand(K.CtrlCmd | K.Shift | C.KeyV, blockPaste)
+
+        // Any paste path the keybindings miss (middle-click on Linux, IME,
+        // browser menu) fires this AFTER the text has landed — so undo it
+        // rather than just warning about it.
+        editor.onDidPaste(() => {
+            editor.trigger('lockdown', 'undo', null)
+            blockPaste()
+        })
+
+        editor.focus()
     }
 
     const handleRun = async () => {
@@ -618,27 +639,54 @@ export default function CodingChallengePage() {
                         </div>
                     </div>
 
-                    {/* Syntax-Highlighted Code Editor */}
-                    <div className="flex-1 overflow-auto bg-neutral-950" style={{ fontFamily: "'Fira Code', 'Consolas', monospace" }}>
+                    {/* Code editor — Monaco, same engine as the quiz sessions. */}
+                    <div className="flex-1 overflow-hidden bg-neutral-950">
                         <Editor
+                            height="100%"
+                            language={MONACO_LANG[language] || 'plaintext'}
+                            theme="vs-dark"
                             value={currentCode}
-                            onValueChange={handleCodeChange}
-                            highlight={(code) => Prism.highlight(
-                                code,
-                                PRISM_LANG[language] || Prism.languages.plain,
-                                language
-                            )}
-                            padding={16}
-                            style={{
+                            onChange={(value) => handleCodeChange(value ?? '')}
+                            onMount={handleEditorMount}
+                            loading={
+                                <div className="flex h-full items-center justify-center text-xs text-neutral-500">
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Loading editor…
+                                </div>
+                            }
+                            options={{
                                 fontFamily: "'Fira Code', 'Consolas', 'Monaco', monospace",
                                 fontSize: 13,
-                                minHeight: '100%',
-                                background: 'transparent',
-                                color: '#d4d4d4',
-                                lineHeight: '1.6',
+                                lineHeight: 21,
+                                minimap: { enabled: false },
+                                scrollBeyondLastLine: false,
+                                automaticLayout: true,
+                                lineNumbers: 'on',
+                                renderLineHighlight: 'line',
+                                tabSize: 4,
+                                insertSpaces: true,
+                                wordWrap: 'on',
+                                padding: { top: 12, bottom: 12 },
+                                // The IDE behaviours this page was missing entirely:
+                                autoIndent: 'full',             // indent after `:` / `{`
+                                autoClosingBrackets: 'always',
+                                autoClosingQuotes: 'always',
+                                autoSurround: 'languageDefined',
+                                matchBrackets: 'always',
+                                suggestOnTriggerCharacters: true,
+                                quickSuggestions: { other: true, comments: false, strings: false },
+                                wordBasedSuggestions: true,   // boolean in monaco 0.44
+                                acceptSuggestionOnEnter: 'off',  // Enter = newline, Tab accepts
+                                tabCompletion: 'on',
+                                snippetSuggestions: 'inline',
+                                formatOnType: true,
+                                bracketPairColorization: { enabled: true },
+                                guides: { indentation: true, bracketPairs: true },
+                                stickyScroll: { enabled: false },
+                                contextmenu: false,              // lockdown blocks it anyway
+                                smoothScrolling: true,
+                                cursorBlinking: 'smooth',
                             }}
-                            className="min-h-full outline-none"
-                            textareaClassName="outline-none bg-transparent"
                         />
                     </div>
 

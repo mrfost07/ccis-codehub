@@ -10,11 +10,15 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
+# Anchored to the repo root on purpose. These come from the stock Python
+# template, where they mean setuptools build output — unanchored they also
+# match frontend/src/lib/, silently excluding real application source from
+# every commit and breaking the build on the server.
+/lib/
+/lib64/
+/parts/
+/sdist/
+/var/
 wheels/
 *.egg-info/
 .installed.cfg

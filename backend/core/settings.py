@@ -460,3 +460,53 @@ LOGGING = {
         },
     },
 }
+
+
+# ---------------------------------------------------------------------------
+# Error tracking
+# ---------------------------------------------------------------------------
+# Entirely optional: with no SENTRY_DSN this block does nothing, so local and
+# CI runs are unaffected and the dependency stays inert.
+#
+# Worth having because the failure mode this platform actually hits is silent.
+# A crashed request logs to journald that nobody is reading; a frontend render
+# error produces no server-side signal at all. Until now the first report of an
+# outage came from a student.
+SENTRY_DSN = env('SENTRY_DSN', default='')
+
+if SENTRY_DSN:
+    import logging
+
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.django import DjangoIntegration
+        from sentry_sdk.integrations.logging import LoggingIntegration
+    except ImportError:
+        # Setting the DSN before `pip install -r requirements.txt` has run
+        # must not take the whole site down — monitoring is not worth an
+        # outage. Warn and carry on without it.
+        logging.getLogger(__name__).warning(
+            'SENTRY_DSN is set but sentry-sdk is not installed; error tracking '
+            'is disabled. Run: pip install -r requirements.txt'
+        )
+        SENTRY_DSN = ''
+
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            DjangoIntegration(),
+            # Breadcrumbs from INFO, events from ERROR — warnings alone would
+            # bury the real failures on the free tier's event quota.
+            LoggingIntegration(level=logging.INFO, event_level=logging.ERROR),
+        ],
+        environment=env('SENTRY_ENVIRONMENT', default='production' if not DEBUG else 'development'),
+        release=env('SENTRY_RELEASE', default=''),
+        # Sample rather than trace everything: the free tier is 5k events/month
+        # and chat polls this backend every 3s per open tab.
+        traces_sample_rate=env.float('SENTRY_TRACES_SAMPLE_RATE', default=0.05),
+        # Never ship request bodies or session data — submissions contain
+        # student code and auth payloads contain credentials.
+        send_default_pii=False,
+        max_request_body_size='never',
+    )
