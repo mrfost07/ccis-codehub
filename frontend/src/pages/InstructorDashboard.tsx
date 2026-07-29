@@ -354,34 +354,33 @@ function InstructorDashboard() {
     try {
       setLoading(true)
 
-      // Fetch paths
-      let pathsData: any[] = []
-      try {
-        const pathsRes = await api.get('/learning/admin/career-paths/')
-        pathsData = pathsRes.data.results || pathsRes.data || []
-      } catch {
-        const pathsRes = await api.get('/learning/career-paths/')
-        pathsData = pathsRes.data.results || pathsRes.data || []
+      // Paths, modules and quizzes are independent, so they are fetched
+      // together. Awaiting them in series meant each one waited for the
+      // previous round-trip to finish, and the latencies added instead of
+      // overlapping — the dominant cost of opening this page.
+      //
+      // Each request keeps its own fallback and resolves to [] on failure, so
+      // Promise.all cannot reject and one dead endpoint cannot blank the
+      // whole dashboard.
+      const fetchList = async (primary: string, fallback?: string): Promise<any[]> => {
+        const unwrap = (res: any) => res.data?.results || res.data || []
+        try {
+          return unwrap(await api.get(primary))
+        } catch {
+          if (!fallback) return []
+          try {
+            return unwrap(await api.get(fallback))
+          } catch {
+            return []
+          }
+        }
       }
 
-      // Fetch modules
-      let modulesData: any[] = []
-      try {
-        const modulesRes = await api.get('/learning/admin/modules/')
-        modulesData = modulesRes.data.results || modulesRes.data || []
-      } catch {
-        const modulesRes = await api.get('/learning/modules/')
-        modulesData = modulesRes.data.results || modulesRes.data || []
-      }
-
-      // Fetch quizzes
-      let quizzesData: any[] = []
-      try {
-        const quizzesRes = await api.get('/learning/quizzes/')
-        quizzesData = quizzesRes.data.results || quizzesRes.data || []
-      } catch {
-        quizzesData = []
-      }
+      const [pathsData, modulesData, quizzesData] = await Promise.all([
+        fetchList('/learning/admin/career-paths/', '/learning/career-paths/'),
+        fetchList('/learning/admin/modules/', '/learning/modules/'),
+        fetchList('/learning/quizzes/'),
+      ])
 
       setPaths(pathsData)
       setModules(modulesData)

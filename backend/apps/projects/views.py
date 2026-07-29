@@ -38,8 +38,27 @@ class ProjectViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         user = self.request.user
-        queryset = Project.objects.all()
-        
+        # ProjectSerializer embeds memberships and tasks and derives five more
+        # fields from them, so an unshaped queryset cost ~69 queries to return
+        # under 9 KB. Everything listed here is data the response already
+        # contains — this fetches it in a fixed number of queries instead of
+        # per project.
+        #
+        # team__leader is needed by is_team_leader() and assignable_members;
+        # tasks__project because ProjectTaskSerializer reads project.name and
+        # calls project.is_team_leader().
+        queryset = Project.objects.select_related(
+            'owner', 'team', 'team__leader',
+        ).prefetch_related(
+            'memberships__user',
+            'tasks__assigned_to',
+            'tasks__created_by',
+            'tasks__project__team__leader',
+            'team__memberships__user',
+            # TeamMembershipSerializer exposes invited_by.username
+            'team__memberships__invited_by',
+        )
+
         # Filter by visibility
         queryset = queryset.filter(
             models.Q(visibility='public') |
@@ -427,7 +446,12 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         project_id = self.request.query_params.get('project')
-        queryset = ProjectTask.objects.select_related('project', 'assigned_to')
+        # created_by is serialised, and can_edit/can_drag call
+        # project.is_team_leader(), which walks project -> team -> leader.
+        queryset = ProjectTask.objects.select_related(
+            'project', 'assigned_to', 'created_by',
+            'project__team', 'project__team__leader', 'project__owner',
+        )
         
         if project_id:
             # If project specified, filter by that project
@@ -935,10 +959,16 @@ class TeamViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         # Get teams where user is leader or accepted member
+        # memberships is serialised (accepted_members) and drives three counts;
+        # projects drives a fourth. Prefetching removes ~6 queries per team.
         return Team.objects.filter(
             models.Q(leader=user) |
             models.Q(memberships__user=user, memberships__status='accepted')
-        ).distinct().select_related('leader')
+        ).distinct().select_related('leader').prefetch_related(
+            # invited_by is serialised by TeamMembershipSerializer and was a
+            # user lookup per membership row.
+            'memberships__user', 'memberships__invited_by', 'projects',
+        )
     
     def get_serializer_class(self):
         if self.action == 'retrieve':

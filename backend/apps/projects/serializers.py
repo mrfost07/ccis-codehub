@@ -1,6 +1,8 @@
 """
 Serializers for Projects app
 """
+from collections import Counter
+
 from rest_framework import serializers
 from .models import (
     Project, ProjectMembership, ProjectTask, TaskLabel, ProjectTag,
@@ -59,14 +61,17 @@ class TeamSerializer(serializers.ModelSerializer):
             return obj.leader.profile_picture.url
         return None
     
+    # Counted from the prefetched collections — `memberships` is already
+    # serialised into this response via accepted_members, so the rows are
+    # loaded regardless. Three queries per team otherwise.
     def get_member_count(self, obj):
-        return obj.memberships.filter(status='accepted').count() + 1
-    
+        return sum(1 for m in obj.memberships.all() if m.status == 'accepted') + 1
+
     def get_project_count(self, obj):
-        return obj.projects.count()
-    
+        return len(obj.projects.all())
+
     def get_pending_count(self, obj):
-        return obj.memberships.filter(status='pending').count()
+        return sum(1 for m in obj.memberships.all() if m.status == 'pending')
 
 
 class TeamDetailSerializer(TeamSerializer):
@@ -202,13 +207,20 @@ class ProjectSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['owner', 'slug']
     
+    # The counts below are computed from the already-loaded collections rather
+    # than with .count()/.filter(), which issue a fresh query per project. The
+    # rows are needed anyway — `memberships` and `tasks` are both serialised
+    # into this response — so counting them in Python is free once the viewset
+    # prefetches them, and stays correct (just slower) if it does not.
     def get_member_count(self, obj):
         if obj.team:
-            return obj.team.memberships.filter(status='accepted').count() + 1
-        return obj.memberships.filter(is_active=True).count() + 1
-    
+            accepted = sum(1 for m in obj.team.memberships.all() if m.status == 'accepted')
+            return accepted + 1
+        active = sum(1 for m in obj.memberships.all() if m.is_active)
+        return active + 1
+
     def get_task_count(self, obj):
-        return obj.tasks.count()
+        return len(obj.tasks.all())
     
     def get_is_team_leader(self, obj):
         request = self.context.get('request')
@@ -226,8 +238,9 @@ class ProjectSerializer(serializers.ModelSerializer):
                 'name': obj.team.leader.username,
                 'role': 'leader'
             })
-            # Add accepted team members
-            for m in obj.team.memberships.filter(status='accepted'):
+            # Add accepted team members (filtered in Python so the prefetched
+            # membership rows are reused instead of issuing another query)
+            for m in (m for m in obj.team.memberships.all() if m.status == 'accepted'):
                 members.append({
                     'id': str(m.user.id),
                     'name': m.user.username,
@@ -243,16 +256,22 @@ class ProjectSerializer(serializers.ModelSerializer):
     
     def get_progress(self, obj):
         """Calculate task completion progress"""
-        total = obj.tasks.count()
+        # Two more queries per project if done with count()/filter(); the tasks
+        # are already loaded for the `tasks` field above.
+        tasks = obj.tasks.all()
+        total = len(tasks)
         if total == 0:
             return {'total': 0, 'completed': 0, 'percentage': 0}
-        completed = obj.tasks.filter(status='done').count()
+        completed = sum(1 for t in tasks if t.status == 'done')
+        # One pass over the loaded rows instead of three more COUNT queries
+        # per project.
+        by_status = Counter(t.status for t in tasks)
         return {
             'total': total,
             'completed': completed,
-            'in_progress': obj.tasks.filter(status='in_progress').count(),
-            'review': obj.tasks.filter(status='review').count(),
-            'todo': obj.tasks.filter(status='todo').count(),
+            'in_progress': by_status.get('in_progress', 0),
+            'review': by_status.get('review', 0),
+            'todo': by_status.get('todo', 0),
             'percentage': round((completed / total) * 100)
         }
 

@@ -11,25 +11,29 @@ from .serializers import (
     CareerPathSerializer, LearningModuleSerializer,
     QuizSerializer, QuestionSerializer, UserProgressSerializer
 )
+from .views import annotated_career_paths, annotated_modules
 from apps.ai_mentor.services.module_analyzer import ModuleAnalyzerService
 import json
 
 
 class AdminLearningModuleViewSet(viewsets.ModelViewSet):
     """Admin viewset for managing learning modules"""
-    queryset = LearningModule.objects.all()
+    queryset = annotated_modules()
     serializer_class = LearningModuleSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
-    
+
     def get_queryset(self):
         """Filter modules by career_path if provided"""
-        queryset = LearningModule.objects.all()
+        # Built from annotated_modules(), not LearningModule.objects.all():
+        # this method replaces the class attribute entirely, so shaping only
+        # the attribute above would have had no effect on list responses.
+        queryset = annotated_modules()
         career_path = self.request.query_params.get('career_path')
-        
+
         if career_path:
             queryset = queryset.filter(career_path_id=career_path)
-        
+
         return queryset.order_by('order')
     
     def create(self, request, *args, **kwargs):
@@ -295,7 +299,8 @@ class AdminLearningModuleViewSet(viewsets.ModelViewSet):
 
 class AdminCareerPathViewSet(viewsets.ModelViewSet):
     """Admin viewset for managing career paths"""
-    queryset = CareerPath.objects.all()
+    # Same shaping as the public CareerPathViewSet — see annotated_career_paths.
+    queryset = annotated_career_paths()
     serializer_class = CareerPathSerializer
     permission_classes = [IsAuthenticated]
     

@@ -176,24 +176,32 @@ export default function AdminDashboard() {
     }
 
     const fetchLearningData = async () => {
-        try {
-            let pathsRes, modulesRes
+        // Paths and modules are independent. Awaiting them in series made the
+        // two round-trips add rather than overlap; on this deployment that is
+        // most of the wait before the page shows anything.
+        //
+        // Each resolves to [] on failure so Promise.all cannot reject and a
+        // single dead endpoint cannot blank the section.
+        const fetchList = async (primary: string, fallback?: string): Promise<any[]> => {
+            const unwrap = (res: any) => res.data?.results || res.data || []
             try {
-                pathsRes = await api.get('/learning/admin/career-paths/')
+                return unwrap(await api.get(primary))
             } catch {
-                pathsRes = await api.get('/learning/career-paths/')
+                if (!fallback) return []
+                try {
+                    return unwrap(await api.get(fallback))
+                } catch {
+                    return []
+                }
             }
-            try {
-                modulesRes = await api.get('/learning/admin/modules/')
-            } catch {
-                modulesRes = await api.get('/learning/modules/')
-            }
-
-            setPaths(pathsRes.data.results || pathsRes.data || [])
-            setModules(modulesRes.data.results || modulesRes.data || [])
-        } catch (error) {
-            console.error('Failed to fetch learning data:', error)
         }
+
+        const [pathsData, modulesData] = await Promise.all([
+            fetchList('/learning/admin/career-paths/', '/learning/career-paths/'),
+            fetchList('/learning/admin/modules/', '/learning/modules/'),
+        ])
+        setPaths(pathsData)
+        setModules(modulesData)
     }
 
     const fetchModules = async () => {

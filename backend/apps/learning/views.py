@@ -114,16 +114,26 @@ class CareerPathViewSet(viewsets.ModelViewSet):
         )
 
 
-class LearningModuleViewSet(viewsets.ModelViewSet):
-    """ViewSet for LearningModule"""
-    # select_related: the serializer exposes career_path.name, which was
-    # fetching the parent row once per module.
-    # annotate: quiz_count was a COUNT per module.
-    queryset = LearningModule.objects.select_related(
-        'career_path'
-    ).prefetch_related('prerequisites').annotate(
+def annotated_modules(base=None):
+    """
+    LearningModule queryset shaped for LearningModuleSerializer.
+
+    The serializer reads career_path.name, a quiz count, and the
+    `prerequisites` M2M. Unshaped that is three queries per row.
+
+    Shared with AdminLearningModuleViewSet: the two are separate classes over
+    the same model, and optimising only this one is exactly why the admin
+    Learning page stayed at 63 queries after the public endpoint dropped to 4.
+    """
+    qs = LearningModule.objects.all() if base is None else base
+    return qs.select_related('career_path').prefetch_related('prerequisites').annotate(
         quiz_total=Count('quizzes', distinct=True),
     )
+
+
+class LearningModuleViewSet(viewsets.ModelViewSet):
+    """ViewSet for LearningModule"""
+    queryset = annotated_modules()
     serializer_class = LearningModuleSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     
