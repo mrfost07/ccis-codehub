@@ -77,6 +77,21 @@ class LearningModuleSerializer(serializers.ModelSerializer):
         return None
 
 
+class LearningModuleListSerializer(LearningModuleSerializer):
+    """
+    LearningModule without the `content` body, for list responses.
+
+    `content` holds the full module body (slides/HTML) and was 88% of a 129 KB
+    list response — over 100 KB that nothing on a list screen renders. Every
+    consumer that actually needs it fetches the detail route first
+    (/learning/modules/{id}/ and /learning/admin/modules/{id}/), so it is only
+    ever transferred when it is about to be used.
+    """
+    class Meta(LearningModuleSerializer.Meta):
+        exclude = ('content',)
+        fields = None  # DRF rejects `fields` and `exclude` together
+
+
 class QuestionChoiceSerializer(serializers.ModelSerializer):
     """Serializer for QuestionChoice model"""
     
@@ -105,6 +120,22 @@ class QuizSerializer(serializers.ModelSerializer):
         model = Quiz
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class QuizListSerializer(QuizSerializer):
+    """
+    Quiz without the `content` body, for list responses.
+
+    Same reasoning as LearningModuleListSerializer: `content` was 93% of a
+    126 KB list response. QuizTaking fetches /learning/quizzes/{id}/ before a
+    student answers anything, so the body still arrives when it is needed.
+
+    `questions` is kept — the list view shows question counts and the nested
+    rows are already prefetched.
+    """
+    class Meta(QuizSerializer.Meta):
+        exclude = ('content',)
+        fields = None
 
 
 class UserProgressSerializer(serializers.ModelSerializer):

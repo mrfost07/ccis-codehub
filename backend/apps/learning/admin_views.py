@@ -11,6 +11,7 @@ from .serializers import (
     CareerPathSerializer, LearningModuleSerializer,
     QuizSerializer, QuestionSerializer, UserProgressSerializer
 )
+from .serializers import LearningModuleListSerializer
 from .views import annotated_career_paths, annotated_modules
 from apps.ai_mentor.services.module_analyzer import ModuleAnalyzerService
 import json
@@ -22,6 +23,13 @@ class AdminLearningModuleViewSet(viewsets.ModelViewSet):
     serializer_class = LearningModuleSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser, JSONParser)
+
+    def get_serializer_class(self):
+        # List responses omit the module body — the edit dialog fetches the
+        # detail route before opening, so nothing on screen loses data.
+        if self.action == 'list':
+            return LearningModuleListSerializer
+        return super().get_serializer_class()
 
     def get_queryset(self):
         """Filter modules by career_path if provided"""

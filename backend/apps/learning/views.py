@@ -15,7 +15,8 @@ from .models import (
     ModuleProgress, AchievedSkill, BadgeDefinition, UserBadge, LeaderboardSnapshot
 )
 from .serializers import (
-    CareerPathSerializer, LearningModuleSerializer, QuizSerializer,
+    CareerPathSerializer, LearningModuleSerializer, LearningModuleListSerializer,
+    QuizSerializer, QuizListSerializer,
     QuestionSerializer, UserProgressSerializer, QuizAttemptSerializer,
     CertificateSerializer, EnrollmentSerializer, ModuleProgressSerializer,
     AchievedSkillSerializer, BadgeDefinitionSerializer, UserBadgeSerializer,
@@ -142,6 +143,12 @@ class LearningModuleViewSet(viewsets.ModelViewSet):
     queryset = annotated_modules()
     serializer_class = LearningModuleSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_serializer_class(self):
+        # List responses omit the module body; see LearningModuleListSerializer.
+        if self.action == 'list':
+            return LearningModuleListSerializer
+        return super().get_serializer_class()
     
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -454,6 +461,12 @@ class QuizViewSet(viewsets.ModelViewSet):
     serializer_class = QuizSerializer
     permission_classes = [IsAuthenticated]
     filterset_fields = ['learning_module']
+
+    def get_serializer_class(self):
+        # List responses omit the quiz body; see QuizListSerializer.
+        if self.action == 'list':
+            return QuizListSerializer
+        return super().get_serializer_class()
     
     def get_queryset(self):
         """Filter quizzes by learning_module if provided"""
