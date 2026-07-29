@@ -26,7 +26,7 @@
 #
 # Idempotent: safe to re-run.
 # =============================================================================
-set -euo pipefail
+set -Eeuo pipefail
 
 APP_DIR="${APP_DIR:-/home/deploy/CCIS-CodeHub}"
 ENV_FILE="$APP_DIR/backend/.env"
@@ -70,6 +70,22 @@ case "${UP_USER:-}" in
 esac
 ok "upstream: $UP_HOST:$UP_PORT/$UP_DB (user $UP_USER)"
 
+# Neon routes by TLS SNI; PgBouncer does not send it. The endpoint ID is the
+# first label of the hostname with any '-pooler' suffix removed.
+ENDPOINT_ID="${UP_HOST%%.*}"
+ENDPOINT_ID="${ENDPOINT_ID%-pooler}"
+case "$ENDPOINT_ID" in
+    ep-*) ok "endpoint id: $ENDPOINT_ID" ;;
+    *)    die "could not derive a Neon endpoint id from '$UP_HOST'" ;;
+esac
+
+# The connect string below wraps the password in single quotes, so one inside
+# the password would terminate it early and produce a config that silently
+# authenticates with the wrong value.
+case "$UP_PASS" in
+    *"'"*) die "upstream password contains a single quote; rotate it in Neon first" ;;
+esac
+
 # ---------------------------------------------------------------------------
 hdr "Installing PgBouncer"
 if ! command -v pgbouncer >/dev/null 2>&1; then
@@ -100,7 +116,22 @@ cat > /etc/pgbouncer/pgbouncer.ini <<EOF
 ;; Managed by deploy/setup-pgbouncer.sh — regenerated on each run.
 [databases]
 ;; Django connects to this name; PgBouncer dials Neon over TLS on its behalf.
-$UP_DB = host=$UP_HOST port=$UP_PORT dbname=$UP_DB
+;;
+;; Two things here are not obvious and both are required:
+;;
+;; 1. options='endpoint=...'
+;;    Neon multiplexes every project behind one hostname and identifies the
+;;    target from the TLS SNI field. PgBouncer does not send SNI, so Neon
+;;    rejects the connection with "Endpoint ID is not specified". Passing the
+;;    endpoint ID as a startup option is Neon's documented workaround for
+;;    clients without SNI. The ID is the first label of the hostname, minus
+;;    the '-pooler' suffix.
+;;
+;; 2. user=/password=
+;;    Without explicit server credentials PgBouncer forwards whatever the
+;;    client sent — which is the LOCAL password from userlist.txt, not the
+;;    Neon one — and authentication fails after the routing succeeds.
+$UP_DB = host=$UP_HOST port=$UP_PORT dbname=$UP_DB user=$UP_USER password='$UP_PASS' options='endpoint=$ENDPOINT_ID'
 
 [pgbouncer]
 listen_addr = 127.0.0.1
@@ -149,7 +180,27 @@ hdr "Pointing Django at the pool"
 ENC_PASS=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=''))" "$LOCAL_PASS")
 NEW_URL="postgresql://$UP_USER:$ENC_PASS@127.0.0.1:$BOUNCER_PORT/$UP_DB"
 
-cp "$ENV_FILE" "$ENV_FILE.bak.$(date +%s)"
+BACKUP="$ENV_FILE.bak.$(date +%s)"
+cp "$ENV_FILE" "$BACKUP"
+
+# From here on the app is pointed at the pool. If anything below fails, put the
+# original file back and restart — an unverified change must never be left in
+# place. The first version of this script did exactly that and took the site
+# down when Neon rejected the pool's connection.
+rollback() {
+    echo
+    echo -e "  \033[31m✗\033[0m verification failed — rolling back"
+    cp "$BACKUP" "$ENV_FILE"
+    systemctl restart ccis-backend || true
+    sleep 3
+    local code
+    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 \
+        "https://${DOMAIN:-ccis-codehub.space}/api/health/" || echo 000)
+    echo "  restored original DATABASE_URL; /api/health/ -> $code"
+    echo "  pgbouncer left installed but unused; logs: journalctl -u pgbouncer -n 50"
+    exit 1
+}
+trap rollback ERR
 python3 - "$ENV_FILE" "$NEW_URL" <<'PY'
 import sys
 path, new = sys.argv[1], sys.argv[2]
@@ -170,41 +221,54 @@ PY
 ok "backup saved next to .env"
 
 # ---------------------------------------------------------------------------
-hdr "Verifying"
+hdr "Verifying the pool can actually reach Neon"
 cd "$APP_DIR/backend"
-sudo -H -u deploy ./venv/bin/python - <<'PY'
-import os, time, django
+
+# Checked BEFORE the app is restarted, so a broken pool never reaches users.
+sudo -H -u deploy ./venv/bin/python - <<'PY' || rollback
+import os, sys, time, django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 from django.db import connection
-t0 = time.perf_counter(); connection.ensure_connection()
-setup = (time.perf_counter() - t0) * 1000
-ts = []
-for _ in range(5):
-    t = time.perf_counter()
-    with connection.cursor() as c:
-        c.execute('SELECT 1'); c.fetchone()
-    ts.append((time.perf_counter() - t) * 1000)
-ts.sort()
-print(f'  connection setup : {setup:7.0f} ms   (was ~2000 ms direct to Neon)')
-print(f'  query round-trip : {ts[len(ts)//2]:7.0f} ms   (unchanged — still cross-region)')
+try:
+    t0 = time.perf_counter()
+    connection.ensure_connection()
+    setup = (time.perf_counter() - t0) * 1000
+    ts = []
+    for _ in range(5):
+        t = time.perf_counter()
+        with connection.cursor() as c:
+            c.execute('SELECT 1'); c.fetchone()
+        ts.append((time.perf_counter() - t) * 1000)
+    ts.sort()
+    print(f'  connection setup : {setup:7.0f} ms   (was ~2000 ms direct to Neon)')
+    print(f'  query round-trip : {ts[len(ts)//2]:7.0f} ms   (unchanged — still cross-region)')
+except Exception as exc:
+    print(f'  could not query through the pool: {exc}'[:400], file=sys.stderr)
+    sys.exit(1)
 PY
 
 systemctl restart ccis-backend
-sleep 3
-echo
-echo "  end-to-end:"
+sleep 4
+
+hdr "End-to-end"
+FAILED=1
 for i in 1 2 3; do
-    curl -s -o /dev/null -w "    /api/health/  %{time_total}s\n" --max-time 30 \
-        "https://${DOMAIN:-ccis-codehub.space}/api/health/" || true
+    OUT=$(curl -s -o /dev/null -w '%{http_code} %{time_total}' --max-time 30 \
+        "https://${DOMAIN:-ccis-codehub.space}/api/health/" || echo "000 0")
+    echo "    /api/health/  ${OUT% *} in ${OUT#* }s"
+    [ "${OUT% *}" = "200" ] && FAILED=0
 done
+[ "$FAILED" -eq 0 ] || rollback
 
-cat <<'EOF'
+trap - ERR
+ok "pool is live and the site is healthy"
 
-Done. If anything misbehaves, roll back by restoring the DATABASE_URL line
-from DIRECT_DATABASE_URL in backend/.env and restarting ccis-backend.
+cat <<EOF
 
-Note: `manage.py migrate` still works through the pool, but if you hit an
-error mentioning prepared statements or cursors, run it against
-DIRECT_DATABASE_URL instead.
+Rollback if needed:
+  cp $BACKUP $ENV_FILE && systemctl restart ccis-backend
+
+Note: migrations run through the pool fine, but if you ever hit an error about
+prepared statements or cursors, run them against DIRECT_DATABASE_URL instead.
 EOF
