@@ -88,11 +88,46 @@ esac
 
 # ---------------------------------------------------------------------------
 hdr "Installing PgBouncer"
+
+pgb_version() { pgbouncer --version 2>/dev/null | head -1 | awk '{print $NF}'; }
+
+# PgBouncer only learned the `options` connect-string parameter in 1.23, and
+# without it there is no way to tell Neon which endpoint to route to (it does
+# not send TLS SNI). Ubuntu 24.04 ships 1.22, which fails to even load the
+# config: "unrecognized connection parameter: options".
+version_ok() {
+    local v; v=$(pgb_version) || return 1
+    [ -n "$v" ] || return 1
+    local major=${v%%.*} minor=${v#*.}; minor=${minor%%.*}
+    [ "$major" -gt 1 ] || { [ "$major" -eq 1 ] && [ "$minor" -ge 23 ]; }
+}
+
 if ! command -v pgbouncer >/dev/null 2>&1; then
     DEBIAN_FRONTEND=noninteractive apt-get update -qq
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq pgbouncer >/dev/null
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq pgbouncer >/dev/null || true
 fi
-ok "pgbouncer $(pgbouncer --version 2>/dev/null | head -1 | awk '{print $NF}')"
+
+if ! version_ok; then
+    echo "  distro pgbouncer is $(pgb_version || echo none) — need >= 1.23 for 'options'"
+    echo "  adding the PostgreSQL APT repository"
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq curl ca-certificates gnupg >/dev/null
+    install -d /usr/share/postgresql-common/pgdg
+    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+        -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+    CODENAME=$(. /etc/os-release && echo "$VERSION_CODENAME")
+    echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${CODENAME}-pgdg main" \
+        > /etc/apt/sources.list.d/pgdg.list
+    DEBIAN_FRONTEND=noninteractive apt-get update -qq
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --only-upgrade pgbouncer >/dev/null \
+        || DEBIAN_FRONTEND=noninteractive apt-get install -y -qq pgbouncer >/dev/null
+fi
+
+version_ok || die "pgbouncer $(pgb_version || echo none) is too old and no newer build is available.
+  Nothing has been changed — the site is untouched.
+  PgBouncer >= 1.23 is required because Neon identifies the target project from
+  TLS SNI, which PgBouncer does not send, and the only alternative is the
+  'options' connect-string parameter added in 1.23."
+ok "pgbouncer $(pgb_version)"
 
 # ---------------------------------------------------------------------------
 hdr "Writing configuration"
