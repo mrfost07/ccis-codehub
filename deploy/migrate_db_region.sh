@@ -134,6 +134,55 @@ dj_py() {
     ( cd "$BACKEND" && sudo -u "$DEPLOY_USER" env DATABASE_URL="$url" "$PY" - )
 }
 
+source_url() {   # the live database, as configured in .env
+    grep -m1 '^DATABASE_URL=' "$ENV_FILE" | cut -d= -f2- | tr -d "\"'"
+}
+
+# Compare the STRUCTURE of both databases: every column and every index.
+#
+# This is a stronger gate than matching row counts, and it is the check that
+# actually answers "is the target the same database". It was added after the
+# row-count gate stopped a migration over a single django_migrations row: the
+# source had token_blacklist.0013_alter_blacklistedtoken_options_and_more
+# applied by a newer simplejwt from a dev machine (local and production share
+# one Neon instance), while the pinned 5.3.1 does not ship it. That migration
+# is AlterModelOptions, which emits no DDL — and this comparison proved it,
+# 919 columns and 399 indexes identical, where the row count could only say
+# "different".
+schema_diff() {   # $1 = source url, $2 = target url
+    ( cd "$BACKEND" && sudo -u "$DEPLOY_USER" env S="$1" T="$2" "$PY" - ) <<'PY'
+import os, sys, psycopg2
+COLS = """SELECT table_name, column_name, data_type, is_nullable,
+                 coalesce(column_default,''), coalesce(character_maximum_length,-1)
+          FROM information_schema.columns WHERE table_schema='public'
+          ORDER BY table_name, column_name"""
+IDX  = """SELECT tablename, indexname, indexdef FROM pg_indexes
+          WHERE schemaname='public' ORDER BY tablename, indexname"""
+
+def snap(url):
+    con = psycopg2.connect(url); cur = con.cursor()
+    cur.execute(COLS); cols = [tuple(map(str, r)) for r in cur.fetchall()]
+    cur.execute(IDX);  idx  = [tuple(map(str, r)) for r in cur.fetchall()]
+    cur.close(); con.close()
+    return cols, idx
+
+src_cols, src_idx = snap(os.environ['S'])
+tgt_cols, tgt_idx = snap(os.environ['T'])
+ok = True
+for label, a, b in (('columns', src_cols, tgt_cols), ('indexes', src_idx, tgt_idx)):
+    only_src = sorted(set(a) - set(b))
+    only_tgt = sorted(set(b) - set(a))
+    if only_src or only_tgt:
+        ok = False
+        print(f'  {label}: {len(only_src)} only in source, {len(only_tgt)} only in target')
+        for r in only_src[:25]: print('    SOURCE only:', r)
+        for r in only_tgt[:25]: print('    TARGET only:', r)
+    else:
+        print(f'  {label}: identical ({len(a)})')
+sys.exit(0 if ok else 1)
+PY
+}
+
 row_counts() {   # $1 = url ; writes "table count" lines to stdout
     dj_py "$1" <<'PY'
 import os, django
@@ -182,7 +231,7 @@ lat.sort()
 print(f'  SELECT 1 median: {lat[len(lat)//2]:.1f} ms   (us-east-1 measured 228 ms)')
 PY
     hdr "Source database (live)"
-    row_counts "$(grep -m1 '^DATABASE_URL=' "$ENV_FILE" | cut -d= -f2- | tr -d '"'"'"'')" > "$ROWS_BEFORE" \
+    row_counts "$(source_url)" > "$ROWS_BEFORE" \
         || die "could not read the live database"
     ok "$(wc -l < "$ROWS_BEFORE") tables counted -> $ROWS_BEFORE"
     echo
@@ -264,7 +313,16 @@ import sys
 #   django_admin_log      excluded from the export on purpose
 #   django_content_type   rebuilt by migrate; stale ai_proctor rows not recreated
 #   auth_permission       same
-ALLOWED = {'django_admin_log', 'django_content_type', 'auth_permission'}
+#   django_migrations     a ledger of every migration EVER applied to that
+#                         database, not data. A long-lived database accumulates
+#                         rows for migration files that no longer ship, so it
+#                         differs almost by definition - the source here had one
+#                         extra, applied by a newer simplejwt from a dev box.
+#                         Comparing it says nothing about whether data arrived;
+#                         "does the schema match the code" is covered properly
+#                         by the schema diff and by showmigrations below.
+ALLOWED = {'django_admin_log', 'django_content_type', 'auth_permission',
+           'django_migrations'}
 
 def load(p):
     d = {}
@@ -297,6 +355,11 @@ if bad or missing:
 print(f'\n  {len(before)} tables match (excluding the 3 expected above)')
 PY
     ok "row counts match"
+
+    hdr "Comparing schemas (every column and index)"
+    # Runs before .env is rewritten, so source_url is still the old database.
+    schema_diff "$(source_url)" "$URL" || die "schema mismatch — do not switch"
+    ok "schemas identical"
 
     hdr "Migration state"
     unapplied="$(dj "$URL" showmigrations | grep -c '\[ \]' || true)"
