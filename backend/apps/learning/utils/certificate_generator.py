@@ -1,167 +1,269 @@
 """
-Certificate PDF Generator Utility
+Completion-certificate renderer.
 
-Generates downloadable PDF certificates when users complete career paths.
-Uses Pillow for image manipulation and ReportLab for PDF generation.
+One design, composed here. The institutional marks, the university and college
+names, the CEO block and the certificate ID are fixed; the only per-path
+variable is CareerPath.certificate_title, and the instructor name comes from
+CareerPath.instructor. That is deliberate: a second design would drift from
+this one, and the preview shown while creating a path would stop matching what
+students actually receive.
+
+CareerPath.certificate_template is intentionally ignored. It used to be opened
+as a background image, which meant:
+  - a .pdf upload (the modal accepted them, Pillow cannot read them) raised
+    inside a bare `except Exception`, returned None, and the certificate
+    silently never appeared;
+  - text was drawn at hardcoded 48/64/32px on whatever size the upload was, so
+    a long name or path title ran off the edge with no wrapping or fitting.
+The column is kept so no uploaded file is lost, but nothing reads it.
+
+Public entry point keeps its original name and signature because three call
+sites depend on it, and returns the media-relative URL of the PNG. A PDF is
+written alongside for printing.
+
+    generate_certificate_pdf(certificate, career_path) -> '/media/.../x.png'
 """
+import logging
 import os
-import uuid
 from datetime import datetime
+
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
+
+# ── Canvas ────────────────────────────────────────────────────────────────────
+WIDTH, HEIGHT = 2000, 1414          # A4 landscape at ~170dpi, prints cleanly
+CREAM = (253, 250, 244)
+INK = (41, 37, 36)
+MUTED = (120, 113, 108)
+VIOLET = (91, 33, 182)
+GOLD = (180, 142, 63)
+
+ASSET_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'certificate_assets')
+SIGNATURE_PATH = os.path.join(
+    settings.MEDIA_ROOT, 'certificates', 'signatures', 'ceo-signature.png'
+)
+
+CEO_NAME = 'Mark Renier B. Fostanes'
+CEO_TITLE = 'Chief Executive Officer, CCIS-CodeHub'
+UNIVERSITY = 'SURIGAO DEL NORTE STATE UNIVERSITY'
+COLLEGE = 'College of Computing and Information Sciences'
+DEFAULT_TITLE = 'Certificate of Completion'
+
+# Font resolution: bundled first so the look is identical on every machine,
+# then common Linux families, then Pillow's own scalable default. The previous
+# version ended at ImageFont.load_default() with NO size, which is an 11px
+# bitmap - on a server without arial or DejaVu every certificate rendered with
+# microscopic text at 64px positions.
+_SERIF_CANDIDATES = [
+    '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf',
+    '/usr/share/fonts/truetype/liberation/LiberationSerif-Bold.ttf',
+    'C:/Windows/Fonts/georgiab.ttf',
+    'C:/Windows/Fonts/timesbd.ttf',
+]
+_SANS_CANDIDATES = [
+    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+    '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+    'C:/Windows/Fonts/segoeui.ttf',
+    'C:/Windows/Fonts/arial.ttf',
+]
+
+
+def _bundled(*keywords):
+    """A bundled font whose filename contains all keywords, if one exists."""
+    fonts_dir = os.path.join(ASSET_DIR, 'fonts')
+    if not os.path.isdir(fonts_dir):
+        return None
+    for name in sorted(os.listdir(fonts_dir)):
+        lowered = name.lower()
+        if lowered.endswith(('.ttf', '.otf')) and all(k in lowered for k in keywords):
+            return os.path.join(fonts_dir, name)
+    return None
+
+
+def _resolve(candidates, *keywords):
+    return (
+        _bundled(*keywords)
+        or _bundled()
+        or next((path for path in candidates if os.path.exists(path)), None)
+    )
+
+
+class Fonts:
+    """Lazily resolved font pair, with a scalable fallback that stays legible."""
+
+    def __init__(self):
+        self.serif = _resolve(_SERIF_CANDIDATES, 'bold')
+        self.sans = _resolve(_SANS_CANDIDATES, 'regular')
+        logger.info('certificate fonts: serif=%s sans=%s', self.serif, self.sans)
+
+    def load(self, family, size):
+        from PIL import ImageFont
+
+        path = self.serif if family == 'serif' else self.sans
+        if path:
+            try:
+                return ImageFont.truetype(path, size)
+            except OSError:
+                logger.warning('could not load font %s, falling back', path)
+        # Scalable since Pillow 10.1 - plain, but readable at any size.
+        return ImageFont.load_default(size=size)
+
+    def fit(self, draw, text, family, max_width, size, minimum=18):
+        """Largest size at or below `size` where `text` fits `max_width`."""
+        while size > minimum:
+            font = self.load(family, size)
+            if draw.textlength(text, font=font) <= max_width:
+                return font
+            size -= 2
+        return self.load(family, minimum)
+
+
+def _centre(draw, text, font, fill, y, width=WIDTH):
+    draw.text(((width - draw.textlength(text, font=font)) / 2, y), text, font=font, fill=fill)
+
+
+def _tracked(draw, text, font, fill, y, spacing, width=WIDTH):
+    """Letter-spaced centred text, for the institutional header."""
+    widths = [draw.textlength(ch, font=font) for ch in text]
+    total = sum(widths) + spacing * (len(text) - 1)
+    x = (width - total) / 2
+    for ch, w in zip(text, widths):
+        draw.text((x, y), ch, font=font, fill=fill)
+        x += w + spacing
+
+
+def _paste_contained(canvas, path, centre_x, centre_y, box):
+    """Paste an RGBA asset scaled to fit `box`, centred. Silently skips if absent."""
+    if not os.path.exists(path):
+        logger.warning('certificate asset missing: %s', path)
+        return 0
+    from PIL import Image
+
+    art = Image.open(path).convert('RGBA')
+    scale = min(box / art.width, box / art.height)
+    art = art.resize((max(1, round(art.width * scale)), max(1, round(art.height * scale))),
+                     Image.LANCZOS)
+    canvas.paste(art, (round(centre_x - art.width / 2), round(centre_y - art.height / 2)), art)
+    return art.height
+
+
+def render_certificate(certificate, career_path):
+    """Compose the certificate and return it as an RGB image."""
+    from PIL import Image, ImageDraw
+
+    fonts = Fonts()
+    canvas = Image.new('RGB', (WIDTH, HEIGHT), CREAM)
+    draw = ImageDraw.Draw(canvas)
+
+    # Borders: a heavy violet rule with a fine gold companion inside it.
+    draw.rectangle([44, 44, WIDTH - 44, HEIGHT - 44], outline=VIOLET, width=7)
+    draw.rectangle([64, 64, WIDTH - 64, HEIGHT - 64], outline=GOLD, width=2)
+    for x, y, dx, dy in ((64, 64, 1, 1), (WIDTH - 64, 64, -1, 1),
+                         (64, HEIGHT - 64, 1, -1), (WIDTH - 64, HEIGHT - 64, -1, -1)):
+        draw.line([(x, y), (x + 70 * dx, y)], fill=VIOLET, width=5)
+        draw.line([(x, y), (x, y + 70 * dy)], fill=VIOLET, width=5)
+
+    # Seals, flanking the header.
+    _paste_contained(canvas, os.path.join(ASSET_DIR, 'snsu-logo.png'), 300, 250, 230)
+    _paste_contained(canvas, os.path.join(ASSET_DIR, 'ccis-logo.png'), WIDTH - 300, 250, 230)
+
+    _tracked(draw, UNIVERSITY, fonts.load('serif', 40), INK, 190, 5)
+    _centre(draw, COLLEGE, fonts.load('sans', 30), MUTED, 254)
+
+    title = (getattr(career_path, 'certificate_title', '') or DEFAULT_TITLE).strip()
+    title_font = fonts.fit(draw, title.upper(), 'serif', WIDTH - 700, 92)
+    _centre(draw, title.upper(), title_font, VIOLET, 400)
+    draw.line([(WIDTH / 2 - 190, 520), (WIDTH / 2 + 190, 520)], fill=GOLD, width=3)
+
+    _centre(draw, 'This is to certify that', fonts.load('sans', 34), MUTED, 580)
+
+    user = certificate.user
+    student = (f'{user.first_name} {user.last_name}'.strip() or user.username).upper()
+    _centre(draw, student, fonts.fit(draw, student, 'serif', WIDTH - 500, 96), INK, 660)
+    draw.line([(360, 790), (WIDTH - 360, 790)], fill=MUTED, width=2)
+
+    _centre(draw, 'has successfully completed the learning path',
+            fonts.load('sans', 34), MUTED, 830)
+    path_name = career_path.name
+    _centre(draw, path_name, fonts.fit(draw, path_name, 'serif', WIDTH - 500, 62), VIOLET, 900)
+
+    issued = getattr(certificate, 'issued_at', None) or datetime.now()
+    _centre(draw, f'Issued on {issued.strftime("%B %d, %Y")}',
+            fonts.load('sans', 30), MUTED, 1000)
+
+    # Signature blocks. Instructor left, CEO right with the scanned signature
+    # sitting above the rule.
+    #
+    # The vertical rhythm below is deliberate: signature art, rule, name, role,
+    # then the reference band. The first attempt put the rule at 1210 and the
+    # certificate ID at HEIGHT-150, which are only eight pixels apart, so the ID
+    # collided with "Chief Executive Officer". Keep at least 50px between the
+    # role labels and the reference band when adjusting these.
+    line_y = 1150
+    for centre_x, name, role, signature in (
+        (560, _instructor_name(career_path), 'Course Instructor', None),
+        (WIDTH - 560, CEO_NAME, CEO_TITLE, SIGNATURE_PATH),
+    ):
+        if signature:
+            _paste_contained(canvas, signature, centre_x, line_y - 74, 170)
+        draw.line([(centre_x - 300, line_y), (centre_x + 300, line_y)], fill=INK, width=2)
+        name_font = fonts.fit(draw, name, 'serif', 580, 36)
+        draw.text((centre_x - draw.textlength(name, font=name_font) / 2, line_y + 16),
+                  name, font=name_font, fill=INK)
+        role_font = fonts.load('sans', 24)
+        draw.text((centre_x - draw.textlength(role, font=role_font) / 2, line_y + 60),
+                  role, font=role_font, fill=MUTED)
+
+    # Sits in the clear channel between the two signature rules.
+    _paste_contained(canvas, os.path.join(ASSET_DIR, 'codehub-logo-dark.png'),
+                     WIDTH / 2, line_y - 30, 86)
+
+    reference = f'Certificate ID  {certificate.certificate_id}'
+    _centre(draw, reference, fonts.load('sans', 24), MUTED, HEIGHT - 128)
+    _centre(draw, 'Verify this certificate at ccis-codehub.space',
+            fonts.load('sans', 21), MUTED, HEIGHT - 92)
+    return canvas
+
+
+def _instructor_name(career_path):
+    instructor = getattr(career_path, 'instructor', None)
+    if instructor is None:
+        return 'CCIS-CodeHub Faculty'
+    return f'{instructor.first_name} {instructor.last_name}'.strip() or instructor.username
 
 
 def generate_certificate_pdf(certificate, career_path):
     """
-    Generate a PDF certificate for a completed career path.
-    
-    Args:
-        certificate: Certificate model instance
-        career_path: CareerPath model instance
-        
-    Returns:
-        str: URL path to the generated PDF, or None if generation failed
+    Render and store the certificate.
+
+    Returns the media-relative URL of the PNG, which callers assign to
+    Certificate.pdf_url, or None if rendering failed. A PDF of the same image is
+    written beside it for printing.
+
+    The filename is derived from certificate_id rather than a random suffix, so
+    regenerating replaces the file instead of leaving an orphan behind every
+    time the claim endpoint is called.
     """
     try:
-        from PIL import Image, ImageDraw, ImageFont
-        from io import BytesIO
-        
-        # Get user info
-        user = certificate.user
-        user_name = f"{user.first_name} {user.last_name}".strip() or user.username
-        
-        # Create certificates directory if not exists
-        cert_dir = os.path.join(settings.MEDIA_ROOT, 'certificates', 'issued')
-        os.makedirs(cert_dir, exist_ok=True)
-        
-        # Generate unique filename
-        filename = f"cert_{certificate.certificate_id}_{uuid.uuid4().hex[:8]}.png"
-        filepath = os.path.join(cert_dir, filename)
-        
-        # Check if career path has a custom template
-        if career_path.certificate_template and hasattr(career_path.certificate_template, 'path'):
-            template_path = career_path.certificate_template.path
-            if os.path.exists(template_path):
-                # Use custom template
-                img = Image.open(template_path).convert('RGBA')
-            else:
-                img = _create_default_certificate(career_path)
-        else:
-            # Create default certificate
-            img = _create_default_certificate(career_path)
-        
-        # Draw text on certificate
-        draw = ImageDraw.Draw(img)
-        width, height = img.size
-        
-        # Try to load fonts (fallback to default if not available)
-        try:
-            # Try common system fonts
-            title_font = ImageFont.truetype("arial.ttf", 48)
-            name_font = ImageFont.truetype("arial.ttf", 64)
-            detail_font = ImageFont.truetype("arial.ttf", 32)
-        except (OSError, IOError):
-            try:
-                # Try DejaVu fonts (common on Linux)
-                title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 48)
-                name_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 64)
-                detail_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 32)
-            except (OSError, IOError):
-                # Use default font
-                title_font = ImageFont.load_default()
-                name_font = ImageFont.load_default()
-                detail_font = ImageFont.load_default()
-        
-        # Colors
-        text_color = (30, 41, 59)  # Dark slate
-        accent_color = (99, 102, 241)  # Indigo
-        
-        # Draw "Certificate of Completion"
-        _draw_centered_text(draw, "CERTIFICATE OF COMPLETION", title_font, text_color, width, height * 0.15)
-        
-        # Draw "This is to certify that"
-        _draw_centered_text(draw, "This is to certify that", detail_font, text_color, width, height * 0.30)
-        
-        # Draw user name (large)
-        _draw_centered_text(draw, user_name.upper(), name_font, accent_color, width, height * 0.42)
-        
-        # Draw "has successfully completed"
-        _draw_centered_text(draw, "has successfully completed", detail_font, text_color, width, height * 0.53)
-        
-        # Draw course name
-        _draw_centered_text(draw, career_path.name, name_font, text_color, width, height * 0.65)
-        
-        # Draw date
-        date_str = datetime.now().strftime("%B %d, %Y")
-        _draw_centered_text(draw, f"Issued on {date_str}", detail_font, text_color, width, height * 0.80)
-        
-        # Draw certificate ID
-        _draw_centered_text(draw, f"Certificate ID: {certificate.certificate_id}", detail_font, (148, 163, 184), width, height * 0.90)
-        
-        # Save image
-        img = img.convert('RGB')
-        img.save(filepath, 'PNG', quality=95)
-        
-        # Return the URL path
-        relative_path = f'/media/certificates/issued/{filename}'
-        return relative_path
-        
-    except ImportError as e:
-        print(f"Pillow not installed, cannot generate certificate: {e}")
+        target_dir = os.path.join(settings.MEDIA_ROOT, 'certificates', 'issued')
+        os.makedirs(target_dir, exist_ok=True)
+
+        safe_id = ''.join(c if c.isalnum() or c in '-_' else '-'
+                          for c in str(certificate.certificate_id))
+        stem = f'cert_{safe_id}'
+
+        image = render_certificate(certificate, career_path)
+        image.save(os.path.join(target_dir, f'{stem}.png'), 'PNG')
+        image.save(os.path.join(target_dir, f'{stem}.pdf'), 'PDF', resolution=170.0)
+
+        return f'/media/certificates/issued/{stem}.png'
+    except Exception:
+        # Logged rather than printed: these run inside a request, and a
+        # swallowed traceback here is why broken certificates looked like
+        # "not earned yet" instead of an error.
+        logger.exception(
+            'certificate rendering failed for %s / %s',
+            getattr(certificate, 'certificate_id', '?'), getattr(career_path, 'name', '?'),
+        )
         return None
-    except Exception as e:
-        print(f"Error generating certificate: {e}")
-        import traceback
-        traceback.print_exc()
-        return None
-
-
-def _create_default_certificate(career_path):
-    """Create a default certificate template image"""
-    from PIL import Image, ImageDraw
-    
-    # Create a nice gradient background
-    width, height = 1200, 850
-    img = Image.new('RGB', (width, height), (255, 255, 255))
-    draw = ImageDraw.Draw(img)
-    
-    # Draw gradient background (subtle)
-    for y in range(height):
-        r = int(248 - (y / height) * 10)
-        g = int(250 - (y / height) * 10)
-        b = int(252 - (y / height) * 5)
-        draw.line([(0, y), (width, y)], fill=(r, g, b))
-    
-    # Draw border
-    border_color = (99, 102, 241)  # Indigo
-    draw.rectangle([20, 20, width-20, height-20], outline=border_color, width=3)
-    draw.rectangle([30, 30, width-30, height-30], outline=border_color, width=1)
-    
-    # Draw decorative corners
-    corner_size = 50
-    # Top left
-    draw.line([(30, 30), (30 + corner_size, 30)], fill=border_color, width=3)
-    draw.line([(30, 30), (30, 30 + corner_size)], fill=border_color, width=3)
-    # Top right
-    draw.line([(width-30, 30), (width-30-corner_size, 30)], fill=border_color, width=3)
-    draw.line([(width-30, 30), (width-30, 30 + corner_size)], fill=border_color, width=3)
-    # Bottom left
-    draw.line([(30, height-30), (30 + corner_size, height-30)], fill=border_color, width=3)
-    draw.line([(30, height-30), (30, height-30-corner_size)], fill=border_color, width=3)
-    # Bottom right
-    draw.line([(width-30, height-30), (width-30-corner_size, height-30)], fill=border_color, width=3)
-    draw.line([(width-30, height-30), (width-30, height-30-corner_size)], fill=border_color, width=3)
-    
-    return img
-
-
-def _draw_centered_text(draw, text, font, color, width, y):
-    """Draw centered text at specified y position"""
-    try:
-        bbox = draw.textbbox((0, 0), text, font=font)
-        text_width = bbox[2] - bbox[0]
-    except AttributeError:
-        # Fallback for older Pillow versions
-        text_width = len(text) * 10  # Rough estimate
-    
-    x = (width - text_width) / 2
-    draw.text((x, y), text, font=font, fill=color)

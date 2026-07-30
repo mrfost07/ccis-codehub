@@ -48,7 +48,21 @@ class CareerPath(models.Model):
     required_skills = models.JSONField(default=list, blank=True)
     icon = models.URLField(blank=True, null=True)
     color = models.CharField(max_length=7, default='#6366f1')
-    certificate_template = models.FileField(upload_to='certificates/templates/', blank=True, null=True, help_text='Certificate template for course completion')
+    # Kept so no previously uploaded file is lost, but NOTHING reads it any
+    # more. It used to be opened as the certificate background, which meant a
+    # .pdf upload silently produced no certificate at all (Pillow cannot read
+    # PDFs, and the error was swallowed) and text was stamped at fixed sizes
+    # over whatever dimensions the upload happened to have. The certificate is
+    # composed by apps/learning/utils/certificate_generator.py instead.
+    certificate_template = models.FileField(upload_to='certificates/templates/', blank=True, null=True, help_text='Deprecated and unused. The certificate is generated from a fixed design.')
+
+    # The one part of the certificate an instructor may change. Everything else
+    # on it - the seals, the university and college names, the CEO block and
+    # the signature - is fixed by design so every certificate looks the same.
+    certificate_title = models.CharField(
+        max_length=120, blank=True, default='',
+        help_text='Heading printed on the certificate. Blank uses "Certificate of Completion".',
+    )
     skills_granted = models.JSONField(
         default=list, blank=True,
         help_text='List of skills granted on path completion. Format: [{"name": "Python", "category": "Programming Language", "level": "intermediate"}]'
