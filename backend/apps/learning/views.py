@@ -12,7 +12,8 @@ from django.utils import timezone
 from .models import (
     CareerPath, LearningModule, Quiz, Question, QuestionChoice,
     UserProgress, QuizAttempt, Answer, Certificate, Enrollment,
-    ModuleProgress, AchievedSkill, BadgeDefinition, UserBadge, LeaderboardSnapshot
+    ModuleProgress, AchievedSkill, BadgeDefinition, UserBadge, LeaderboardSnapshot,
+    build_certificate_id,
 )
 from .serializers import (
     CareerPathSerializer, LearningModuleSerializer, LearningModuleListSerializer,
@@ -377,7 +378,7 @@ class LearningModuleViewSet(viewsets.ModelViewSet):
                         user=user,
                         career_path=career_path,
                         defaults={
-                            'certificate_id': f'CERT-{user.id}-{str(career_path.id)[:8]}',
+                            'certificate_id': build_certificate_id(user, career_path),
                             'issued_at': timezone.now(),
                             'enrollment': enrollment
                         }
@@ -900,7 +901,7 @@ class CertificateViewSet(viewsets.ReadOnlyModelViewSet):
         enrollment.completed_at = timezone.now()
         enrollment.save()
         
-        cert_id = f'CCIS-{timezone.now().year}-{str(request.user.id)[:6].upper()}-{str(career_path.id)[:6].upper()}'
+        cert_id = build_certificate_id(request.user, career_path)
         cert, created = Certificate.objects.get_or_create(
             user=request.user,
             career_path=career_path,

@@ -342,9 +342,35 @@ class ModuleProgress(models.Model):
         return f"{self.user.username} - {self.module.title} ({self.status})"
 
 
+def build_certificate_id(user, career_path, year=None):
+    """
+    Short, stable, non-identifying certificate reference.
+
+    Two formats existed before this, one per issuing code path, so the reference
+    printed on a certificate depended on which endpoint happened to create it:
+
+        views.py auto-issue   CERT-{user.id}-{path.id[:8]}
+        views.py claim        CCIS-{year}-{uid[:6]}-{pathid[:6]}
+
+    The first put the holder's FULL user UUID on a document students share
+    publicly, 53 characters wide. Both are replaced by this one function so the
+    two call sites cannot drift again.
+
+    Deterministic in (user, path): re-issuing yields the same reference, which
+    keeps the rendered filename stable instead of orphaning a file per
+    regeneration. 40 bits of digest keeps accidental collisions negligible at
+    this scale - a few thousand certificates sit far below the birthday bound of
+    roughly a million.
+    """
+    import hashlib
+
+    digest = hashlib.sha256(f'{user.pk}:{career_path.pk}'.encode()).hexdigest()
+    return f'CCIS-{year or timezone.now().year}-{digest[:10].upper()}'
+
+
 class Certificate(models.Model):
     """Certificates earned by users"""
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='certificates')
     career_path = models.ForeignKey(CareerPath, on_delete=models.CASCADE)

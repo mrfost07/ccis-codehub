@@ -219,10 +219,13 @@ def render_certificate(certificate, career_path):
     _paste_contained(canvas, os.path.join(ASSET_DIR, 'codehub-logo-dark.png'),
                      WIDTH / 2, line_y - 30, 86)
 
+    # Reference only. There used to be a second line reading "Verify this
+    # certificate at ccis-codehub.space" - removed, because no verification
+    # endpoint or page exists anywhere in the project. Printing a promise the
+    # site cannot keep on a document a student hands to an employer is worse
+    # than printing nothing. If verification is ever built, put it back.
     reference = f'Certificate ID  {certificate.certificate_id}'
-    _centre(draw, reference, fonts.load('sans', 24), MUTED, HEIGHT - 128)
-    _centre(draw, 'Verify this certificate at ccis-codehub.space',
-            fonts.load('sans', 21), MUTED, HEIGHT - 92)
+    _centre(draw, reference, fonts.load('sans', 24), MUTED, HEIGHT - 112)
     return canvas
 
 

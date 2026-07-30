@@ -179,6 +179,54 @@ class CertificateRendering(TestCase):
         self.assertEqual(gen._instructor_name(self.path), 'CCIS-CodeHub Faculty')
         self.assertIsNotNone(gen.render_certificate(self.make_certificate(), self.path))
 
+    # -- the reference printed on the document ------------------------------
+
+    def test_the_reference_is_short_and_leaks_no_user_uuid(self):
+        from apps.learning.models import build_certificate_id
+
+        reference = build_certificate_id(self.student, self.path)
+
+        self.assertRegex(reference, r'^CCIS-\d{4}-[0-9A-F]{10}$', reference)
+        self.assertLessEqual(len(reference), 20, f'{reference} is too long to print')
+        self.assertNotIn(
+            str(self.student.pk), reference,
+            'the holder user id appears in the reference printed on the certificate',
+        )
+        self.assertNotIn(str(self.path.pk), reference, 'the path id appears in the reference')
+
+    def test_the_reference_is_stable_for_the_same_holder_and_path(self):
+        # Filenames derive from it, so an unstable reference orphans a file on
+        # every regeneration.
+        from apps.learning.models import build_certificate_id
+
+        self.assertEqual(
+            build_certificate_id(self.student, self.path, year=2026),
+            build_certificate_id(self.student, self.path, year=2026),
+        )
+
+    def test_different_holders_get_different_references(self):
+        from apps.learning.models import build_certificate_id
+
+        other = User.objects.create_user(
+            username='cert_other', email='other@ssct.edu.ph', password='x', role='student',
+        )
+        self.assertNotEqual(
+            build_certificate_id(self.student, self.path),
+            build_certificate_id(other, self.path),
+        )
+
+    def test_no_unverifiable_verification_claim_is_printed(self):
+        # The renderer used to print "Verify this certificate at
+        # ccis-codehub.space" while no verification endpoint or page existed
+        # anywhere in the project.
+        import inspect
+
+        source = inspect.getsource(gen.render_certificate)
+        self.assertNotIn(
+            'Verify this certificate', source,
+            'the certificate claims it can be verified, but nothing verifies it',
+        )
+
     # -- fonts -------------------------------------------------------------
 
     def test_font_fallback_is_scalable_not_an_eleven_pixel_bitmap(self):
