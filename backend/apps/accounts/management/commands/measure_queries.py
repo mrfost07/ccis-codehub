@@ -137,6 +137,7 @@ class Command(BaseCommand):
 
         roles = options['roles'] or ['student', 'instructor', 'admin']
         worst = {}
+        statuses = {}
         measured = skipped = 0
 
         for role in roles:
@@ -151,7 +152,12 @@ class Command(BaseCommand):
                 started = time.perf_counter()
                 try:
                     with CaptureQueriesContext(connection) as captured:
-                        response = client.get(url)
+                        # secure=True is required, not cosmetic: production sets
+                        # SECURE_SSL_REDIRECT, so SecurityMiddleware answers every
+                        # plain-HTTP request with a 301 before any view runs. Over
+                        # HTTP this reported "0 endpoints returned 200" for all 141
+                        # routes on a perfectly healthy server.
+                        response = client.get(url, secure=True)
                     elapsed_ms = (time.perf_counter() - started) * 1000
                     count, status = len(captured.captured_queries), response.status_code
                 except Exception as exc:                      # noqa: BLE001
@@ -161,6 +167,7 @@ class Command(BaseCommand):
                     skipped += 1
                     continue
                 measured += 1
+                statuses[status] = statuses.get(status, 0) + 1
                 if status != 200:
                     continue
                 if count > worst.get(url, (0,))[0]:
@@ -186,6 +193,21 @@ class Command(BaseCommand):
             f'{len(worst)} endpoints returned 200 of {len(routes)} discovered '
             f'({measured} requests, {skipped} errored)'
         )
+        # Always print the status breakdown. Without it, "0 endpoints returned
+        # 200" gives no clue whether the server is broken or the harness is —
+        # a wall of 301s says SSL redirect, a wall of 401s says auth.
+        if statuses:
+            self.stdout.write(
+                'response codes: ' + '  '.join(
+                    f'{code}x{n}' for code, n in sorted(statuses.items())
+                )
+            )
+            if not worst:
+                self.stdout.write(self.style.WARNING(
+                    'Nothing returned 200. 301 means SECURE_SSL_REDIRECT (this '
+                    'command should be sending secure=True); 401 means the JWTs '
+                    'were rejected; 400 usually means ALLOWED_HOSTS.'
+                ))
         self.stdout.write(
             f'worst-role totals: {sum(totals)} queries, {total_ms:.0f} ms, '
             f'max {max(totals) if totals else 0} queries on one endpoint'
