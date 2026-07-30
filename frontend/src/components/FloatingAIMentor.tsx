@@ -176,7 +176,12 @@ export default function FloatingAIMentor() {
   const [isFirstMessage, setIsFirstMessage] = useState(true)
   const [usedSuggestions, setUsedSuggestions] = useState<Set<string>>(new Set())
   const [userRole, setUserRole] = useState<string>('student')
-  const streamingIntervalRef = useRef<number | null>(null)
+  // ReturnType<typeof setInterval>, not number: in the browser setInterval
+  // returns a number, but under Node's types it returns a Timeout object. Both
+  // are in scope now that vitest/jsdom types are part of the typecheck, and
+  // hardcoding `number` broke `tsc` (and therefore `npm run build`) as soon as
+  // they were. This form is correct under either lib.
+  const streamingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const actionHandlerRef = useRef<AIActionHandler | null>(null)
   const shouldStopRef = useRef(false)
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
