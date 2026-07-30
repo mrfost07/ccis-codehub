@@ -130,32 +130,40 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
   }
 
   const handleSubmit = async () => {
+    // Kept as a fallback only, for the unlikely case the server omits a figure.
     const { earned, total, percentage } = calculateScore()
-    const quizPassed = percentage >= passingScore
     const timeTaken = Math.floor((Date.now() - startTime) / 1000)
 
     try {
       setSubmitting(true)
+      // The answers are what gets sent; the server grades them and its result
+      // is what we display. This used to post `score` and nothing else, so the
+      // browser was both the only thing that knew the correct answers and the
+      // sole authority on the grade - a student could post any score they liked.
       const response = await api.post(`/learning/quizzes/${quizId}/submit_simple/`, {
-        score: percentage,
-        points_earned: earned,
-        total_points: total,
+        answers,
         time_taken_seconds: timeTaken
       })
 
-      setScore(percentage)
-      setPointsEarned(earned)
-      setTotalPoints(total)
+      // Everything shown comes from the server's grading, including pass/fail.
+      // Reporting the locally computed result would mean a student sees one
+      // outcome while a different one is recorded against them.
+      const serverScore = response.data.score ?? percentage
+      const serverPassed = response.data.passed ?? serverScore >= passingScore
+
+      setScore(serverScore)
+      setPointsEarned(response.data.points_earned ?? earned)
+      setTotalPoints(response.data.total_points ?? total)
       setAttemptsUsed(response.data.attempts_used || 1)
       setAttemptsRemaining(response.data.attempts_remaining || 0)
-      setQuizState(quizPassed ? 'passed' : 'failed')
+      setQuizState(serverPassed ? 'passed' : 'failed')
 
-      if (quizPassed) {
-        toast.success(`Congratulations! You passed with ${percentage}%.`)
-        onComplete(percentage, true)
+      if (serverPassed) {
+        toast.success(`Congratulations! You passed with ${serverScore}%.`)
+        onComplete(serverScore, true)
       } else {
-        toast.error(`Score: ${percentage}%. You need ${passingScore}% to pass.`)
-        onComplete(percentage, false)
+        toast.error(`Score: ${serverScore}%. You need ${passingScore}% to pass.`)
+        onComplete(serverScore, false)
       }
     } catch (error: any) {
       console.error('Failed to submit quiz:', error)

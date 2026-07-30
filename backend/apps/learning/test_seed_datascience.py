@@ -203,6 +203,53 @@ class SeededQuizzesAreNotGuessable(TestCase):
             )
 
 
+class SeededQuizzesGradeOnTheServer(TestCase):
+    """
+    The seed renders markup for the browser; the server now grades it.
+
+    Both read the same HTML with the same regexes, but from different files -
+    QuizViewer.tsx and apps/learning/quiz_content.py. If they ever disagree a
+    student sees one result and gets recorded with another, so this asserts the
+    server reaches 100% on the answers the seed declares correct.
+    """
+
+    def test_answering_as_declared_scores_full_marks(self):
+        from apps.learning.quiz_content import score_submission
+
+        for module in MODULES:
+            quiz = module['quiz']
+            content = render_quiz(quiz['questions'])
+            answers = {
+                number: [str(question['correct'] + 1)]
+                for number, question in enumerate(quiz['questions'], start=1)
+            }
+            percentage, earned, total, detail = score_submission(content, answers)
+
+            ungradable = [q['number'] for q in detail if not q['answerable']]
+            self.assertEqual(ungradable, [], f'{quiz["title"]}: no answer key on {ungradable}')
+            self.assertEqual(
+                percentage, 100,
+                f'{quiz["title"]}: server graded the declared answers as '
+                f'{percentage}% ({earned}/{total}). The server parser and the '
+                f'seed renderer disagree about this markup.',
+            )
+
+    def test_answering_everything_wrong_scores_zero(self):
+        from apps.learning.quiz_content import score_submission
+
+        for module in MODULES:
+            quiz = module['quiz']
+            content = render_quiz(quiz['questions'])
+            answers = {}
+            for number, question in enumerate(quiz['questions'], start=1):
+                count = 2 if question.get('true_false') else len(question['choices'])
+                wrong = next(i for i in range(count) if i != question['correct'])
+                answers[number] = [str(wrong + 1)]
+
+            percentage, _earned, _total, _detail = score_submission(content, answers)
+            self.assertEqual(percentage, 0, quiz['title'])
+
+
 class SeededModulesAreMultiSlide(TestCase):
     def test_each_module_has_several_slides_with_titles_and_bodies(self):
         for module in MODULES:

@@ -1,6 +1,8 @@
 """
 Views for Learning app
 """
+import logging
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -8,6 +10,8 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from django.db.models import Count, Prefetch
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 
 from .models import (
     CareerPath, LearningModule, Quiz, Question, QuestionChoice,
@@ -643,27 +647,67 @@ class QuizViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def submit_simple(self, request, pk=None):
-        """Submit slide-based quiz results (simplified for slide-based quizzes)"""
+        """
+        Grade a slide-based quiz submission.
+
+        The score is computed here from the answers and the quiz content. It used
+        to be read straight out of the request body:
+
+            score = request.data.get('score', 0)
+
+        so any student could post their own grade, and the browser was the only
+        thing that ever saw the correct answers. Req 7 of the remediation spec
+        closed this on the `submit` endpoint below but not on this one, which is
+        the endpoint the module quiz flow actually uses.
+
+        `answers` maps question number -> chosen choice ids. A submission without
+        it is rejected rather than trusted: an old cached bundle posting only a
+        score must not be graded on its own word.
+        """
+        from .quiz_content import score_submission
+
         quiz = self.get_object()
         user = request.user
-        score = request.data.get('score', 0)
-        points_earned = request.data.get('points_earned', 0)
-        total_points = request.data.get('total_points', 0)
         time_taken = request.data.get('time_taken_seconds', 0)
-        
+
+        answers = request.data.get('answers')
+        if not isinstance(answers, dict):
+            return Response(
+                {'detail': 'This quiz must be submitted with your answers. '
+                           'Please reload the page and try again.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         # Check max attempts
         attempts_count = QuizAttempt.objects.filter(
             user=user,
             quiz=quiz,
             status='completed'
         ).count()
-        
+
         if attempts_count >= quiz.max_attempts:
             return Response(
                 {'detail': f'Maximum attempts ({quiz.max_attempts}) reached'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
+        score, points_earned, total_points, detail = score_submission(quiz.content, answers)
+
+        # A quiz whose markup marks no correct option cannot be graded, and
+        # silently returning 0% would look like the student failing.
+        ungradable = [q['number'] for q in detail if not q['answerable']]
+        if ungradable and points_earned == 0:
+            logger.error(
+                'quiz %s has no gradable answer key for questions %s',
+                quiz.id, ungradable,
+            )
+            return Response(
+                {'detail': 'This quiz is not set up correctly and cannot be graded. '
+                           'Your instructor has been notified.',
+                 'ungradable_questions': ungradable},
+                status=status.HTTP_409_CONFLICT,
+            )
+
         # Create quiz attempt
         attempt = QuizAttempt.objects.create(
             user=user,
@@ -673,9 +717,9 @@ class QuizViewSet(viewsets.ModelViewSet):
             status='completed',
             submitted_at=timezone.now()
         )
-        
+
         passed = score >= quiz.passing_score
-        
+
         return Response({
             'attempt_id': str(attempt.id),
             'score': score,
@@ -683,7 +727,8 @@ class QuizViewSet(viewsets.ModelViewSet):
             'points_earned': points_earned,
             'total_points': total_points,
             'attempts_used': attempts_count + 1,
-            'attempts_remaining': quiz.max_attempts - (attempts_count + 1)
+            'attempts_remaining': quiz.max_attempts - (attempts_count + 1),
+            'questions': detail,
         }, status=status.HTTP_201_CREATED)
     
     def _check_answer(self, question, user_answer):
