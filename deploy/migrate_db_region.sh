@@ -63,6 +63,29 @@ install -d -m 700 -o "$DEPLOY_USER" -g "$DEPLOY_USER" "$WORK"
 # session-scoped state breaks; migrations and fixture loads use the direct
 # endpoint, which is the same hostname without that suffix.
 # ---------------------------------------------------------------------------
+# A silent prompt makes a double paste invisible, and two concatenated URLs
+# produce a baffling libpq error about a connection option named
+# "chapostgresql://..." — the tail of `channel_binding` followed by the second
+# copy. Worth catching here rather than three phases later: the switch phase
+# writes this value into .env, where a malformed URL takes the site down.
+validate_url() {
+    python3 - "$1" <<'PY' || die "that does not look like a single Postgres URL — paste it once, with no surrounding quotes or 'psql'"
+import sys, urllib.parse as u
+s = sys.argv[1].strip()
+if s.count('://') != 1:
+    sys.exit(f"  contains {s.count('://')} occurrences of '://' - pasted more than once?")
+if s[:1] in ("'", '"') or s[-1:] in ("'", '"'):
+    sys.exit('  wrapped in quotes - paste the URL only')
+p = u.urlparse(s)
+if p.scheme not in ('postgres', 'postgresql'):
+    sys.exit(f'  scheme is {p.scheme!r}, expected postgresql')
+if not p.hostname:
+    sys.exit('  no host found')
+if not p.username:
+    sys.exit('  no username found')
+PY
+}
+
 target_url() {
     if [ -n "${TARGET_DATABASE_URL:-}" ]; then
         printf '%s' "$TARGET_DATABASE_URL" > "$URL_CACHE"
@@ -75,12 +98,17 @@ target_url() {
         echo >&2
         read -rsp "  Paste the target (Singapore) DATABASE_URL: " _u; echo >&2
         [ -n "$_u" ] || die "empty URL"
+        validate_url "$_u"
         printf '%s' "$_u" > "$URL_CACHE"
         chmod 600 "$URL_CACHE"
         unset _u
     fi
-    # Strip -pooler so every phase talks to the direct endpoint.
-    sed 's/-pooler\././' "$URL_CACHE"
+    # Strip -pooler so every phase talks to the direct endpoint. Validate the
+    # cached value too, so a bad TARGET_DATABASE_URL cannot slip past either.
+    local url
+    url="$(sed 's/-pooler\././' "$URL_CACHE")"
+    validate_url "$url"
+    printf '%s' "$url"
 }
 
 # Masked form, safe to print.
@@ -143,7 +171,7 @@ with connection.cursor() as c:
 print(f'  version: {ver}')
 print(f'  existing public tables: {tables}')
 if tables:
-    print('  ! NOT EMPTY — loading into this would mix two datasets')
+    print('  ! NOT EMPTY - loading into this would mix two datasets')
 lat = []
 for _ in range(7):
     s = time.perf_counter()
