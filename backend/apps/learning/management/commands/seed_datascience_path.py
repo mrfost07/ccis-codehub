@@ -279,7 +279,7 @@ MODULES = [
         'slides': [
             {
                 'title': 'What Data Science Actually Is',
-                'body': '<h1>What Data Science Actually Is</h1>'
+                'body': ''
                         '<p>Data science is the practice of turning recorded observations into '
                         'decisions. It sits where three things overlap: the subject you are '
                         'studying, the statistics that let you reason about uncertainty, and the '
@@ -297,7 +297,7 @@ MODULES = [
             },
             {
                 'title': 'The Data Science Workflow',
-                'body': '<h1>The Data Science Workflow</h1>'
+                'body': ''
                         '<p>Almost every project moves through the same six stages, and it is '
                         'normal to loop backwards more than once.</p>'
                         '<ol>'
@@ -314,7 +314,7 @@ MODULES = [
             },
             {
                 'title': 'Kinds of Data You Will Meet',
-                'body': '<h1>Kinds of Data You Will Meet</h1>'
+                'body': ''
                         '<p>How data is shaped determines what you can do with it.</p>'
                         '<ul>'
                         '<li><strong>Structured</strong> - rows and columns, like a grades table. Easiest to model.</li>'
@@ -332,7 +332,7 @@ MODULES = [
             },
             {
                 'title': 'Your Toolkit: NumPy and pandas',
-                'body': '<h1>Your Toolkit: NumPy and pandas</h1>'
+                'body': ''
                         '<p>NumPy provides fast numeric arrays. pandas builds the DataFrame on '
                         'top of it: a labelled table that is the workhorse of Python data work.</p>'
                         '<p>These few operations cover most of what you will do day to day.</p>',
@@ -356,7 +356,7 @@ MODULES = [
             },
             {
                 'title': 'Describing Data with Statistics',
-                'body': '<h1>Describing Data with Statistics</h1>'
+                'body': ''
                         '<p>Before modelling anything, describe it. Two questions: where is the '
                         'centre, and how spread out is it?</p>'
                         '<ul>'
@@ -378,7 +378,7 @@ MODULES = [
             },
             {
                 'title': 'Seeing Data: Choosing the Right Plot',
-                'body': '<h1>Seeing Data: Choosing the Right Plot</h1>'
+                'body': ''
                         '<p>A plot answers a question. Pick the plot from the question, not from '
                         'what looks impressive.</p>'
                         '<ul>'
@@ -401,7 +401,7 @@ MODULES = [
             },
             {
                 'title': 'Mistakes That Cost Beginners the Most',
-                'body': '<h1>Mistakes That Cost Beginners the Most</h1>'
+                'body': ''
                         '<p>These four account for a large share of wrong conclusions in student '
                         'projects. Each one is avoidable once you know to look.</p>'
                         '<ul>'
@@ -416,54 +416,87 @@ MODULES = [
         ],
         'quiz': {
             'title': 'Module 1 Quiz: Foundations of Data Science',
-            'description': 'Check your understanding of the workflow, data types and descriptive statistics.',
+            'description': 'The workflow, data types, descriptive statistics and choosing a plot.',
             'questions': [
                 {
+                    'title': 'Levels of Analysis',
+                    'text': 'A report names the forty students most likely to withdraw next term. Which level of analysis is that?',
+                    'choices': [
+                    'Diagnostic, because it explains why last term enrolment moved',
+                    'Predictive, because it estimates an outcome that has not happened',
+                    'Descriptive, because it summarises what the records already hold',
+                    'Prescriptive, because it recommends one specific intervention',
+                ],
+                    'correct': 1,
+                },
+                {
                     'title': 'Where the Effort Goes',
-                    'text': 'In a typical data science project, which stages consume most of the time?',
+                    'text': 'Across the six stages of a data project, which two consume the largest share of the work?',
                     'choices': [
-                        'Cleaning and exploring the data',
-                        'Choosing which algorithm to use',
-                        'Tuning the model hyperparameters',
-                        'Writing the final report',
+                        'Asking the question and communicating the result',
+                        'Collecting the data and choosing an algorithm',
+                        'Modelling and tuning the model parameters',
+                        'Cleaning the data and exploring it',
                     ],
+                    'correct': 3,
+                },
+                {
+                    'title': 'Classifying an Identifier',
+                    'text': 'A table stores student numbers such as 2021-00457. How should that column be treated?',
+                    'choices': [
+                    'As nominal, because the value labels a person rather than counting',
+                    'As continuous, so that averages and totals can be computed from it',
+                    'As ordinal, because numbers issued later are arithmetically larger',
+                    'As discrete, because it counts registrations in the order received',
+                ],
                     'correct': 0,
                 },
                 {
-                    'title': 'Classifying a Column',
-                    'text': 'A table stores a student number such as 2021-00457. How should this column be treated?',
+                    'title': 'Summarising by Group',
+                    'text': 'You need the average GPA for each year level. Which pandas expression produces it?',
                     'choices': [
-                        'As a nominal category, because it is a label rather than a quantity',
-                        'As a continuous numeric value, so averages can be computed',
-                        'As an ordinal value, because larger numbers were issued later',
-                        'As a discrete count of enrolments',
+                        'df.describe() restricted to the gpa column',
+                        'df.sort_values("year") followed by df["gpa"].mean()',
+                        'df.groupby("year")["gpa"].mean()',
+                        'df[df["year"]]["gpa"].median()',
                     ],
-                    'correct': 0,
+                    'correct': 2,
                 },
                 {
-                    'title': 'Mean Versus Median',
-                    'text': 'Nine students earn 20,000 and one earns 500,000. Which statistic better describes what a typical student earns?',
+                    'title': 'Mean Against Median',
+                    'text': 'Nine graduates earn about 20,000 and one earns 500,000. Which figure better describes a typical graduate?',
                     'choices': [
-                        'The median, because one extreme value barely moves it',
-                        'The mean, because it uses every observation',
-                        'The standard deviation, because it measures spread',
-                        'The mode, because incomes are categorical',
+                        'The mean, because every observation contributes to it',
+                        'The median, because a single extreme value barely shifts it',
+                        'The standard deviation, because it captures how spread out pay is',
+                        'The mode, because salaries repeat across the group',
                     ],
-                    'correct': 0,
+                    'correct': 1,
                 },
                 {
                     'title': 'Choosing a Plot',
-                    'text': 'You want to know whether study hours and exam scores move together. Which plot answers that directly?',
+                    'text': 'You want to see whether study hours and exam scores rise together. Which plot answers that most directly?',
                     'choices': [
-                        'A scatter plot of study hours against exam scores',
-                        'A histogram of exam scores',
-                        'A bar chart of average scores per section',
-                        'A line chart of scores over the semester',
+                        'A scatter plot of study hours against exam score',
+                        'A histogram of the exam scores on their own',
+                        'A bar chart of the mean score for each section',
+                        'A line chart of scores across the semester',
                     ],
                     'correct': 0,
                 },
                 {
-                    'title': 'Summary Statistics Alone',
+                    'title': 'A Column That Misleads a Model',
+                    'text': 'Why can feeding raw student ID numbers into a model actively cause harm?',
+                    'choices': [
+                    'Identifiers are often missing for students who enrolled recently',
+                    'Models cannot parse values that contain a hyphen without encoding',
+                    'The column holds too many distinct values to store or index well',
+                    'The model reads the codes as magnitudes and fits a pattern that is not there',
+                ],
+                    'correct': 3,
+                },
+                {
+                    'title': 'Statistics Without Plots',
                     'text': 'Two datasets can share nearly identical means, variances and correlations while looking completely different when plotted.',
                     'true_false': True,
                     'correct': 0,
@@ -483,7 +516,7 @@ MODULES = [
         'slides': [
             {
                 'title': 'Why Cleaning Is the Job',
-                'body': '<h1>Why Cleaning Is the Job</h1>'
+                'body': ''
                         '<p>Real data arrives broken. Fields are blank because a form was '
                         'optional, dates are text, the same course is written four ways, and a '
                         'weight column contains a value of 999 that means "not measured".</p>'
@@ -496,7 +529,7 @@ MODULES = [
             },
             {
                 'title': 'Missing Values: Delete, Impute or Flag',
-                'body': '<h1>Missing Values: Delete, Impute or Flag</h1>'
+                'body': ''
                         '<p>You have three options, and the right one depends on <em>why</em> the '
                         'value is missing.</p>'
                         '<ul>'
@@ -519,7 +552,7 @@ MODULES = [
             },
             {
                 'title': 'Outliers: Error or Signal?',
-                'body': '<h1>Outliers: Error or Signal?</h1>'
+                'body': ''
                         '<p>An outlier is a value far from the rest. Before removing one, decide '
                         'which kind it is.</p>'
                         '<ul>'
@@ -543,7 +576,7 @@ MODULES = [
             },
             {
                 'title': 'Encoding Categorical Variables',
-                'body': '<h1>Encoding Categorical Variables</h1>'
+                'body': ''
                         '<p>Models take numbers, so categories must be converted. How you convert '
                         'changes what the model believes.</p>'
                         '<ul>'
@@ -562,7 +595,7 @@ MODULES = [
             },
             {
                 'title': 'Scaling, and Why Some Models Care',
-                'body': '<h1>Scaling, and Why Some Models Care</h1>'
+                'body': ''
                         '<p>Suppose income runs to hundreds of thousands and GPA runs from 1 to 5. '
                         'Any model that measures distance will be dominated by income purely '
                         'because its numbers are bigger.</p>'
@@ -583,7 +616,7 @@ MODULES = [
             },
             {
                 'title': 'Exploratory Data Analysis in Practice',
-                'body': '<h1>Exploratory Data Analysis in Practice</h1>'
+                'body': ''
                         '<p>EDA is a conversation with the dataset. You are trying to find out '
                         'what it can and cannot tell you, and what is wrong with it, before you '
                         'commit to a model.</p>'
@@ -601,7 +634,7 @@ MODULES = [
             },
             {
                 'title': 'Correlation Is Not Causation',
-                'body': '<h1>Correlation Is Not Causation</h1>'
+                'body': ''
                         '<p>Correlation measures whether two columns move together, from -1 '
                         '(opposite) through 0 (unrelated) to +1 (identical direction). It says '
                         'nothing about what causes what.</p>'
@@ -618,55 +651,88 @@ MODULES = [
         ],
         'quiz': {
             'title': 'Module 2 Quiz: Data Wrangling and Exploratory Analysis',
-            'description': 'Missing data, outliers, encoding, scaling and reading correlations.',
+            'description': 'Missing values, outliers, encoding, scaling and reading correlations honestly.',
             'questions': [
                 {
-                    'title': 'Informative Blanks',
-                    'text': 'Students who skip an optional income question are more likely to drop out. What is the best way to handle those blanks?',
+                    'title': 'Blanks That Carry Information',
+                    'text': 'Students who leave an optional income field blank turn out to be likelier to withdraw. What is the best treatment?',
                     'choices': [
-                        'Add a column flagging the value as missing, then impute the income',
-                        'Drop every row where income is blank',
-                        'Impute the median and change nothing else',
-                        'Replace the blanks with zero',
+                    'Drop every row where the field is blank, keeping only complete records',
+                    'Replace the blanks with zero so the column stays fully numeric',
+                    'Add a column recording that it was blank, then impute the value',
+                    'Drop the income column, since a partly empty feature cannot be trusted',
+                ],
+                    'correct': 2,
+                },
+                {
+                    'title': 'Imputing a Skewed Column',
+                    'text': 'A salary column has a long tail of very high values and some blanks. Which fill value distorts it least?',
+                    'choices': [
+                        'The median of the observed salaries',
+                        'The mean of the observed salaries',
+                        'The largest observed salary in the column',
+                        'Zero, so that the gap remains visible',
                     ],
                     'correct': 0,
                 },
                 {
                     'title': 'Encoding Without Inventing Order',
-                    'text': 'A column holds the city a student comes from, with no natural ordering. Which encoding is appropriate?',
+                    'text': 'A column records which city a student comes from, with no meaningful ordering. Which encoding suits it?',
                     'choices': [
-                        'One-hot encoding, one 0/1 column per city',
-                        'Ordinal encoding, mapping cities to 1, 2, 3',
-                        'Standardisation of the city codes',
-                        'Leaving the city names as text for the model to read',
-                    ],
-                    'correct': 0,
+                    'Ordinal encoding, mapping each city to 1, 2, 3 in alphabetical order',
+                    'Standardising the numeric city codes so they centre on zero',
+                    'Leaving the names as text and letting the model interpret them',
+                    'One-hot encoding, with one indicator column for each city',
+                ],
+                    'correct': 3,
                 },
                 {
-                    'title': 'Which Models Need Scaling',
-                    'text': 'Which model is essentially unaffected by whether you scale your features?',
+                    'title': 'When Order Is Real',
+                    'text': 'Year level runs freshman, sophomore, junior, senior. Which encoding preserves what matters?',
                     'choices': [
-                        'A decision tree, because it splits one column at a time',
-                        'k-nearest neighbours, because it computes distances',
-                        'A support vector machine with an RBF kernel',
-                        'Linear regression trained by gradient descent',
+                        'One-hot encoding, so that no ordering is implied',
+                        'Ordinal encoding, mapping the levels to 1 through 4',
+                        'Dropping the column, since text cannot be modelled',
+                        'Hashing the labels into fixed-width numeric codes',
                     ],
-                    'correct': 0,
+                    'correct': 1,
+                },
+                {
+                    'title': 'Which Model Ignores Scale',
+                    'text': 'Which model is essentially unaffected by whether the features have been scaled?',
+                    'choices': [
+                        'k-nearest neighbours, which compares distances between rows',
+                        'A support vector machine using an RBF kernel',
+                        'Linear regression trained by gradient descent',
+                        'A decision tree, which splits one column at a time',
+                    ],
+                    'correct': 3,
+                },
+                {
+                    'title': 'Judging an Outlier',
+                    'text': 'The interquartile rule flags a student with perfect attendance and top marks. What should you do?',
+                    'choices': [
+                    'Delete the row, because flagged values distort the fitted model',
+                    'Replace both values with the column medians to pull them inward',
+                    'Keep it, because a genuine rare case is data rather than an error',
+                    'Cap both values at the flag boundary so the row still counts',
+                ],
+                    'correct': 2,
                 },
                 {
                     'title': 'Reading a Correlation',
-                    'text': 'Ice cream sales and drowning deaths rise together every summer. What does this correlation establish?',
+                    'text': 'Ice cream sales and drowning deaths rise together every summer. What does the correlation establish?',
                     'choices': [
-                        'Nothing causal - a third factor, hot weather, drives both',
-                        'That ice cream consumption causes drowning',
-                        'That drowning deaths cause ice cream sales',
-                        'That the correlation must be a calculation error',
+                        'That the correlation must be a calculation mistake',
+                        'Nothing causal, because a third factor drives both',
+                        'That rising ice cream sales cause drownings',
+                        'That rising drownings drive ice cream sales',
                     ],
-                    'correct': 0,
+                    'correct': 1,
                 },
                 {
-                    'title': 'Outliers and Judgement',
-                    'text': 'Any value flagged as an outlier by the interquartile range rule should be deleted before modelling.',
+                    'title': 'Limits of a Correlation Coefficient',
+                    'text': 'A correlation near zero proves that two columns have no relationship of any kind.',
                     'true_false': True,
                     'correct': 1,
                 },
@@ -685,7 +751,7 @@ MODULES = [
         'slides': [
             {
                 'title': 'Supervised, Unsupervised, and What They Need',
-                'body': '<h1>Supervised, Unsupervised, and What They Need</h1>'
+                'body': ''
                         '<p><strong>Supervised learning</strong> learns from examples where the '
                         'answer is already known. You show it thousands of houses with their '
                         'prices, and it learns to price a new one.</p>'
@@ -702,7 +768,7 @@ MODULES = [
             },
             {
                 'title': 'Linear Regression: The Intuition',
-                'body': '<h1>Linear Regression: The Intuition</h1>'
+                'body': ''
                         '<p>Draw the straight line that passes as close as possible to all your '
                         'points. That is linear regression.</p>'
                         '<p>With one feature it is the familiar y = mx + b, renamed: the '
@@ -717,7 +783,7 @@ MODULES = [
             },
             {
                 'title': 'How the Model Learns',
-                'body': '<h1>How the Model Learns</h1>'
+                'body': ''
                         '<p>"Learning" here means searching for the coefficients that make the '
                         'predictions least wrong. Two ingredients make that concrete.</p>'
                         '<p>The <strong>cost function</strong> scores how wrong the model '
@@ -743,7 +809,7 @@ MODULES = [
             },
             {
                 'title': 'Why You Must Hold Data Back',
-                'body': '<h1>Why You Must Hold Data Back</h1>'
+                'body': ''
                         '<p>Score a model on the same rows it trained on and you learn nothing '
                         'about whether it will work tomorrow. A model can memorise its training '
                         'set perfectly and still be useless on anything new.</p>'
@@ -765,7 +831,7 @@ MODULES = [
             },
             {
                 'title': 'Building It with scikit-learn',
-                'body': '<h1>Building It with scikit-learn</h1>'
+                'body': ''
                         '<p>Every model in scikit-learn follows the same three-step shape: create '
                         'it, <code>fit</code> it on the training data, <code>predict</code> with '
                         'it. Learn the pattern once and every other model is familiar.</p>',
@@ -782,7 +848,7 @@ MODULES = [
             },
             {
                 'title': 'Measuring Error: MAE, RMSE and R-squared',
-                'body': '<h1>Measuring Error: MAE, RMSE and R-squared</h1>'
+                'body': ''
                         '<p>Three metrics, answering three different questions.</p>'
                         '<ul>'
                         '<li><strong>MAE</strong> - average size of the error, in the original units. Easy to explain: "off by 4.2 points on average".</li>'
@@ -797,7 +863,7 @@ MODULES = [
             },
             {
                 'title': 'Underfitting and Overfitting',
-                'body': '<h1>Underfitting and Overfitting</h1>'
+                'body': ''
                         '<p>Two ways to fail, with opposite symptoms.</p>'
                         '<p><strong>Underfitting</strong> - the model is too simple for the '
                         'pattern. It scores badly on training data and badly on test data. A '
@@ -813,54 +879,87 @@ MODULES = [
         ],
         'quiz': {
             'title': 'Module 3 Quiz: Regression and Model Fit',
-            'description': 'Train/test discipline, how models learn, error metrics, and diagnosing fit.',
+            'description': 'Train and test discipline, how a model learns, error metrics and diagnosing fit.',
             'questions': [
                 {
-                    'title': 'Purpose of the Test Set',
-                    'text': 'Why must a model be evaluated on data it did not train on?',
+                    'title': 'Purpose of a Held-Back Set',
+                    'text': 'Why must a model be scored on rows it never trained on?',
                     'choices': [
-                        'Because scoring on training data measures memorisation, not future performance',
-                        'Because training data is usually of lower quality',
-                        'Because it makes the model train faster',
-                        'Because scikit-learn raises an error otherwise',
-                    ],
-                    'correct': 0,
+                    'Because training rows are collected less carefully than later ones',
+                    'Because scikit-learn refuses to score a model on its training data',
+                    'Because evaluating on fewer rows shortens the time training takes',
+                    'Because scoring on training rows measures recall of them, not skill',
+                ],
+                    'correct': 3,
                 },
                 {
                     'title': 'Diagnosing the Gap',
-                    'text': 'A model scores R-squared of 0.98 on training data and 0.41 on test data. What is happening?',
+                    'text': 'A model reaches R-squared of 0.98 on training rows and 0.41 on held-back rows. What is happening?',
                     'choices': [
-                        'Overfitting - it has memorised noise in the training set',
-                        'Underfitting - it is too simple for the pattern',
-                        'The test set is too large',
-                        'The learning rate is too small',
-                    ],
-                    'correct': 0,
+                    'Underfitting, because the model is too simple to fit the pattern',
+                    'Overfitting, because it absorbed noise particular to those rows',
+                    'The held-back set is too large for the score to settle reliably',
+                    'The learning rate is so low that training stopped early',
+                ],
+                    'correct': 1,
+                },
+                {
+                    'title': 'What Gradient Descent Adjusts',
+                    'text': 'During training by gradient descent, what is actually changed on each step?',
+                    'choices': [
+                    'The number of rows drawn into each training batch',
+                    'The metric that will be used to report the final error',
+                    'The coefficients, nudged in the direction that lowers the cost',
+                    'The proportion of the data that is held back for testing',
+                ],
+                    'correct': 2,
                 },
                 {
                     'title': 'Choosing an Error Metric',
-                    'text': 'Occasional very large prediction errors are far more costly than several small ones. Which metric reflects that best?',
+                    'text': 'Occasional very large misses are far more costly than several small ones. Which metric reflects that?',
                     'choices': [
-                        'RMSE, because squaring makes large errors dominate',
+                        'RMSE, because squaring lets large errors dominate',
                         'MAE, because it weights every error equally',
-                        'R-squared, because it is a proportion',
-                        'Accuracy, because it counts correct predictions',
+                        'R-squared, because it reports a proportion explained',
+                        'Accuracy, because it counts the predictions that were right',
                     ],
                     'correct': 0,
                 },
                 {
                     'title': 'Reading a Coefficient',
-                    'text': 'In a linear regression predicting price, the coefficient on floor area is 1,500. What does that mean?',
+                    'text': 'In a regression predicting price, the coefficient on floor area is 1,500. What does that state?',
                     'choices': [
-                        'Each additional unit of floor area adds 1,500 to the prediction, other features held constant',
-                        'Floor area explains 1,500 percent of the variation in price',
-                        'The model made 1,500 errors during training',
-                        'Floor area must be scaled before it can be used',
+                    'Floor area explains 1,500 percent of the variation in the price',
+                    'Each extra unit of area adds 1,500 to the prediction, others fixed',
+                    'The model made 1,500 separate errors over the training run',
+                    'Floor area must be rescaled by 1,500 before the model uses it',
+                ],
+                    'correct': 1,
+                },
+                {
+                    'title': 'Recognising Underfitting',
+                    'text': 'Which pair of scores points to underfitting rather than overfitting?',
+                    'choices': [
+                        'Training 0.97 and test 0.55',
+                        'Training 0.99 and test 0.98',
+                        'Training 0.51 and test 0.49',
+                        'Training 0.88 and test 0.42',
                     ],
+                    'correct': 2,
+                },
+                {
+                    'title': 'Why the Test Set Stays Sealed',
+                    'text': 'What goes wrong if you check the test score after every change and adjust the model in response?',
+                    'choices': [
+                    'The test score drifts up and stops estimating real performance',
+                    'The model can no longer be retrained from the original raw data',
+                    'The split stops being reproducible from one run to the next',
+                    'The coefficients can no longer be read as effects on the target',
+                ],
                     'correct': 0,
                 },
                 {
-                    'title': 'Regression Versus Classification',
+                    'title': 'Naming the Task',
                     'text': 'Predicting how many days a student will be absent this term is a regression problem.',
                     'true_false': True,
                     'correct': 0,
@@ -880,7 +979,7 @@ MODULES = [
         'slides': [
             {
                 'title': 'When the Answer Is a Category',
-                'body': '<h1>When the Answer Is a Category</h1>'
+                'body': ''
                         '<p>Classification predicts which group something belongs to: will this '
                         'student pass or fail, is this message spam, which of five species is '
                         'this flower.</p>'
@@ -896,7 +995,7 @@ MODULES = [
             },
             {
                 'title': 'Logistic Regression',
-                'body': '<h1>Logistic Regression</h1>'
+                'body': ''
                         '<p>Despite the name, this is a classifier. It computes a weighted sum '
                         'like linear regression, then squashes the result through the sigmoid '
                         'function into the range 0 to 1, giving a probability.</p>'
@@ -915,7 +1014,7 @@ MODULES = [
             },
             {
                 'title': 'Decision Trees and Random Forests',
-                'body': '<h1>Decision Trees and Random Forests</h1>'
+                'body': ''
                         '<p>A <strong>decision tree</strong> asks a sequence of yes/no questions, '
                         'splitting the data to separate the classes. It reads like a flowchart, '
                         'which makes it easy to explain to non-technical people - a real '
@@ -942,7 +1041,7 @@ MODULES = [
             },
             {
                 'title': 'k-Nearest Neighbours',
-                'body': '<h1>k-Nearest Neighbours</h1>'
+                'body': ''
                         '<p>The simplest idea in machine learning: to classify a new point, find '
                         'the k training points closest to it and take the majority label.</p>'
                         '<p>There is no training phase at all - the model is the data. That makes '
@@ -964,7 +1063,7 @@ MODULES = [
             },
             {
                 'title': 'The Confusion Matrix',
-                'body': '<h1>The Confusion Matrix</h1>'
+                'body': ''
                         '<p>One table showing exactly how a classifier succeeds and fails. For a '
                         'binary problem it has four cells.</p>'
                         '<ul>'
@@ -984,7 +1083,7 @@ MODULES = [
             },
             {
                 'title': 'Why Accuracy Lies',
-                'body': '<h1>Why Accuracy Lies</h1>'
+                'body': ''
                         '<p>Suppose 2% of students drop out. A model that predicts "nobody drops '
                         'out" is 98% accurate and completely worthless. Whenever classes are '
                         'imbalanced, accuracy flatters uselessness.</p>'
@@ -1002,7 +1101,7 @@ MODULES = [
             },
             {
                 'title': 'Putting a Classifier Together',
-                'body': '<h1>Putting a Classifier Together</h1>'
+                'body': ''
                         '<p>The full shape of a small classification project, end to end. Note '
                         '<code>stratify</code> - it keeps the class balance the same in both '
                         'splits, which matters when one class is rare.</p>',
@@ -1024,55 +1123,88 @@ MODULES = [
         ],
         'quiz': {
             'title': 'Module 4 Quiz: Classification and Metrics',
-            'description': 'Choosing classifiers, reading a confusion matrix, and picking metrics that are honest.',
+            'description': 'Choosing a classifier, reading a confusion matrix, and metrics that stay honest.',
             'questions': [
                 {
                     'title': 'The Imbalance Trap',
-                    'text': 'Two percent of students drop out. A model predicts that nobody drops out and reports 98 percent accuracy. What should you conclude?',
+                    'text': 'Two percent of students withdraw. A model predicts that nobody withdraws and reports 98 percent accuracy. What follows?',
                     'choices': [
-                        'Accuracy is misleading here; the model never identifies the class of interest',
-                        'The model is excellent and ready to deploy',
-                        'The test set must be too small',
-                        'Accuracy should be replaced with mean squared error',
-                    ],
+                    'Accuracy misleads here, since the model never finds the rare class',
+                    'The model performs well and is ready to be put into use',
+                    'The held-back set was too small for the score to mean anything',
+                    'Accuracy should be swapped for mean squared error on the labels',
+                ],
                     'correct': 0,
                 },
                 {
-                    'title': 'Precision or Recall',
-                    'text': 'You are flagging students at risk of dropping out so advisers can reach them. Missing a struggling student is much worse than an unnecessary meeting. Which metric should you favour?',
+                    'title': 'Precision Against Recall',
+                    'text': 'Advisers will contact every student the model flags. Missing someone in difficulty is far worse than an unnecessary meeting. Which metric should lead?',
                     'choices': [
-                        'Recall, because it penalises missed at-risk students',
-                        'Precision, because it penalises false alarms',
-                        'Accuracy, because it summarises everything',
-                        'R-squared, because it measures explained variance',
+                        'Precision, since it penalises unnecessary contacts',
+                        'Accuracy, since it summarises overall correctness',
+                        'Recall, since it penalises students who were missed',
+                        'R-squared, since it reports the variance explained',
                     ],
-                    'correct': 0,
+                    'correct': 2,
                 },
                 {
-                    'title': 'A Costly Cell',
-                    'text': 'In this dropout model, which confusion-matrix cell represents the most damaging error?',
+                    'title': 'The Costly Cell',
+                    'text': 'In that dropout model, which confusion-matrix cell carries the greatest human cost?',
                     'choices': [
-                        'False negative - predicted safe, but the student dropped out',
-                        'False positive - predicted at risk, but the student was fine',
-                        'True positive - correctly flagged as at risk',
-                        'True negative - correctly identified as safe',
+                        'True negative, correctly identified as not at risk',
+                        'False negative, predicted safe but the student withdrew',
+                        'False positive, flagged at risk but the student was fine',
+                        'True positive, correctly flagged as at risk',
                     ],
-                    'correct': 0,
+                    'correct': 1,
                 },
                 {
-                    'title': 'Scaling and k-NN',
+                    'title': 'Scaling and Distance',
                     'text': 'Why must features be scaled before using k-nearest neighbours?',
                     'choices': [
-                        'It classifies by distance, so the largest-valued column would dominate',
-                        'Unscaled data makes the training step fail',
-                        'It requires every feature to be a probability',
-                        'Scaling is what converts categories into numbers',
-                    ],
+                    'Unscaled columns make the fitting step fail with a value error',
+                    'Every feature has to be expressed as a probability between 0 and 1',
+                    'Scaling is the step that turns categories into usable numbers',
+                    'It classifies by distance, so the largest-valued column dominates',
+                ],
+                    'correct': 3,
+                },
+                {
+                    'title': 'How an Ensemble Helps',
+                    'text': 'What makes a random forest less prone to overfitting than a single deep decision tree?',
+                    'choices': [
+                    'It caps every tree at a shallow depth so none can memorise rows',
+                    'It discards rows that look like outliers before any tree is grown',
+                    'It averages trees grown on different subsets, so errors offset',
+                    'It rescales the features before each candidate split is chosen',
+                ],
+                    'correct': 2,
+                },
+                {
+                    'title': 'Moving the Threshold',
+                    'text': 'You lower the decision threshold from 0.5 to 0.3. What generally happens?',
+                    'choices': [
+                    'Recall rises and precision falls, because more cases get flagged',
+                    'Both recall and precision rise, because the model grows more certain',
+                    'Recall falls and precision rises, because flags become much rarer',
+                    'Neither changes, because the threshold only affects the display',
+                ],
                     'correct': 0,
                 },
                 {
-                    'title': 'How a Forest Helps',
-                    'text': 'A random forest reduces overfitting by averaging many trees trained on different random subsets of the data.',
+                    'title': 'Keeping a Rare Class in Both Splits',
+                    'text': 'Only three percent of rows belong to the positive class. Which argument to train_test_split protects that balance?',
+                    'choices': [
+                    'shuffle, so that the rows are mixed thoroughly before splitting',
+                    'random_state, so that the same split can be reproduced later',
+                    'test_size, so that the held-back portion contains more rows',
+                    'stratify, so that both splits keep the original class proportions',
+                ],
+                    'correct': 3,
+                },
+                {
+                    'title': 'What Logistic Regression Outputs',
+                    'text': 'Logistic regression returns a probability, which a threshold then converts into a predicted class.',
                     'true_false': True,
                     'correct': 0,
                 },
@@ -1091,7 +1223,7 @@ MODULES = [
         'slides': [
             {
                 'title': 'Cross-Validation',
-                'body': '<h1>Cross-Validation</h1>'
+                'body': ''
                         '<p>A single train/test split gives you one number, and that number '
                         'depends on which rows happened to land in the test set. With a small '
                         'dataset the luck of the split can swamp the difference between two '
@@ -1112,7 +1244,7 @@ MODULES = [
             },
             {
                 'title': 'The Bias-Variance Trade-off',
-                'body': '<h1>The Bias-Variance Trade-off</h1>'
+                'body': ''
                         '<p>Prediction error has two reducible parts, and they pull in opposite '
                         'directions.</p>'
                         '<p><strong>Bias</strong> is error from being too simple - the model '
@@ -1127,7 +1259,7 @@ MODULES = [
             },
             {
                 'title': 'Hyperparameter Tuning',
-                'body': '<h1>Hyperparameter Tuning</h1>'
+                'body': ''
                         '<p>Parameters are learned from data. <em>Hyperparameters</em> are the '
                         'settings you choose before training: the number of trees, the depth '
                         'limit, k in k-NN, the regularisation strength.</p>'
@@ -1154,7 +1286,7 @@ MODULES = [
             },
             {
                 'title': 'Pipelines and Data Leakage',
-                'body': '<h1>Pipelines and Data Leakage</h1>'
+                'body': ''
                         '<p><strong>Data leakage</strong> is when information from outside the '
                         'training set sneaks into training. The model looks brilliant in '
                         'development and disappoints in production.</p>'
@@ -1178,7 +1310,7 @@ MODULES = [
             },
             {
                 'title': 'Saving and Loading a Model',
-                'body': '<h1>Saving and Loading a Model</h1>'
+                'body': ''
                         '<p>A trained model is an object you can write to disk and load later, so '
                         'nothing has to be retrained to make a prediction.</p>'
                         '<p>Save the whole pipeline, not just the estimator. If you save only the '
@@ -1197,7 +1329,7 @@ MODULES = [
             },
             {
                 'title': 'Serving a Model Behind an API',
-                'body': '<h1>Serving a Model Behind an API</h1>'
+                'body': ''
                         '<p>Deployment usually means putting the model behind an HTTP endpoint so '
                         'other software can ask it questions. Load the model once when the '
                         'process starts, not per request.</p>'
@@ -1225,7 +1357,7 @@ MODULES = [
             },
             {
                 'title': 'Ethics and Responsibility',
-                'body': '<h1>Ethics and Responsibility</h1>'
+                'body': ''
                         '<p>A model that predicts which students will fail can be used to support '
                         'them or to quietly write them off. The mathematics is identical; the '
                         'consequence is not.</p>'
@@ -1242,54 +1374,87 @@ MODULES = [
         ],
         'quiz': {
             'title': 'Module 5 Quiz: Validation, Tuning and Responsible Use',
-            'description': 'Cross-validation, bias and variance, tuning without cheating, leakage, and ethics.',
+            'description': 'Cross-validation, bias and variance, tuning without cheating, leakage and ethics.',
             'questions': [
                 {
-                    'title': 'Why Cross-Validate',
-                    'text': 'What problem does k-fold cross-validation solve compared with a single train/test split?',
+                    'title': 'What Cross-Validation Fixes',
+                    'text': 'What problem does k-fold cross-validation address compared with a single split?',
                     'choices': [
-                        'The score no longer depends on which rows happened to land in one test set',
-                        'It removes the need to clean the data',
-                        'It guarantees the model will not overfit',
-                        'It makes training k times faster',
-                    ],
-                    'correct': 0,
+                    'It removes the need to clean or impute the data beforehand',
+                    'The score stops depending on which rows landed in one test set',
+                    'It guarantees that the resulting model will not overfit at all',
+                    'It makes the whole training run finish roughly k times faster',
+                ],
+                    'correct': 1,
                 },
                 {
-                    'title': 'Where Leakage Comes From',
-                    'text': 'A scaler is fitted on the whole dataset before splitting into train and test. What is the consequence?',
+                    'title': 'Where Leakage Enters',
+                    'text': 'A scaler is fitted on the entire dataset before the train and test split. What is the consequence?',
                     'choices': [
-                        'Leakage - the test score is optimistic because scaling saw the test data',
-                        'Nothing; scaling does not affect evaluation',
-                        'The model will underfit because features are too uniform',
-                        'Training will fail with a shape error',
-                    ],
-                    'correct': 0,
+                    'Training fails, because the scaled arrays no longer match in shape',
+                    'The model underfits, because the features became too uniform',
+                    'Nothing at all, because scaling cannot affect how a model scores',
+                    'The test score is optimistic, because scaling already saw those rows',
+                ],
+                    'correct': 3,
                 },
                 {
                     'title': 'Flexibility and Error',
                     'text': 'Making a model substantially more flexible usually has which effect?',
                     'choices': [
-                        'Bias falls and variance rises',
-                        'Both bias and variance fall',
-                        'Both bias and variance rise',
-                        'Bias rises and variance falls',
+                        'Bias falls while variance rises',
+                        'Both bias and variance fall together',
+                        'Both bias and variance rise together',
+                        'Bias rises while variance falls',
                     ],
                     'correct': 0,
                 },
                 {
                     'title': 'Tuning Honestly',
-                    'text': 'Which data should hyperparameter search be run against?',
+                    'text': 'Which data should a hyperparameter search be scored against?',
                     'choices': [
-                        'The training data, using cross-validation within it',
-                        'The held-back test set, since that is what will be reported',
-                        'The full dataset, to use every row',
-                        'A fresh random sample drawn after testing',
+                        'The full dataset, so that no row is wasted',
+                        'The held-back test set, since that is what gets reported',
+                        'The training data, using cross-validation inside it',
+                        'A fresh sample drawn after testing has finished',
                     ],
+                    'correct': 2,
+                },
+                {
+                    'title': 'What a Pipeline Buys',
+                    'text': 'Why does wrapping imputing, scaling and the model in a Pipeline reduce the risk of leakage?',
+                    'choices': [
+                    'Every step is fitted on the training fold alone during validation',
+                    'It caches the fitted steps so that they never need refitting again',
+                    'It drops rows containing missing values before anything is fitted',
+                    'It chooses sensible hyperparameters without running any search',
+                ],
                     'correct': 0,
                 },
                 {
-                    'title': 'Fairness Checks',
+                    'title': 'What to Save to Disk',
+                    'text': 'You are saving a trained model for later use. What should be written out?',
+                    'choices': [
+                        'Only the estimator, since preprocessing can be redone by hand',
+                        'The whole pipeline, so preprocessing travels with the model',
+                        'Only the learned coefficients, as plain numbers',
+                        'The training data, so the model can be refitted on load',
+                    ],
+                    'correct': 1,
+                },
+                {
+                    'title': 'A Feedback Loop',
+                    'text': 'Flagged students receive extra support and go on to pass. Why does that complicate judging the model later?',
+                    'choices': [
+                    'The support changed the outcome, so the flags now look like errors',
+                    'The model must be retrained with a different algorithm each term',
+                    'The flagged rows cannot be retained once the term has finished',
+                    'Accuracy cannot be computed at all once any outcome has changed',
+                ],
+                    'correct': 0,
+                },
+                {
+                    'title': 'Fairness by Omission',
                     'text': 'Removing a protected attribute such as gender from the features guarantees the model cannot discriminate on it.',
                     'true_false': True,
                     'correct': 1,

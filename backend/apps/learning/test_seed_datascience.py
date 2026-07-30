@@ -128,6 +128,81 @@ class SeededQuizzesParseCorrectly(TestCase):
                 self.assertNotIn('module-slide', slide, module['quiz']['title'])
 
 
+class SeededQuizzesAreNotGuessable(TestCase):
+    """
+    A quiz can parse perfectly and still be worthless.
+
+    The first draft of this seed had 92% of its answers at option A and the
+    correct option was longer than the average option in 19 of 20 questions -
+    so a student could score in the nineties by always picking the longest
+    first choice, without reading anything. Both are easy to reintroduce when
+    adding a question, and neither shows up in any other test.
+    """
+
+    def multiple_choice(self):
+        for module in MODULES:
+            for question in module['quiz']['questions']:
+                if not question.get('true_false'):
+                    yield module['quiz']['title'], question
+
+    def test_answer_key_is_spread_across_the_options(self):
+        from collections import Counter
+
+        positions = Counter(q['correct'] for _title, q in self.multiple_choice())
+        total = sum(positions.values())
+
+        self.assertEqual(
+            sorted(positions), [0, 1, 2, 3],
+            f'answers only ever appear at positions {sorted(positions)} - '
+            f'every option should be correct sometimes',
+        )
+        worst = max(positions.values()) / total
+        self.assertLess(
+            worst, 0.40,
+            f'{worst:.0%} of answers sit at one position. Always guessing that '
+            f'letter would score {worst:.0%} without reading the questions.',
+        )
+
+    def test_true_false_answers_are_not_all_the_same(self):
+        answers = {
+            q['correct']
+            for module in MODULES
+            for q in module['quiz']['questions']
+            if q.get('true_false')
+        }
+        self.assertEqual(
+            answers, {0, 1},
+            'every true/false answer is the same value, so the statement never '
+            'has to be read',
+        )
+
+    def test_the_correct_option_is_not_systematically_the_longest(self):
+        tells = []
+        for title, question in self.multiple_choice():
+            choices = question['choices']
+            correct = question['correct']
+            others = [len(c) for i, c in enumerate(choices) if i != correct]
+            ratio = len(choices[correct]) / (sum(others) / len(others))
+            if ratio > 1.25:
+                tells.append(f'{title} / {question["title"]} ({ratio:.2f}x)')
+
+        self.assertEqual(
+            tells, [],
+            'the correct option runs far longer than its distractors here, '
+            'which makes it guessable by shape alone:\n  ' + '\n  '.join(tells),
+        )
+
+    def test_every_module_tests_most_of_its_slides(self):
+        for module in MODULES:
+            questions = len(module['quiz']['questions'])
+            slides = len(module['slides'])
+            self.assertGreaterEqual(
+                questions, 8,
+                f'{module["title"]}: {questions} questions for {slides} slides '
+                f'leaves most of the material untested',
+            )
+
+
 class SeededModulesAreMultiSlide(TestCase):
     def test_each_module_has_several_slides_with_titles_and_bodies(self):
         for module in MODULES:
@@ -153,6 +228,23 @@ class SeededModulesAreMultiSlide(TestCase):
                 numbers, [str(i) for i in range(1, len(module['slides']) + 1)],
                 module['title'],
             )
+
+    def test_slide_bodies_do_not_repeat_the_title_as_a_heading(self):
+        # SlideViewer renders slide-title as the page heading and strips a
+        # duplicate <h2> that matches it - but not an <h1>. Opening every body
+        # with <h1>Same Title</h1> therefore printed the heading twice on
+        # screen, which is exactly how this shipped the first time.
+        for module in MODULES:
+            for slide in module['slides']:
+                self.assertNotIn(
+                    '<h1>', slide['body'],
+                    f'{module["title"]} / {slide["title"]}: the slide title is '
+                    f'already rendered above the body, so an <h1> here shows twice',
+                )
+                self.assertNotIn(
+                    f'<h2>{slide["title"]}', slide['body'],
+                    f'{module["title"]} / {slide["title"]}: duplicated heading',
+                )
 
     def test_code_samples_are_html_escaped(self):
         # A bare < in a code sample would be parsed as a tag and swallow content.
