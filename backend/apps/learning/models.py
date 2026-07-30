@@ -26,7 +26,14 @@ class CareerPath(models.Model):
         ('intermediate', 'Intermediate'),
         ('advanced', 'Advanced'),
     ]
-    
+
+    APPROVAL_CHOICES = [
+        ('draft', 'Draft'),
+        ('pending', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     slug = models.SlugField(unique=True)
@@ -46,13 +53,46 @@ class CareerPath(models.Model):
         default=list, blank=True,
         help_text='List of skills granted on path completion. Format: [{"name": "Python", "category": "Programming Language", "level": "intermediate"}]'
     )
+    # Who authored the path. Nullable because every path that existed before
+    # this field was added has no author to point at, and SET_NULL rather than
+    # CASCADE so removing a staff account never deletes course content.
+    #
+    # This is also what lets a completion certificate name its instructor
+    # without anyone retyping it.
+    instructor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='authored_paths',
+        help_text='Instructor who authored this path. Shown on the certificate.',
+    )
+
+    # Publication workflow: an instructor drafts, submits, and an admin
+    # approves. Kept separate from is_active, which stays the "retired vs
+    # available" switch for paths that were already published.
+    approval_status = models.CharField(
+        max_length=20, choices=APPROVAL_CHOICES, default='draft', db_index=True,
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='approved_paths',
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+
     is_active = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         ordering = ['program_type', 'difficulty_level', 'name']
+
+    @property
+    def is_published(self):
+        """Visible to students: approved AND not retired."""
+        return self.approval_status == 'approved' and self.is_active
         
     def save(self, *args, **kwargs):
         if not self.slug:
