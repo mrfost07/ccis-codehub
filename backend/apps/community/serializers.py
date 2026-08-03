@@ -353,19 +353,39 @@ class ChatMessageSerializer(serializers.ModelSerializer):
         }
     
     def get_reactions_summary(self, obj):
-        # Group reactions by emoji with count and users
-        reactions = obj.reactions.all()
+        """Reactions grouped by emoji.
+
+        {emoji: {count, users: [{id, username, first_name, last_name,
+                                 profile_picture}], reacted_by_me}}
+
+        `users` used to be a list of bare usernames, which is not enough to draw
+        an avatar or link through to a profile — so the UI could only ever show a
+        number. Same shape as AuthorSerializer everywhere else, so one component
+        renders reactors for posts, comments and messages alike.
+
+        reactions__user is prefetched by queries.shaped_chat_messages, so
+        expanding this costs no extra queries. It is worth keeping that way:
+        without the prefetch this is one query per reaction per message.
+        """
+        request = self.context.get('request')
+        viewer = getattr(request, 'user', None)
+        viewer_id = viewer.id if viewer is not None and viewer.is_authenticated else None
+
         summary = {}
-        for reaction in reactions:
-            if reaction.reaction not in summary:
-                summary[reaction.reaction] = {'count': 0, 'users': [], 'reacted_by_me': False}
-            summary[reaction.reaction]['count'] += 1
-            summary[reaction.reaction]['users'].append(reaction.user.username)
-            
-            request = self.context.get('request')
-            if request and request.user.is_authenticated and reaction.user == request.user:
-                summary[reaction.reaction]['reacted_by_me'] = True
-        
+        for reaction in obj.reactions.all():
+            entry = summary.setdefault(
+                reaction.reaction,
+                {'count': 0, 'users': [], 'reacted_by_me': False},
+            )
+            entry['count'] += 1
+            entry['users'].append(
+                AuthorSerializer(reaction.user, context=self.context).data
+            )
+            # Compared by id rather than by object so a prefetched row does not
+            # have to be re-fetched to answer it.
+            if viewer_id is not None and reaction.user_id == viewer_id:
+                entry['reacted_by_me'] = True
+
         return summary
     
     def get_reply_to_info(self, obj):

@@ -10,6 +10,7 @@ import { Heart, MessageCircle, Share2, Image, Send, X, Reply, ChevronDown, Chevr
 import { useAuth } from '../contexts/AuthContext'
 import { getMediaUrl } from '../utils/mediaUrl'
 import { Skeleton, SkeletonListRow, Modal, Button } from '../components/ui'
+import Reactors from '../components/Reactors'
 
 interface Author {
   id: string
@@ -608,10 +609,23 @@ function GroupPostCard({
       {(post.like_count > 0 || post.comment_count > 0) && (
         <div className="flex items-center gap-3 text-xs text-neutral-500 tabular-nums mb-1">
           {post.like_count > 0 && (
-            <span className="flex items-center gap-1">
-              <Heart className="w-3 h-3 fill-red-400 text-red-400" />
-              {post.like_count}
-            </span>
+            /* Was a plain <span>: the count was displayed but not openable, even
+               though PostLike.user has always recorded who. */
+            <Reactors
+              count={post.like_count}
+              title="Liked by"
+              noun="like"
+              loadPage={async page => {
+                const { data } = await communityAPI.getPostLikers(post.id, page)
+                return { results: data.results ?? data, next: data.next ?? null }
+              }}
+              className="h-10 -my-1 gap-1 px-1 text-xs text-neutral-500 sm:h-auto sm:my-0"
+            >
+              <span className="flex items-center gap-1">
+                <Heart className="w-3 h-3 fill-red-400 text-red-400" />
+                {post.like_count}
+              </span>
+            </Reactors>
           )}
           {post.comment_count > 0 && (
             <button onClick={handleToggleComments} className="hover:text-neutral-300 transition-colors ms-auto">
@@ -762,13 +776,27 @@ function GroupPostCard({
 
                         {/* Comment Actions */}
                         <div className="flex items-center gap-3 mt-1 ml-1">
-                          <button
-                            onClick={() => handleLikeComment(comment.id)}
-                            className={`flex items-center gap-1 text-xs ${comment.is_liked ? 'text-red-500' : 'text-neutral-400 hover:text-red-400'}`}
-                          >
-                            <Heart className={`w-3 h-3 ${comment.is_liked ? 'fill-current' : ''}`} />
-                            {comment.like_count || 0}
-                          </button>
+                          {/* Heart toggles, count opens the list — two questions,
+                              two controls. */}
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleLikeComment(comment.id)}
+                              aria-label={comment.is_liked ? 'Remove like' : 'Like this comment'}
+                              className={`flex items-center text-xs ${comment.is_liked ? 'text-red-500' : 'text-neutral-400 hover:text-red-400'}`}
+                            >
+                              <Heart className={`w-3 h-3 ${comment.is_liked ? 'fill-current' : ''}`} />
+                            </button>
+                            <Reactors
+                              count={comment.like_count || 0}
+                              title="Liked by"
+                              noun="like"
+                              loadPage={async page => {
+                                const { data } = await communityAPI.getCommentLikers(comment.id, page)
+                                return { results: data.results ?? data, next: data.next ?? null }
+                              }}
+                              className="h-10 px-1 text-xs sm:h-auto"
+                            />
+                          </div>
                           <button
                             onClick={() => toggleReplyInput(comment.id)}
                             className="flex items-center gap-1 text-xs text-neutral-400 hover:text-purple-400"
@@ -897,13 +925,27 @@ function GroupPostCard({
                                         )}
                                       </div>
                                       <div className="flex items-center gap-3 mt-1 ml-1">
-                                        <button
-                                          onClick={() => handleLikeComment(reply.id)}
-                                          className={`flex items-center gap-1 text-xs ${reply.is_liked ? 'text-red-500' : 'text-neutral-400 hover:text-red-400'}`}
-                                        >
-                                          <Heart className={`w-3 h-3 ${reply.is_liked ? 'fill-current' : ''}`} />
-                                          {reply.like_count || 0}
-                                        </button>
+                                        {/* Replies are Comments with a parent, so
+                                            the same endpoint serves them. */}
+                                        <div className="flex items-center gap-1">
+                                          <button
+                                            onClick={() => handleLikeComment(reply.id)}
+                                            aria-label={reply.is_liked ? 'Remove like' : 'Like this reply'}
+                                            className={`flex items-center text-xs ${reply.is_liked ? 'text-red-500' : 'text-neutral-400 hover:text-red-400'}`}
+                                          >
+                                            <Heart className={`w-3 h-3 ${reply.is_liked ? 'fill-current' : ''}`} />
+                                          </button>
+                                          <Reactors
+                                            count={reply.like_count || 0}
+                                            title="Liked by"
+                                            noun="like"
+                                            loadPage={async page => {
+                                              const { data } = await communityAPI.getCommentLikers(reply.id, page)
+                                              return { results: data.results ?? data, next: data.next ?? null }
+                                            }}
+                                            className="h-10 px-1 text-xs sm:h-auto"
+                                          />
+                                        </div>
                                         <button
                                           onClick={() => toggleReplyInput(reply.id)}
                                           className="flex items-center gap-1 text-xs text-neutral-400 hover:text-purple-400"

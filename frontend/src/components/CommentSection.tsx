@@ -3,6 +3,7 @@ import { Heart, MessageCircle, Send, ChevronDown, ChevronUp } from 'lucide-react
 import { communityAPI } from '../services/api'
 import toast from 'react-hot-toast'
 import { getMediaUrl } from '../utils/mediaUrl'
+import Reactors from './Reactors'
 
 interface Author {
   username: string
@@ -141,14 +142,29 @@ export default function CommentSection({
 
             {/* Actions */}
             <div className="flex items-center gap-4 mt-2">
-              <button
-                onClick={() => handleLikeComment(comment.id)}
-                className={`flex items-center gap-1 text-xs ${comment.is_liked ? 'text-purple-500' : 'text-neutral-400 hover:text-purple-500'
-                  } transition`}
-              >
-                <Heart className={`w-3 h-3 ${comment.is_liked ? 'fill-current' : ''}`} />
-                <span>{comment.like_count}</span>
-              </button>
+              {/* Two controls, not one. The heart answers "do I like this";
+                  the count answers "who else did" — a different question, and
+                  the reason the identities were being thrown away before. */}
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handleLikeComment(comment.id)}
+                  aria-label={comment.is_liked ? 'Remove like' : 'Like this comment'}
+                  className={`flex items-center text-xs ${comment.is_liked ? 'text-purple-500' : 'text-neutral-400 hover:text-purple-500'
+                    } transition`}
+                >
+                  <Heart className={`w-3 h-3 ${comment.is_liked ? 'fill-current' : ''}`} />
+                </button>
+                <Reactors
+                  count={comment.like_count}
+                  title="Liked by"
+                  noun="like"
+                  loadPage={async page => {
+                    const { data } = await communityAPI.getCommentLikers(comment.id, page)
+                    return { results: data.results ?? data, next: data.next ?? null }
+                  }}
+                  className="text-xs"
+                />
+              </div>
 
               <button
                 onClick={() => setReplyingTo(comment.id)}

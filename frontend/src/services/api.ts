@@ -277,11 +277,18 @@ export const communityAPI = {
   updatePost: (id: string, data: any) => api.patch(`/community/posts/${id}/`, data),
   deletePost: (id: string) => api.delete(`/community/posts/${id}/`),
   likePost: (id: string) => api.post(`/community/posts/${id}/like/`),
+  // Who liked. Paginated (PAGE_SIZE 20) because like_count is unbounded, so pass
+  // the page through rather than assuming one response holds everyone.
+  getPostLikers: (id: string, page = 1) =>
+    api.get(`/community/posts/${id}/likers/`, { params: { page } }),
   getComments: (postId: string) => api.get('/community/comments/', { params: { post: postId } }),
   createComment: (data: any) => api.post('/community/comments/', data),
   updateComment: (id: string, content: string) => api.patch(`/community/comments/${id}/`, { content }),
   deleteComment: (id: string) => api.delete(`/community/comments/${id}/`),
   likeComment: (id: string) => api.post(`/community/comments/${id}/like/`),
+  // Replies are Comments with a parent, so this serves replies too.
+  getCommentLikers: (id: string, page = 1) =>
+    api.get(`/community/comments/${id}/likers/`, { params: { page } }),
   getNotifications: () => api.get('/community/notifications/'),
   markNotificationRead: (id: string) => api.post(`/community/notifications/${id}/mark_read/`),
   // Follow API

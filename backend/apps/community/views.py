@@ -23,12 +23,36 @@ from .queries import (
     shaped_organizations,
 )
 from .serializers import (
+    AuthorSerializer,
     PostSerializer, CommentSerializer, PostLikeSerializer,
     CommentLikeSerializer, PostTagSerializer, HashtagSerializer,
     NotificationSerializer, ReportSerializer, UserFollowSerializer,
     BadgeSerializer, UserBadgeSerializer,
     OrganizationSerializer, OrganizationMembershipSerializer, OrganizationInvitationSerializer
 )
+
+
+def _paginated_reactors(viewset, request, like_queryset):
+    """Serialise the people behind a set of likes, newest first.
+
+    Shared by posts and comments so the two cannot drift into returning
+    different shapes for the same UI component.
+
+    Paginated deliberately. like_count is unbounded, and this route is hit from
+    a tap on the count, so a popular post would otherwise serialise every liker
+    at once. It uses the viewset's own paginator, which keeps PAGE_SIZE in one
+    place (DRF settings) rather than hardcoded here.
+
+    select_related('user') is the difference between a fixed number of queries
+    and one per liker — see the guard in apps/core/test_query_counts.py.
+    """
+    likes = like_queryset.select_related('user').order_by('-created_at')
+    page = viewset.paginate_queryset(likes)
+    rows = likes if page is None else page
+    data = AuthorSerializer(
+        [like.user for like in rows], many=True, context={'request': request},
+    ).data
+    return Response(data) if page is None else viewset.get_paginated_response(data)
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -201,7 +225,18 @@ class PostViewSet(viewsets.ModelViewSet):
                 )
             
             return Response({'liked': True, 'like_count': post.like_count})
-    
+
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    def likers(self, request, pk=None):
+        """Who liked this post.
+
+        Resolved through get_object() on purpose, so it inherits whatever
+        visibility rules the detail route enforces. A like list must not become
+        a way to read the audience of a post you are not allowed to see.
+        """
+        post = self.get_object()
+        return _paginated_reactors(self, request, PostLike.objects.filter(post=post))
+
     @action(detail=True, methods=['get'])
     def comments(self, request, pk=None):
         """Get all comments for a post"""
@@ -442,6 +477,16 @@ class CommentViewSet(viewsets.ModelViewSet):
             Comment.objects.filter(pk=comment.pk).update(like_count=F('like_count') + 1)
             comment.refresh_from_db(fields=['like_count'])
             return Response({'liked': True, 'like_count': comment.like_count})
+
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    def likers(self, request, pk=None):
+        """Who liked this comment.
+
+        Replies are Comments with a parent, so this covers replies too — there
+        is no separate reply model and no second endpoint to keep in step.
+        """
+        comment = self.get_object()
+        return _paginated_reactors(self, request, CommentLike.objects.filter(comment=comment))
 
 
 class HashtagViewSet(viewsets.ReadOnlyModelViewSet):

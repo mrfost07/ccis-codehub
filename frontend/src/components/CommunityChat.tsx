@@ -6,6 +6,7 @@ import {
   MoreVertical, Smile, Edit2, Check, Globe, Building2, ChevronDown
 } from 'lucide-react'
 import api from '../services/api'
+import Reactors, { type Reactor } from './Reactors'
 import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import { getMediaUrl } from '../utils/mediaUrl'
@@ -21,7 +22,12 @@ interface ChatRoom {
 
 interface MessageReaction {
   count: number
-  users: string[]
+  /**
+   * Was `string[]` of bare usernames, which could not be rendered as anything
+   * but a number — no id to link with, no avatar to draw. The API now sends the
+   * same shape as every other author on the platform.
+   */
+  users: Reactor[]
   reacted_by_me: boolean
 }
 
@@ -784,7 +790,7 @@ export default function CommunityChat() {
 
                     {/* Reactions */}
                     {Object.keys(message.reactions_summary || {}).length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
+                      <div className="flex flex-wrap items-center gap-1 mt-2">
                         {Object.entries(message.reactions_summary).map(([emoji, data]) => (
                           <button
                             key={emoji}
@@ -798,6 +804,33 @@ export default function CommunityChat() {
                             <span className="text-white/80">{data.count}</span>
                           </button>
                         ))}
+                        {/* Sits beside the pills rather than inside them: a pill
+                            is already a toggle, and a button inside a button is
+                            invalid. reactions_summary ships the people inline,
+                            so this needs no request. */}
+                        {(() => {
+                          const seen = new Map<string, Reactor>()
+                          for (const data of Object.values(message.reactions_summary)) {
+                            for (const person of data.users ?? []) {
+                              // Deduped: one person reacting with two emoji is
+                              // still one person.
+                              if (!seen.has(person.id)) seen.set(person.id, person)
+                            }
+                          }
+                          const people = [...seen.values()]
+                          return (
+                            <Reactors
+                              count={people.length}
+                              title="Reactions"
+                              people={people}
+                              noun="person"
+                              showFaces
+                              className="h-10 px-1 text-[11px] sm:h-7"
+                            >
+                              <span className="sr-only">See who reacted</span>
+                            </Reactors>
+                          )
+                        })()}
                       </div>
                     )}
 
