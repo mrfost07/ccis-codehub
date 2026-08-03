@@ -19,6 +19,7 @@ import { useCurrentUser } from '../hooks/useApiCache'
 import toast from 'react-hot-toast'
 import { Skeleton } from '../components/ui'
 import { getMediaUrl } from '../utils/mediaUrl'
+import { buildQuizContent, parseQuizContent } from '../lib/quizContent'
 
 interface CareerPath {
   id: string
@@ -994,76 +995,9 @@ function InstructorDashboard() {
 
   const handleQuizQuestionsChange = (questions: any[]) => {
     setQuizQuestions(questions)
-
-    // Generate HTML content from questions
-    const htmlContent = questions.map((q, index) => {
-      let choicesHtml = ''
-
-      if (q.type === 'multiple_choice' && q.choices) {
-        choicesHtml = `
-          <div class="quiz-choices" style="margin-top: 1rem;">
-            ${q.choices.map((choice: any, i: number) => `
-              <div class="quiz-choice" style="padding: 0.75rem; margin: 0.5rem 0; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; cursor: pointer;" data-choice-id="${choice.id}" data-correct="${choice.isCorrect}">
-                <label style="display: flex; align-items: center; cursor: pointer;">
-                  <input type="radio" name="question-${q.id}" value="${choice.id}" style="margin-right: 0.75rem; width: 1.25rem; height: 1.25rem;">
-                  <span style="font-size: 1rem;">${String.fromCharCode(65 + i)}. ${choice.text}</span>
-                </label>
-              </div>
-            `).join('')}
-          </div>
-        `
-      } else if (q.type === 'true_false') {
-        choicesHtml = `
-          <div class="quiz-choices" style="margin-top: 1rem;">
-            <div class="quiz-choice" style="padding: 0.75rem; margin: 0.5rem 0; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem;">
-              <label style="display: flex; align-items: center; cursor: pointer;">
-                <input type="radio" name="question-${q.id}" value="true" style="margin-right: 0.75rem; width: 1.25rem; height: 1.25rem;">
-                <span>True</span>
-              </label>
-            </div>
-            <div class="quiz-choice" style="padding: 0.75rem; margin: 0.5rem 0; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem;">
-              <label style="display: flex; align-items: center; cursor: pointer;">
-                <input type="radio" name="question-${q.id}" value="false" style="margin-right: 0.75rem; width: 1.25rem; height: 1.25rem;">
-                <span>False</span>
-              </label>
-            </div>
-          </div>
-        `
-      } else if (q.type === 'enumeration' || q.type === 'short_answer') {
-        choicesHtml = `
-          <div style="margin-top: 1rem;">
-            <p style="color: #94a3b8; font-size: 0.875rem; margin-bottom: 0.5rem;">ENUMERATION - Type your answer:</p>
-            <input type="text" placeholder="Enter your answer..." style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.5rem; color: white;" />
-          </div>
-        `
-      } else {
-        choicesHtml = `
-          <div style="margin-top: 1rem;">
-            <p style="color: #94a3b8; font-size: 0.875rem; margin-bottom: 0.5rem;">ESSAY - Write your answer:</p>
-            <textarea placeholder="Type your answer here..." rows="4" style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 0.5rem; color: white;"></textarea>
-          </div>
-        `
-      }
-
-      return `
-        <div class="module-slide" data-slide="${index + 1}">
-          <h2 style="color: #60a5fa; margin-bottom: 1rem; font-size: 1.5rem; font-weight: bold;">
-            Question ${index + 1}: ${q.title}
-          </h2>
-          <div class="question-content" style="margin-bottom: 1.5rem;">
-            ${q.content}
-          </div>
-          <div class="question-info" style="display: flex; gap: 1rem; margin-bottom: 1rem; font-size: 0.875rem; color: #94a3b8;">
-            <span>📝 ${q.type.replace('_', ' ').toUpperCase()}</span>
-            <span>${q.points} ${q.points === 1 ? 'point' : 'points'}</span>
-          </div>
-          ${choicesHtml}
-        </div>
-        ${index < questions.length - 1 ? '<hr class="slide-separator" />' : ''}
-      `
-    }).join('\n')
-
-    setQuizForm(prev => ({ ...prev, content: htmlContent }))
+    // buildQuizContent is the counterpart of parseQuestionsFromContent above and
+    // lives in the same module, so the two cannot drift apart again.
+    setQuizForm(prev => ({ ...prev, content: buildQuizContent(questions) }))
   }
 
   const togglePathStatus = async (id: string) => {
@@ -1191,71 +1125,33 @@ function InstructorDashboard() {
     }
   }
 
-  // Helper function to parse questions from HTML content
+  // Parsing and serialising both live in src/lib/quizContent.ts now.
+  //
+  // They used to be here, apart, and had drifted: the serializer wrote
+  // data-choice-id="1" data-correct="true" while this parser looked for
+  // data-choice="A" data-correct="A". Nothing matched, so it fell through to a
+  // fallback returning four blank options with A marked correct - and saving
+  // wrote that over the real question bank. Opening a quiz and pressing save
+  // destroyed it. It also split on the slide separator, so seeded content, which
+  // ends every question with one, gained a bogus empty question.
   const parseQuestionsFromContent = (content: string): any[] => {
-    const questions: any[] = []
-    const slides = content.split('<hr class="slide-separator"')
+    const parsed = parseQuizContent(content)
+    if (parsed.length > 0) return parsed
 
-    slides.forEach((slide, index) => {
-      const titleMatch = slide.match(/Question \d+: ([^<]+)/)
-      const title = titleMatch ? titleMatch[1].trim() : `Question ${index + 1}`
-
-      let type = 'multiple_choice'
-      if (slide.includes('TRUE / FALSE')) type = 'true_false'
-      else if (slide.includes('SHORT ANSWER')) type = 'short_answer'
-      else if (slide.includes('ESSAY')) type = 'essay'
-
-      const pointsMatch = slide.match(/(\d+) points?/)
-      const points = pointsMatch ? parseInt(pointsMatch[1]) : 1
-
-      const choices: any[] = []
-      const choiceMatches = slide.matchAll(/data-choice="([A-D])"[^>]*>([^<]+)</g)
-      for (const match of choiceMatches) {
-        choices.push({
-          id: match[1],
-          text: match[2].trim(),
-          isCorrect: slide.includes(`data-correct="${match[1]}"`) || slide.includes(`correct.*${match[1]}`)
-        })
-      }
-
-      const correctMatch = slide.match(/data-correct="([A-D])"/)
-      if (correctMatch && choices.length > 0) {
-        choices.forEach(c => {
-          c.isCorrect = c.id === correctMatch[1]
-        })
-      }
-
-      if (choices.length === 0 && type === 'multiple_choice') {
-        choices.push(
-          { id: 'A', text: '', isCorrect: true },
-          { id: 'B', text: '', isCorrect: false },
-          { id: 'C', text: '', isCorrect: false },
-          { id: 'D', text: '', isCorrect: false }
-        )
-      }
-
-      questions.push({
-        id: Date.now().toString() + index,
-        title,
-        content: '',
-        type,
-        choices: type === 'multiple_choice' ? choices : undefined,
-        points
-      })
-    })
-
-    return questions.length > 0 ? questions : [{
+    // Only for a genuinely empty quiz. Never as a fallback for markup that
+    // could not be read - that is what overwrote question banks.
+    return [{
       id: '1',
       title: 'Question 1',
       content: '',
       type: 'multiple_choice',
       choices: [
-        { id: 'A', text: '', isCorrect: true },
-        { id: 'B', text: '', isCorrect: false },
-        { id: 'C', text: '', isCorrect: false },
-        { id: 'D', text: '', isCorrect: false }
+        { id: '1', text: '', isCorrect: true },
+        { id: '2', text: '', isCorrect: false },
+        { id: '3', text: '', isCorrect: false },
+        { id: '4', text: '', isCorrect: false },
       ],
-      points: 1
+      points: 1,
     }]
   }
 

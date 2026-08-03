@@ -43,6 +43,14 @@ export default function QuizViewer({ content, quizId, passingScore, timeLimit, m
     parseQuestions()
   }, [content])
 
+  // NOTE: this duplicates src/lib/quizContent.ts, which the instructor editor
+  // and (in Python) apps/learning/quiz_content.py both use. The patterns below
+  // are currently correct and agree with those, so it is left alone rather than
+  // rewritten on the student quiz path; the backend test
+  // SeededQuizzesGradeOnTheServer is what catches the two drifting apart.
+  //
+  // If you change how quiz markup is read, change all three. A student is shown
+  // one thing and graded on another otherwise.
   const parseQuestions = () => {
     const slideRegex = /<div class="module-slide" data-slide="(\d+)">([\s\S]*?)(?=<div class="module-slide"|$)/g
     const matches = Array.from(content.matchAll(slideRegex))
