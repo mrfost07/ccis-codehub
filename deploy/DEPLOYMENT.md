@@ -3,23 +3,36 @@
 Live: **https://ccis-codehub.space**
 
 Everything below reflects the deployment as it actually runs, verified on
-2026-07-26. For the pre-launch audit and remaining hardening items see
+2026-08-04. For the pre-launch audit and remaining hardening items see
 [PRODUCTION_CHECKLIST.md](PRODUCTION_CHECKLIST.md).
 
 ---
 
 ## 1. The environment
 
+Moved to AWS EC2 on 2026-08-04. The previous host (`104.207.92.63`) no longer
+exists — do not use commands or IPs from git history against it.
+
 | | |
 |---|---|
-| Host | `104.207.92.63` (Ubuntu 24.04 LTS, 8 vCPU AMD EPYC, 8 GB RAM) |
-| SSH | `ssh -i ~/.ssh/spaceship -p 22022 root@104.207.92.63` (**port 22022**, not 22) |
-| Domain | `ccis-codehub.space` + `www` → both A records point at the host |
-| DNS | Hostinger (`ns1/ns2.dns-parking.com`) |
+| Host | `18.139.217.110` — AWS EC2 `c7i-flex.large`, **ap-southeast-1 (Singapore)**, Ubuntu 24.04.4 LTS, 2 vCPU / 3.8 GB RAM + 4 GB swap, 29 GB disk |
+| SSH | `ssh -i ~/.ssh/ccis-ssh-key.pem ubuntu@18.139.217.110` (port **22**; no root login — use `sudo`) |
+| Domain | `ccis-codehub.space` A record → host; `www` is a CNAME to the apex |
+| DNS | Hostinger (`ns1/ns2.dns-parking.com`) — those are Hostinger's normal nameservers, "parking" is just their branding |
 | App path | `/home/deploy/CCIS-CodeHub` |
 | Runs as | `deploy` |
-| Database | Neon Postgres (managed, external) |
-| TLS | Let's Encrypt via certbot, auto-renewing |
+| Database | Neon Postgres, **ap-southeast-1** — 1.3 ms query round-trip, 19 ms connection setup |
+| TLS | Let's Encrypt via certbot, auto-renewing (`certbot.timer`) |
+
+> ⚠️ **No Elastic IP yet.** `18.139.217.110` is an auto-assigned address and
+> will change if the instance is ever stopped, breaking DNS and `ALLOWED_HOSTS`.
+> Allocate and associate an Elastic IP, then update the Hostinger A record and
+> `DJANGO_ALLOWED_HOSTS`.
+
+> **Inbound rules live in the EC2 security group, not just `ufw`.** The instance
+> uses `launch-wizard-2`; it must allow 22, 80 and 443. `ufw` allowing a port is
+> not sufficient — a wizard-created group starts with SSH only, which presents as
+> a connection timeout on 80/443 while everything on the box looks healthy.
 
 ### Request flow
 
@@ -67,12 +80,18 @@ git push origin main
 ### On the server
 
 ```bash
-ssh -i ~/.ssh/spaceship -p 22022 root@104.207.92.63
+ssh -i ~/.ssh/ccis-ssh-key.pem ubuntu@18.139.217.110
 cd /home/deploy/CCIS-CodeHub
-git pull
+sudo -u deploy git pull         # the repo is owned by deploy, not ubuntu
 sudo bash deploy/bootstrap.sh
 sudo bash deploy/verify.sh      # confirm it actually works
 ```
+
+There is no root login on EC2 — you land as `ubuntu` and use `sudo`. Running
+`git pull` as `ubuntu` or `root` leaves root-owned objects in `.git` that the
+`deploy` user then cannot write, which surfaces later as
+`insufficient permission for adding an object`. Fix with
+`sudo chown -R deploy:deploy /home/deploy/CCIS-CodeHub/.git`.
 
 Then **hard-refresh** the browser (`Ctrl+Shift+R`) — asset filenames are
 content-hashed, but `index.html` can be cached.
@@ -138,8 +157,11 @@ sudo systemctl restart ccis-backend
 
 ```bash
 git clone https://github.com/mrfost07/ccis-codehub.git /home/deploy/CCIS-CodeHub
-# .env is gitignored — copy it up from your laptop first:
-#   scp -P 22022 deploy/.env.production root@104.207.92.63:/home/deploy/CCIS-CodeHub/backend/.env
+# .env is gitignored — copy it up from your laptop first. There is no root
+# login and `deploy` has no password, so land as ubuntu and move it into place:
+#   scp -i ~/.ssh/ccis-ssh-key.pem deploy/.env.production ubuntu@18.139.217.110:/tmp/env
+#   ssh -i ~/.ssh/ccis-ssh-key.pem ubuntu@18.139.217.110 \
+#     'sudo install -o deploy -g deploy -m 600 /tmp/env /home/deploy/CCIS-CodeHub/backend/.env && rm /tmp/env'
 cd /home/deploy/CCIS-CodeHub && sudo SKIP_TLS=1 bash deploy/bootstrap.sh
 # add DNS A records, then re-run without SKIP_TLS for the certificate
 ```

@@ -99,6 +99,18 @@ else
     ok "created user '$DEPLOY_USER'"
 fi
 
+# nginx (www-data) serves frontend/dist from inside this home directory, so it
+# must be able to traverse it. Ubuntu 24.04's adduser creates homes as 0750
+# (DIR_MODE in /etc/adduser.conf), which www-data cannot enter — every request
+# for / then fails with "stat() failed (13: Permission denied)" followed by
+# "rewrite or internal redirection cycle", and returns 500. /api/ keeps working
+# throughout because that is proxied to daphne, never read off disk, which makes
+# the cause look unrelated to permissions.
+#
+# o+x is traversal ONLY. Deliberately not o+r, so the directory stays unlistable.
+chmod o+x "/home/$DEPLOY_USER"
+ok "$(stat -c '%A' "/home/$DEPLOY_USER") /home/$DEPLOY_USER — traversable by www-data"
+
 # ---------------------------------------------------------------------------
 # 3. Source code
 # ---------------------------------------------------------------------------
