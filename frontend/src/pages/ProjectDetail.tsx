@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Users, GitBranch, GitPullRequest, Settings, Plus, CheckCircle2,
@@ -18,7 +18,9 @@ interface Task {
   title: string
   description: string
   status: 'todo' | 'in_progress' | 'review' | 'done'
-  priority: 'low' | 'medium' | 'high'
+  // 'urgent' is in ProjectTask.PRIORITY_CHOICES on the backend and was missing
+  // here, which is how it also went missing from the priority sort below.
+  priority: 'low' | 'medium' | 'high' | 'urgent'
   assigned_to: number | null
   assigned_to_name: string | null
   due_date: string | null
@@ -26,6 +28,22 @@ interface Task {
   order: number
   can_edit?: boolean
   can_drag?: boolean
+}
+
+/**
+ * Sort weight for the "priority" sort.
+ *
+ * This replaces an inline `{ high: 0, medium: 1, low: 2 }`, which had no entry
+ * for 'urgent' even though the backend allows it. The lookup returned undefined
+ * for an urgent task, so the comparator evaluated `undefined - n` = NaN and the
+ * resulting order was arbitrary rather than sorted. Typed against Task so adding
+ * a priority to the model without adding it here is a compile error.
+ */
+const PRIORITY_ORDER: Record<Task['priority'], number> = {
+  urgent: 0,
+  high: 1,
+  medium: 2,
+  low: 3,
 }
 
 interface TaskComment {
@@ -259,40 +277,46 @@ export default function ProjectDetail() {
     }
   }, [showTaskModal, fetchProject, project?.team, project?.team_name])
 
-  // Filter and sort tasks
-  useEffect(() => {
-    let result = [...tasks]
+  /**
+   * Search + sort, in one place so the Kanban board and the filtered list below
+   * it cannot drift apart.
+   *
+   * The status filter is deliberately NOT applied here. The board's columns ARE
+   * the statuses, so filtering by status would blank three of the four columns.
+   * The board did the opposite, though: it read raw `tasks`, so neither the
+   * search box nor the sort ever reached it, and typing in search looked like it
+   * did nothing at all.
+   */
+  const searchedAndSortedTasks = useMemo(() => {
+    const needle = taskSearch.trim().toLowerCase()
+    const result = needle
+      ? tasks.filter(t =>
+          t.title.toLowerCase().includes(needle) ||
+          t.description?.toLowerCase().includes(needle))
+      : [...tasks]
 
-    // Search
-    if (taskSearch) {
-      const search = taskSearch.toLowerCase()
-      result = result.filter(t =>
-        t.title.toLowerCase().includes(search) ||
-        t.description?.toLowerCase().includes(search)
-      )
-    }
-
-    // Filter by status
-    if (taskFilter !== 'all') {
-      result = result.filter(t => t.status === taskFilter)
-    }
-
-    // Sort
     switch (taskSort) {
       case 'newest':
-        result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        break
+        return result.sort((a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       case 'oldest':
-        result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-        break
+        return result.sort((a, b) =>
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
       case 'priority':
-        const priorityOrder = { high: 0, medium: 1, low: 2 }
-        result.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority])
-        break
+        return result.sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority])
+      default:
+        return result
     }
+  }, [tasks, taskSearch, taskSort])
 
-    setFilteredTasks(result)
-  }, [tasks, taskSearch, taskFilter, taskSort])
+  // The list view adds the status filter on top of the shared search + sort.
+  useEffect(() => {
+    setFilteredTasks(
+      taskFilter === 'all'
+        ? searchedAndSortedTasks
+        : searchedAndSortedTasks.filter(t => t.status === taskFilter),
+    )
+  }, [searchedAndSortedTasks, taskFilter])
 
   const fetchFollowers = async () => {
     try {
@@ -767,7 +791,14 @@ export default function ProjectDetail() {
   }
 
   // Helper functions
+  // Unfiltered, for the Overview tab's counts and completion percentage — those
+  // describe the project, so a search term in the Kanban tab must not move them.
   const getTasksByStatus = (status: string) => tasks.filter(t => t.status === status)
+
+  // What the Kanban board renders: search and sort applied, status not (the
+  // columns are the statuses).
+  const boardTasksByStatus = (status: string) =>
+    searchedAndSortedTasks.filter(t => t.status === status)
 
   const getPriorityColor = (priority: string) => {
     const colors: Record<string, string> = {
@@ -1118,11 +1149,11 @@ export default function ProjectDetail() {
                         <h4 className="font-medium text-white">{status.label}</h4>
                       </div>
                       <span className="text-xs text-neutral-400 bg-neutral-700 px-2 py-0.5 rounded">
-                        {getTasksByStatus(status.id).length}
+                        {boardTasksByStatus(status.id).length}
                       </span>
                     </div>
                     <div className="space-y-2">
-                      {getTasksByStatus(status.id).map(task => (
+                      {boardTasksByStatus(status.id).map(task => (
                         <div
                           key={task.id}
                           draggable={task.can_drag ?? false}

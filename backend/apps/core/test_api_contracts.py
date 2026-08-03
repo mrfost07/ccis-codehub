@@ -19,11 +19,16 @@ None of that was visible from the backend: the endpoints all returned 200 and
 the payloads shrank exactly as intended. These tests state the contract in the
 place a future change to either serializer will trip over it.
 """
+import re
+from pathlib import Path
+
+from django.conf import settings
 from django.test import TestCase
 from rest_framework.test import APIClient
 
 from apps.accounts.models import User, UserProfile
 from apps.learning.models import CareerPath, LearningModule, Quiz
+from apps.projects.models import Project, ProjectTask
 
 BODY = '<div class="module-slide">Question 1: What is 2+2?</div>'
 
@@ -206,3 +211,83 @@ class PublicProfileCarriesTheAnimatedCover(TestCase):
         body = client.get(f'/api/auth/user/{self.target.id}/').json()
         self.assertNotIn('email', body)
         self.assertNotIn('career_interests', body)
+
+
+class FrontendChoiceListsMatchTheModels(TestCase):
+    """
+    Hardcoded choice lists in the frontend, checked against the model they are
+    compared against.
+
+    The Projects page filters with `p.status === filter`, straight against
+    Project.status, and its chip list read
+    ['all', 'active', 'planning', 'completed', 'on_hold']. 'active' is not a
+    project status, so that chip matched zero projects every single time, while
+    in_progress / review / cancelled had no chip and could not be selected at
+    all. Nothing errored — the list just came back empty, which reads as "the
+    filter is broken" rather than "that status does not exist".
+
+    The same file's task priority sort had the mirror problem: a lookup of
+    {high, medium, low} with no 'urgent', so an urgent task produced
+    `undefined - n` = NaN and the sort order silently went arbitrary.
+
+    Parsing TSX with a regex is crude, but the alternative is these lists drifting
+    again with nothing to notice. If a constant is renamed, fix the name here
+    rather than deleting the test.
+    """
+
+    def _values_from(self, relative_path, const_name):
+        path = Path(settings.BASE_DIR).parent / relative_path
+        if not path.is_file():
+            self.skipTest(f'{relative_path} not present (backend-only checkout)')
+        match = re.search(
+            re.escape(const_name) + r'[^=]*=\s*[\[{](.*?)[\]}]',
+            path.read_text(encoding='utf-8'),
+            re.DOTALL,
+        )
+        self.assertIsNotNone(
+            match,
+            f'{const_name} not found in {relative_path}; it was probably renamed',
+        )
+        return set(re.findall(r"'([^']+)'|^\s*(\w+)\s*:", match.group(1), re.MULTILINE)) or set()
+
+    def _names(self, relative_path, const_name):
+        # findall with two groups yields tuples; keep whichever side matched.
+        return {a or b for a, b in self._values_from(relative_path, const_name)}
+
+    # -- Project status chips ----------------------------------------------
+
+    PROJECTS_PAGE = 'frontend/src/pages/ProjectsEnhanced.tsx'
+
+    def test_every_status_chip_is_a_real_project_status(self):
+        chips = self._names(self.PROJECTS_PAGE, 'PROJECT_STATUS_FILTERS') - {'all'}
+        valid = {value for value, _ in Project.STATUS_CHOICES}
+        self.assertEqual(
+            sorted(chips - valid), [],
+            'the Projects page offers status filters no project can ever have, '
+            'so selecting one always shows an empty list',
+        )
+
+    def test_every_project_status_is_reachable_from_a_chip(self):
+        chips = self._names(self.PROJECTS_PAGE, 'PROJECT_STATUS_FILTERS')
+        valid = {value for value, _ in Project.STATUS_CHOICES}
+        self.assertEqual(
+            sorted(valid - chips), [],
+            'these project statuses have no filter chip, so projects in them '
+            'cannot be filtered for',
+        )
+
+    def test_the_all_chip_exists(self):
+        self.assertIn('all', self._names(self.PROJECTS_PAGE, 'PROJECT_STATUS_FILTERS'))
+
+    # -- Task priority sort weights ---------------------------------------
+
+    PROJECT_DETAIL_PAGE = 'frontend/src/pages/ProjectDetail.tsx'
+
+    def test_priority_sort_covers_every_backend_priority(self):
+        weighted = self._names(self.PROJECT_DETAIL_PAGE, 'PRIORITY_ORDER')
+        valid = {value for value, _ in ProjectTask.PRIORITY_CHOICES}
+        self.assertEqual(
+            sorted(valid - weighted), [],
+            'these priorities have no sort weight, so sorting by priority '
+            'compares against undefined and the order becomes arbitrary',
+        )

@@ -15,6 +15,23 @@ import {
 import ProfileAvatar from '../components/ProfileAvatar'
 import { SkeletonCard } from '../components/ui'
 
+/**
+ * Filter chips for the Projects tab.
+ *
+ * These are compared straight against Project.status, so they have to be the
+ * real values from Project.STATUS_CHOICES in backend/apps/projects/models.py:
+ * planning, in_progress, review, completed, on_hold, cancelled.
+ *
+ * The list used to be ['all', 'active', 'planning', 'completed', 'on_hold'].
+ * 'active' is not a project status at all, so that chip always matched zero
+ * projects, while in_progress / review / cancelled had no chip and could not be
+ * reached. With every project sitting in 'planning', the visible effect was that
+ * only 'All' and 'Planning' ever showed anything and the rest looked broken.
+ */
+const PROJECT_STATUS_FILTERS = [
+  'all', 'planning', 'in_progress', 'review', 'completed', 'on_hold', 'cancelled',
+] as const
+
 interface Task {
   id: string
   title: string
@@ -141,6 +158,15 @@ export default function ProjectsEnhanced() {
   const [teamProjects, setTeamProjects] = useState<Project[]>([])
   const [activeTab, setActiveTab] = useState<'teams' | 'projects' | 'tasks' | 'analytics' | 'invitations' | 'notifications'>('teams')
   const [filter, setFilter] = useState<string>('all')
+  // The Tasks tab scopes by project and by task status. Both were broken, and
+  // one of them broke the Projects tab too: that tab's project <select> wrote
+  // into `filter` above, which the projects list compares against p.status, so
+  // choosing a project set filter to a UUID and silently emptied the projects
+  // list — while still filtering no tasks. Its status <select> had an empty
+  // onChange and did nothing at all. Separate state, so neither can reach the
+  // other tab.
+  const [taskProjectFilter, setTaskProjectFilter] = useState<string>('all')
+  const [taskStatusFilter, setTaskStatusFilter] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [stats, setStats] = useState<ProjectStats>({
     totalProjects: 0,
@@ -810,6 +836,25 @@ export default function ProjectsEnhanced() {
       p.description?.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
+  // The read-only Kanban on the Tasks tab rendered `allTasks` directly, so none
+  // of that tab's controls reached it — not the project select, not the status
+  // select, not even its own search box. Everything that tab shows goes through
+  // here now, so a control that changes state visibly changes the contents.
+  const visibleTasks = useMemo(() => {
+    const needle = searchTerm.trim().toLowerCase()
+    return allTasks.filter(task =>
+      (taskProjectFilter === 'all' || task.project === taskProjectFilter) &&
+      (taskStatusFilter === 'all' || task.status === taskStatusFilter) &&
+      (needle === '' ||
+        task.title.toLowerCase().includes(needle) ||
+        task.description?.toLowerCase().includes(needle) ||
+        task.project_name?.toLowerCase().includes(needle))
+    )
+  }, [allTasks, taskProjectFilter, taskStatusFilter, searchTerm])
+
+  const tasksByStatus = (status: Task['status']) =>
+    visibleTasks.filter(task => task.status === status)
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       'active': 'text-green-400 bg-green-500/20',
@@ -1295,7 +1340,7 @@ export default function ProjectsEnhanced() {
                     />
                   </div>
                   <div className="flex gap-2 overflow-x-auto">
-                    {['all', 'active', 'planning', 'completed', 'on_hold'].map(status => (
+                    {PROJECT_STATUS_FILTERS.map(status => (
                       <button
                         key={status}
                         onClick={() => setFilter(status)}
@@ -1363,10 +1408,10 @@ export default function ProjectsEnhanced() {
                       className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder:text-neutral-500 focus:outline-none focus:border-purple-500"
                     />
                   </div>
-                  {/* Project Filter */}
+                  {/* Project Filter — scopes the Kanban below to one project */}
                   <select
-                    value={filter}
-                    onChange={(e) => setFilter(e.target.value)}
+                    value={taskProjectFilter}
+                    onChange={(e) => setTaskProjectFilter(e.target.value)}
                     className="px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
                   >
                     <option value="all">All Projects</option>
@@ -1374,13 +1419,11 @@ export default function ProjectsEnhanced() {
                       <option key={project.id} value={project.id}>{project.name}</option>
                     ))}
                   </select>
-                  {/* Status Filter */}
+                  {/* Status Filter — narrows to a single column's worth of tasks */}
                   <select
+                    value={taskStatusFilter}
+                    onChange={(e) => setTaskStatusFilter(e.target.value)}
                     className="px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
-                    onChange={(e) => {
-                      // Filter tasks by status - can be enhanced with state
-                    }}
-                    defaultValue="all"
                   >
                     <option value="all">All Status</option>
                     <option value="todo">To Do</option>
@@ -1394,7 +1437,14 @@ export default function ProjectsEnhanced() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold text-white">Task Overview</h3>
-                    <p className="text-sm text-neutral-400">{allTasks.length} total tasks from all projects (read-only)</p>
+                    {/* Showing the filtered count against the total is what makes
+                        it obvious a control did something, even when the result
+                        is legitimately empty. */}
+                    <p className="text-sm text-neutral-400">
+                      {visibleTasks.length === allTasks.length
+                        ? `${allTasks.length} tasks from all projects (read-only)`
+                        : `${visibleTasks.length} of ${allTasks.length} tasks shown (read-only)`}
+                    </p>
                   </div>
                   <p className="text-xs text-neutral-500">
                     🔒 To update task status, open the project's Kanban board
@@ -1410,15 +1460,15 @@ export default function ProjectsEnhanced() {
                         <div className="w-2 h-2 rounded-full bg-neutral-400"></div>
                         To Do
                         <span className="ml-auto text-xs text-neutral-400">
-                          {allTasks.filter(t => t.status === 'todo').length}
+                          {tasksByStatus('todo').length}
                         </span>
                       </h4>
                     </div>
                     <div className="p-2 space-y-2 min-h-[200px]">
-                      {allTasks.filter(t => t.status === 'todo').map(task => (
+                      {tasksByStatus('todo').map(task => (
                         <TaskCard key={task.id} task={task} readOnly />
                       ))}
-                      {allTasks.filter(t => t.status === 'todo').length === 0 && (
+                      {tasksByStatus('todo').length === 0 && (
                         <div className="text-center py-8 text-neutral-500 text-sm">
                           No tasks
                         </div>
@@ -1433,15 +1483,15 @@ export default function ProjectsEnhanced() {
                         <div className="w-2 h-2 rounded-full bg-purple-500"></div>
                         In Progress
                         <span className="ml-auto text-xs text-neutral-400">
-                          {allTasks.filter(t => t.status === 'in_progress').length}
+                          {tasksByStatus('in_progress').length}
                         </span>
                       </h4>
                     </div>
                     <div className="p-2 space-y-2 min-h-[200px]">
-                      {allTasks.filter(t => t.status === 'in_progress').map(task => (
+                      {tasksByStatus('in_progress').map(task => (
                         <TaskCard key={task.id} task={task} readOnly />
                       ))}
-                      {allTasks.filter(t => t.status === 'in_progress').length === 0 && (
+                      {tasksByStatus('in_progress').length === 0 && (
                         <div className="text-center py-8 text-neutral-500 text-sm">
                           No tasks
                         </div>
@@ -1456,15 +1506,15 @@ export default function ProjectsEnhanced() {
                         <div className="w-2 h-2 rounded-full bg-amber-500"></div>
                         Review
                         <span className="ml-auto text-xs text-neutral-400">
-                          {allTasks.filter(t => t.status === 'review').length}
+                          {tasksByStatus('review').length}
                         </span>
                       </h4>
                     </div>
                     <div className="p-2 space-y-2 min-h-[200px]">
-                      {allTasks.filter(t => t.status === 'review').map(task => (
+                      {tasksByStatus('review').map(task => (
                         <TaskCard key={task.id} task={task} readOnly />
                       ))}
-                      {allTasks.filter(t => t.status === 'review').length === 0 && (
+                      {tasksByStatus('review').length === 0 && (
                         <div className="text-center py-8 text-neutral-500 text-sm">
                           No tasks
                         </div>
@@ -1479,15 +1529,15 @@ export default function ProjectsEnhanced() {
                         <div className="w-2 h-2 rounded-full bg-green-500"></div>
                         Done
                         <span className="ml-auto text-xs text-neutral-400">
-                          {allTasks.filter(t => t.status === 'done').length}
+                          {tasksByStatus('done').length}
                         </span>
                       </h4>
                     </div>
                     <div className="p-2 space-y-2 min-h-[200px]">
-                      {allTasks.filter(t => t.status === 'done').map(task => (
+                      {tasksByStatus('done').map(task => (
                         <TaskCard key={task.id} task={task} readOnly />
                       ))}
-                      {allTasks.filter(t => t.status === 'done').length === 0 && (
+                      {tasksByStatus('done').length === 0 && (
                         <div className="text-center py-8 text-neutral-500 text-sm">
                           No tasks
                         </div>
