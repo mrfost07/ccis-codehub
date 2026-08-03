@@ -19,8 +19,17 @@ interface ModalProps {
 const sizes = { sm: 'sm:max-w-sm', md: 'sm:max-w-lg', lg: 'sm:max-w-2xl', xl: 'sm:max-w-4xl' }
 
 /**
- * Dialog per DESIGN_SYSTEM.md §10 — bottom sheet on mobile, centered on ≥sm.
+ * Dialog per DESIGN_SYSTEM.md §10 — centered, with breathing room on every size.
  * Esc + overlay click close; body scroll locked; focus moves into the panel.
+ *
+ * This was a bottom sheet flush to the viewport edge on mobile (`items-end p-0`),
+ * which put its lower rows underneath the mobile bottom nav and, on phones with a
+ * home indicator, underneath that too. Centering with padding keeps the panel
+ * clear of both without every caller having to know they exist.
+ *
+ * Heights use dvh on mobile rather than vh: vh is the *largest* viewport on
+ * mobile browsers, measured as though the address bar were hidden, so `90vh`
+ * overflows behind the browser chrome while the bar is showing.
  */
 export function Modal({ open, onClose, title, size = 'md', children, footer, className }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
@@ -61,7 +70,12 @@ export function Modal({ open, onClose, title, size = 'md', children, footer, cla
   if (!open) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      // Keeps the panel off the home indicator on phones that have one, without
+      // ever shrinking the gap below the 1rem the padding already gives.
+      style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+    >
       <div
         className="absolute inset-0 animate-fade-in bg-black/60 backdrop-blur-sm"
         onClick={onClose}
@@ -73,27 +87,31 @@ export function Modal({ open, onClose, title, size = 'md', children, footer, cla
         aria-modal="true"
         tabIndex={-1}
         className={cn(
-          'relative flex max-h-[90vh] w-full flex-col animate-scale-in rounded-t-2xl border border-neutral-800',
-          'bg-neutral-900 shadow-xl shadow-black/40 outline-none sm:rounded-2xl',
+          'relative flex max-h-[85dvh] w-full flex-col animate-scale-in rounded-2xl',
+          'border border-neutral-800 bg-neutral-900 shadow-xl shadow-black/40',
+          'outline-none sm:max-h-[90vh]',
           sizes[size],
           className,
         )}
       >
         {title !== undefined && (
-          <div className="flex items-center justify-between border-b border-neutral-800 p-5">
+          // Tighter padding under sm: on a phone, 20px of chrome on all four
+          // sides of a dialog is most of the room the content needed.
+          <div className="flex items-center justify-between border-b border-neutral-800 p-4 sm:p-5">
             <h2 className="text-base font-semibold text-white">{title}</h2>
             <button
               onClick={onClose}
               aria-label="Close dialog"
-              className="rounded-lg p-1.5 text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-white"
+              // >= 44px of tappable area on mobile per DESIGN_SYSTEM.md §4.
+              className="-m-1.5 flex h-10 w-10 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-white sm:h-8 sm:w-8"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
         )}
-        <div className="min-h-0 flex-1 overflow-y-auto p-5">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">{children}</div>
         {footer && (
-          <div className="flex justify-end gap-2 border-t border-neutral-800 p-5">{footer}</div>
+          <div className="flex justify-end gap-2 border-t border-neutral-800 p-4 sm:p-5">{footer}</div>
         )}
       </div>
     </div>,

@@ -443,8 +443,21 @@ the real content's geometry so nothing jumps on load.
   </div>
 </div>
 ```
-Mobile: bottom sheet (`items-end`, `rounded-t-2xl`). Esc + overlay click close;
-focus trapped; scroll locked.
+Esc + overlay click close; focus trapped; scroll locked.
+
+**Centered at every size, with padding around it** — not a bottom sheet. It was
+`items-end p-0` under `sm`, flush to the viewport edge, which put the panel's
+lower rows beneath the mobile bottom nav and beneath the home indicator on phones
+that have one. Callers should not have to know either exists.
+
+- Wrapper: `flex items-center justify-center p-4`, plus
+  `paddingBottom: max(1rem, env(safe-area-inset-bottom))`.
+- Height: `max-h-[85dvh] sm:max-h-[90vh]`. **`dvh`, not `vh`, on mobile** — `vh`
+  is the *largest* viewport, measured as though the address bar were hidden, so
+  `90vh` overflows behind browser chrome while the bar is showing.
+- Chrome padding: `p-4 sm:p-5`. Twenty pixels on all four sides of a phone
+  dialog is most of the room the content needed.
+- The close button is `h-10 w-10` under `sm` (§4 touch targets), `h-8 w-8` above.
 
 ### Dropdown / Menu
 ```html

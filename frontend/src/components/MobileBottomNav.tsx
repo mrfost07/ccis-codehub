@@ -42,7 +42,11 @@ export default function MobileBottomNav() {
     return (
         <nav
             aria-label="Primary"
-            className="md:hidden fixed inset-x-0 bottom-0 z-[60] pointer-events-none"
+            // z-40 per the scale in DESIGN_SYSTEM.md §6: nav below modals (z-50),
+            // toasts above them (z-60). This was z-[60], which put the dock on
+            // top of every dialog on mobile — a sheet would open underneath the
+            // nav and its lowest rows were unreachable.
+            className="md:hidden fixed inset-x-0 bottom-0 z-40 pointer-events-none"
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
             <div className="pointer-events-auto mx-3 mb-3 rounded-2xl border border-white/10 bg-neutral-900/90 backdrop-blur-xl shadow-2xl shadow-black/60">

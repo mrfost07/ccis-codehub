@@ -19,8 +19,9 @@ import { cn, EmptyState, Modal, Spinner } from './ui'
  *   people    chat messages. reactions_summary already ships the full reactor list
  *             per emoji, so fetching again would be a pointless round-trip.
  *
- * Uses ui/Modal, which is already a bottom sheet under `sm` and centered above it
- * (DESIGN_SYSTEM.md §10), so mobile behaviour is inherited rather than reinvented.
+ * Uses ui/Modal, so responsive behaviour — centering, safe-area inset, dvh height
+ * cap, staying clear of the mobile bottom nav — is inherited rather than
+ * reinvented here (DESIGN_SYSTEM.md §10).
  */
 
 export interface Reactor {
