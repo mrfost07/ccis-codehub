@@ -15,8 +15,8 @@ exists — do not use commands or IPs from git history against it.
 
 | | |
 |---|---|
-| Host | `18.139.217.110` — AWS EC2 `c7i-flex.large`, **ap-southeast-1 (Singapore)**, Ubuntu 24.04.4 LTS, 2 vCPU / 3.8 GB RAM + 4 GB swap, 29 GB disk |
-| SSH | `ssh -i ~/.ssh/ccis-ssh-key.pem ubuntu@18.139.217.110` (port **22**; no root login — use `sudo`) |
+| Host | `54.255.89.200` — AWS EC2 `c7i-flex.large`, **ap-southeast-1 (Singapore)**, Ubuntu 24.04.4 LTS, 2 vCPU / 3.8 GB RAM + 4 GB swap, 29 GB disk |
+| SSH | `ssh -i ~/.ssh/ccis-ssh-key.pem ubuntu@54.255.89.200` (port **22**; no root login — use `sudo`) |
 | Domain | `ccis-codehub.space` A record → host; `www` is a CNAME to the apex |
 | DNS | Hostinger (`ns1/ns2.dns-parking.com`) — those are Hostinger's normal nameservers, "parking" is just their branding |
 | App path | `/home/deploy/CCIS-CodeHub` |
@@ -24,10 +24,12 @@ exists — do not use commands or IPs from git history against it.
 | Database | Neon Postgres, **ap-southeast-1** — 1.3 ms query round-trip, 19 ms connection setup |
 | TLS | Let's Encrypt via certbot, auto-renewing (`certbot.timer`) |
 
-> ⚠️ **No Elastic IP yet.** `18.139.217.110` is an auto-assigned address and
-> will change if the instance is ever stopped, breaking DNS and `ALLOWED_HOSTS`.
-> Allocate and associate an Elastic IP, then update the Hostinger A record and
-> `DJANGO_ALLOWED_HOSTS`.
+> **`54.255.89.200` is an Elastic IP** (allocation `eipalloc-0405ccaa25f8f945c`),
+> so it survives a stop/start. If you ever terminate the instance, **release the
+> address too** — an Elastic IP that is allocated but not associated is billed as
+> idle. Associating one *replaces* the auto-assigned address and the old one is
+> gone for good, so DNS and `DJANGO_ALLOWED_HOSTS` both need updating at the same
+> time.
 
 > **Inbound rules live in the EC2 security group, not just `ufw`.** The instance
 > uses `launch-wizard-2`; it must allow 22, 80 and 443. `ufw` allowing a port is
@@ -80,7 +82,7 @@ git push origin main
 ### On the server
 
 ```bash
-ssh -i ~/.ssh/ccis-ssh-key.pem ubuntu@18.139.217.110
+ssh -i ~/.ssh/ccis-ssh-key.pem ubuntu@54.255.89.200
 cd /home/deploy/CCIS-CodeHub
 sudo -u deploy git pull         # the repo is owned by deploy, not ubuntu
 sudo bash deploy/bootstrap.sh
@@ -159,8 +161,8 @@ sudo systemctl restart ccis-backend
 git clone https://github.com/mrfost07/ccis-codehub.git /home/deploy/CCIS-CodeHub
 # .env is gitignored — copy it up from your laptop first. There is no root
 # login and `deploy` has no password, so land as ubuntu and move it into place:
-#   scp -i ~/.ssh/ccis-ssh-key.pem deploy/.env.production ubuntu@18.139.217.110:/tmp/env
-#   ssh -i ~/.ssh/ccis-ssh-key.pem ubuntu@18.139.217.110 \
+#   scp -i ~/.ssh/ccis-ssh-key.pem deploy/.env.production ubuntu@54.255.89.200:/tmp/env
+#   ssh -i ~/.ssh/ccis-ssh-key.pem ubuntu@54.255.89.200 \
 #     'sudo install -o deploy -g deploy -m 600 /tmp/env /home/deploy/CCIS-CodeHub/backend/.env && rm /tmp/env'
 cd /home/deploy/CCIS-CodeHub && sudo SKIP_TLS=1 bash deploy/bootstrap.sh
 # add DNS A records, then re-run without SKIP_TLS for the certificate

@@ -1,7 +1,7 @@
 # Production Readiness — CCIS CodeHub
 
 Audit date: 2026-07-25, host details updated 2026-08-04. Target: single VM
-(AWS EC2 `18.139.217.110`, ap-southeast-1, Ubuntu 24.04, SSH on port 22 as
+(AWS EC2 `54.255.89.200`, ap-southeast-1, Ubuntu 24.04, SSH on port 22 as
 `ubuntu`) serving `ccis-codehub.space`, nginx in front, Django + Channels behind
 it, Neon Postgres in the same region, Redis for the channel layer.
 
@@ -155,7 +155,7 @@ registrar add:
 
 | Type | Host | Value |
 |---|---|---|
-| A | `@` | `18.139.217.110` |
+| A | `@` | `54.255.89.200` |
 | CNAME | `www` | `ccis-codehub.space` |
 
 Resolved 2026-08-04: both records are in place at Hostinger and certbot has
