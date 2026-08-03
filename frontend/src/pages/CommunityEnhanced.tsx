@@ -2758,10 +2758,21 @@ export default function CommunityEnhanced() {
                     {(post.like_count > 0 || post.comment_count > 0) && (
                       <div className="flex items-center gap-3 text-xs text-neutral-500 tabular-nums mb-2">
                         {post.like_count > 0 && (
-                          <span className="flex items-center gap-1">
-                            <Heart className="w-3 h-3 fill-red-400 text-red-400" />
-                            {post.like_count}
-                          </span>
+                          <Reactors
+                            count={post.like_count}
+                            title="Liked by"
+                            noun="like"
+                            loadPage={async page => {
+                              const { data } = await communityAPI.getPostLikers(post.id, page)
+                              return { results: data.results ?? data, next: data.next ?? null }
+                            }}
+                            className="h-10 -my-1 gap-1 px-1 text-xs text-neutral-500 sm:h-auto sm:my-0"
+                          >
+                            <span className="flex items-center gap-1">
+                              <Heart className="w-3 h-3 fill-red-400 text-red-400" />
+                              {post.like_count}
+                            </span>
+                          </Reactors>
                         )}
                         {post.comment_count > 0 && (
                           <button
@@ -2945,10 +2956,23 @@ export default function CommunityEnhanced() {
                                         onClick={() => handleLikeComment(post.id, comment.id)}
                                         className={`font-medium transition-colors ${comment.is_liked ? 'text-red-400' : 'text-neutral-500 hover:text-neutral-300'}`}
                                       >
-                                        Like{(comment.like_count || 0) > 0 && (
-                                          <span className="ms-1 tabular-nums">· {comment.like_count}</span>
-                                        )}
+                                        Like
                                       </button>
+                                      {/* The count used to sit inside the Like
+                                          button, so tapping it toggled the like
+                                          instead of answering "who". */}
+                                      <Reactors
+                                        count={comment.like_count || 0}
+                                        title="Liked by"
+                                        noun="like"
+                                        loadPage={async page => {
+                                          const { data } = await communityAPI.getCommentLikers(comment.id, page)
+                                          return { results: data.results ?? data, next: data.next ?? null }
+                                        }}
+                                        className="h-10 -my-2 px-1 text-xs tabular-nums text-neutral-500 sm:h-auto sm:my-0"
+                                      >
+                                        <span>· {comment.like_count}</span>
+                                      </Reactors>
 
                                       <button
                                         onClick={() => toggleReplyInput(comment.id)}
@@ -3099,10 +3123,20 @@ export default function CommunityEnhanced() {
                                                       onClick={() => handleLikeComment(post.id, reply.id, true, comment.id)}
                                                       className={`font-medium transition-colors ${reply.is_liked ? 'text-red-400' : 'text-neutral-500 hover:text-neutral-300'}`}
                                                     >
-                                                      Like{(reply.like_count || 0) > 0 && (
-                                                        <span className="ms-1 tabular-nums">· {reply.like_count}</span>
-                                                      )}
+                                                      Like
                                                     </button>
+                                                    <Reactors
+                                                      count={reply.like_count || 0}
+                                                      title="Liked by"
+                                                      noun="like"
+                                                      loadPage={async page => {
+                                                        const { data } = await communityAPI.getCommentLikers(reply.id, page)
+                                                        return { results: data.results ?? data, next: data.next ?? null }
+                                                      }}
+                                                      className="h-10 -my-2 px-1 text-[11px] tabular-nums text-neutral-500 sm:h-auto sm:my-0"
+                                                    >
+                                                      <span>· {reply.like_count}</span>
+                                                    </Reactors>
                                                     <button
                                                       onClick={() => toggleReplyInput(reply.id)}
                                                       className="font-medium text-neutral-500 hover:text-neutral-300 transition-colors"

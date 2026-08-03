@@ -8,6 +8,7 @@ import {
   Lock, Clock, Check, X, MoreVertical, MessageSquare, Heart
 } from 'lucide-react'
 import { LoadingState } from '../components/ui'
+import Reactors from '../components/Reactors'
 
 interface Organization {
   id: string
@@ -325,9 +326,20 @@ export default function OrganizationDetail() {
                     <img src={post.image_url} alt="" className="rounded-lg max-h-96 w-full object-cover mb-3" />
                   )}
                   <div className="flex items-center gap-4 text-neutral-400">
-                    <span className="flex items-center gap-1">
-                      <Heart className="w-4 h-4" /> {post.like_count}
-                    </span>
+                    <Reactors
+                      count={post.like_count}
+                      title="Liked by"
+                      noun="like"
+                      loadPage={async page => {
+                        const { data } = await communityAPI.getPostLikers(post.id, page)
+                        return { results: data.results ?? data, next: data.next ?? null }
+                      }}
+                      className="h-10 -my-2 gap-1 px-1 text-neutral-400 sm:h-auto sm:my-0"
+                    >
+                      <span className="flex items-center gap-1">
+                        <Heart className="w-4 h-4" /> {post.like_count}
+                      </span>
+                    </Reactors>
                     <span className="flex items-center gap-1">
                       <MessageSquare className="w-4 h-4" /> {post.comment_count}
                     </span>
