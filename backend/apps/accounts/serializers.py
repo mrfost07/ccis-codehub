@@ -95,7 +95,14 @@ class PublicUserProfileSerializer(serializers.ModelSerializer):
         fields = [
             'location', 'total_courses_completed', 'total_modules_completed',
             'total_projects', 'total_posts', 'contribution_points',
-            'current_streak', 'certificates_earned'
+            'current_streak', 'certificates_earned',
+            # The animated cover on a profile page. It is a cosmetic choice that
+            # exists to be seen by other people, so it belongs in the public
+            # shape. Leaving it out made UserProfileView.tsx fall back to
+            # 'gradient' for every viewer who is not staff — which is every
+            # student — so nobody's chosen cover ever rendered for them, while
+            # staff saw it correctly because they get UserSerializer instead.
+            'profile_background',
         ]
     
     def get_total_projects(self, obj):

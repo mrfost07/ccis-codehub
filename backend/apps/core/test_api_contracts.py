@@ -132,3 +132,77 @@ class ContentIsListOmittedButDetailAvailable(TestCase):
         self.quiz.refresh_from_db()
         self.assertEqual(self.quiz.title, 'Renamed')
         self.assertEqual(self.quiz.content, BODY)
+
+
+class PublicProfileCarriesTheAnimatedCover(TestCase):
+    """
+    Whoever is looking, a profile's chosen cover has to come back.
+
+    /api/auth/user/<id>/ serves two different shapes: UserSerializer when the
+    viewer is staff or it is their own profile, PublicUserSerializer otherwise.
+    Only the first nested UserProfileSerializer, and only that one listed
+    `profile_background` — so UserProfileView.tsx read `undefined` and fell back
+    to 'gradient' for every non-staff viewer.
+
+    That is invisible from the backend: the endpoint returns 200, the payload is
+    merely smaller, and staff accounts render the cover correctly, so testing it
+    while logged in as an admin shows nothing wrong. On this platform every
+    student is non-staff, so in practice no student ever saw anyone's cover.
+
+    Asserted from both sides, because a future privacy trim to the public
+    serializer is exactly how this comes back.
+    """
+
+    BACKGROUND = 'hyperspeed'
+
+    def setUp(self):
+        self.target = User.objects.create_user(
+            username='cover_target', email='cover_target@ssct.edu.ph',
+            password='x', role='student',
+        )
+        UserProfile.objects.create(
+            user=self.target, profile_background=self.BACKGROUND,
+        )
+        self.student = User.objects.create_user(
+            username='cover_student', email='cover_student@ssct.edu.ph',
+            password='x', role='student',
+        )
+        UserProfile.objects.create(user=self.student)
+        self.staff = User.objects.create_user(
+            username='cover_staff', email='cover_staff@ssct.edu.ph',
+            password='x', role='admin', is_staff=True,
+        )
+        UserProfile.objects.create(user=self.staff)
+
+    def _profile_seen_by(self, viewer):
+        client = APIClient()
+        client.force_authenticate(user=viewer)
+        response = client.get(f'/api/auth/user/{self.target.id}/')
+        self.assertEqual(response.status_code, 200, response.content)
+        return response.json().get('profile') or {}
+
+    def test_a_student_sees_the_cover(self):
+        """The case that was broken: non-staff viewer, public serializer."""
+        profile = self._profile_seen_by(self.student)
+        self.assertEqual(
+            profile.get('profile_background'), self.BACKGROUND,
+            'a non-staff viewer got no profile_background, so the frontend '
+            'falls back to the plain gradient and the cover never renders',
+        )
+
+    def test_staff_still_see_the_cover(self):
+        self.assertEqual(
+            self._profile_seen_by(self.staff).get('profile_background'),
+            self.BACKGROUND,
+        )
+
+    def test_the_public_shape_still_withholds_the_email(self):
+        """
+        Adding a field to the public serializer must not widen it into the
+        private one. profile_background is cosmetic; email is not.
+        """
+        client = APIClient()
+        client.force_authenticate(user=self.student)
+        body = client.get(f'/api/auth/user/{self.target.id}/').json()
+        self.assertNotIn('email', body)
+        self.assertNotIn('career_interests', body)
