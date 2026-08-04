@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import {
   MessageCircle, X, Send, Settings, Reply, ArrowUp, Trash2,
-  MoreVertical, Smile, Edit2, Check, Globe, Building2, ChevronDown
+  MoreVertical, Smile, Edit2, Check, Globe, Building2, ChevronDown,
+  ChevronLeft, Hash, Search
 } from 'lucide-react'
 import api from '../services/api'
 import Reactors, { type Reactor } from './Reactors'
@@ -66,18 +67,47 @@ interface ChatMessage {
 
 const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '🎉']
 
-/** Poll cadence: fast while the user is reading, slow when the panel is closed. */
-const POLL_OPEN_MS = 3000
-const POLL_CLOSED_MS = 15000
+/**
+ * Fallback cadence, used only while the socket is not open.
+ *
+ * The open case was 3000ms and was the transport itself. Slower now because it is
+ * a safety net: a socket that is connecting, reconnecting or blocked by a proxy
+ * must not leave the chat frozen, but it must not be polled hard either.
+ */
+const POLL_FALLBACK_MS = 12000
+const POLL_CLOSED_MS = 30000
 
-export default function CommunityChat() {
+/** Which room counts as the all-programs one. */
+function isGlobalRoom(room: { room_type: string; name: string }) {
+  return room.room_type === 'GLOBAL'
+    || room.room_type === 'global'
+    || room.name.toLowerCase().includes('global')
+}
+
+export default function CommunityChat({
+  variant = 'widget',
+}: {
+  /** 'widget' floats over the page; 'page' fills the route that renders it. */
+  variant?: 'widget' | 'page'
+} = {}) {
   const { user } = useAuth()
   const navigate = useNavigate()
-  // Persist chat open state in localStorage
+  // Persist chat open state in localStorage. The page variant is always open —
+  // it IS the page, so there is nothing to minimise.
   const [isOpen, setIsOpen] = useState(() => {
+    if (variant === 'page') return true
     const saved = localStorage.getItem('communityChatOpen')
     return saved === 'true'
   })
+  const [roomQuery, setRoomQuery] = useState('')
+  /** Socket is open. Drives the header dot and disables the fallback poll. */
+  const [live, setLive] = useState(false)
+  /**
+   * Which pane a phone shows. Both panes side by side needs ~640px; below that
+   * the list and the conversation take turns, with the header's back button
+   * returning to the list.
+   */
+  const [mobilePane, setMobilePane] = useState<'list' | 'room'>('list')
   const [isIdle, setIsIdle] = useState(true) // Start in idle mode (minimized)
   const [rooms, setRooms] = useState<ChatRoom[]>([])
   const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null)
@@ -185,6 +215,28 @@ export default function CommunityChat() {
     const controller = new AbortController()
     let timer: ReturnType<typeof setTimeout> | null = null
     let stopped = false
+    let socket: WebSocket | null = null
+    let socketOpen = false
+    let attempt = 0
+    let retry: ReturnType<typeof setTimeout> | null = null
+
+    /** Badge messages this client has not shown while the panel was closed. */
+    const countUnread = (msgs: ChatMessage[], firstLoadAllowed: boolean) => {
+      let seen = seenIdsRef.current.get(roomId)
+      const firstLoad = !seen
+      if (!seen) {
+        seen = new Set<string>()
+        seenIdsRef.current.set(roomId, seen)
+      }
+      const incoming = msgs.filter(
+        m => !seen!.has(m.id) && !m.is_own_message && !m.deleted_for_everyone
+      )
+      msgs.forEach(m => seen!.add(m.id))
+      // Don't badge the very first load — those aren't "new" to the user.
+      if ((!firstLoad || firstLoadAllowed) && incoming.length && !isOpenRef.current) {
+        setUnreadCount(c => c + incoming.length)
+      }
+    }
 
     const doFetch = async () => {
       try {
@@ -195,26 +247,14 @@ export default function CommunityChat() {
         // Discard if the user switched rooms while this was in flight.
         if (stopped || activeRoomRef.current?.id !== roomId) return
 
-        const msgs: ChatMessage[] = response.data
+        // The endpoint is paged now: {results, has_more}. The bare-array form is
+        // still accepted so a stale build does not blank the chat mid-deploy.
+        const msgs: ChatMessage[] = response.data?.results ?? response.data ?? []
 
-        // ── Unread accounting (data layer, works while the panel is closed) ──
-        let seen = seenIdsRef.current.get(roomId)
-        const firstLoad = !seen
-        if (!seen) {
-          seen = new Set<string>()
-          seenIdsRef.current.set(roomId, seen)
-        }
-        const incoming = msgs.filter(
-          m => !seen!.has(m.id) && !m.is_own_message && !m.deleted_for_everyone
-        )
-        msgs.forEach(m => seen!.add(m.id))
-        // Don't badge the very first load — those aren't "new" to the user.
-        if (!firstLoad && incoming.length && !isOpenRef.current) {
-          setUnreadCount(c => c + incoming.length)
-        }
+        countUnread(msgs, false)
 
         // Keep any still-pending optimistic messages pinned to the end so a
-        // poll landing mid-send doesn't make the user's message flicker away.
+        // refetch landing mid-send doesn't make the user's message flicker away.
         setMessages(prev => {
           const pending = prev.filter(m => m._pending || m._failed)
           return pending.length ? [...msgs, ...pending] : msgs
@@ -225,20 +265,95 @@ export default function CommunityChat() {
         if (err?.code === 'ERR_CANCELED' || err?.name === 'AbortError') return
         console.error('Failed to fetch messages:', err)
       } finally {
-        if (!stopped) {
-          // Back off while the panel is closed or the tab is hidden — the old
-          // fixed 3s poll ran forever and burned mobile battery/data.
-          const delay = document.hidden
-            ? POLL_CLOSED_MS * 2
-            : isOpenRef.current ? POLL_OPEN_MS : POLL_CLOSED_MS
-          timer = setTimeout(doFetch, delay)
+        scheduleFetch()
+      }
+    }
+
+    /**
+     * A fallback, not the transport.
+     *
+     * This used to be the transport: a 3s refetch of the whole room per open
+     * client, so a room's cost grew with the number of people reading it rather
+     * than the number of messages — a thousand students is ~333 requests a
+     * second, each one a fully serialized page. Reads arrive on the socket now
+     * and this covers only a socket that is refused, proxied out or reconnecting.
+     */
+    function scheduleFetch() {
+      if (stopped || socketOpen) return
+      const delay = document.hidden
+        ? POLL_CLOSED_MS * 2
+        : isOpenRef.current ? POLL_FALLBACK_MS : POLL_CLOSED_MS
+      timer = setTimeout(doFetch, delay)
+    }
+
+    const connect = () => {
+      if (stopped) return
+      const base = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws'
+      // sessionStorage, matching services/api.ts. localStorage is only read once
+      // by AuthContext as a legacy migration, so reading it here finds nothing
+      // and every socket is refused.
+      const token = sessionStorage.getItem('token')
+      try {
+        socket = token
+          ? new WebSocket(`${base}/channels/${roomId}/`, ['bearer', token])
+          : new WebSocket(`${base}/channels/${roomId}/`)
+      } catch {
+        return   // fallback poll already scheduled
+      }
+
+      socket.onopen = () => {
+        attempt = 0
+        socketOpen = true
+        setLive(true)
+        // The poll is redundant now; drop the pending tick.
+        if (timer) { clearTimeout(timer); timer = null }
+      }
+
+      socket.onmessage = event => {
+        try {
+          const payload = JSON.parse(event.data)
+          if (payload.event === 'message.created' && !payload.thread_root) {
+            const incoming: ChatMessage = payload.message
+            countUnread([incoming], true)
+            setMessages(prev => {
+              // The sender gets this too, after its own POST already appended.
+              if (prev.some(m => m.id === incoming.id)) return prev
+              const pending = prev.filter(m => m._pending || m._failed)
+              const settled = prev.filter(m => !m._pending && !m._failed)
+              const next = [...settled, incoming, ...pending]
+              messageCache.current.set(roomId, next.filter(m => !m._pending && !m._failed))
+              return next
+            })
+          } else if (payload.event === 'message.reaction') {
+            const updated: ChatMessage = payload.message
+            setMessages(prev => prev.map(m => (m.id === updated.id ? { ...m, ...updated } : m)))
+          }
+        } catch {
+          // A malformed frame must not take the chat down.
         }
+      }
+
+      socket.onclose = event => {
+        socketOpen = false
+        setLive(false)
+        if (stopped) return
+        // 4401/4403 are our own auth refusals — retrying cannot help, so fall
+        // back to the poll rather than reconnecting forever.
+        if (event.code === 4401 || event.code === 4403) {
+          scheduleFetch()
+          return
+        }
+        attempt += 1
+        retry = setTimeout(connect, Math.min(30000, 1000 * 2 ** Math.min(attempt, 5)))
+        scheduleFetch()
       }
     }
 
     doFetch()
+    connect()
 
-    // Refresh immediately when the tab regains focus.
+    // Refresh immediately when the tab regains focus, in case a frame was missed
+    // while the socket was suspended.
     const onVisible = () => { if (!document.hidden) doFetch() }
     document.addEventListener('visibilitychange', onVisible)
 
@@ -246,6 +361,9 @@ export default function CommunityChat() {
       stopped = true
       document.removeEventListener('visibilitychange', onVisible)
       if (timer) clearTimeout(timer)
+      if (retry) clearTimeout(retry)
+      socket?.close()
+      setLive(false)
       controller.abort()      // cancel any in-flight request immediately
     }
   }, [activeRoom])
@@ -340,7 +458,8 @@ export default function CommunityChat() {
     if (!activeRoom) return
     try {
       const response = await api.get(`/community/chat/rooms/${activeRoom.id}/messages/`)
-      const msgs: ChatMessage[] = response.data
+      // Paged: {results, has_more}. Bare array still accepted mid-deploy.
+      const msgs: ChatMessage[] = response.data?.results ?? response.data ?? []
       messageCache.current.set(activeRoom.id, msgs)
       setMessages(msgs)
     } catch (error) {
@@ -516,6 +635,21 @@ export default function CommunityChat() {
     return getMediaUrl(profilePic)
   }
 
+  const visibleRooms = roomQuery.trim()
+    ? rooms.filter(r => r.name.toLowerCase().includes(roomQuery.trim().toLowerCase()))
+    : rooms
+
+  /**
+   * Wide, not a 384px column. dvh rather than vh so mobile browser chrome does
+   * not push the composer off the bottom, and the widget goes edge to edge on a
+   * phone because a floating card that size has nowhere to float.
+   */
+  const shellClass = variant === 'page'
+    ? 'flex h-[calc(100dvh-11rem)] min-h-[26rem] w-full overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900'
+    : 'fixed inset-x-2 top-2 bottom-24 z-50 flex overflow-hidden rounded-2xl border border-neutral-700 bg-neutral-900 shadow-2xl'
+      + ' sm:inset-auto sm:right-6 sm:bottom-24 sm:top-auto'
+      + ' sm:h-[min(44rem,calc(100dvh-9rem))] sm:w-[min(66rem,calc(100vw-3rem))]'
+
   const content = (() => {
     if (!isOpen) {
       // Idle mode — minimized side dock
@@ -523,7 +657,7 @@ export default function CommunityChat() {
         return (
           <button
             onClick={handleIdleClick}
-            className="fixed right-0 bottom-[45%] w-10 h-16 bg-neutral-900/60 backdrop-blur-sm border border-neutral-700/30 border-r-0 rounded-l-xl shadow-lg hover:w-12 hover:bg-neutral-800/80 transition-[width,background] z-50 flex items-center justify-center group"
+            className="fixed right-0 bottom-[45%] w-10 h-16 bg-neutral-900/60 backdrop-blur-sm border border-neutral-700/30 border-r-0 rounded-l-xl shadow-lg hover:w-12 hover:bg-neutral-800/80 transition-[width,background] z-40 flex items-center justify-center group"
             title="Community Chat"
           >
             <MessageCircle className="w-4 h-4 text-purple-400 opacity-60 group-hover:opacity-100 transition-opacity" />
@@ -540,7 +674,7 @@ export default function CommunityChat() {
       return (
         <button
           onClick={handleOpen}
-          className="fixed right-4 sm:right-6 bottom-36 sm:bottom-24 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-r from-purple-600 to-purple-600 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-transform z-50 flex items-center justify-center"
+          className="fixed right-4 sm:right-6 bottom-36 sm:bottom-24 w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-r from-purple-600 to-purple-600 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-transform z-40 flex items-center justify-center"
           title="Open Community Chat"
         >
           <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -554,9 +688,126 @@ export default function CommunityChat() {
     }
 
     return (
-      <div className="fixed right-2 sm:right-6 bottom-36 sm:bottom-40 w-[calc(100vw-16px)] sm:w-96 h-[calc(100vh-160px)] sm:h-[550px] bg-neutral-900 rounded-2xl shadow-2xl border border-neutral-700 flex flex-col z-[60] overflow-hidden">
+      <div className={shellClass}>
+        {/*
+          Scope rail. Slack's own sidebar is sectioned rather than a flat list;
+          this is the same idea at the width a rail allows.
+        */}
+        <div className="hidden w-14 shrink-0 flex-col items-center gap-1 border-r border-neutral-800 bg-neutral-950 py-3 sm:flex">
+          <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-purple-700">
+            <MessageCircle className="h-4 w-4 text-white" />
+          </div>
+          <button
+            onClick={() => { setShowSettings(false); setMobilePane('list') }}
+            title="Channels"
+            aria-label="Channels"
+            className={`relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
+              showSettings ? 'text-neutral-400 hover:bg-neutral-800' : 'bg-neutral-800 text-white'
+            }`}
+          >
+            <Hash className="h-4 w-4" />
+            {unreadCount > 0 && (
+              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-purple-400" />
+            )}
+          </button>
+          <button
+            onClick={() => setShowSettings(true)}
+            title="Settings"
+            aria-label="Chat settings"
+            className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
+              showSettings ? 'bg-neutral-800 text-white' : 'text-neutral-400 hover:bg-neutral-800'
+            }`}
+          >
+            <Settings className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/*
+          Channel list. Replaces a horizontally scrolling tab strip, which hid
+          every room past the second one behind a swipe and had nowhere to put an
+          unread count. One pane at a time on a phone.
+        */}
+        <div
+          className={`w-full shrink-0 flex-col border-r border-neutral-800 bg-neutral-950/60 sm:flex sm:w-72 ${
+            mobilePane === 'list' ? 'flex' : 'hidden'
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2 border-b border-neutral-800 px-3 py-3">
+            <h2 className="text-base font-bold text-white">Channels</h2>
+            {variant === 'widget' && (
+              <button
+                onClick={handleClose}
+                aria-label="Close chat"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-800 sm:hidden"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          <div className="px-3 py-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-500" />
+              <input
+                value={roomQuery}
+                onChange={e => setRoomQuery(e.target.value)}
+                placeholder="Search channels"
+                aria-label="Search channels"
+                className="w-full rounded-lg border border-neutral-800 bg-neutral-900 py-2 pl-8 pr-2 text-sm text-white placeholder-neutral-500 focus:border-purple-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-3">
+            {visibleRooms.length === 0 && (
+              <p className="px-2 py-6 text-center text-xs text-neutral-500">
+                No channels match “{roomQuery}”.
+              </p>
+            )}
+            {visibleRooms.map(room => {
+              const active = activeRoom?.id === room.id
+              return (
+                <button
+                  key={room.id}
+                  onClick={() => { setActiveRoom(room); setMobilePane('room'); setShowSettings(false) }}
+                  className={`mb-0.5 flex w-full items-center gap-2.5 rounded-lg px-2 py-2.5 text-left transition-colors ${
+                    active ? 'bg-purple-600/20 text-white' : 'text-neutral-300 hover:bg-neutral-800/70'
+                  }`}
+                >
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                    active ? 'bg-purple-600 text-white' : 'bg-neutral-800 text-neutral-400'
+                  }`}>
+                    {isGlobalRoom(room)
+                      ? <Globe className="h-4 w-4" />
+                      : <Building2 className="h-4 w-4" />}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium">{room.name}</span>
+                    <span className="block truncate text-[11px] text-neutral-500">
+                      {room.description || `${room.member_count || 0} members`}
+                    </span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Conversation */}
+        <div
+          className={`min-w-0 flex-1 flex-col sm:flex ${
+            mobilePane === 'room' ? 'flex' : 'hidden'
+          }`}
+        >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-neutral-700 bg-neutral-800">
+      <div className="flex items-center justify-between gap-2 p-3 sm:p-4 border-b border-neutral-700 bg-neutral-800">
+        <button
+          onClick={() => setMobilePane('list')}
+          aria-label="Back to channels"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-700 sm:hidden"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
         <div className="flex items-center gap-3">
           {/* Use Lucide icons instead of emoji */}
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-purple-500 flex items-center justify-center">
@@ -565,9 +816,15 @@ export default function CommunityChat() {
               : <Building2 className="w-5 h-5 text-white" />
             }
           </div>
-          <div>
-            <h3 className="font-bold text-white">{activeRoom?.name || 'Community Chat'}</h3>
-            <p className="text-xs text-neutral-400">{activeRoom?.member_count || 0} members</p>
+          <div className="min-w-0">
+            <h3 className="truncate font-bold text-white">{activeRoom?.name || 'Community Chat'}</h3>
+            <p className="flex items-center gap-1.5 truncate text-xs text-neutral-400">
+              <span
+                title={live ? 'Live' : 'Reconnecting — refreshing instead'}
+                className={`h-1.5 w-1.5 shrink-0 rounded-full ${live ? 'bg-green-400' : 'bg-amber-400'}`}
+              />
+              {activeRoom?.member_count || 0} members
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -619,29 +876,6 @@ export default function CommunityChat() {
             </div>
           </div>
 
-        </div>
-      )}
-
-      {/* Room Tabs */}
-      {rooms.length > 1 && (
-        <div className="flex gap-1 px-3 pt-2 pb-1 border-b border-neutral-700/50 overflow-x-auto scrollbar-none">
-          {rooms.map((room) => (
-            <button
-              key={room.id}
-              onClick={() => setActiveRoom(room)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-                activeRoom?.id === room.id
-                  ? 'bg-purple-600 text-white shadow-sm'
-                  : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-700/50'
-              }`}
-            >
-              {room.room_type === 'global' || room.name.toLowerCase().includes('global')
-                ? <Globe className="w-3 h-3" />
-                : <Building2 className="w-3 h-3" />
-              }
-              {room.name}
-            </button>
-          ))}
         </div>
       )}
 
@@ -1036,9 +1270,12 @@ export default function CommunityChat() {
           </button>
         </div>
       </div>
-    </div>
+        </div>
+      </div>
     )
   })()
 
+  // The page variant is laid out by the route, not floated over it.
+  if (variant === 'page') return content
   return createPortal(content, document.body)
 }

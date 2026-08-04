@@ -6,10 +6,12 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.throttling import UserRateThrottle
 from django.db.models import Q, F, Value, Exists, OuterRef
 from django.db.models.functions import Greatest
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 
@@ -991,9 +993,28 @@ class ChatRoomViewSet(viewsets.ReadOnlyModelViewSet):
     
     @action(detail=True, methods=['get'])
     def messages(self, request, pk=None):
-        """Get messages for a chat room"""
+        """A page of a room's messages, newest last.
+
+        ?limit=  how many, capped at MAX_PAGE
+        ?before= ISO timestamp; returns messages older than it, for scrollback
+
+        Paged rather than a flat newest-100. Every open client used to refetch
+        100 fully-serialized messages every three seconds, so the cost of a busy
+        room grew with the number of people reading it, not with the number of
+        messages. Reads now arrive over the socket and this endpoint is the
+        initial load and the scrollback.
+        """
+        DEFAULT_PAGE = 40
+        MAX_PAGE = 100
+
         room = self.get_object()
-        
+
+        try:
+            limit = int(request.query_params.get('limit', DEFAULT_PAGE))
+        except (TypeError, ValueError):
+            limit = DEFAULT_PAGE
+        limit = max(1, min(limit, MAX_PAGE))
+
         # Get messages not deleted for this user and not deleted for everyone
         messages = ChatMessage.objects.filter(
             room=room
@@ -1002,22 +1023,63 @@ class ChatRoomViewSet(viewsets.ReadOnlyModelViewSet):
         ).exclude(
             deleted_for__user=request.user
         )
+
+        before = request.query_params.get('before')
+        if before:
+            parsed = parse_datetime(before)
+            if parsed is not None:
+                messages = messages.filter(created_at__lt=parsed)
+
         messages = shaped_chat_messages(messages)
 
-        # Newest 100, returned oldest-first for display.
+        # Newest first for the slice, reversed for display.
         # This previously did .order_by('created_at')[:100], which slices the
         # OLDEST 100 — so once a room passed 100 messages every new message
         # became invisible and the chat appeared frozen.
-        messages = list(messages.order_by('-created_at')[:100])[::-1]
-        
-        serializer = ChatMessageSerializer(messages, many=True, context={'request': request})
-        return Response(serializer.data)
+        #
+        # -id breaks ties. Two messages can share a created_at, and with an
+        # undefined order between them a paged read can drop or repeat one.
+        page = list(messages.order_by('-created_at', '-id')[:limit + 1])
+        has_more = len(page) > limit
+        page = page[:limit][::-1]
+
+        serializer = ChatMessageSerializer(page, many=True, context={'request': request})
+        return Response({
+            'results': serializer.data,
+            # Whether a scrollback request would find anything, so the client does
+            # not have to fire one to learn there is nothing above.
+            'has_more': has_more,
+        })
+
+
+class ChatSendThrottle(UserRateThrottle):
+    """60 messages a minute per user.
+
+    Well above anyone typing and far below what a script can do. Each send writes
+    a row, refreshes thread counters and fans out to every reader of the channel,
+    so the write path is the one that has to be bounded.
+    """
+    scope = 'chat_send'
+    rate = '60/min'
+
+
+class ChatReactThrottle(UserRateThrottle):
+    """Reactions are one tap, so they are the cheapest thing to spam."""
+    scope = 'chat_react'
+    rate = '120/min'
 
 
 class ChatMessageViewSet(viewsets.ModelViewSet):
     """ViewSet for ChatMessage model"""
     serializer_class = ChatMessageSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_throttles(self):
+        if self.action == 'create':
+            return [ChatSendThrottle()]
+        if self.action == 'react':
+            return [ChatReactThrottle()]
+        return super().get_throttles()
     
     def get_queryset(self):
         """Get messages.

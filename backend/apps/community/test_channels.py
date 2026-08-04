@@ -664,6 +664,125 @@ class TestChannelReactions:
 
 
 @pytest.mark.django_db
+class TestChatScales:
+    """What has to hold when a thousand students are in a room at once.
+
+    Every open client refetched 100 fully-serialized messages every three
+    seconds, so the cost of a room grew with the number of people reading it. The
+    fix is the socket; these pin the parts of the HTTP surface that stop a busy
+    room from being expensive either way.
+    """
+
+    def _room_with(self, count):
+        owner = _user('sc_owner')
+        room = ChatRoom.for_project(_project(owner, 'SC', 'sc-proj'))
+        base = timezone.now() - timedelta(minutes=count + 1)
+        for i in range(count):
+            message = ChatMessage.objects.create(
+                room=room, sender=owner, content=f'm{i}',
+            )
+            # auto_now_add stamps every row in this loop with the same clock tick
+            # on Windows, and a paged read over tied timestamps is not a test of
+            # paging. Production messages arrive milliseconds apart.
+            ChatMessage.objects.filter(pk=message.pk).update(
+                created_at=base + timedelta(seconds=i),
+            )
+        return owner, room
+
+    def test_the_room_fetch_is_paged_not_the_whole_room(self):
+        from rest_framework.test import APIClient
+        owner, room = self._room_with(50)
+
+        client = APIClient()
+        client.force_authenticate(owner)
+        page = client.get(f'/api/community/chat/rooms/{room.id}/messages/')
+
+        assert len(page.data['results']) == 40
+        assert page.data['has_more'] is True
+        # Oldest-first inside the page, and it is the NEWEST messages.
+        assert page.data['results'][-1]['content'] == 'm49'
+
+    def test_a_limit_cannot_be_raised_past_the_cap(self):
+        from rest_framework.test import APIClient
+        owner, room = self._room_with(120)
+
+        client = APIClient()
+        client.force_authenticate(owner)
+        page = client.get(f'/api/community/chat/rooms/{room.id}/messages/',
+                          {'limit': '10000'})
+
+        assert len(page.data['results']) == 100
+
+    def test_a_nonsense_limit_falls_back_rather_than_500s(self):
+        from rest_framework.test import APIClient
+        owner, room = self._room_with(5)
+
+        client = APIClient()
+        client.force_authenticate(owner)
+        page = client.get(f'/api/community/chat/rooms/{room.id}/messages/',
+                          {'limit': 'lots'})
+
+        assert page.status_code == 200
+        assert len(page.data['results']) == 5
+
+    def test_before_walks_backwards_through_the_room(self):
+        from rest_framework.test import APIClient
+        owner, room = self._room_with(60)
+
+        client = APIClient()
+        client.force_authenticate(owner)
+        first = client.get(f'/api/community/chat/rooms/{room.id}/messages/',
+                           {'limit': '20'})
+        oldest_shown = first.data['results'][0]['created_at']
+
+        older = client.get(f'/api/community/chat/rooms/{room.id}/messages/',
+                           {'limit': '20', 'before': oldest_shown})
+
+        assert older.data['results'][-1]['content'] == 'm39'
+        assert older.data['has_more'] is True
+
+    def test_the_last_page_says_there_is_no_more(self):
+        from rest_framework.test import APIClient
+        owner, room = self._room_with(10)
+
+        client = APIClient()
+        client.force_authenticate(owner)
+        page = client.get(f'/api/community/chat/rooms/{room.id}/messages/')
+
+        assert page.data['has_more'] is False
+
+    def test_sending_is_throttled(self):
+        # A script posting in a loop otherwise writes a row, bumps counters and
+        # fans out to every reader, as fast as it can ask.
+        from rest_framework.test import APIClient
+        owner, room = self._room_with(0)
+
+        client = APIClient()
+        client.force_authenticate(owner)
+        codes = set()
+        for i in range(65):
+            resp = client.post('/api/community/chat/messages/',
+                               {'room': str(room.id), 'content': f'flood {i}'},
+                               format='json')
+            codes.add(resp.status_code)
+
+        assert 429 in codes, f'no throttle applied; saw {codes}'
+
+    def test_an_ordinary_burst_is_not_throttled(self):
+        # Someone typing fast, or pasting a few lines, must not be blocked.
+        from rest_framework.test import APIClient
+        owner, room = self._room_with(0)
+
+        client = APIClient()
+        client.force_authenticate(owner)
+        for i in range(15):
+            resp = client.post('/api/community/chat/messages/',
+                               {'room': str(room.id), 'content': f'hi {i}'},
+                               format='json')
+            assert resp.status_code == 201, resp.data
+
+
+@pytest.mark.django_db
 class TestMessageAccessControl:
     """Messages are only reachable in rooms the viewer may read.
 

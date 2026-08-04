@@ -44,6 +44,7 @@ const QuestionManagement = lazy(() => import('./pages/QuestionManagement'))
 const ProjectsEnhanced = lazy(() => import('./pages/ProjectsEnhanced'))
 const ProjectDetail = lazy(() => import('./pages/ProjectDetail'))
 const CommunityEnhanced = lazy(() => import('./pages/CommunityEnhanced'))
+const ChatPage = lazy(() => import('./pages/ChatPage'))
 const ProfileEnhanced = lazy(() => import('./pages/ProfileEnhanced'))
 const UserProfileView = lazy(() => import('./pages/UserProfileView'))
 const QuizAnalytics = lazy(() => import('./pages/QuizAnalytics'))
@@ -262,6 +263,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <CommunityEnhanced />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/chat"
+                element={
+                  <ProtectedRoute>
+                    <ChatPage />
                   </ProtectedRoute>
                 }
               />

@@ -301,6 +301,44 @@ describe('the landing navbar', () => {
   })
 })
 
+describe('the community chat widget', () => {
+  const CHAT = 'CommunityChat.tsx'
+
+  it('keeps its launchers below dialogs', () => {
+    // Fifth z-index on the wrong tier. The idle dock and the floating button are
+    // page chrome, so they must not float over a dialog.
+    const launchers = codeOf(CHAT)
+      .split('\n')
+      .filter(line => /fixed right-0 bottom-|fixed right-4 /.test(line))
+      .flatMap(line => [...line.matchAll(/z-(?:\[(\d+)\]|(\d+))/g)])
+      .map(m => Number(m[1] ?? m[2]))
+
+    expect(launchers.length, 'the chat launchers are gone or restyled').toBeGreaterThan(0)
+    expect(launchers.filter(z => z >= MODAL_LAYER)).toEqual([])
+  })
+
+  it('puts the panel on the modal layer, not the toast layer', () => {
+    // It was z-[60], above every dialog on the platform.
+    const panel = codeOf(CHAT)
+      .split('\n')
+      .find(line => /fixed inset-x-2 top-2/.test(line)) ?? ''
+
+    expect(panel, 'the chat panel shell moved').not.toBe('')
+    const z = /z-(?:\[(\d+)\]|(\d+))/.exec(panel)
+    expect(z).not.toBeNull()
+    expect(Number(z![1] ?? z![2])).toBe(MODAL_LAYER)
+  })
+
+  it('is wide, and sized in dvh so mobile chrome cannot eat the composer', () => {
+    // The panel was sm:w-96 — a 384px column — and h-[550px] in vh terms.
+    const source = codeOf(CHAT)
+
+    expect(source).not.toMatch(/sm:w-96/)
+    expect(source).toMatch(/sm:w-\[min\(\d+rem,calc\(100vw/)
+    expect(source).toMatch(/dvh/)
+  })
+})
+
 describe('the channel drawer is opaque', () => {
   it('does not let the page bleed through', () => {
     // The same element is the desktop rail and the mobile drawer. At
