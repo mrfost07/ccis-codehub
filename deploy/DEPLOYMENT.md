@@ -95,8 +95,21 @@ There is no root login on EC2 — you land as `ubuntu` and use `sudo`. Running
 `insufficient permission for adding an object`. Fix with
 `sudo chown -R deploy:deploy /home/deploy/CCIS-CodeHub/.git`.
 
-Then **hard-refresh** the browser (`Ctrl+Shift+R`) — asset filenames are
-content-hashed, but `index.html` can be cached.
+A normal reload is enough. `index.html` is served with `Cache-Control: no-cache`
+so it revalidates every request, and the hashed assets it points at are
+`immutable`.
+
+This used to require a hard refresh (`Ctrl+Shift+R`), because `index.html` went
+out with only `ETag`/`Last-Modified` and no `Cache-Control`: browsers cached it
+heuristically for hours and kept requesting the previous build's chunks, which are
+immutable and still on disk. The symptom is a deploy that verifiably succeeded
+while users keep running the old app — confirmed on 2026-08-05, when production
+was serving `index-BvFD9Ej-.js` and a browser kept running `index-DYCgYlQs.js`.
+If you ever see that again, check the header before doubting the deploy:
+
+```bash
+curl -sSI https://ccis-codehub.space/ | grep -i cache-control
+```
 
 ### verify.sh — prove the deploy worked
 
