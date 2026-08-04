@@ -627,3 +627,253 @@ class TestChannelReactions:
         again = client.get('/api/community/chat/messages/', {'room': room.id})
         rows = again.data.get('results', again.data)
         assert rows[0]['reactions_summary'] == {}
+
+    def test_the_response_carries_the_updated_message(self):
+        # The client applies this rather than waiting for the broadcast. Without
+        # it a reaction was written and nothing on screen changed.
+        from rest_framework.test import APIClient
+        owner = _user('rx_resp')
+        room = ChatRoom.for_project(_project(owner, 'RR', 'rr-proj'))
+        message = ChatMessage.objects.create(room=room, sender=owner, content='hi')
+
+        client = APIClient()
+        client.force_authenticate(owner)
+        response = client.post(f'/api/community/chat/messages/{message.id}/react/',
+                               {'reaction': '🔥'}, format='json')
+
+        assert response.status_code == 200
+        assert response.data['message']['id'] == str(message.id)
+        assert response.data['message']['reactions_summary']['🔥']['count'] == 1
+
+    def test_the_summary_names_who_reacted_by_id(self):
+        # reacted_by_me is computed for whoever triggered the change and the same
+        # payload is broadcast to the whole channel, so a recipient has to be able
+        # to work its own state out from the reactor list.
+        from rest_framework.test import APIClient
+        owner = _user('rx_ids')
+        room = ChatRoom.for_project(_project(owner, 'RI', 'ri-proj'))
+        message = ChatMessage.objects.create(room=room, sender=owner, content='hi')
+
+        client = APIClient()
+        client.force_authenticate(owner)
+        response = client.post(f'/api/community/chat/messages/{message.id}/react/',
+                               {'reaction': '👏'}, format='json')
+
+        users = response.data['message']['reactions_summary']['👏']['users']
+        assert [str(u['id']) for u in users] == [str(owner.id)]
+
+
+@pytest.mark.django_db
+class TestMessageAccessControl:
+    """Messages are only reachable in rooms the viewer may read.
+
+    ChatMessageViewSet filtered by the ?room= it was handed and never asked
+    whether the viewer could see that room, so a private project's channel could
+    be read by anyone holding its id — and reacted to, since the detail routes
+    resolved against the same unfiltered queryset. ChannelConsumer has always
+    checked readable_by; the API is what was more permissive.
+    """
+
+    def _outsider_and_private_room(self):
+        owner = _user('ac_owner')
+        snoop = _user('ac_snoop')
+        project = Project.objects.create(
+            name='Secret', slug='secret-proj', description='d', owner=owner,
+            project_type='web_app', programming_language='python',
+            visibility='private',
+        )
+        room = ChatRoom.for_project(project)
+        message = ChatMessage.objects.create(
+            room=room, sender=owner, content='private plans',
+        )
+        return owner, snoop, room, message
+
+    def test_an_outsider_cannot_list_a_private_channel(self):
+        from rest_framework.test import APIClient
+        _, snoop, room, _ = self._outsider_and_private_room()
+
+        client = APIClient()
+        client.force_authenticate(snoop)
+        listed = client.get('/api/community/chat/messages/', {'room': str(room.id)})
+
+        rows = listed.data.get('results', listed.data)
+        assert rows == []
+
+    def test_an_outsider_cannot_react_to_a_message_they_cannot_read(self):
+        from rest_framework.test import APIClient
+        _, snoop, _, message = self._outsider_and_private_room()
+
+        client = APIClient()
+        client.force_authenticate(snoop)
+        reacted = client.post(f'/api/community/chat/messages/{message.id}/react/',
+                              {'reaction': '👍'}, format='json')
+
+        assert reacted.status_code == 404
+        assert not message.reactions.exists()
+
+    def test_a_member_still_reads_their_own_channel(self):
+        from rest_framework.test import APIClient
+        owner, _, room, _ = self._outsider_and_private_room()
+
+        client = APIClient()
+        client.force_authenticate(owner)
+        listed = client.get('/api/community/chat/messages/', {'room': str(room.id)})
+
+        rows = listed.data.get('results', listed.data)
+        assert [r['content'] for r in rows] == ['private plans']
+
+
+@pytest.mark.django_db
+class TestTaskEventsInTheChannel:
+    """A task's history is written into the task's own channel.
+
+    Creating, assigning and moving a task already wrote a ProjectActivity row and
+    a notification, neither of which is reachable from the channel — so what
+    happened to a task and the conversation about it were two separate records.
+    """
+
+    def _client_for(self, user):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        client.force_authenticate(user)
+        return client
+
+    def test_creating_a_task_opens_its_channel_with_the_first_entry(self):
+        owner = _user('ev_owner')
+        project = _project(owner, 'EV', 'ev-proj')
+        client = self._client_for(owner)
+
+        created = client.post('/api/projects/tasks/', {
+            'project': str(project.id), 'title': 'Wire the API',
+            'assigned_to': str(owner.id),
+        }, format='json')
+        assert created.status_code == 201, created.data
+
+        task = ProjectTask.objects.get(pk=created.data['id'])
+        room = ChatRoom.objects.get(scope=ChatRoom.SCOPE_TASK, task=task)
+        event = room.messages.get()
+        assert event.event_type == ChatMessage.EVENT_TASK_CREATED
+        assert owner.username in event.content
+
+    def test_moving_a_task_on_the_board_is_recorded(self):
+        owner = _user('ev_mover')
+        project = _project(owner, 'EM', 'em-proj')
+        client = self._client_for(owner)
+
+        created = client.post('/api/projects/tasks/', {
+            'project': str(project.id), 'title': 'Ship it',
+            'assigned_to': str(owner.id),
+        }, format='json')
+        task_id = created.data['id']
+
+        moved = client.patch(f'/api/projects/tasks/{task_id}/',
+                             {'status': 'in_progress'}, format='json')
+        assert moved.status_code == 200, moved.data
+
+        task = ProjectTask.objects.get(pk=task_id)
+        room = ChatRoom.objects.get(scope=ChatRoom.SCOPE_TASK, task=task)
+        statuses = room.messages.filter(event_type=ChatMessage.EVENT_TASK_STATUS)
+        assert statuses.count() == 1
+        assert 'To Do' in statuses.get().content
+        assert 'In Progress' in statuses.get().content
+
+    def test_a_reassignment_is_recorded_once(self):
+        owner = _user('ev_lead')
+        other = _user('ev_member')
+        project = _project(owner, 'EA', 'ea-proj')
+        client = self._client_for(owner)
+
+        created = client.post('/api/projects/tasks/', {
+            'project': str(project.id), 'title': 'Review',
+            'assigned_to': str(owner.id),
+        }, format='json')
+        task_id = created.data['id']
+
+        client.patch(f'/api/projects/tasks/{task_id}/',
+                     {'assigned_to': str(other.id)}, format='json')
+
+        task = ProjectTask.objects.get(pk=task_id)
+        room = ChatRoom.objects.get(scope=ChatRoom.SCOPE_TASK, task=task)
+        events = room.messages.filter(event_type=ChatMessage.EVENT_TASK_ASSIGNED)
+        assert events.count() == 1
+        assert other.username in events.get().content
+
+    def test_an_unchanged_save_records_nothing(self):
+        # A drag that lands back where it started, or an edit to the title, must
+        # not fill the channel with events that say nothing happened.
+        owner = _user('ev_noop')
+        project = _project(owner, 'EN', 'en-proj')
+        client = self._client_for(owner)
+
+        created = client.post('/api/projects/tasks/', {
+            'project': str(project.id), 'title': 'Same',
+            'assigned_to': str(owner.id),
+        }, format='json')
+        task_id = created.data['id']
+
+        client.patch(f'/api/projects/tasks/{task_id}/',
+                     {'title': 'Same, renamed'}, format='json')
+
+        task = ProjectTask.objects.get(pk=task_id)
+        room = ChatRoom.objects.get(scope=ChatRoom.SCOPE_TASK, task=task)
+        assert room.messages.count() == 1
+        assert room.messages.get().event_type == ChatMessage.EVENT_TASK_CREATED
+
+    def test_events_are_threadable(self):
+        # The point of putting them in the channel: you can discuss the change
+        # where the change is recorded.
+        owner = _user('ev_thread')
+        project = _project(owner, 'ET', 'et-proj')
+        client = self._client_for(owner)
+
+        created = client.post('/api/projects/tasks/', {
+            'project': str(project.id), 'title': 'Discuss me',
+            'assigned_to': str(owner.id),
+        }, format='json')
+        task = ProjectTask.objects.get(pk=created.data['id'])
+        root = ChatRoom.objects.get(scope=ChatRoom.SCOPE_TASK, task=task).messages.get()
+
+        reply = client.post('/api/community/chat/messages/', {
+            'room': str(root.room_id), 'content': 'why?',
+            'thread_root': str(root.id),
+        }, format='json')
+        assert reply.status_code == 201, reply.data
+
+        root.refresh_from_db()
+        assert root.reply_count == 1
+
+    def test_the_channel_list_shows_events_as_roots(self):
+        # They have to arrive through the same endpoint the UI already reads, or
+        # nothing renders them.
+        owner = _user('ev_list')
+        project = _project(owner, 'EL', 'el-proj')
+        client = self._client_for(owner)
+
+        created = client.post('/api/projects/tasks/', {
+            'project': str(project.id), 'title': 'Listed',
+            'assigned_to': str(owner.id),
+        }, format='json')
+        task = ProjectTask.objects.get(pk=created.data['id'])
+        room = ChatRoom.objects.get(scope=ChatRoom.SCOPE_TASK, task=task)
+
+        listed = client.get('/api/community/chat/messages/', {'room': str(room.id)})
+        rows = listed.data.get('results', listed.data)
+        assert [r['event_type'] for r in rows] == [ChatMessage.EVENT_TASK_CREATED]
+
+    def test_a_task_event_does_not_break_the_task_update(self):
+        # Posting to the channel is best-effort: the task write is what the user
+        # asked for and must not fail because the channel could not be written.
+        from unittest.mock import patch
+        owner = _user('ev_safe')
+        project = _project(owner, 'ES', 'es-proj')
+        client = self._client_for(owner)
+
+        with patch('apps.community.models.ChatRoom.for_task',
+                   side_effect=RuntimeError('boom')):
+            created = client.post('/api/projects/tasks/', {
+                'project': str(project.id), 'title': 'Still created',
+                'assigned_to': str(owner.id),
+            }, format='json')
+
+        assert created.status_code == 201
+        assert ProjectTask.objects.filter(title='Still created').exists()

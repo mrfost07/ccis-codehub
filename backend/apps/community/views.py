@@ -1028,8 +1028,15 @@ class ChatMessageViewSet(viewsets.ModelViewSet):
         Filtering to roots is safe for the existing program rooms: every message
         predating threads has thread_root NULL, so all of them are roots and the
         response is unchanged.
+
+        Scoped to rooms readable_by the viewer — the same predicate the consumer
+        uses. Without it ?room= handed back any room's messages to anyone holding
+        its id, and the detail routes resolved against the same unfiltered set, so
+        a private project's channel could be read and reacted to from outside.
         """
-        queryset = shaped_chat_messages()
+        queryset = shaped_chat_messages().filter(
+            room__in=ChatRoom.objects.readable_by(self.request.user),
+        )
 
         thread_id = self.request.query_params.get('thread')
         room_id = self.request.query_params.get('room')
@@ -1116,8 +1123,15 @@ class ChatMessageViewSet(viewsets.ModelViewSet):
         # Refetched so reactions_summary is rebuilt from the rows that now exist
         # rather than from a stale prefetch on the instance we mutated.
         fresh = shaped_chat_messages().get(pk=message.pk)
-        broadcast.reaction_changed(fresh, self.get_serializer(fresh).data)
-        return Response({'action': action_taken, 'reaction': reaction_emoji})
+        payload = self.get_serializer(fresh).data
+        broadcast.reaction_changed(fresh, payload)
+        # The message rides back in the response so a caller does not need the
+        # broadcast to reach it before its own click has any visible effect.
+        return Response({
+            'action': action_taken,
+            'reaction': reaction_emoji,
+            'message': payload,
+        })
     
     @action(detail=True, methods=['post'])
     def bump(self, request, pk=None):

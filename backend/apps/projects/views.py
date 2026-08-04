@@ -9,6 +9,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404
 from django.db import models, transaction
 
+from . import task_channel
 from .queries import shaped_projects
 
 # Routes whose response is built by ProjectSerializer, and therefore the only
@@ -621,7 +622,11 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
             project=project,
             task=task
         )
-    
+
+        # Opens the task's channel with its first entry, so the discussion and the
+        # record of what happened are the same place.
+        task_channel.task_created(task, self.request.user)
+
     def perform_update(self, serializer):
         """Members can only update status of their assigned tasks (drag and drop)"""
         task = self.get_object()
@@ -646,11 +651,15 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
                     task=updated_task
                 )
             
+            if old_assignee != updated_task.assigned_to:
+                task_channel.task_assigned(updated_task, user, old_assignee)
+
             if old_status != updated_task.status:
                 ProjectNotification.notify_task_update(
                     updated_task, user, 'task_status_changed',
                     f'Task "{task.title}" moved to {updated_task.status}'
                 )
+                task_channel.task_status_changed(updated_task, user, old_status)
             return
         
         # Members can only update status of their assigned tasks
@@ -679,7 +688,8 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
                 updated_task, user, 'task_status_changed',
                 f'{user.username} moved "{task.title}" to {updated_task.status}'
             )
-    
+            task_channel.task_status_changed(updated_task, user, old_status)
+
     def perform_destroy(self, instance):
         """Only team leader can delete tasks"""
         if not instance.project.is_team_leader(self.request.user):

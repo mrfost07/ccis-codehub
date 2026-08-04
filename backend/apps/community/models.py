@@ -444,8 +444,10 @@ class ChatRoom(models.Model):
     def for_task(cls, task):
         """The task's channel, created on demand.
 
-        Lazily on purpose: creating one per task up front would mean thousands of
-        empty channels nobody opened.
+        Creating a task now opens its channel with a first event, so these are no
+        longer empty. Still get_or_create rather than a backfill, because tasks
+        that predate this have no channel and get one the first time they are
+        opened or touched.
         """
         room, _ = cls.objects.get_or_create(
             scope=cls.SCOPE_TASK, task=task,
@@ -468,11 +470,26 @@ class ChatNickname(models.Model):
 
 class ChatMessage(models.Model):
     """Messages in chat rooms"""
-    
+
+    # A message nobody typed: the task moved, was assigned, was created. Blank
+    # means somebody wrote it. The client styles the two differently, so this has
+    # to be a field rather than a convention about the text.
+    EVENT_TASK_CREATED = 'task_created'
+    EVENT_TASK_ASSIGNED = 'task_assigned'
+    EVENT_TASK_STATUS = 'task_status'
+    EVENT_CHOICES = [
+        (EVENT_TASK_CREATED, 'Task created'),
+        (EVENT_TASK_ASSIGNED, 'Task assigned'),
+        (EVENT_TASK_STATUS, 'Task status changed'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='chat_messages')
     content = models.TextField()
+    event_type = models.CharField(
+        max_length=24, blank=True, default='', choices=EVENT_CHOICES, db_index=True,
+    )
     # A quoted reply: "re: that message", still shown inline in the channel.
     # Distinct from thread_root below — do not conflate them.
     reply_to = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='replies')

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ChevronDown, ChevronRight, Hash, LayoutList, Menu, MessageSquare, Send, X,
+  Activity, ChevronDown, ChevronRight, Hash, LayoutList, Menu, MessageSquare, Send, X,
 } from 'lucide-react'
 
+import { useAuth } from '../contexts/AuthContext'
 import { projectsAPI } from '../services/api'
 import ProfileAvatar from './ProfileAvatar'
 import { EmptyState, Spinner, cn } from './ui'
@@ -66,6 +67,8 @@ interface Message {
   is_own_message: boolean
   created_at: string
   reactions_summary?: Record<string, ReactionSummary>
+  /** Set when the server posted this: a task was created, assigned or moved. */
+  event_type?: string
 }
 
 /** Slack shows a small set on hover rather than the whole picker. */
@@ -111,18 +114,103 @@ function rowsOf(payload: any): Message[] {
   return payload?.results ?? payload ?? []
 }
 
+/** Swap in a newer copy of one message. A list without it is returned unchanged. */
+function replaceMessage(list: Message[], incoming: Message): Message[] {
+  return list.map(m => (m.id === incoming.id ? { ...m, ...incoming } : m))
+}
+
+/** The way into a thread. Shared so an event line threads like a message does. */
+function ThreadAffordance({
+  message,
+  onOpenThread,
+}: {
+  message: Message
+  onOpenThread?: (m: Message) => void
+}) {
+  if (!onOpenThread) return null
+
+  if (message.reply_count > 0) {
+    // The parent's reply count is the way into a thread.
+    return (
+      <button
+        onClick={() => onOpenThread(message)}
+        className="mt-1 inline-flex h-10 items-center gap-1.5 rounded-lg px-1.5 text-xs
+          font-medium text-purple-400 transition-colors hover:bg-neutral-800 sm:h-7"
+      >
+        {message.reply_count} {message.reply_count === 1 ? 'reply' : 'replies'}
+      </button>
+    )
+  }
+
+  // Hidden until hover on a pointer device, always available by tap.
+  return (
+    <button
+      onClick={() => onOpenThread(message)}
+      className="mt-1 inline-flex h-10 items-center gap-1.5 rounded-lg px-1.5 text-xs
+        text-neutral-500 transition-colors hover:text-purple-400
+        sm:h-7 sm:opacity-0 sm:group-hover:opacity-100"
+    >
+      <MessageSquare className="h-3 w-3" />
+      Reply in thread
+    </button>
+  )
+}
+
+/**
+ * A task event: created, assigned, moved on the board.
+ *
+ * Deliberately not shaped like a message — nobody typed it. It still threads, so
+ * the discussion about a status change hangs off the change itself.
+ */
+function EventBlock({
+  message,
+  onOpenThread,
+}: {
+  message: Message
+  onOpenThread?: (m: Message) => void
+}) {
+  return (
+    <div className="group flex gap-3 px-4 py-1">
+      <div className="flex w-9 shrink-0 justify-start">
+        <span className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full
+          bg-neutral-800 text-neutral-400">
+          <Activity className="h-3 w-3" />
+        </span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs leading-5 text-neutral-400">
+          <span className="font-medium text-neutral-300">
+            {displayName(message.sender_info)}
+          </span>{' '}
+          {message.content}
+          <span className="ml-1.5 text-[10px] text-neutral-600">
+            {timeOf(message.created_at)}
+          </span>
+        </p>
+        <ThreadAffordance message={message} onOpenThread={onOpenThread} />
+      </div>
+    </div>
+  )
+}
+
 /** A message, grouped under the previous one when it is the same author nearby. */
 function MessageBlock({
   message,
   previous,
   onOpenThread,
   onReact,
+  myId,
 }: {
   message: Message
   previous?: Message
   onOpenThread?: (m: Message) => void
   onReact?: (m: Message, emoji: string) => void
+  myId?: string
 }) {
+  if (message.event_type) {
+    return <EventBlock message={message} onOpenThread={onOpenThread} />
+  }
+
   // Shared with the community chat via lib/messageGrouping, so the two surfaces
   // cannot disagree about when a run of messages starts.
   const grouped = isGroupedWith(
@@ -174,7 +262,10 @@ function MessageBlock({
                 title={data.users.map(u => u.username).join(', ')}
                 className={cn(
                   'flex h-7 items-center gap-1 rounded-full border px-2 text-[11px] transition-colors',
-                  data.reacted_by_me
+                  // Derived from the reactor list, not from reacted_by_me: the
+                  // server computes that flag for whoever triggered the change
+                  // and then fans the same payload out to the whole channel.
+                  data.users.some(u => u.id === myId)
                     ? 'border-purple-400 bg-purple-500/25 text-white'
                     : 'border-neutral-700 bg-neutral-800 text-neutral-300 hover:border-neutral-600',
                 )}
@@ -204,27 +295,7 @@ function MessageBlock({
           </div>
         )}
 
-        {onOpenThread && (message.reply_count > 0 ? (
-          // The parent's reply count is the way into a thread.
-          <button
-            onClick={() => onOpenThread(message)}
-            className="mt-1 inline-flex h-10 items-center gap-1.5 rounded-lg px-1.5 text-xs
-              font-medium text-purple-400 transition-colors hover:bg-neutral-800 sm:h-7"
-          >
-            {message.reply_count} {message.reply_count === 1 ? 'reply' : 'replies'}
-          </button>
-        ) : (
-          // Hidden until hover on a pointer device, always available by tap.
-          <button
-            onClick={() => onOpenThread(message)}
-            className="mt-1 inline-flex h-10 items-center gap-1.5 rounded-lg px-1.5 text-xs
-              text-neutral-500 transition-colors hover:text-purple-400
-              sm:h-7 sm:opacity-0 sm:group-hover:opacity-100"
-          >
-            <MessageSquare className="h-3 w-3" />
-            Reply in thread
-          </button>
-        ))}
+        <ThreadAffordance message={message} onOpenThread={onOpenThread} />
       </div>
     </div>
   )
@@ -235,11 +306,13 @@ function MessageList({
   onOpenThread,
   onReact,
   empty,
+  myId,
 }: {
   messages: Message[]
   onOpenThread?: (m: Message) => void
   onReact?: (m: Message, emoji: string) => void
   empty: React.ReactNode
+  myId?: string
 }) {
   if (messages.length === 0) return <>{empty}</>
 
@@ -269,6 +342,7 @@ function MessageList({
         previous={previous}
         onOpenThread={onOpenThread}
         onReact={onReact}
+        myId={myId}
       />,
     )
   })
@@ -387,7 +461,13 @@ function SidebarItem({
   )
 }
 
-function Tracker({ tasks }: { tasks: TaskRow[] }) {
+function Tracker({
+  tasks,
+  onOpenTask,
+}: {
+  tasks: TaskRow[]
+  onOpenTask: (task: TaskRow) => void
+}) {
   const counts = useMemo(() => {
     const byStatus: Record<string, number> = { todo: 0, in_progress: 0, review: 0, done: 0 }
     tasks.forEach(task => {
@@ -426,11 +506,27 @@ function Tracker({ tasks }: { tasks: TaskRow[] }) {
       {tasks.length > 0 && (
         <ul className="mt-4 divide-y divide-neutral-800 rounded-lg border border-neutral-800">
           {tasks.map(task => (
-            <li key={task.id} className="flex items-center gap-3 px-3 py-2">
-              <span className="min-w-0 flex-1 truncate text-sm text-neutral-300">{task.title}</span>
-              <span className="shrink-0 rounded-full bg-neutral-800 px-2 py-0.5 text-[10px] uppercase tracking-wide text-neutral-400">
-                {task.status.replace('_', ' ')}
-              </span>
+            <li key={task.id}>
+              {/* The tracker is the way into a task's history, not a read-only
+                  list: opening a row opens that task's channel. */}
+              <button
+                onClick={() => onOpenTask(task)}
+                className="flex w-full items-center gap-3 px-3 py-3 text-left
+                  transition-colors hover:bg-neutral-800/60"
+              >
+                <span className="min-w-0 flex-1 truncate text-sm text-neutral-300">
+                  {task.title}
+                </span>
+                {task.unread_count > 0 && (
+                  <span className="shrink-0 rounded-full bg-purple-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                    {task.unread_count}
+                  </span>
+                )}
+                <span className="shrink-0 rounded-full bg-neutral-800 px-2 py-0.5 text-[10px] uppercase tracking-wide text-neutral-400">
+                  {task.status.replace('_', ' ')}
+                </span>
+                <MessageSquare className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
+              </button>
             </li>
           ))}
         </ul>
@@ -439,7 +535,15 @@ function Tracker({ tasks }: { tasks: TaskRow[] }) {
   )
 }
 
-export default function ProjectWorkspace({ slug }: { slug: string }) {
+export default function ProjectWorkspace({
+  slug,
+  focusTaskId,
+}: {
+  slug: string
+  /** Open this task's channel instead of the project channel. Set by the board. */
+  focusTaskId?: string | null
+}) {
+  const { user } = useAuth()
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [selection, setSelection] = useState<Selection | null>(null)
   const [roomId, setRoomId] = useState<string | null>(null)
@@ -465,6 +569,11 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
     return data as Workspace
   }, [slug])
 
+  // Held in a ref so the socket effect keeps depending only on roomId. Reading it
+  // directly would resubscribe the channel every time this identity changed.
+  const loadWorkspaceRef = useRef<typeof loadWorkspace | null>(null)
+  useEffect(() => { loadWorkspaceRef.current = loadWorkspace }, [loadWorkspace])
+
   const loadMessages = useCallback(async (id: string) => {
     const { data } = await projectsAPI.getChannelMessages(id)
     setMessages(rowsOf(data))
@@ -482,6 +591,12 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
     loadWorkspace().catch(() => {})
   }, [loadMessages, loadWorkspace])
 
+  // Read through a ref, not a dependency: this effect shows the spinner, and
+  // depending on focusTaskId would flash it every time the board picked a
+  // different card.
+  const focusTaskIdRef = useRef(focusTaskId)
+  useEffect(() => { focusTaskIdRef.current = focusTaskId }, [focusTaskId])
+
   // First load: fetch the sidebar and open the project channel.
   useEffect(() => {
     let cancelled = false
@@ -491,6 +606,11 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
       try {
         const data = await loadWorkspace()
         if (cancelled) return
+        // Arriving from the board, the task's channel is what was asked for.
+        // Opening the project channel first would show the wrong room and then
+        // replace it.
+        const wanted = focusTaskIdRef.current
+        if (wanted && data.tasks.some(t => t.id === wanted)) return
         const first = data.channels[0]
         if (first) {
           setSelection({ kind: 'channel', id: first.id, name: first.name })
@@ -504,6 +624,18 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
     })()
     return () => { cancelled = true }
   }, [slug, loadWorkspace, openRoom])
+
+  // The board asking for one task's channel. Guarded by the id already handled so
+  // a re-render does not reopen it, while a second card still works.
+  const handledFocusRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!focusTaskId || !workspace) return
+    if (handledFocusRef.current === focusTaskId) return
+    const target = workspace.tasks.find(t => t.id === focusTaskId)
+    if (!target) return
+    handledFocusRef.current = focusTaskId
+    selectTask(target)
+  }, [focusTaskId, workspace])
 
   // Realtime. One socket per open channel, torn down when the selection changes.
   //
@@ -568,12 +700,12 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
             }
           } else if (payload.event === 'message.reaction') {
             const updated = payload.message
-            setMessages(existing =>
-              existing.map(m => (m.id === updated.id ? { ...m, ...updated } : m)),
-            )
-            setReplies(existing =>
-              existing.map(m => (m.id === updated.id ? { ...m, ...updated } : m)),
-            )
+            setMessages(existing => replaceMessage(existing, updated))
+            setReplies(existing => replaceMessage(existing, updated))
+          } else if (payload.event === 'task.changed') {
+            // The sidebar and tracker both carry task status, so they refetch
+            // rather than trying to patch one row of a payload they own.
+            loadWorkspaceRef.current?.().catch(() => {})
           }
         } catch {
           // A malformed frame must not take the channel down.
@@ -649,9 +781,17 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
 
   const react = async (message: Message, emoji: string) => {
     try {
-      await projectsAPI.reactToMessage(message.id, emoji)
-      // No local mutation: the server broadcasts the rebuilt summary, so applying
-      // it here as well would be a second source of truth for the same counts.
+      const { data } = await projectsAPI.reactToMessage(message.id, emoji)
+      // Applied from the response, not left to the broadcast. Relying on the
+      // fan-out alone meant a reaction that was already persisted showed nothing
+      // whenever the socket was down — the click looked dead while the row existed.
+      const updated: Message | undefined = data?.message
+      if (updated) {
+        setMessages(existing => replaceMessage(existing, updated))
+        setReplies(existing => replaceMessage(existing, updated))
+        setThread(current => (current && current.id === updated.id
+          ? { ...current, ...updated } : current))
+      }
     } catch {
       setError('Could not react. Try again.')
     }
@@ -804,7 +944,7 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
 
         {selection?.kind === 'tracker' ? (
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <Tracker tasks={workspace?.tasks ?? []} />
+            <Tracker tasks={workspace?.tasks ?? []} onOpenTask={selectTask} />
           </div>
         ) : (
           <>
@@ -813,6 +953,7 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
                 messages={messages}
                 onOpenThread={openThread}
                 onReact={react}
+                myId={user?.id}
                 empty={
                   <EmptyState
                     title="No messages yet"
@@ -857,11 +998,12 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto py-2">
             {/* The parent, so the thread reads in context. */}
-            <MessageBlock message={thread} onReact={react} />
+            <MessageBlock message={thread} onReact={react} myId={user?.id} />
             <div className="mx-4 my-2 border-t border-neutral-800" />
             <MessageList
               messages={replies}
               onReact={react}
+              myId={user?.id}
               empty={<p className="px-4 py-4 text-xs text-neutral-500">No replies yet.</p>}
             />
           </div>

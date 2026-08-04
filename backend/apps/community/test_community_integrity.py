@@ -227,7 +227,10 @@ class TestChatReactionsIdentifyPeople:
 
     def test_reaction_users_are_objects_not_bare_usernames(self):
         from apps.community.models import ChatMessage, ChatRoom, MessageReaction
-        room = ChatRoom.objects.create(name='General', room_type='general')
+        # 'general' is not one of ROOM_TYPE_CHOICES, so readable_by excludes it and
+        # nobody can reach this room. It only listed because the message viewset
+        # used to skip the readability check.
+        room = ChatRoom.objects.create(name='General', room_type='GLOBAL')
         sender = _user('cr_sender')
         reactor = _user('cr_reactor')
         message = ChatMessage.objects.create(room=room, sender=sender, content='hi')

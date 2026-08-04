@@ -360,6 +360,8 @@ class ChatMessageSerializer(serializers.ModelSerializer):
             'reply_to', 'reply_to_info', 'is_bumped', 'bump_count',
             'is_deleted', 'deleted_for_everyone', 'is_own_message',
             'is_deleted_for_me', 'reactions_summary', 'created_at', 'updated_at',
+            # Read-only: only the server posts these.
+            'event_type',
             # Threads. thread_root is writable so a client can post into one;
             # the counters are derived and maintained by ChatMessage.post_reply.
             'thread_root', 'reply_count', 'last_reply_at',
@@ -367,7 +369,7 @@ class ChatMessageSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'id', 'sender', 'is_bumped', 'bump_count', 'is_deleted',
             'deleted_for_everyone', 'created_at', 'updated_at',
-            'reply_count', 'last_reply_at',
+            'reply_count', 'last_reply_at', 'event_type',
         ]
     
     def get_sender_info(self, obj):

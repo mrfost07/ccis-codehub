@@ -50,3 +50,19 @@ def reaction_changed(message, serialized):
         'message_id': str(message.id),
         'message': serialized,
     })
+
+
+def task_changed(project_room_id, task):
+    """Tell the project channel that one of its tasks moved.
+
+    Sent to the project room, not the task room: the sidebar, the tracker and the
+    board all show a task's status, and none of them is inside the task channel.
+    """
+    publish(project_room_id, {
+        'event': 'task.changed',
+        'task': {
+            'id': str(task.id),
+            'title': task.title,
+            'status': task.status,
+        },
+    })

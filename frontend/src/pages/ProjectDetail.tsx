@@ -148,6 +148,8 @@ export default function ProjectDetail() {
   const [activeTab, setActiveTab] = useState<
     'overview' | 'channel' | 'kanban' | 'repository' | 'team' | 'settings'
   >('overview')
+  /** Task whose channel the board asked for. Handed to ProjectWorkspace. */
+  const [focusTaskId, setFocusTaskId] = useState<string | null>(null)
 
   // Task state
   const [tasks, setTasks] = useState<Task[]>([])
@@ -242,6 +244,24 @@ export default function ProjectDetail() {
   useEffect(() => {
     fetchProject()
   }, [fetchProject])
+
+  /** Tasks only, without fetchProject's page spinner. */
+  const refreshTasks = useCallback(async () => {
+    if (!slug) return
+    try {
+      const { data } = await projectsAPI.getProject(slug)
+      setTasks(data.tasks || [])
+    } catch {
+      // A background refresh must not disturb what is on screen.
+    }
+  }, [slug])
+
+  // The board and the channel describe the same tasks, and a teammate can move
+  // one while this tab is closed. Reopening it re-reads rather than trusting
+  // state from before the switch.
+  useEffect(() => {
+    if (activeTab === 'kanban') refreshTasks()
+  }, [activeTab, refreshTasks])
 
   // Refetch project and team members when task modal opens
   useEffect(() => {
@@ -402,6 +422,11 @@ export default function ProjectDetail() {
       setTasks(previousTasks)
       toast.error('Failed to update task')
     }
+  }
+
+  const openTaskChannel = (taskId: string) => {
+    setFocusTaskId(taskId)
+    setActiveTab('channel')
   }
 
   const deleteTask = async (taskId: string) => {
@@ -988,7 +1013,9 @@ export default function ProjectDetail() {
         <div className="min-h-[400px]">
           {/* CHANNEL TAB — project-scoped discussion with threads. Mounted only
               when selected, so the channel is not polled from every other tab. */}
-          {activeTab === 'channel' && slug && <ProjectWorkspace slug={slug} />}
+          {activeTab === 'channel' && slug && (
+            <ProjectWorkspace slug={slug} focusTaskId={focusTaskId} />
+          )}
 
           {/* OVERVIEW TAB */}
           {activeTab === 'overview' && (
@@ -1208,6 +1235,15 @@ export default function ProjectDetail() {
                               </span>
                             </div>
                           )}
+
+                          {/* Into the task's channel, where its history lives. */}
+                          <button
+                            onClick={e => { e.stopPropagation(); openTaskChannel(task.id) }}
+                            className="mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 text-xs text-neutral-400 hover:text-purple-400 hover:bg-neutral-700/50 rounded transition"
+                          >
+                            <MessageSquare className="w-3 h-3" />
+                            Discuss
+                          </button>
 
                           {/* Mobile-friendly status change buttons - visible on small screens or when can't drag */}
                           {(task.can_drag || task.can_edit) && (
