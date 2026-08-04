@@ -952,7 +952,10 @@ class ReportViewSet(viewsets.ModelViewSet):
 
 
 # Chat ViewSets
-from .models import ChatRoom, ChatMessage, ChatNickname, MessageReaction, MessageDeletedFor
+from .models import (
+    ChannelMembership, ChatRoom, ChatMessage, ChatNickname, MessageReaction,
+    MessageDeletedFor,
+)
 from .serializers import ChatRoomSerializer, ChatMessageSerializer, ChatNicknameSerializer, MessageReactionSerializer
 
 
@@ -989,8 +992,50 @@ class ChatRoomViewSet(viewsets.ReadOnlyModelViewSet):
         accessible_rooms = ['GLOBAL']
         if room_type:
             accessible_rooms.append(room_type)
-        
-        return ChatRoom.objects.filter(room_type__in=accessible_rooms)
+
+        # Project and task channels have no room_type, so filtering on room_type
+        # alone hid them from this viewset entirely — including from get_object(),
+        # which made every detail route on a project channel a 404.
+        #
+        # Reachability mirrors ProjectViewSet.get_queryset: public projects, ones
+        # you own, ones you are an active member of. A channel must not be a way
+        # around a project's visibility.
+        visible_projects = Q(
+            project__visibility='public',
+        ) | Q(project__owner=user) | Q(
+            project__memberships__user=user, project__memberships__is_active=True,
+        )
+        visible_tasks = Q(
+            task__project__visibility='public',
+        ) | Q(task__project__owner=user) | Q(
+            task__project__memberships__user=user,
+            task__project__memberships__is_active=True,
+        )
+
+        return ChatRoom.objects.filter(
+            Q(scope=ChatRoom.SCOPE_GLOBAL, room_type__in=accessible_rooms)
+            | (Q(scope=ChatRoom.SCOPE_PROJECT) & visible_projects)
+            | (Q(scope=ChatRoom.SCOPE_TASK) & visible_tasks)
+            | Q(
+                scope=ChatRoom.SCOPE_ORGANIZATION,
+                organization__memberships__user=user,
+                organization__memberships__status='active',
+            ),
+        ).distinct()
+
+    @action(detail=True, methods=['post'])
+    def read(self, request, pk=None):
+        """Mark this channel read up to now.
+
+        Upsert rather than create: a membership row means "has opened this
+        channel", and opening it a second time must not fail.
+        """
+        room = self.get_object()
+        membership, _ = ChannelMembership.objects.update_or_create(
+            channel=room, user=request.user,
+            defaults={'last_read_at': timezone.now()},
+        )
+        return Response({'last_read_at': membership.last_read_at, 'unread_count': 0})
     
     @action(detail=True, methods=['get'])
     def messages(self, request, pk=None):
@@ -1023,22 +1068,49 @@ class ChatMessageViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        """Get messages"""
-        room_id = self.request.query_params.get('room')
+        """Get messages.
+
+        ?room=<id>    the channel: root messages only, replies stay in threads
+        ?thread=<id>  the replies inside one thread, oldest first
+
+        Filtering to roots is safe for the existing program rooms: every message
+        predating threads has thread_root NULL, so all of them are roots and the
+        response is unchanged.
+        """
         queryset = shaped_chat_messages()
 
-        if room_id:
-            queryset = queryset.filter(room_id=room_id)
-        
+        thread_id = self.request.query_params.get('thread')
+        room_id = self.request.query_params.get('room')
+
+        if thread_id:
+            queryset = queryset.filter(thread_root_id=thread_id)
+        elif room_id:
+            queryset = queryset.filter(room_id=room_id, thread_root__isnull=True)
+
         # Exclude deleted messages
         queryset = queryset.exclude(deleted_for_everyone=True)
         queryset = queryset.exclude(deleted_for__user=self.request.user)
-        
+
         return queryset.order_by('created_at')
-    
+
     def perform_create(self, serializer):
-        """Create message with current user as sender"""
-        serializer.save(sender=self.request.user)
+        """Create message with current user as sender.
+
+        A reply goes through ChatMessage.post_reply so the root's reply_count and
+        last_reply_at are written in the same transaction — they are denormalised,
+        and a second writer would eventually disagree with the rows it summarises.
+        """
+        root = serializer.validated_data.get('thread_root')
+        if root is None:
+            serializer.save(sender=self.request.user)
+            return
+
+        reply = ChatMessage.post_reply(
+            root, self.request.user, serializer.validated_data.get('content', ''),
+            reply_to=serializer.validated_data.get('reply_to'),
+        )
+        # Hand the created row back to DRF so the response body is the reply.
+        serializer.instance = reply
     
     @action(detail=True, methods=['post'])
     def react(self, request, pk=None):

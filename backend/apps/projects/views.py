@@ -194,6 +194,26 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['get'])
+    def channel(self, request, slug=None):
+        """This project's discussion channel, created the first time it is asked for.
+
+        On demand rather than at project creation, so projects that already exist
+        get one without a backfill.
+
+        Resolved through get_object(), so it inherits the project's visibility
+        rules — a channel must not become a way around them.
+
+        Nothing on Project changes. The link is a nullable FK on the chat room
+        pointing this way, so this app's tables are untouched.
+        """
+        from apps.community.models import ChatRoom
+        from apps.community.serializers import ChatRoomSerializer
+
+        project = self.get_object()
+        room = ChatRoom.for_project(project)
+        return Response(ChatRoomSerializer(room, context={'request': request}).data)
+
+    @action(detail=True, methods=['get'])
     def activities(self, request, slug=None):
         """Get project activities"""
         project = self.get_object()

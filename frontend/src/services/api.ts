@@ -180,6 +180,26 @@ export const projectsAPI = {
   getProjects: () => api.get('/projects/projects/'),
   createProject: (data: any) => api.post('/projects/projects/', data),
   getProject: (slug: string) => api.get(`/projects/projects/${slug}/`),
+
+  // ---- Project channel (Slack-style discussion scoped to the project) --------
+  // The channel is created server-side on first request, so there is nothing to
+  // create from here and no state to keep in sync.
+  getProjectChannel: (slug: string) => api.get(`/projects/projects/${slug}/channel/`),
+  /** Root messages of a channel. Thread replies are NOT included — see getThread. */
+  getChannelMessages: (roomId: string) =>
+    api.get('/community/chat/messages/', { params: { room: roomId } }),
+  /** The replies inside one thread, oldest first. */
+  getThread: (rootId: string) =>
+    api.get('/community/chat/messages/', { params: { thread: rootId } }),
+  /** Omit threadRoot to post to the channel; pass it to reply inside a thread. */
+  postChannelMessage: (roomId: string, content: string, threadRoot?: string) =>
+    api.post('/community/chat/messages/', {
+      room: roomId,
+      content,
+      ...(threadRoot ? { thread_root: threadRoot } : {}),
+    }),
+  markChannelRead: (roomId: string) =>
+    api.post(`/community/chat/rooms/${roomId}/read/`),
   updateProject: (slug: string, data: any) => api.patch(`/projects/projects/${slug}/`, data),
   deleteProject: (slug: string) => api.delete(`/projects/projects/${slug}/`),
   syncGitHub: (slug: string) => api.post(`/projects/projects/${slug}/sync_github/`),

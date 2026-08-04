@@ -262,3 +262,120 @@ class TestReadState:
         with pytest.raises(IntegrityError):
             with transaction.atomic():
                 ChannelMembership.objects.create(channel=room, user=owner)
+
+
+@pytest.mark.django_db
+class TestProjectChannelAPI:
+    """The flow the project page actually performs, end to end.
+
+    The previous slice shipped the schema with no API and no UI, so there was
+    nothing to find in the product. These exercise the requests the Channel tab
+    makes, in order.
+    """
+
+    def _client(self, user):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        client.force_authenticate(user)
+        return client
+
+    def _rows(self, response):
+        data = response.data
+        return data.get('results', data) if hasattr(data, 'get') else data
+
+    def test_opening_a_project_creates_its_channel(self):
+        owner = _user('api_owner')
+        project = _project(owner, 'API', 'api-proj')
+
+        assert not ChatRoom.objects.filter(project=project).exists()
+        resp = self._client(owner).get(f'/api/projects/projects/{project.slug}/channel/')
+
+        assert resp.status_code == 200, resp.data
+        assert resp.data['scope'] == ChatRoom.SCOPE_PROJECT
+        assert ChatRoom.objects.filter(project=project).count() == 1
+
+        # Idempotent: opening the tab twice must not make a second channel.
+        self._client(owner).get(f'/api/projects/projects/{project.slug}/channel/')
+        assert ChatRoom.objects.filter(project=project).count() == 1
+
+    def test_posting_and_reading_back(self):
+        owner = _user('api_poster')
+        project = _project(owner, 'P', 'post-proj')
+        client = self._client(owner)
+        room_id = client.get(f'/api/projects/projects/{project.slug}/channel/').data['id']
+
+        posted = client.post(
+            '/api/community/chat/messages/',
+            {'room': room_id, 'content': 'first message'}, format='json',
+        )
+        assert posted.status_code == 201, posted.data
+
+        listed = client.get('/api/community/chat/messages/', {'room': room_id})
+        assert [m['content'] for m in self._rows(listed)] == ['first message']
+
+    def test_a_reply_stays_in_its_thread(self):
+        owner = _user('api_thread')
+        project = _project(owner, 'T', 'thread-proj')
+        client = self._client(owner)
+        room_id = client.get(f'/api/projects/projects/{project.slug}/channel/').data['id']
+        root_id = client.post(
+            '/api/community/chat/messages/',
+            {'room': room_id, 'content': 'root'}, format='json',
+        ).data['id']
+
+        reply = client.post(
+            '/api/community/chat/messages/',
+            {'room': room_id, 'content': 'in the thread', 'thread_root': root_id},
+            format='json',
+        )
+        assert reply.status_code == 201, reply.data
+
+        # The channel shows roots only, so one long thread cannot bury the rest.
+        channel = self._rows(client.get('/api/community/chat/messages/', {'room': room_id}))
+        assert [m['content'] for m in channel] == ['root']
+        assert channel[0]['reply_count'] == 1
+        assert channel[0]['last_reply_at'] is not None
+
+        thread = self._rows(client.get('/api/community/chat/messages/', {'thread': root_id}))
+        assert [m['content'] for m in thread] == ['in the thread']
+
+    def test_an_outsider_cannot_reach_a_private_projects_channel(self):
+        owner = _user('api_owner2')
+        outsider = _user('api_outsider')
+        project = _project(owner, 'Private', 'private-proj')  # visibility defaults private
+        self._client(owner).get(f'/api/projects/projects/{project.slug}/channel/')
+
+        resp = self._client(outsider).get(f'/api/projects/projects/{project.slug}/channel/')
+        # A channel must not be a way around the project's visibility.
+        assert resp.status_code in (403, 404), resp.status_code
+
+    def test_marking_read_clears_the_unread_count(self):
+        owner = _user('api_reader_owner')
+        member = _user('api_reader')
+        project = _project(owner, 'R', 'read-proj')
+        project.visibility = 'public'
+        project.save(update_fields=['visibility'])
+
+        room = ChatRoom.for_project(project)
+        ChatMessage.objects.create(room=room, sender=owner, content='unread one')
+
+        client = self._client(member)
+        before = client.get(f'/api/projects/projects/{project.slug}/channel/')
+        assert before.data['unread_count'] == 1, before.data
+
+        marked = client.post(f'/api/community/chat/rooms/{room.id}/read/')
+        assert marked.status_code == 200, marked.data
+
+        after = client.get(f'/api/projects/projects/{project.slug}/channel/')
+        assert after.data['unread_count'] == 0
+
+    def test_a_project_channel_is_reachable_through_the_rooms_viewset(self):
+        # It has no room_type, and that viewset used to filter on room_type alone,
+        # which made every detail route on a project channel a 404 — including the
+        # read endpoint above.
+        owner = _user('api_rooms')
+        project = _project(owner, 'V', 'visible-proj')
+        room = ChatRoom.for_project(project)
+
+        resp = self._client(owner).get(f'/api/community/chat/rooms/{room.id}/')
+        assert resp.status_code == 200, resp.status_code

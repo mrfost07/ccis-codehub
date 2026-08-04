@@ -272,7 +272,10 @@ class UserBadgeSerializer(serializers.ModelSerializer):
 
 
 # Chat Serializers
-from .models import ChatRoom, ChatMessage, ChatNickname, MessageReaction, MessageDeletedFor
+from .models import (
+    ChannelMembership, ChatRoom, ChatMessage, ChatNickname, MessageReaction,
+    MessageDeletedFor,
+)
 
 
 class ChatRoomSerializer(serializers.ModelSerializer):
@@ -282,16 +285,44 @@ class ChatRoomSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = ChatRoom
-        fields = ['id', 'name', 'room_type', 'description', 'icon', 'member_count', 'unread_count', 'created_at']
+        fields = [
+            'id', 'name', 'room_type', 'description', 'icon',
+            'member_count', 'unread_count', 'created_at',
+            # What this channel belongs to, so a client can tell a program room
+            # from a project channel without inferring it from room_type.
+            'scope', 'project', 'task', 'organization', 'is_archived',
+        ]
         read_only_fields = ['id', 'created_at']
-    
+
     def get_member_count(self, obj):
         # Count users who have sent messages in this room
         return obj.messages.values('sender').distinct().count()
-    
+
     def get_unread_count(self, obj):
-        # For now, return 0 - can be enhanced with read receipts later
-        return 0
+        """Messages the viewer has not seen.
+
+        Was hardcoded to 0 with a note to add read receipts later; ChannelMembership
+        is that read state. No membership row means never opened, which reads as
+        fully unread.
+
+        One query per room. The room list is a handful of rows — the program rooms
+        plus the channels you can reach — so this is not the N+1 shape worth
+        annotating around. If channel lists ever grow to hundreds, move it to a
+        subquery before it becomes one.
+        """
+        request = self.context.get('request')
+        viewer = getattr(request, 'user', None)
+        if viewer is None or not viewer.is_authenticated:
+            return 0
+
+        membership = ChannelMembership.objects.filter(
+            channel=obj, user=viewer,
+        ).first()
+        if membership is None:
+            return obj.messages.exclude(sender=viewer).exclude(
+                deleted_for_everyone=True,
+            ).count()
+        return membership.unread_count()
 
 
 class ChatNicknameSerializer(serializers.ModelSerializer):
@@ -325,12 +356,19 @@ class ChatMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatMessage
         fields = [
-            'id', 'room', 'sender', 'sender_info', 'content', 
+            'id', 'room', 'sender', 'sender_info', 'content',
             'reply_to', 'reply_to_info', 'is_bumped', 'bump_count',
             'is_deleted', 'deleted_for_everyone', 'is_own_message',
-            'is_deleted_for_me', 'reactions_summary', 'created_at', 'updated_at'
+            'is_deleted_for_me', 'reactions_summary', 'created_at', 'updated_at',
+            # Threads. thread_root is writable so a client can post into one;
+            # the counters are derived and maintained by ChatMessage.post_reply.
+            'thread_root', 'reply_count', 'last_reply_at',
         ]
-        read_only_fields = ['id', 'sender', 'is_bumped', 'bump_count', 'is_deleted', 'deleted_for_everyone', 'created_at', 'updated_at']
+        read_only_fields = [
+            'id', 'sender', 'is_bumped', 'bump_count', 'is_deleted',
+            'deleted_for_everyone', 'created_at', 'updated_at',
+            'reply_count', 'last_reply_at',
+        ]
     
     def get_sender_info(self, obj):
         # Get nickname if exists, otherwise username

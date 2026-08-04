@@ -4,9 +4,10 @@ import {
   ArrowLeft, Users, GitBranch, GitPullRequest, Settings, Plus, CheckCircle2,
   Clock, AlertCircle, MoreHorizontal, UserPlus, X, MessageSquare, Merge,
   Search, Filter, Calendar, Flag, Trash2, Edit, Eye, ChevronDown,
-  FolderOpen, ListTodo, Activity, RefreshCw, Save, Globe, Lock
+  FolderOpen, ListTodo, Activity, RefreshCw, Save, Globe, Lock, MessagesSquare
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
+import ProjectChannel from '../components/ProjectChannel'
 import { projectsAPI, communityAPI, teamsAPI } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
@@ -144,7 +145,9 @@ export default function ProjectDetail() {
 
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'overview' | 'kanban' | 'repository' | 'team' | 'settings'>('overview')
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'channel' | 'kanban' | 'repository' | 'team' | 'settings'
+  >('overview')
 
   // Task state
   const [tasks, setTasks] = useState<Task[]>([])
@@ -956,6 +959,9 @@ export default function ProjectDetail() {
         <div className="flex gap-1 mb-6 border-b border-neutral-700 overflow-x-auto">
           {[
             { id: 'overview', label: 'Overview', icon: Activity },
+            // Second, right after Overview: discussion is where you go before
+            // digging into the board, not an afterthought behind Settings.
+            { id: 'channel', label: 'Channel', icon: MessagesSquare },
             { id: 'kanban', label: 'Kanban', icon: ListTodo },
             { id: 'repository', label: 'Repository', icon: GitBranch },
             { id: 'team', label: 'Team', icon: Users },
@@ -980,6 +986,10 @@ export default function ProjectDetail() {
 
         {/* Tab Content */}
         <div className="min-h-[400px]">
+          {/* CHANNEL TAB — project-scoped discussion with threads. Mounted only
+              when selected, so the channel is not polled from every other tab. */}
+          {activeTab === 'channel' && slug && <ProjectChannel slug={slug} />}
+
           {/* OVERVIEW TAB */}
           {activeTab === 'overview' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
