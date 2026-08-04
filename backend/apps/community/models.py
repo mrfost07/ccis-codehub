@@ -264,27 +264,148 @@ class UserBadge(models.Model):
 
 
 class ChatRoom(models.Model):
-    """Chat rooms for different programs"""
-    
+    """A channel: a stream of messages with a scope.
+
+    Was four fixed program rooms. `room_type` carried `unique=True`, which meant
+    exactly four rooms could ever exist on the whole platform — so a channel per
+    project or per task was not "unbuilt", it was impossible.
+
+    Now every room has a `scope` saying what it belongs to:
+
+        global        the original CS / IT / IS / GLOBAL program rooms
+        organization  one per Organization
+        project       one per Project
+        task          one per ProjectTask, created on first message
+
+    Deliberately still called ChatRoom rather than renamed to Channel. A rename
+    would mean a table rename, every FK's related_name, the serializers, the
+    viewsets, the /community/chat/rooms/ URLs and the frontend that calls them —
+    a lot of churn and regression surface for a synonym. "Channel" is the product
+    word for a row of this table.
+    """
+
     ROOM_TYPE_CHOICES = [
         ('CS', 'Computer Science'),
         ('IT', 'Information Technology'),
         ('IS', 'Information Systems'),
         ('GLOBAL', 'Global Chat'),
     ]
-    
+
+    SCOPE_GLOBAL = 'global'
+    SCOPE_ORGANIZATION = 'organization'
+    SCOPE_PROJECT = 'project'
+    SCOPE_TASK = 'task'
+    SCOPE_CHOICES = [
+        (SCOPE_GLOBAL, 'Global'),
+        (SCOPE_ORGANIZATION, 'Organization'),
+        (SCOPE_PROJECT, 'Project'),
+        (SCOPE_TASK, 'Task'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100)
-    room_type = models.CharField(max_length=10, choices=ROOM_TYPE_CHOICES, unique=True)
+    scope = models.CharField(
+        max_length=16, choices=SCOPE_CHOICES, default=SCOPE_GLOBAL, db_index=True,
+    )
+    # Only meaningful for scope='global'. Nullable and no longer unique on its
+    # own — the conditional constraint below keeps it unique among global rooms,
+    # which is what the original unique=True was actually protecting.
+    room_type = models.CharField(
+        max_length=10, choices=ROOM_TYPE_CHOICES, null=True, blank=True,
+    )
+    # Exactly one of these is set, matched to `scope` by a check constraint.
+    # String references so community does not import projects at module level;
+    # projects/models.py has no FK back here, so there is no migration cycle.
+    organization = models.ForeignKey(
+        'Organization', on_delete=models.CASCADE,
+        null=True, blank=True, related_name='channels',
+    )
+    project = models.ForeignKey(
+        'projects.Project', on_delete=models.CASCADE,
+        null=True, blank=True, related_name='channels',
+    )
+    task = models.ForeignKey(
+        'projects.ProjectTask', on_delete=models.CASCADE,
+        null=True, blank=True, related_name='channels',
+    )
     description = models.TextField(blank=True)
     icon = models.CharField(max_length=10, default='💬')
+    is_archived = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     class Meta:
-        ordering = ['room_type']
-    
+        ordering = ['scope', 'room_type', 'name']
+        constraints = [
+            # What unique=True on room_type used to guarantee, now limited to the
+            # scope where room_type means anything.
+            models.UniqueConstraint(
+                fields=['room_type'],
+                condition=models.Q(scope='global'),
+                name='chatroom_one_room_per_program',
+            ),
+            models.UniqueConstraint(
+                fields=['organization'],
+                condition=models.Q(scope='organization'),
+                name='chatroom_one_per_organization',
+            ),
+            models.UniqueConstraint(
+                fields=['project'],
+                condition=models.Q(scope='project'),
+                name='chatroom_one_per_project',
+            ),
+            models.UniqueConstraint(
+                fields=['task'],
+                condition=models.Q(scope='task'),
+                name='chatroom_one_per_task',
+            ),
+            # A project-scoped room with no project (or with a task as well) is
+            # not a state any code should have to defend against.
+            models.CheckConstraint(
+                check=(
+                    models.Q(scope='global', organization__isnull=True,
+                             project__isnull=True, task__isnull=True)
+                    | models.Q(scope='organization', organization__isnull=False,
+                               project__isnull=True, task__isnull=True)
+                    | models.Q(scope='project', organization__isnull=True,
+                               project__isnull=False, task__isnull=True)
+                    | models.Q(scope='task', organization__isnull=True,
+                               project__isnull=True, task__isnull=False)
+                ),
+                name='chatroom_scope_matches_target',
+            ),
+        ]
+
     def __str__(self):
-        return f"{self.name} ({self.room_type})"
+        if self.scope == self.SCOPE_GLOBAL:
+            return f"{self.name} ({self.room_type})"
+        return f"{self.name} ({self.scope})"
+
+    @classmethod
+    def for_project(cls, project):
+        """The project's channel, created on demand.
+
+        Projects get a channel the first time one is asked for rather than at
+        creation time, so this works for the projects that already exist without
+        a backfill.
+        """
+        room, _ = cls.objects.get_or_create(
+            scope=cls.SCOPE_PROJECT, project=project,
+            defaults={'name': project.name, 'icon': '📁'},
+        )
+        return room
+
+    @classmethod
+    def for_task(cls, task):
+        """The task's channel, created on demand.
+
+        Lazily on purpose: creating one per task up front would mean thousands of
+        empty channels nobody opened.
+        """
+        room, _ = cls.objects.get_or_create(
+            scope=cls.SCOPE_TASK, task=task,
+            defaults={'name': task.title[:100], 'icon': '✅'},
+        )
+        return room
 
 
 class ChatNickname(models.Model):
@@ -306,19 +427,135 @@ class ChatMessage(models.Model):
     room = models.ForeignKey(ChatRoom, on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='chat_messages')
     content = models.TextField()
+    # A quoted reply: "re: that message", still shown inline in the channel.
+    # Distinct from thread_root below — do not conflate them.
     reply_to = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='replies')
+    # The thread this message belongs to. Null means the message IS a root and
+    # belongs to the channel itself. Slack semantics: a channel lists roots only,
+    # and opening one shows its thread_replies.
+    #
+    # reply_to could not serve this. It is a pointer at one earlier message with
+    # no notion of a root, so answering "give me this thread" meant walking a
+    # chain per message, and "how many replies" was not answerable at all.
+    thread_root = models.ForeignKey(
+        'self', on_delete=models.CASCADE,
+        null=True, blank=True, related_name='thread_replies',
+    )
+    # Denormalised onto the root. A channel list showing "12 replies" per root
+    # is otherwise a COUNT per message on every fetch.
+    reply_count = models.PositiveIntegerField(default=0)
+    last_reply_at = models.DateTimeField(null=True, blank=True)
     is_bumped = models.BooleanField(default=False)
     bump_count = models.IntegerField(default=0)
     is_deleted = models.BooleanField(default=False)
     deleted_for_everyone = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
-        ordering = ['-is_bumped', '-created_at']
-    
+        # Chronological. This was ['-is_bumped', '-created_at'], which floats any
+        # bumped message above everything else permanently — reasonable for a
+        # noticeboard, wrong for a conversation. ChatMessageViewSet already
+        # appended .order_by('created_at'), so the chat UI was unaffected; the old
+        # default only leaked into queries that did not order for themselves
+        # (related lookups, .first(), the admin), where it silently returned a
+        # bumped message as "the latest".
+        ordering = ['created_at']
+        indexes = [
+            # The channel fetch: roots of one room, oldest first.
+            models.Index(fields=['room', 'thread_root', 'created_at'],
+                         name='chatmsg_room_thread_idx'),
+        ]
+
     def __str__(self):
         return f"{self.sender.username}: {self.content[:50]}"
+
+    @property
+    def is_thread_root(self):
+        return self.thread_root_id is None
+
+    @classmethod
+    def post_reply(cls, root, sender, content, **extra):
+        """Add a reply to a thread and keep the root's counters honest.
+
+        The one place reply_count and last_reply_at are written. They are
+        denormalised, so two call sites would eventually disagree with the rows
+        they summarise, and a wrong reply count is the kind of thing nobody
+        notices until someone counts.
+
+        Replying to a reply joins the same thread rather than nesting deeper.
+        Slack works this way, and arbitrary nesting has no sane rendering on a
+        phone.
+        """
+        from django.db.models import F
+        from django.db import transaction
+        from django.utils import timezone
+
+        root = root.thread_root or root
+
+        with transaction.atomic():
+            reply = cls.objects.create(
+                room=root.room, sender=sender, content=content,
+                thread_root=root, **extra,
+            )
+            # F() so concurrent replies cannot both read 3 and both write 4.
+            cls.objects.filter(pk=root.pk).update(
+                reply_count=F('reply_count') + 1,
+                last_reply_at=timezone.now(),
+            )
+        return reply
+
+
+class ChannelMembership(models.Model):
+    """Per-user state for a channel: what they have read, and whether they care.
+
+    There was no read state of any kind, so an unread badge was not merely
+    missing — it was unimplementable. Without one, a channel list cannot tell
+    anyone where to look, which is most of what makes channels usable once there
+    is more than one.
+
+    Rows are created when a user first opens a channel; absence means "never
+    opened", which reads as fully unread.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    channel = models.ForeignKey(
+        ChatRoom, on_delete=models.CASCADE, related_name='memberships',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='channel_memberships',
+    )
+    last_read_at = models.DateTimeField(null=True, blank=True)
+    muted = models.BooleanField(default=False)
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['channel', 'user'], name='channelmembership_unique',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['user', 'channel'], name='chanmember_user_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} @ {self.channel.name}"
+
+    def unread_count(self):
+        """Messages in this channel the user has not seen.
+
+        Counts roots and thread replies alike: an unanswered thread is still
+        something waiting for you. Excludes the user's own messages, since your
+        own message arriving is not news.
+        """
+        messages = self.channel.messages.exclude(sender=self.user).exclude(
+            deleted_for_everyone=True,
+        )
+        if self.last_read_at is not None:
+            messages = messages.filter(created_at__gt=self.last_read_at)
+        return messages.count()
 
 
 class MessageReaction(models.Model):
