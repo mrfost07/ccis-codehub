@@ -93,6 +93,31 @@ const categoryLabel = (v: string) =>
 const formatMinutes = (m: number) =>
   m < 60 ? `${m} min` : `${Math.round((m / 60) * 10) / 10} hrs`
 
+/**
+ * Status dot and difficulty badge for a coding challenge.
+ *
+ * Shared by the desktop table row and the mobile card so the two renderings of
+ * the same challenge cannot drift — the duplication that has bitten this codebase
+ * repeatedly.
+ */
+function ChallengeStatusIcon({ status }: { status?: string }) {
+  if (status === 'solved') return <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />
+  if (status === 'attempted') return <Circle className="w-4 h-4 text-amber-400 shrink-0" />
+  return <Circle className="w-4 h-4 text-neutral-700 shrink-0" />
+}
+
+function DifficultyBadge({ difficulty }: { difficulty: string }) {
+  const tone =
+    difficulty === 'easy' ? 'text-green-400 bg-green-500/10 border-green-500/30' :
+    difficulty === 'medium' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' :
+    'text-red-400 bg-red-500/10 border-red-500/30'
+  return (
+    <span className={`text-xs font-medium px-1.5 py-0.5 rounded border capitalize whitespace-nowrap ${tone}`}>
+      {difficulty}
+    </span>
+  )
+}
+
 export default function LearningEnhanced() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilters, setStatusFilters] = useState<string[]>([])
@@ -887,7 +912,7 @@ export default function LearningEnhanced() {
           </div>
 
           {/* Toolbar: filters (mobile), search, sort */}
-          <div className="flex gap-3 mb-6 sm:mb-8">
+          <div className="flex flex-wrap gap-3 mb-6 sm:mb-8">
             <button
               onClick={() => setShowChallengeFilters(true)}
               className="lg:hidden inline-flex h-11 items-center gap-2 rounded-xl border border-neutral-700 bg-neutral-900 px-3.5 text-sm font-medium text-neutral-300 hover:border-neutral-600 hover:text-white transition-colors"
@@ -901,7 +926,7 @@ export default function LearningEnhanced() {
                 </span>
               )}
             </button>
-            <div className="relative flex-1 min-w-0">
+            <div className="relative order-last w-full min-w-0 sm:order-none sm:flex-1">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 w-4 h-4" />
               <input
                 type="text"
@@ -914,7 +939,7 @@ export default function LearningEnhanced() {
             <select
               value={challengeSort}
               onChange={(e) => setChallengeSort(e.target.value as typeof challengeSort)}
-              className="h-11 bg-neutral-900 border border-neutral-700 rounded-xl px-3.5 text-sm text-neutral-100 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
+              className="h-11 min-w-0 flex-1 sm:flex-none bg-neutral-900 border border-neutral-700 rounded-xl px-3.5 text-sm text-neutral-100 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors"
               aria-label="Sort challenges"
             >
               <option value="default">Most relevant</option>
@@ -996,47 +1021,70 @@ export default function LearningEnhanced() {
                 </div>
               ) : (
                 <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
-                  {/* Table Header */}
-                  <div className="grid grid-cols-12 gap-2 px-4 py-2.5 text-xs font-semibold text-neutral-500 uppercase tracking-wider border-b border-neutral-800 bg-neutral-900/60">
+                  {/*
+                    Two renderings, per DESIGN_SYSTEM.md §4: "Tables become cards
+                    under md … never force horizontal table scroll for primary
+                    content."
+
+                    This was one grid-cols-12 row at every size. On a 288px column
+                    that gives Status 18px and Difficulty 36px, so the header
+                    labels and the difficulty badges overflowed their cells and
+                    collided — the header read "STATUE E … DIFFICULKORTANCE" — and
+                    every title was truncated to about twelve characters.
+                  */}
+
+                  {/* Table header — from md up only. */}
+                  <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-2.5 text-xs font-semibold text-neutral-500 uppercase tracking-wider border-b border-neutral-800 bg-neutral-900/60">
                     <div className="col-span-1">Status</div>
                     <div className="col-span-5">Title</div>
                     <div className="col-span-2">Difficulty</div>
-                    <div className="col-span-2 hidden sm:block">Category</div>
+                    <div className="col-span-2">Category</div>
                     <div className="col-span-2 text-right">Acceptance</div>
                   </div>
-                  {/* Rows */}
+
                   {filteredChallenges.map(c => (
                     <div
                       key={c.id}
                       onClick={() => navigate(`/learning/challenges/${c.slug}`)}
-                      className="grid grid-cols-12 gap-2 px-4 py-3 items-center border-b border-neutral-800/50 last:border-b-0 hover:bg-neutral-800/40 cursor-pointer transition-colors group"
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          navigate(`/learning/challenges/${c.slug}`)
+                        }
+                      }}
+                      className="border-b border-neutral-800/50 last:border-b-0 hover:bg-neutral-800/40 cursor-pointer transition-colors group focus-visible:outline-none focus-visible:bg-neutral-800/60"
                     >
-                      <div className="col-span-1">
-                        {c.user_status === 'solved' ? (
-                          <CheckCircle className="w-4 h-4 text-green-400" />
-                        ) : c.user_status === 'attempted' ? (
-                          <Circle className="w-4 h-4 text-amber-400" />
-                        ) : (
-                          <Circle className="w-4 h-4 text-neutral-700" />
-                        )}
+                      {/* Card, under md. The title wraps instead of truncating —
+                          "Subarray Sum Equals K" needed 154px and had 101. */}
+                      <div className="md:hidden px-4 py-3">
+                        <div className="flex items-start gap-2.5">
+                          <span className="mt-0.5"><ChallengeStatusIcon status={c.user_status} /></span>
+                          <span className="text-sm font-medium text-neutral-200 group-hover:text-white transition-colors">
+                            {c.title}
+                          </span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 ps-[26px] text-xs text-neutral-500">
+                          <DifficultyBadge difficulty={c.difficulty} />
+                          <span>{categoryLabel(c.category)}</span>
+                          <span className="tabular-nums">{c.acceptance_rate ?? 0}% accepted</span>
+                        </div>
                       </div>
-                      <div className="col-span-5">
-                        <span className="text-sm text-neutral-300 group-hover:text-white transition-colors truncate block">{c.title}</span>
-                      </div>
-                      <div className="col-span-2">
-                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded border capitalize ${
-                          c.difficulty === 'easy' ? 'text-green-400 bg-green-500/10 border-green-500/30' :
-                          c.difficulty === 'medium' ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' :
-                          'text-red-400 bg-red-500/10 border-red-500/30'
-                        }`}>
-                          {c.difficulty}
-                        </span>
-                      </div>
-                      <div className="col-span-2 hidden sm:block">
-                        <span className="text-xs text-neutral-500">{categoryLabel(c.category)}</span>
-                      </div>
-                      <div className="col-span-2 text-right">
-                        <span className="text-xs text-neutral-500 tabular-nums">{c.acceptance_rate ?? 0}%</span>
+
+                      {/* Table row, from md up. */}
+                      <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-3 items-center">
+                        <div className="col-span-1"><ChallengeStatusIcon status={c.user_status} /></div>
+                        <div className="col-span-5">
+                          <span className="text-sm text-neutral-300 group-hover:text-white transition-colors truncate block">{c.title}</span>
+                        </div>
+                        <div className="col-span-2"><DifficultyBadge difficulty={c.difficulty} /></div>
+                        <div className="col-span-2">
+                          <span className="text-xs text-neutral-500">{categoryLabel(c.category)}</span>
+                        </div>
+                        <div className="col-span-2 text-right">
+                          <span className="text-xs text-neutral-500 tabular-nums">{c.acceptance_rate ?? 0}%</span>
+                        </div>
                       </div>
                     </div>
                   ))}

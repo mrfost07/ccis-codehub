@@ -276,11 +276,11 @@ export default function CodingChallengePage() {
             </div>
 
             {/* Split Pane */}
-            <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+            <div className="flex-1 flex flex-col lg:flex-row lg:overflow-hidden">
                 {/* Left Pane — Problem Description */}
-                <div className="lg:w-[45%] border-b lg:border-b-0 lg:border-r border-neutral-800/50 overflow-y-auto">
+                <div className="max-h-[60dvh] lg:max-h-none lg:w-[45%] border-b lg:border-b-0 lg:border-r border-neutral-800/50 overflow-y-auto">
                     {/* Tabs */}
-                    <div className="flex border-b border-neutral-800/50 sticky top-0 bg-neutral-950 z-10">
+                    <div className="flex overflow-x-auto border-b border-neutral-800/50 sticky top-0 bg-neutral-950 z-10 scrollbar-hide">
                         {[
                             { id: 'description' as const, label: 'Description' },
                             { id: 'results' as const, label: 'Results' },
@@ -602,9 +602,9 @@ export default function CodingChallengePage() {
                 </div>
 
                 {/* Right Pane — Code Editor */}
-                <div className="lg:w-[55%] flex flex-col">
+                <div className="flex flex-col h-[55dvh] min-h-[18rem] lg:h-auto lg:min-h-0 lg:w-[55%]">
                     {/* Language Selector + Buttons */}
-                    <div className="flex items-center justify-between px-4 py-2 border-b border-neutral-800/50 bg-neutral-900/50">
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-neutral-800/50 bg-neutral-900/50 sm:px-4">
                         <div className="flex items-center gap-2">
                             <Code className="w-4 h-4 text-purple-400" />
                             <select
@@ -617,7 +617,7 @@ export default function CodingChallengePage() {
                                 ))}
                             </select>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-1 justify-end gap-2">
                             {/* Run Button — public tests only */}
                             <button
                                 onClick={handleRun}
