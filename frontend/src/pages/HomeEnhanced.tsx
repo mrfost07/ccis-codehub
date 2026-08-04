@@ -101,6 +101,17 @@ export default function HomeEnhanced() {
   const { data: statsData } = usePublicStats()
   const stats: PlatformStats = statsData || { total_users: 0, total_courses: 0, total_projects: 0 }
 
+  // Escape closes the mobile menu. Without it the only way out is the same
+  // button that opened it, which is off in the corner of the bar.
+  useEffect(() => {
+    if (!menuOpen) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [menuOpen])
+
   // ScrollSmoother turns <body> into a tall scroll element while our dark
   // wrapper is pinned one-screen tall — so the body's default (white) shows
   // through once you scroll. Paint the document root dark for this page and
@@ -418,23 +429,46 @@ export default function HomeEnhanced() {
       {/* Film grain overlay */}
       <div aria-hidden className="grain fixed inset-[-100%] z-[55] pointer-events-none opacity-[0.05]" />
 
-      {/* Navigation — floating glass pill */}
-      <nav data-nav className="fixed top-3 sm:top-4 inset-x-0 z-50 px-4">
+      {/*
+        Navigation — floating glass pill.
+
+        z-40, not z-50: z-50 is the modal layer (DESIGN_SYSTEM.md §6), and a
+        sticky navbar belongs a tier below it. Visually inert here — the grain
+        overlay above already paints over this nav either way.
+      */}
+      <nav data-nav className="fixed top-3 sm:top-4 inset-x-0 z-40 px-4">
         <div className="max-w-5xl mx-auto">
-          <div className="relative flex items-center justify-between gap-4 h-14 rounded-2xl border border-white/10 bg-neutral-950/70 backdrop-blur-xl px-3 sm:px-4 shadow-lg shadow-black/40">
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 shrink-0">
-              <img src="/logo/ccis-logo.png" alt="CCIS" className="w-8 h-8" />
-              <span className="text-base font-semibold tracking-tight text-white">CCIS CodeHub</span>
+          <div className="relative flex items-center justify-between gap-2 sm:gap-4 h-14 rounded-2xl border border-white/10 bg-neutral-950/70 backdrop-blur-xl px-3 sm:px-4 shadow-lg shadow-black/40">
+            {/*
+              min-w-0 + truncate rather than shrink-0. Both flex children were
+              unshrinkable, so the row could only overflow: measured at 348px of
+              content in a 288px pill on a 320px phone.
+            */}
+            <Link to="/" className="flex min-w-0 items-center gap-2">
+              <img src="/logo/ccis-logo.png" alt="CCIS" className="w-8 h-8 shrink-0" />
+              <span className="truncate text-base font-semibold tracking-tight text-white">CCIS CodeHub</span>
             </Link>
 
-            {/* Center links (desktop) */}
-            <div className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
+            {/*
+              Center links (desktop). A flex sibling, not `absolute left-1/2`:
+              centring an out-of-flow group means nothing stops it running into
+              the actions, and at exactly 768px it did — FAQ's right edge landed
+              20px inside the Login/Get Started group, so the two read as one
+              jammed word and their hit areas overlapped. In flow the three
+              groups divide the row and cannot collide at any width.
+
+              lg, not md: in flow the row needs 711px at 768 and has 704, so md
+              squeezed the logo to "CCIS Code…" and wrapped "AI Mentor" onto two
+              lines. The overlap was the same shortfall, hidden by taking the
+              links out of flow. 1024 leaves ~280px of slack; below it the links
+              live in the dropdown, which is what the hamburger is for.
+            */}
+            <div className="hidden lg:flex flex-1 items-center justify-center gap-1">
               {NAV_LINKS.map((l) => (
                 <a
                   key={l.href}
                   href={l.href}
-                  className="px-3.5 py-2 text-sm text-neutral-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+                  className="whitespace-nowrap px-3.5 py-2 text-sm text-neutral-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
                 >
                   {l.label}
                 </a>
@@ -446,17 +480,24 @@ export default function HomeEnhanced() {
               <Link to="/login" className="hidden sm:inline-flex px-3.5 py-2 text-sm text-neutral-300 hover:text-white transition-colors">
                 Login
               </Link>
+              {/*
+                Hidden on phones, where it was the widest thing in the bar and
+                pushed the menu button's right edge to x=364 on a 320px screen —
+                entirely offscreen, so the nav links could not be opened at all.
+                The hero's "Start learning free" is the CTA at that width, and
+                the dropdown below carries this one.
+              */}
               <Link
                 to="/register"
-                className="group inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-500 transition-colors shadow-lg shadow-purple-600/25"
+                className="group hidden sm:inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-500 transition-colors shadow-lg shadow-purple-600/25"
               >
                 Get Started
                 <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
               </Link>
-              {/* Mobile menu toggle */}
+              {/* Mobile menu toggle — h-11/w-11 for the §4 44px touch target. */}
               <button
                 onClick={() => setMenuOpen((v) => !v)}
-                className="md:hidden p-2 -mr-1 text-neutral-300 hover:text-white transition-colors"
+                className="lg:hidden -mr-1 inline-flex h-11 w-11 items-center justify-center text-neutral-300 hover:text-white transition-colors"
                 aria-label="Toggle menu"
                 aria-expanded={menuOpen}
               >
@@ -467,23 +508,36 @@ export default function HomeEnhanced() {
 
           {/* Mobile dropdown */}
           {menuOpen && (
-            <div className="md:hidden mt-2 rounded-2xl border border-white/10 bg-neutral-950/90 backdrop-blur-xl p-2 shadow-lg shadow-black/40">
+            <div className="lg:hidden mt-2 rounded-2xl border border-white/10 bg-neutral-950/90 backdrop-blur-xl p-2 shadow-lg shadow-black/40">
               {NAV_LINKS.map((l) => (
                 <a
                   key={l.href}
                   href={l.href}
                   onClick={() => setMenuOpen(false)}
-                  className="block px-3 py-2.5 text-sm text-neutral-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                  className="block px-3 py-3 text-sm text-neutral-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
                 >
                   {l.label}
                 </a>
               ))}
+              {/*
+                sm:hidden, matching the bar: above 640px the bar shows Login and
+                Get Started itself, and this dropdown is still open up to md.
+                Repeating them here would list each twice.
+              */}
               <Link
                 to="/login"
                 onClick={() => setMenuOpen(false)}
-                className="block sm:hidden px-3 py-2.5 text-sm text-neutral-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                className="block sm:hidden px-3 py-3 text-sm text-neutral-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
               >
                 Login
+              </Link>
+              <Link
+                to="/register"
+                onClick={() => setMenuOpen(false)}
+                className="mt-1 flex sm:hidden items-center justify-center gap-1.5 px-3 py-3 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-500 transition-colors"
+              >
+                Get Started
+                <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           )}

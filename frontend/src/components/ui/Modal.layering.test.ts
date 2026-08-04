@@ -250,6 +250,57 @@ describe('persistent launchers stay below dialogs', () => {
   })
 })
 
+describe('the landing navbar', () => {
+  const HOME = '../pages/HomeEnhanced.tsx'
+
+  /** The floating pill and everything in it, excluding the rest of the page. */
+  function navBlock(): string {
+    const source = codeOf(HOME)
+    const start = source.indexOf('<nav data-nav')
+    const end = source.indexOf('</nav>', start)
+    expect(start, 'the landing nav is no longer marked with data-nav').toBeGreaterThan(-1)
+    return source.slice(start, end)
+  }
+
+  it('stays off the modal layer', () => {
+    // Fourth time a z-index shipped a tier too high: MobileBottomNav at z-[60],
+    // the channel overlays at z-40, the two mentor launchers at z-50 and z-[60],
+    // and this nav at z-50. DESIGN_SYSTEM.md §6 puts a sticky navbar at z-40.
+    const opening = navBlock().split('\n')[0]
+    const z = /z-(?:\[(\d+)\]|(\d+))/.exec(opening)
+
+    expect(z, `no z-index on the landing nav: ${opening}`).not.toBeNull()
+    expect(Number(z![1] ?? z![2])).toBeLessThan(MODAL_LAYER)
+  })
+
+  it('can give way instead of overflowing a phone', () => {
+    // Both flex children of the bar were shrink-0, so the row had no way to
+    // respond to a narrow viewport and simply overflowed: 348px of content in a
+    // 288px pill at 320px wide, which put the menu button's right edge at x=364
+    // — fully offscreen, leaving the nav links unopenable.
+    expect(navBlock(), [
+      'Nothing in the landing nav bar can shrink. Give the logo min-w-0 and let',
+      'its label truncate, or the row will overflow narrow viewports again.',
+    ].join('\n')).toContain('min-w-0')
+  })
+
+  it('gives the menu toggle a thumb-sized target', () => {
+    // p-2 around a 20px icon is 36px. DESIGN_SYSTEM.md §4 asks for 44px, and
+    // this is the only control that reveals the nav links on a phone.
+    const toggle = navBlock().split('\n').find(line => /aria-label="Toggle menu"/.test(line))
+    const box = navBlock()
+      .split('\n')
+      .find(line => /(?:md|lg):hidden.*h-(\d+) w-\1/.test(line))
+
+    expect(toggle, 'the mobile menu toggle is gone').toBeTruthy()
+    expect(box, [
+      'The mobile menu toggle has no explicit 44px box (expected h-11 w-11).',
+      'Padding around the icon alone came to 36px.',
+    ].join('\n')).toBeTruthy()
+    expect(Number(/h-(\d+)/.exec(box!)![1]) * 4).toBeGreaterThanOrEqual(44)
+  })
+})
+
 describe('the channel drawer is opaque', () => {
   it('does not let the page bleed through', () => {
     // The same element is the desktop rail and the mobile drawer. At
