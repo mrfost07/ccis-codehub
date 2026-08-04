@@ -185,6 +185,10 @@ export const projectsAPI = {
   // The channel is created server-side on first request, so there is nothing to
   // create from here and no state to keep in sync.
   getProjectChannel: (slug: string) => api.get(`/projects/projects/${slug}/channel/`),
+  /** Sidebar payload: the project's channels and its tasks, in one request. */
+  getProjectWorkspace: (slug: string) => api.get(`/projects/projects/${slug}/workspace/`),
+  /** A task's channel, created server-side the first time it is opened. */
+  getTaskChannel: (taskId: string) => api.get(`/projects/tasks/${taskId}/channel/`),
   /** Root messages of a channel. Thread replies are NOT included — see getThread. */
   getChannelMessages: (roomId: string) =>
     api.get('/community/chat/messages/', { params: { room: roomId } }),

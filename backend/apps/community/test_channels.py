@@ -379,3 +379,105 @@ class TestProjectChannelAPI:
 
         resp = self._client(owner).get(f'/api/community/chat/rooms/{room.id}/')
         assert resp.status_code == 200, resp.status_code
+
+
+@pytest.mark.django_db
+class TestWorkspaceSidebar:
+    """The one request that draws the sidebar.
+
+    Channels and tasks come back together so the two halves cannot render at
+    different times, and so a per-task channel lookup is not one query per row.
+    """
+
+    def _client(self, user):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        client.force_authenticate(user)
+        return client
+
+    def test_sidebar_lists_the_channel_and_the_tasks(self):
+        owner = _user('ws_owner')
+        project = _project(owner, 'WS', 'ws-proj')
+        ProjectTask.objects.create(project=project, title='First task')
+        ProjectTask.objects.create(project=project, title='Second task')
+
+        resp = self._client(owner).get(f'/api/projects/projects/{project.slug}/workspace/')
+
+        assert resp.status_code == 200, resp.data
+        assert resp.data['project']['name'] == 'WS'
+        assert len(resp.data['channels']) == 1
+        assert [t['title'] for t in resp.data['tasks']] == ['First task', 'Second task']
+
+    def test_listing_tasks_does_not_create_their_channels(self):
+        owner = _user('ws_lazy')
+        project = _project(owner, 'Lazy', 'lazy-proj')
+        for i in range(3):
+            ProjectTask.objects.create(project=project, title=f'task {i}')
+
+        resp = self._client(owner).get(f'/api/projects/projects/{project.slug}/workspace/')
+
+        # Drawing a sidebar must not conjure a channel per task — that is the
+        # whole reason task channels are lazy.
+        assert all(t['channel_id'] is None for t in resp.data['tasks'])
+        assert ChatRoom.objects.filter(scope=ChatRoom.SCOPE_TASK).count() == 0
+
+    def test_opening_a_task_creates_its_channel_and_the_sidebar_then_shows_it(self):
+        owner = _user('ws_open')
+        project = _project(owner, 'Open', 'open-proj')
+        task = ProjectTask.objects.create(project=project, title='Discuss me')
+        client = self._client(owner)
+
+        opened = client.get(f'/api/projects/tasks/{task.id}/channel/')
+        assert opened.status_code == 200, opened.data
+        assert opened.data['scope'] == ChatRoom.SCOPE_TASK
+
+        sidebar = client.get(f'/api/projects/projects/{project.slug}/workspace/')
+        row = next(t for t in sidebar.data['tasks'] if t['id'] == str(task.id))
+        assert row['channel_id'] == opened.data['id']
+
+    def test_unread_badges_are_per_channel(self):
+        owner = _user('ws_badge_owner')
+        member = _user('ws_badge_member')
+        project = _project(owner, 'Badge', 'badge-proj')
+        project.visibility = 'public'
+        project.save(update_fields=['visibility'])
+        task = ProjectTask.objects.create(project=project, title='Noisy task')
+
+        project_room = ChatRoom.for_project(project)
+        task_room = ChatRoom.for_task(task)
+        ChatMessage.objects.create(room=project_room, sender=owner, content='p1')
+        ChatMessage.objects.create(room=task_room, sender=owner, content='t1')
+        ChatMessage.objects.create(room=task_room, sender=owner, content='t2')
+
+        data = self._client(member).get(
+            f'/api/projects/projects/{project.slug}/workspace/'
+        ).data
+
+        assert data['channels'][0]['unread_count'] == 1
+        row = next(t for t in data['tasks'] if t['id'] == str(task.id))
+        assert row['unread_count'] == 2
+
+    def test_the_sidebar_stays_a_bounded_number_of_queries(
+        self, django_assert_max_num_queries,
+    ):
+        owner = _user('ws_perf')
+        project = _project(owner, 'Perf', 'perf-proj')
+        for i in range(15):
+            task = ProjectTask.objects.create(project=project, title=f't{i}')
+            ChatRoom.for_task(task)
+
+        client = self._client(owner)
+        # Without prefetching channels and batching the membership lookup this is
+        # several queries per task, and the sidebar is the first thing that loads.
+        with django_assert_max_num_queries(40):
+            resp = client.get(f'/api/projects/projects/{project.slug}/workspace/')
+        assert resp.status_code == 200
+        assert len(resp.data['tasks']) == 15
+
+    def test_an_outsider_cannot_read_the_sidebar_of_a_private_project(self):
+        owner = _user('ws_priv_owner')
+        outsider = _user('ws_priv_outsider')
+        project = _project(owner, 'Priv', 'priv-ws-proj')
+
+        resp = self._client(outsider).get(f'/api/projects/projects/{project.slug}/workspace/')
+        assert resp.status_code in (403, 404), resp.status_code

@@ -214,6 +214,70 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return Response(ChatRoomSerializer(room, context={'request': request}).data)
 
     @action(detail=True, methods=['get'])
+    def workspace(self, request, slug=None):
+        """Everything the channel sidebar needs, in one request.
+
+        The sidebar shows channels and tasks together, so fetching them
+        separately would mean the two halves rendering at different times — and a
+        per-task channel lookup would be one query per row.
+
+        Task channels are reported as null until someone opens one. They are
+        created on first use, so listing them here must not create thousands of
+        empty channels as a side effect of drawing a sidebar.
+        """
+        from apps.community.models import ChannelMembership, ChatRoom
+
+        project = self.get_object()
+        room = ChatRoom.for_project(project)
+
+        tasks = list(
+            project.tasks.all()
+            .prefetch_related('channels')
+            .order_by('status', 'order', 'created_at')
+        )
+
+        # One query for every membership this viewer has in this project's
+        # channels, rather than one per channel.
+        room_ids = [room.id] + [c.id for t in tasks for c in t.channels.all()]
+        memberships = {
+            m.channel_id: m
+            for m in ChannelMembership.objects.filter(
+                user=request.user, channel_id__in=room_ids,
+            )
+        }
+
+        def unread_for(channel):
+            membership = memberships.get(channel.id)
+            if membership is not None:
+                return membership.unread_count()
+            return channel.messages.exclude(sender=request.user).exclude(
+                deleted_for_everyone=True,
+            ).count()
+
+        task_rows = []
+        for task in tasks:
+            channels = list(task.channels.all())
+            channel = channels[0] if channels else None
+            task_rows.append({
+                'id': str(task.id),
+                'title': task.title,
+                'status': task.status,
+                'channel_id': str(channel.id) if channel else None,
+                'unread_count': unread_for(channel) if channel else 0,
+            })
+
+        return Response({
+            'project': {'slug': project.slug, 'name': project.name},
+            'channels': [{
+                'id': str(room.id),
+                'name': room.name,
+                'kind': 'project',
+                'unread_count': unread_for(room),
+            }],
+            'tasks': task_rows,
+        })
+
+    @action(detail=True, methods=['get'])
     def activities(self, request, slug=None):
         """Get project activities"""
         project = self.get_object()
@@ -628,6 +692,24 @@ class ProjectTaskViewSet(viewsets.ModelViewSet):
             description=f'Task "{instance.title}" was deleted'
         )
         instance.delete()
+
+    @action(detail=True, methods=['get'])
+    def channel(self, request, pk=None):
+        """This task's channel, created the first time it is opened.
+
+        Lazily, so a project with two hundred tasks does not carry two hundred
+        empty channels that nobody has ever posted in.
+
+        Resolved through get_object(), so it inherits the task queryset's own
+        scoping — a task channel must not be reachable by someone who cannot see
+        the task.
+        """
+        from apps.community.models import ChatRoom
+        from apps.community.serializers import ChatRoomSerializer
+
+        task = self.get_object()
+        room = ChatRoom.for_task(task)
+        return Response(ChatRoomSerializer(room, context={'request': request}).data)
 
 
 class CodeReviewViewSet(viewsets.ModelViewSet):

@@ -7,7 +7,7 @@ import {
   FolderOpen, ListTodo, Activity, RefreshCw, Save, Globe, Lock, MessagesSquare
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
-import ProjectChannel from '../components/ProjectChannel'
+import ProjectWorkspace from '../components/ProjectWorkspace'
 import { projectsAPI, communityAPI, teamsAPI } from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
@@ -961,7 +961,7 @@ export default function ProjectDetail() {
             { id: 'overview', label: 'Overview', icon: Activity },
             // Second, right after Overview: discussion is where you go before
             // digging into the board, not an afterthought behind Settings.
-            { id: 'channel', label: 'Channel', icon: MessagesSquare },
+            { id: 'channel', label: 'Channels', icon: MessagesSquare },
             { id: 'kanban', label: 'Kanban', icon: ListTodo },
             { id: 'repository', label: 'Repository', icon: GitBranch },
             { id: 'team', label: 'Team', icon: Users },
@@ -988,7 +988,7 @@ export default function ProjectDetail() {
         <div className="min-h-[400px]">
           {/* CHANNEL TAB — project-scoped discussion with threads. Mounted only
               when selected, so the channel is not polled from every other tab. */}
-          {activeTab === 'channel' && slug && <ProjectChannel slug={slug} />}
+          {activeTab === 'channel' && slug && <ProjectWorkspace slug={slug} />}
 
           {/* OVERVIEW TAB */}
           {activeTab === 'overview' && (
