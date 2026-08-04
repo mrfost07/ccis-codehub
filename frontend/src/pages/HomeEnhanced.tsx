@@ -927,7 +927,8 @@ export default function HomeEnhanced() {
                 </div>
               </div>
               <div className="border-t border-neutral-800 pt-8 text-center text-neutral-500 text-sm flex items-center justify-center gap-1.5">
-                <span>&copy; 2025 CCIS CodeHub. Built with</span>
+                {/* Derived, not typed. It was hardcoded to 2025 and went stale. */}
+                <span>&copy; {new Date().getFullYear()} CCIS CodeHub. Built with</span>
                 <Heart className="w-3.5 h-3.5 text-purple-400 fill-purple-400" />
                 <span>for SNSU Students.</span>
               </div>
