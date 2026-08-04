@@ -115,7 +115,9 @@ class TestCareerMapEndpoint:
         self, django_assert_max_num_queries,
     ):
         path = _path()
-        for index in range(25):
+        # 80, matching the real catalogue's scale (79 roles) rather than a token
+        # handful — the point is that this stays flat as the catalogue grows.
+        for index in range(80):
             _role(name=f'Role {index}', slug=f'bscs-role-{index}',
                   path=path if index % 2 == 0 else None)
 
@@ -125,6 +127,8 @@ class TestCareerMapEndpoint:
         with django_assert_max_num_queries(8):
             resp = client.get('/api/learning/career-map/')
         assert resp.status_code == 200
+        bscs = next(p for p in resp.data['programs'] if p['key'] == 'bscs')
+        assert bscs['role_count'] == 80
 
 
 @pytest.mark.django_db
@@ -138,7 +142,9 @@ class TestSeedCareerRoles:
 
         for program in ('bscs', 'bsit', 'bsis'):
             assert CareerRole.objects.filter(program_type=program, is_active=True).exists(), program
-        assert CareerRole.objects.count() > 25
+        # The catalogue is ~79 roles; a floor well below that catches a
+        # truncated or half-loaded CATALOGUE without breaking on every edit.
+        assert CareerRole.objects.count() > 60
 
     def test_running_twice_updates_rather_than_duplicating(self):
         self._seed()

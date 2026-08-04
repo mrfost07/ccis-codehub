@@ -54,6 +54,25 @@ interface Program {
   categories: Category[]
 }
 
+/**
+ * One accent per program, so a branch is identifiable at a glance once the tree
+ * is long enough to scroll past its own heading.
+ *
+ * Written as whole static class strings rather than composed from a colour name:
+ * Tailwind scans source text, so `border-${colour}-500` produces no CSS at all.
+ */
+const PROGRAM_ACCENT: Record<string, { rule: string; chip: string; bar: string }> = {
+  bscs: { rule: 'bg-violet-500', chip: 'bg-violet-500/20 text-violet-300', bar: 'bg-violet-500' },
+  bsit: { rule: 'bg-cyan-500', chip: 'bg-cyan-500/20 text-cyan-300', bar: 'bg-cyan-500' },
+  bsis: { rule: 'bg-amber-500', chip: 'bg-amber-500/20 text-amber-300', bar: 'bg-amber-500' },
+}
+const FALLBACK_ACCENT = {
+  rule: 'bg-neutral-500', chip: 'bg-neutral-800 text-neutral-300', bar: 'bg-neutral-500',
+}
+
+/** Compact drops each role's summary and skills, keeping name and demand. */
+type Density = 'comfortable' | 'compact'
+
 const DEMAND_STYLE: Record<Role['demand'], string> = {
   high: 'text-green-300 bg-green-500/15 border-green-500/30',
   steady: 'text-sky-300 bg-sky-500/15 border-sky-500/30',
@@ -139,7 +158,7 @@ function Branch({
   )
 }
 
-function RoleCard({ role }: { role: Role }) {
+function RoleCard({ role, density }: { role: Role; density: Density }) {
   const navigate = useNavigate()
   const linked = role.path !== null
 
@@ -165,9 +184,11 @@ function RoleCard({ role }: { role: Role }) {
         </span>
       </div>
 
-      <p className="mt-1 text-xs leading-relaxed text-neutral-400">{role.summary}</p>
+      {density === 'comfortable' && (
+        <p className="mt-1 text-xs leading-relaxed text-neutral-400">{role.summary}</p>
+      )}
 
-      {role.core_skills.length > 0 && (
+      {density === 'comfortable' && role.core_skills.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {role.core_skills.map(skill => (
             <span key={skill} className="rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] text-neutral-400">
@@ -202,34 +223,53 @@ function NodeCard({
   title,
   subtitle,
   chip,
-  chipTone,
+  accent,
   emphasis,
+  progress,
 }: {
   title: string
   subtitle?: string
   chip: string
-  chipTone: 'purple' | 'neutral'
+  /** Program accent, or undefined for the neutral category level. */
+  accent?: { rule: string; chip: string; bar: string }
   emphasis: boolean
+  /** Fraction of roles with a path, 0–1. Program level only. */
+  progress?: number
 }) {
   return (
     <div className={cn(
-      'flex w-full max-w-md items-center justify-between gap-3 rounded-xl border px-3 py-2.5',
-      emphasis
-        ? 'border-neutral-700 bg-neutral-900'
-        : 'border-neutral-800 bg-neutral-900/50',
+      'relative w-full max-w-md overflow-hidden rounded-xl border px-3 py-2.5',
+      emphasis ? 'border-neutral-700 bg-neutral-900' : 'border-neutral-800 bg-neutral-900/50',
     )}>
-      <div className="min-w-0">
-        <p className={cn('truncate font-semibold', emphasis ? 'text-sm text-white' : 'text-[13px] text-neutral-200')}>
-          {title}
-        </p>
-        {subtitle && <p className="truncate text-[11px] text-neutral-500">{subtitle}</p>}
+      {/* Accent rule down the leading edge, so a branch stays identifiable after
+          its heading has scrolled away. */}
+      {accent && <span aria-hidden="true" className={cn('absolute inset-y-0 left-0 w-1', accent.rule)} />}
+
+      <div className={cn('flex items-center justify-between gap-3', accent && 'pl-2')}>
+        <div className="min-w-0">
+          <p className={cn('truncate font-semibold', emphasis ? 'text-sm text-white' : 'text-[13px] text-neutral-200')}>
+            {title}
+          </p>
+          {subtitle && <p className="truncate text-[11px] text-neutral-500">{subtitle}</p>}
+        </div>
+        <span className={cn(
+          'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold',
+          accent ? accent.chip : 'bg-neutral-800 text-neutral-400',
+        )}>
+          {chip}
+        </span>
       </div>
-      <span className={cn(
-        'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold',
-        chipTone === 'purple' ? 'bg-purple-500/20 text-purple-300' : 'bg-neutral-800 text-neutral-400',
-      )}>
-        {chip}
-      </span>
+
+      {/* How much of this program is actually walkable today. The number alone
+          ("3 with a path") does not convey 3 out of 29. */}
+      {progress !== undefined && accent && (
+        <div className="mt-2 ml-2 h-1 overflow-hidden rounded-full bg-neutral-800">
+          <div
+            className={cn('h-full rounded-full', accent.bar)}
+            style={{ width: `${Math.round(progress * 100)}%` }}
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -240,6 +280,7 @@ export default function CareerMap() {
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [density, setDensity] = useState<Density>('comfortable')
 
   useEffect(() => {
     let cancelled = false
@@ -327,9 +368,12 @@ export default function CareerMap() {
           </p>
         </header>
 
-        {/* Toolbar: expand/collapse the whole tree, and search. Wraps, never
-            shrinks (DESIGN_SYSTEM.md §4). */}
-        <div className="mt-5 flex flex-wrap items-center gap-2">
+        {/*
+          Sticky, because with 79 roles the tree is far taller than a viewport and
+          the controls are useless once scrolled past. Wraps, never shrinks (§4).
+        */}
+        <div className="sticky top-0 z-30 -mx-4 mt-5 flex flex-wrap items-center gap-2
+          border-b border-neutral-800 bg-neutral-950/85 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
           <button
             onClick={() => setExpanded(new Set(allKeys))}
             className="h-10 rounded-lg bg-neutral-900 px-3 text-sm font-medium text-neutral-300
@@ -345,6 +389,26 @@ export default function CareerMap() {
             Collapse all
           </button>
 
+          {/* Density: comfortable reads better, compact lets you see a whole
+              field at once. Both are useful at this size, so neither is hidden. */}
+          <div className="flex h-10 items-center rounded-lg bg-neutral-900 p-1">
+            {(['comfortable', 'compact'] as const).map(option => (
+              <button
+                key={option}
+                onClick={() => setDensity(option)}
+                aria-pressed={density === option}
+                className={cn(
+                  'h-8 rounded-md px-2.5 text-xs font-medium capitalize transition-colors',
+                  density === option
+                    ? 'bg-neutral-700 text-white'
+                    : 'text-neutral-400 hover:text-white',
+                )}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+
           <div className="relative ml-auto w-full sm:w-80">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
             <input
@@ -356,6 +420,14 @@ export default function CareerMap() {
             />
           </div>
         </div>
+
+        {searching && !loading && !error && (
+          <p className="mt-3 text-xs text-neutral-500">
+            {filtered.reduce((sum, p) => sum + p.categories.reduce((n, c) => n + c.roles.length, 0), 0)}
+            {' '}role{filtered.reduce((sum, p) => sum + p.categories.reduce((n, c) => n + c.roles.length, 0), 0) === 1 ? '' : 's'}
+            {' '}match “{query.trim()}”
+          </p>
+        )}
 
         {loading ? (
           <LoadingState label="Loading the career map…" />
@@ -382,9 +454,10 @@ export default function CareerMap() {
                       <NodeCard
                         emphasis
                         title={program.label}
-                        subtitle={`${program.categories.length} field${program.categories.length === 1 ? '' : 's'} · ${program.with_path} with a path`}
+                        subtitle={`${program.categories.length} field${program.categories.length === 1 ? '' : 's'} · ${program.with_path} of ${program.role_count} with a path`}
                         chip={`${program.role_count} roles`}
-                        chipTone="purple"
+                        accent={PROGRAM_ACCENT[program.key] ?? FALLBACK_ACCENT}
+                        progress={program.role_count === 0 ? 0 : program.with_path / program.role_count}
                       />
                     }
                   >
@@ -404,7 +477,6 @@ export default function CareerMap() {
                               emphasis={false}
                               title={category.name}
                               chip={String(category.roles.length)}
-                              chipTone="neutral"
                             />
                           }
                         >
@@ -416,7 +488,7 @@ export default function CareerMap() {
                               open={false}
                               onToggle={() => {}}
                               toggleLabel=""
-                              card={<RoleCard role={role} />}
+                              card={<RoleCard role={role} density={density} />}
                             />
                           ))}
                         </Branch>

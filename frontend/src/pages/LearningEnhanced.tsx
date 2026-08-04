@@ -487,23 +487,6 @@ export default function LearningEnhanced() {
                 )}
               </button>
             ))}
-
-            {/* Career map. A link rather than a tab: it opens a full-width route
-                of its own, so it is shareable and the back button works — and it
-                sits after the tabs because it answers "where does this lead"
-                rather than "what do I study now". ms-auto keeps it at the far end
-                on wide screens and lets it wrap on a phone. */}
-            <Link
-              to="/learning/careers"
-              className="ms-auto flex shrink-0 items-center gap-2 rounded-lg border border-purple-500/40
-                bg-purple-500/10 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-medium
-                text-purple-300 transition-colors hover:border-purple-400 hover:bg-purple-500/20
-                hover:text-white whitespace-nowrap"
-            >
-              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="hidden sm:inline">Career map</span>
-              <span className="sm:hidden">Careers</span>
-            </Link>
           </div>
         </div>
       </div>
@@ -514,11 +497,45 @@ export default function LearningEnhanced() {
           {/* Page header (DESIGN_SYSTEM.md §11) */}
           <div className="relative overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900/60 p-6 sm:p-8 mb-6 sm:mb-8">
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
-            <p className="text-xs font-semibold uppercase tracking-wider text-purple-400 mb-2">Career paths</p>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">Learning Center</h1>
-            <p className="mt-2 text-neutral-400 max-w-3xl leading-relaxed">
-              Choose your career path and start your journey to become a professional developer
-            </p>
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-wider text-purple-400 mb-2">Career paths</p>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">Learning Center</h1>
+                <p className="mt-2 text-neutral-400 max-w-3xl leading-relaxed">
+                  Choose your career path and start your journey to become a professional developer
+                </p>
+              </div>
+
+              {/*
+                Career map, as a real destination.
+                It was a bordered chip wedged into the tab row, where it read as a
+                fifth half-broken tab: same shape as the tabs, but it navigates
+                away instead of switching one. Here it has its own weight and
+                answers a different question — "where does this lead" rather than
+                "what do I study now". Full width under lg so it is not a stray
+                element floating beside a heading on a phone.
+              */}
+              <Link
+                to="/learning/careers"
+                className="group flex shrink-0 items-center gap-4 rounded-xl border border-purple-500/30
+                  bg-gradient-to-br from-purple-500/15 to-purple-500/5 p-4 transition-colors
+                  hover:border-purple-400/60 hover:from-purple-500/25
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500
+                  lg:w-72"
+              >
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-purple-500/20">
+                  <Sparkles className="h-5 w-5 text-purple-300" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-white">Career map</span>
+                  <span className="block text-xs leading-snug text-neutral-400">
+                    Every job BSCS, BSIT and BSIS lead to
+                  </span>
+                </span>
+                <ArrowUpRight className="h-4 w-4 shrink-0 text-purple-300 transition-transform
+                  group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </Link>
+            </div>
           </div>
 
           {/* Toolbar: filters (mobile), search, sort */}

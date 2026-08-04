@@ -157,3 +157,37 @@ describe('CareerMap tree', () => {
       expect(screen.queryByText(/career map unavailable/i)).not.toBeNull())
   })
 })
+
+describe('CareerMap density and search feedback', () => {
+  it('compact hides summaries and skills but keeps name and demand', async () => {
+    const user = userEvent.setup()
+    await show()
+    await user.click(screen.getByRole('button', { name: /expand all/i }))
+
+    expect(screen.getByText('Builds APIs.')).toBeTruthy()
+    expect(screen.getByText('Python')).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: /^compact$/i }))
+
+    // The name and its demand are the parts you scan by, so they stay.
+    expect(screen.getByText('Backend Engineer')).toBeTruthy()
+    expect(screen.getAllByText(/high demand/i).length).toBeGreaterThan(0)
+    expect(screen.queryByText('Builds APIs.')).toBeNull()
+    expect(screen.queryByText('Python')).toBeNull()
+  })
+
+  it('reports how many roles a search matched', async () => {
+    const user = userEvent.setup()
+    await show()
+
+    await user.type(screen.getByPlaceholderText(/search roles or skills/i), 'backend')
+
+    // With 79 roles a filtered tree gives no sense of scale on its own.
+    expect(screen.getByText(/1 role match/i)).toBeTruthy()
+  })
+
+  it('says nothing about matches when not searching', async () => {
+    await show()
+    expect(screen.queryByText(/match/i)).toBeNull()
+  })
+})
