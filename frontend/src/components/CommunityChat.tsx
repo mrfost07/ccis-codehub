@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import api from '../services/api'
 import Reactors, { type Reactor } from './Reactors'
+import { dayLabel, isGroupedWith, startsNewDay } from '../lib/messageGrouping'
 import { useAuth } from '../contexts/AuthContext'
 import toast from 'react-hot-toast'
 import { getMediaUrl } from '../utils/mediaUrl'
@@ -68,18 +69,6 @@ const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '�
 /** Poll cadence: fast while the user is reading, slow when the panel is closed. */
 const POLL_OPEN_MS = 3000
 const POLL_CLOSED_MS = 15000
-
-/** Day label for message group separators. */
-function dayLabel(dateStr: string): string {
-  const d = new Date(dateStr)
-  const today = new Date()
-  const yesterday = new Date()
-  yesterday.setDate(today.getDate() - 1)
-  const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString()
-  if (sameDay(d, today)) return 'Today'
-  if (sameDay(d, yesterday)) return 'Yesterday'
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: d.getFullYear() === today.getFullYear() ? undefined : 'numeric' })
-}
 
 export default function CommunityChat() {
   const { user } = useAuth()
@@ -676,13 +665,22 @@ export default function CommunityChat() {
         ) : (
           messages.map((message, index) => {
             const prev = messages[index - 1]
-            const showAvatar = index === 0 ||
-              prev?.sender !== message.sender ||
-              prev?.is_own_message !== message.is_own_message
+            const asGroupable = (m: ChatMessage) => ({
+              authorId: m.sender, createdAt: m.created_at,
+            })
 
-            // Day separator when the calendar day changes
-            const showDaySeparator = index === 0 ||
-              new Date(prev.created_at).toDateString() !== new Date(message.created_at).toDateString()
+            // Shared with the project channel via lib/messageGrouping.
+            //
+            // The old rule compared sender alone, with no time window, so two
+            // messages from the same person hours apart still hid the second
+            // avatar and read as one run. It also never broke a run at midnight,
+            // which put a hidden-name message directly under a day heading.
+            const showAvatar = !isGroupedWith(
+              asGroupable(message), prev && asGroupable(prev),
+            )
+            const showDaySeparator = startsNewDay(
+              asGroupable(message), prev && asGroupable(prev),
+            )
 
             return (
               <div key={message.id}>
@@ -690,7 +688,7 @@ export default function CommunityChat() {
                   <div className="flex items-center gap-3 py-2" role="separator">
                     <span className="h-px flex-1 bg-neutral-700/60" />
                     <span className="text-[10px] font-medium uppercase tracking-wider text-neutral-500">
-                      {dayLabel(message.created_at)}
+                      {dayLabel(message.created_at, undefined, { month: 'short' })}
                     </span>
                     <span className="h-px flex-1 bg-neutral-700/60" />
                   </div>

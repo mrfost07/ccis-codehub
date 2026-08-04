@@ -1,7 +1,15 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+
+// globals: false disables Testing Library's automatic cleanup, and the render
+// test below portals a dialog into document.body. Without this an assertion
+// that throws leaves it mounted for the rest of the run.
+afterEach(async () => {
+  const { cleanup } = await import('@testing-library/react')
+  cleanup()
+})
 
 /**
  * The mobile bottom nav has to stay below dialogs.
@@ -110,14 +118,18 @@ describe('Modal, as actually rendered', () => {
 
     // children goes in the props object: ModalProps declares it as required, and
     // the third-argument overload of createElement does not satisfy that.
-    render(createElement(Modal, {
+    const view = render(createElement(Modal, {
       open: true,
       onClose: () => {},
       title: 'T',
       children: 'body',
     }))
 
-    const panel = document.querySelector('[role="dialog"]')
+    // Scoped to this render's baseElement, not document. Modal portals into the
+    // body, so a global query can match a dialog some other test left mounted —
+    // this test failed once in a full run and passed on its own, which is the
+    // signature of exactly that.
+    const panel = view.baseElement.querySelector('[role="dialog"]')
     expect(panel).not.toBeNull()
 
     const wrapper = panel!.parentElement!
@@ -128,6 +140,9 @@ describe('Modal, as actually rendered', () => {
     expect(wrapper.getAttribute('style') ?? '').toContain('safe-area-inset-bottom')
     expect(panel!.className).toContain('max-h-[85dvh]')
 
+    // Also cleaned up here for the passing path; the afterEach below is what
+    // covers a thrown assertion, which would otherwise leave the portalled
+    // dialog in the body for whatever runs next.
     cleanup()
   })
 })

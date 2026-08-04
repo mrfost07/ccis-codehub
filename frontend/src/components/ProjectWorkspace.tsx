@@ -6,6 +6,7 @@ import {
 import { projectsAPI } from '../services/api'
 import ProfileAvatar from './ProfileAvatar'
 import { EmptyState, Spinner, cn } from './ui'
+import { dayLabel, isGroupedWith, startsNewDay } from '../lib/messageGrouping'
 
 /**
  * The project's Slack-style workspace: sidebar, conversation, thread pane.
@@ -41,8 +42,6 @@ import { EmptyState, Spinner, cn } from './ui'
  * should not leave the channel frozen, but it should not be polled hard either.
  */
 const FALLBACK_POLL_MS = 15000
-/** Consecutive messages from one person inside this window are grouped. */
-const GROUP_WINDOW_MS = 5 * 60 * 1000
 
 interface Sender {
   id: string
@@ -108,17 +107,6 @@ function timeOf(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-/** "Today" / "Yesterday" / a date — Slack's day divider. */
-function dayLabel(iso: string) {
-  const date = new Date(iso)
-  const today = new Date()
-  const midnight = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
-  const days = Math.round((midnight(today) - midnight(date)) / 86_400_000)
-  if (days === 0) return 'Today'
-  if (days === 1) return 'Yesterday'
-  return date.toLocaleDateString([], { month: 'long', day: 'numeric' })
-}
-
 function rowsOf(payload: any): Message[] {
   return payload?.results ?? payload ?? []
 }
@@ -135,12 +123,12 @@ function MessageBlock({
   onOpenThread?: (m: Message) => void
   onReact?: (m: Message, emoji: string) => void
 }) {
-  const sameAuthor = previous?.sender_info?.id === message.sender_info?.id
-  const closeInTime =
-    previous !== undefined &&
-    new Date(message.created_at).getTime() - new Date(previous.created_at).getTime()
-      < GROUP_WINDOW_MS
-  const grouped = Boolean(sameAuthor && closeInTime)
+  // Shared with the community chat via lib/messageGrouping, so the two surfaces
+  // cannot disagree about when a run of messages starts.
+  const grouped = isGroupedWith(
+    { authorId: message.sender_info?.id, createdAt: message.created_at },
+    previous && { authorId: previous.sender_info?.id, createdAt: previous.created_at },
+  )
 
   return (
     <div className={cn('group flex gap-3 px-4', grouped ? 'py-0.5' : 'pt-3 pb-0.5')}>
@@ -256,16 +244,17 @@ function MessageList({
   if (messages.length === 0) return <>{empty}</>
 
   const output: React.ReactNode[] = []
-  let lastDay = ''
   messages.forEach((message, index) => {
-    const day = dayLabel(message.created_at)
-    if (day !== lastDay) {
-      lastDay = day
+    const previous = messages[index - 1]
+    const asGroupable = (m: Message) => ({
+      authorId: m.sender_info?.id, createdAt: m.created_at,
+    })
+    if (startsNewDay(asGroupable(message), previous && asGroupable(previous))) {
       output.push(
         <div key={`day-${message.id}`} className="flex items-center gap-3 px-4 py-3">
           <span className="h-px flex-1 bg-neutral-800" />
           <span className="rounded-full border border-neutral-800 bg-neutral-900 px-2.5 py-0.5 text-[11px] font-semibold text-neutral-400">
-            {day}
+            {dayLabel(message.created_at)}
           </span>
           <span className="h-px flex-1 bg-neutral-800" />
         </div>,
@@ -275,8 +264,9 @@ function MessageList({
       <MessageBlock
         key={message.id}
         message={message}
-        // Grouping must not reach across a day divider.
-        previous={day === dayLabel(messages[index - 1]?.created_at ?? '') ? messages[index - 1] : undefined}
+        // isGroupedWith already refuses to group across a divider, so the
+        // previous message can be passed unconditionally.
+        previous={previous}
         onOpenThread={onOpenThread}
         onReact={onReact}
       />,
