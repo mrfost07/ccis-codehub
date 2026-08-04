@@ -36,6 +36,9 @@ const SelfPacedQuizSession = lazy(() => import('./pages/SelfPacedQuizSession'))
 const AdminDashboard = lazy(() => import('./pages/AdminDashboardNew'))
 const InstructorDashboard = lazy(() => import('./pages/InstructorDashboard'))
 const Certificates = lazy(() => import('./pages/Certificates'))
+// Lazy: the career map is a browse screen most sessions never open, and it
+// should not sit in the main bundle.
+const CareerMap = lazy(() => import('./pages/CareerMap'))
 const Leaderboard = lazy(() => import('./pages/Leaderboard'))
 const QuestionManagement = lazy(() => import('./pages/QuestionManagement'))
 const ProjectsEnhanced = lazy(() => import('./pages/ProjectsEnhanced'))
@@ -157,6 +160,16 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <LearningEnhanced />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Its own route rather than a modal: linkable, shareable, and the
+                  back button works. */}
+              <Route
+                path="/learning/careers"
+                element={
+                  <ProtectedRoute>
+                    <CareerMap />
                   </ProtectedRoute>
                 }
               />

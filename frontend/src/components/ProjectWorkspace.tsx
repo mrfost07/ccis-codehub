@@ -528,7 +528,12 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
     // lands in nginx access logs and Referer headers. The backend has no session
     // cookie to fall back on — REST auth is simplejwt only — so without this the
     // socket is refused and the channel silently falls back to polling.
-    const token = localStorage.getItem('token')
+    //
+    // sessionStorage, matching the API client: "sessionStorage is the source of
+    // truth" (services/api.ts). localStorage is only read once by AuthContext as
+    // a legacy migration, so reading it here found nothing and every socket was
+    // refused — the exact silent failure this token is meant to prevent.
+    const token = sessionStorage.getItem('token')
     let socket: WebSocket | null = null
     let closed = false
     let retry: ReturnType<typeof setTimeout> | null = null

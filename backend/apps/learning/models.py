@@ -1200,3 +1200,77 @@ class SavedJob(models.Model):
     def __str__(self):
         return f"{self.user.username} saved {self.job.title}"
 
+
+
+class CareerRole(models.Model):
+    """A job a graduate of a program can aim for — one node in the career map.
+
+    Nothing modelled this before. JobCache holds job *listings* fetched from an
+    external API: real vacancies that expire. A role is the durable thing a
+    student steers towards ("Backend Engineer"), which outlives any posting.
+
+    Shape is deliberately three levels — program, category, role — because a
+    deeper tree cannot be drawn on a phone without becoming a diagram nobody
+    reads.
+
+    `career_path` is the seam for seeding later. It is nullable, so the map is
+    complete and useful before a single path exists: an unlinked role renders as
+    "path coming soon". Seeding a path and pointing a role at it turns that card
+    into a link into the learning centre, with no schema change and no migration.
+    """
+
+    # Reuses CareerPath's programs so a role and the path that prepares for it
+    # can never disagree about which course they belong to.
+    PROGRAM_CHOICES = CareerPath.PROGRAM_CHOICES
+
+    DEMAND_CHOICES = [
+        ('high', 'High demand'),
+        ('steady', 'Steady demand'),
+        ('emerging', 'Emerging'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    program_type = models.CharField(max_length=10, choices=PROGRAM_CHOICES, db_index=True)
+    # The middle level of the tree: "Software Engineering", "Data & AI", …
+    category = models.CharField(max_length=80)
+    name = models.CharField(max_length=120)
+    slug = models.SlugField(unique=True)
+    summary = models.TextField(help_text='One or two sentences, shown on the card')
+    core_skills = models.JSONField(
+        default=list, blank=True,
+        help_text='Short skill names shown as chips. Keep to about five.',
+    )
+    demand = models.CharField(max_length=10, choices=DEMAND_CHOICES, default='steady')
+    # Null until a path is seeded for this role. See the class docstring.
+    career_path = models.ForeignKey(
+        CareerPath, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='career_roles',
+        help_text='The learning path that prepares for this role, once seeded',
+    )
+    order = models.IntegerField(default=0, help_text='Within its category')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['program_type', 'category', 'order', 'name']
+        constraints = [
+            # One role of a given name per program. The same job title can exist
+            # under two programs (both BSCS and BSIT lead to "QA Engineer"), and
+            # each needs its own card, so this is not unique on name alone.
+            models.UniqueConstraint(
+                fields=['program_type', 'name'],
+                name='careerrole_unique_per_program',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['program_type', 'category'],
+                         name='careerrole_program_cat_idx'),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.program_type})"
+
+    @property
+    def has_path(self):
+        return self.career_path_id is not None

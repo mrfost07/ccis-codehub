@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import { useCareerPaths, useEnrollments } from '../hooks/useApiCache'
-import { ArrowUpRight, Search, BookOpen, Video, Code, Trophy, CheckCircle, Circle, Play, Clock, Layers, Users, SlidersHorizontal } from 'lucide-react'
+import { ArrowUpRight, Search, BookOpen, Video, Code, Trophy, CheckCircle, Circle, Play, Clock, Layers, Users, SlidersHorizontal, Sparkles } from 'lucide-react'
 import codingService, { CodingChallenge, CodingStats } from '../services/codingService'
 import videoService, { VideoCourse } from '../services/videoService'
 import { SkeletonCard, Skeleton, SkeletonListRow, Modal, Button } from '../components/ui'
@@ -487,6 +487,23 @@ export default function LearningEnhanced() {
                 )}
               </button>
             ))}
+
+            {/* Career map. A link rather than a tab: it opens a full-width route
+                of its own, so it is shareable and the back button works — and it
+                sits after the tabs because it answers "where does this lead"
+                rather than "what do I study now". ms-auto keeps it at the far end
+                on wide screens and lets it wrap on a phone. */}
+            <Link
+              to="/learning/careers"
+              className="ms-auto flex shrink-0 items-center gap-2 rounded-lg border border-purple-500/40
+                bg-purple-500/10 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-medium
+                text-purple-300 transition-colors hover:border-purple-400 hover:bg-purple-500/20
+                hover:text-white whitespace-nowrap"
+            >
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">Career map</span>
+              <span className="sm:hidden">Careers</span>
+            </Link>
           </div>
         </div>
       </div>

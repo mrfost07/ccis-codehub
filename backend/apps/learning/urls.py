@@ -3,7 +3,10 @@ Learning app URL configuration with live quiz, coding challenges, and video cour
 """
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from . import views, views_live_quiz, views_coding, views_video, views_jobs, admin_views
+from . import (
+    views, views_live_quiz, views_coding, views_video, views_jobs, admin_views,
+    views_career_map,
+)
 
 router = DefaultRouter()
 # Public/Student Routes
@@ -39,6 +42,9 @@ router.register(r'video-courses', views_video.VideoCourseViewSet, basename='vide
 router.register(r'jobs', views_jobs.JobViewSet, basename='job')
 
 urlpatterns = [
+    # The career map is a single read of the whole tree, not a collection to
+    # page through, so it is a plain view rather than a router resource.
+    path('career-map/', views_career_map.CareerMapView.as_view(), name='career-map'),
     path('', include(router.urls)),
 ]
 

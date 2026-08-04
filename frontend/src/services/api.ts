@@ -146,6 +146,8 @@ export const authAPI = {
 // Learning API
 export const learningAPI = {
   getCareerPaths: () => api.get('/learning/career-paths/'),
+  /** The whole career tree in one read: program -> category -> role. */
+  getCareerMap: () => api.get('/learning/career-map/'),
   getCareerPath: (slug: string) => api.get(`/learning/career-paths/${slug}/`),
   getModules: (params?: any) => api.get('/learning/modules/', { params }),
   completeModule: (id: string) => api.post(`/learning/modules/${id}/complete/`),
