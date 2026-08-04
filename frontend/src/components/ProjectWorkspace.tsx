@@ -697,7 +697,10 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
 
   const sidebar = (
     <div
-      className="flex h-full w-64 max-w-[80vw] shrink-0 flex-col border-r border-neutral-800 bg-neutral-950/60 sm:w-60"
+      // Opaque, not bg-neutral-950/60. The same element is the desktop rail and
+      // the mobile drawer; at 60% the page behind bled through the drawer and the
+      // channel header and messages were legible underneath it.
+      className="flex h-full w-64 max-w-[80vw] shrink-0 flex-col border-r border-neutral-800 bg-neutral-950 sm:w-60"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="flex items-center justify-between border-b border-neutral-800 px-3 py-3">

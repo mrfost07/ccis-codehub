@@ -244,7 +244,10 @@ function NodeCard({
 
       <div className={cn('flex items-center justify-between gap-3', accent && 'pl-2')}>
         <div className="min-w-0">
-          <p className={cn('truncate font-semibold', emphasis ? 'text-sm text-white' : 'text-[13px] text-neutral-200')}>
+          {/* Wraps rather than truncates. At 320px the chip and toggle left
+              154px, and "BS Information Technology" needs 182 — it clipped to
+              "BS Information Techn…", which a student cannot tell from BSIS. */}
+          <p className={cn('font-semibold', emphasis ? 'text-sm text-white' : 'text-[13px] text-neutral-200')}>
             {title}
           </p>
           {subtitle && <p className="truncate text-[11px] text-neutral-500">{subtitle}</p>}

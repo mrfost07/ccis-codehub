@@ -208,3 +208,57 @@ describe('the career tree fits a phone', () => {
     expect(source).toMatch(/pl-3 sm:pl-4/)
   })
 })
+
+describe('persistent launchers stay below dialogs', () => {
+  /**
+   * Edge-anchored, always-visible controls: a launcher tab or a floating action
+   * button. Told apart from a panel by NOT covering the viewport — panels use
+   * `inset-0` or `inset-2`, launchers pin to one edge at their own size.
+   *
+   * The distinction is the point. A launcher is page chrome and must sit below
+   * dialogs or it floats over every one of them. A panel IS a dialog and
+   * legitimately sits at that tier, so asserting over every z-index in the file
+   * would be asserting the wrong rule.
+   */
+  const LAUNCHER = /fixed(?![^"'`]*inset-)[^"'`]*?z-(?:\[(\d+)\]|(\d+))/g
+
+  function launcherLayersIn(relativePath: string): number[] {
+    const found: number[] = []
+    for (const match of codeOf(relativePath).matchAll(LAUNCHER)) {
+      found.push(Number(match[1] ?? match[2]))
+    }
+    return found
+  }
+
+  it('finds the mentor launchers at all', () => {
+    // Two of them: the right-edge tab and the bottom-right bubble.
+    expect(launcherLayersIn('FloatingAIMentor.tsx').length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('keeps them off the modal layer', () => {
+    // Third time a z-index landed on the wrong tier: the nav at z-[60], the
+    // channel overlays at z-40, and these two launchers at z-50 and z-[60] —
+    // where they rendered over the reactors sheet, the comments modal and the
+    // channel drawer.
+    const tooHigh = launcherLayersIn('FloatingAIMentor.tsx').filter(z => z >= MODAL_LAYER)
+
+    expect(tooHigh, [
+      `FloatingAIMentor pins a launcher at z-index ${tooHigh.join(', ')}, at or`,
+      `above the modal layer (z-${MODAL_LAYER}), so it renders on top of every`,
+      'dialog. Per DESIGN_SYSTEM.md §6 a persistent launcher belongs at z-30/z-40.',
+    ].join('\n')).toEqual([])
+  })
+})
+
+describe('the channel drawer is opaque', () => {
+  it('does not let the page bleed through', () => {
+    // The same element is the desktop rail and the mobile drawer. At
+    // bg-neutral-950/60 the channel header and messages were legible through
+    // the open drawer, which reads as a rendering fault rather than a design.
+    const source = codeOf('ProjectWorkspace.tsx')
+    const drawer = source.split('\n').find(line => /w-64 max-w-\[80vw\]/.test(line)) ?? ''
+
+    expect(drawer).toMatch(/bg-neutral-950(?!\/)/)
+    expect(drawer).not.toMatch(/bg-neutral-950\/\d+/)
+  })
+})

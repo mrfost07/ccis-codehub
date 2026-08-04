@@ -897,7 +897,11 @@ export default function FloatingAIMentor() {
       {!isOpen && isIdle && (
         <button
           onClick={handleIdleClick}
-          className="fixed right-0 bottom-1/3 w-10 h-16 bg-neutral-900/60 backdrop-blur-sm border border-neutral-700/30 border-r-0 rounded-l-xl shadow-lg hover:w-12 hover:bg-neutral-800/80 transition-all duration-300 z-50 flex items-center justify-center group"
+          // z-40, not z-50. A persistent launcher belongs on the page-chrome
+          // layer with the nav (DESIGN_SYSTEM.md §6); at z-50 it sat on the modal
+          // layer and rendered over dialogs — the reactors sheet, the comments
+          // modal, the channel drawer and thread pane.
+          className="fixed right-0 bottom-1/3 w-10 h-16 bg-neutral-900/60 backdrop-blur-sm border border-neutral-700/30 border-r-0 rounded-l-xl shadow-lg hover:w-12 hover:bg-neutral-800/80 transition-all duration-300 z-40 flex items-center justify-center group"
           title="Open AI Mentor"
         >
           <Bot className="w-4 h-4 text-purple-400 opacity-60 group-hover:opacity-100 group-hover:w-5 group-hover:h-5 transition-all" />
@@ -908,7 +912,7 @@ export default function FloatingAIMentor() {
       {!isOpen && !isIdle && (
         <button
           onClick={handleToggle}
-          className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-purple-600 hover:bg-purple-500 rounded-full shadow-2xl hover:scale-110 transition-all duration-300 z-[60] flex items-center justify-center"
+          className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 w-12 h-12 sm:w-14 sm:h-14 bg-purple-600 hover:bg-purple-500 rounded-full shadow-2xl hover:scale-110 transition-all duration-300 z-40 flex items-center justify-center"
         >
           <Bot className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
         </button>
