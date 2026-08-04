@@ -912,77 +912,83 @@ export default function ProjectDetail() {
     <div className="min-h-screen bg-neutral-950">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/projects')}
-              className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-white">{project.name}</h1>
-                <span className={`px-2 py-0.5 rounded text-xs font-medium ${project.visibility === 'public'
-                  ? 'bg-green-500/20 text-green-400'
-                  : 'bg-amber-500/20 text-amber-400'
-                  }`}>
-                  {project.visibility === 'public' ? <Globe className="w-3 h-3 inline mr-1" /> : <Lock className="w-3 h-3 inline mr-1" />}
-                  {project.visibility}
-                </span>
+      {/*
+        Wider than the old max-w-7xl. The channel and the board are the reason to
+        be on this page and both were working in 1280px while the window had more.
+      */}
+      <div className="max-w-[100rem] mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+        {/*
+          One header bar instead of a title row, a four-card metric grid and a tab
+          rule stacked on top of each other. That stack pushed the actual work
+          below the fold on a laptop; the counts are chips on the same line as the
+          title now, and the bar sticks so the project stays identified while a
+          long board or channel scrolls.
+        */}
+        {/*
+          top-14/md:top-16 clears the Navbar, which is itself sticky top-0. At
+          top-0 both stick to the same line and this one slides underneath it.
+        */}
+        <div className="sticky top-14 md:top-16 z-30 -mx-3 mb-5 border-b border-neutral-800
+          bg-neutral-950/95 px-3 pt-3 backdrop-blur sm:-mx-6 sm:px-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-2 sm:gap-3">
+              <button
+                onClick={() => navigate('/projects')}
+                aria-label="Back to projects"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="truncate text-xl sm:text-2xl font-bold text-white">{project.name}</h1>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${project.visibility === 'public'
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-amber-500/20 text-amber-400'
+                    }`}>
+                    {project.visibility === 'public' ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                    {project.visibility}
+                  </span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${project.status === 'active' ? 'bg-green-500/20 text-green-400' :
+                    project.status === 'completed' ? 'bg-purple-500/20 text-purple-400' :
+                      project.status === 'planning' ? 'bg-amber-500/20 text-amber-400' :
+                        'bg-neutral-500/20 text-neutral-400'
+                    }`}>
+                    {project.status}
+                  </span>
+                  <span className="rounded bg-neutral-800 px-2 py-0.5 text-xs text-neutral-400">
+                    {project.programming_language}
+                  </span>
+                </div>
+                <p className="mt-1 line-clamp-1 text-sm text-neutral-400">
+                  {project.description || 'No description'}
+                </p>
               </div>
-              <p className="text-neutral-400 text-sm mt-1">{project.description || 'No description'}</p>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${project.status === 'active' ? 'bg-green-500/20 text-green-400' :
-              project.status === 'completed' ? 'bg-purple-500/20 text-purple-400' :
-                project.status === 'planning' ? 'bg-amber-500/20 text-amber-400' :
-                  'bg-neutral-500/20 text-neutral-400'
-              }`}>
-              {project.status}
-            </span>
-            <span className="text-sm text-neutral-500">{project.programming_language}</span>
-          </div>
-        </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-          <div className="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
-            <div className="flex items-center gap-2 text-neutral-400 mb-1">
-              <Users className="w-4 h-4" />
-              <span className="text-xs">Team</span>
+            {/* The same four numbers, as chips rather than 96px of cards. */}
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              {([
+                [Users, 'Team', project.member_count || allMembers.length],
+                [ListTodo, 'Tasks', tasks.length],
+                [GitBranch, 'Branches', branches.length],
+                [GitPullRequest, 'Open PRs', pullRequests.filter(pr => pr.status === 'open').length],
+              ] as const).map(([Icon, label, value]) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-800 bg-neutral-900 px-2.5 py-1.5 text-neutral-400"
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{label}</span>
+                  <span className="font-semibold text-white">{value}</span>
+                </span>
+              ))}
             </div>
-            <p className="text-xl font-bold text-white">{project.member_count || allMembers.length}</p>
           </div>
-          <div className="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
-            <div className="flex items-center gap-2 text-neutral-400 mb-1">
-              <ListTodo className="w-4 h-4" />
-              <span className="text-xs">Tasks</span>
-            </div>
-            <p className="text-xl font-bold text-white">{tasks.length}</p>
-          </div>
-          <div className="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
-            <div className="flex items-center gap-2 text-neutral-400 mb-1">
-              <GitBranch className="w-4 h-4" />
-              <span className="text-xs">Branches</span>
-            </div>
-            <p className="text-xl font-bold text-white">{branches.length}</p>
-          </div>
-          <div className="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
-            <div className="flex items-center gap-2 text-neutral-400 mb-1">
-              <GitPullRequest className="w-4 h-4" />
-              <span className="text-xs">Open PRs</span>
-            </div>
-            <p className="text-xl font-bold text-white">{pullRequests.filter(pr => pr.status === 'open').length}</p>
-          </div>
-        </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 mb-6 border-b border-neutral-700 overflow-x-auto">
-          {[
+          {/* Segmented, not a raw border rule with a stray scrollbar. */}
+          <div className="mt-3 flex gap-1 overflow-x-auto pb-2 scrollbar-none">
+            {[
             { id: 'overview', label: 'Overview', icon: Activity },
             // Second, right after Overview: discussion is where you go before
             // digging into the board, not an afterthought behind Settings.
@@ -998,15 +1004,16 @@ export default function ProjectDetail() {
                 setActiveTab(tab.id as any)
                 if (tab.id === 'team') fetchFollowers()
               }}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id
-                ? 'text-purple-400 border-b-2 border-purple-400 -mb-px'
-                : 'text-neutral-400 hover:text-white'
+              className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === tab.id
+                ? 'bg-purple-600/20 text-purple-300'
+                : 'text-neutral-400 hover:bg-neutral-800/70 hover:text-white'
                 }`}
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
             </button>
           ))}
+          </div>
         </div>
 
         {/* Tab Content */}

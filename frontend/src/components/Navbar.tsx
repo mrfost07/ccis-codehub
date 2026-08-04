@@ -82,7 +82,7 @@ export default function Navbar() {
     <>
       {/* Top Header - Hides on scroll down, shows on scroll up (mobile only) */}
       <nav className={`
-        bg-neutral-900/95 backdrop-blur-xl border-b border-neutral-800 sticky top-0 z-50
+        bg-neutral-900/95 backdrop-blur-xl border-b border-neutral-800 sticky top-0 z-40
         transition-transform duration-300 ease-out
         ${headerVisible ? 'translate-y-0' : '-translate-y-full md:translate-y-0'}
       `}>

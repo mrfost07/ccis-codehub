@@ -301,6 +301,28 @@ describe('the landing navbar', () => {
   })
 })
 
+describe('the app navbar', () => {
+  it('sits on the nav tier, not the modal tier', () => {
+    // Sixth z-index a tier too high. At z-50 the sticky navbar painted over the
+    // chat panel, whose top edge is inside the navbar's band on a phone.
+    const nav = codeOf('Navbar.tsx')
+      .split('\n')
+      .find(line => /sticky top-0 z-/.test(line)) ?? ''
+
+    expect(nav, 'the navbar is no longer sticky top-0').not.toBe('')
+    const z = /z-(?:\[(\d+)\]|(\d+))/.exec(nav)
+    expect(Number(z![1] ?? z![2])).toBeLessThan(MODAL_LAYER)
+  })
+
+  it('leaves room for a page header to stick below it', () => {
+    // The project page header is sticky too. Both at top-0 means the lower one is
+    // hidden behind the navbar the moment you scroll.
+    const header = codeOf('../pages/ProjectDetail.tsx')
+    expect(header).toMatch(/sticky top-14 md:top-16/)
+    expect(header).not.toMatch(/sticky top-0/)
+  })
+})
+
 describe('the community chat widget', () => {
   const CHAT = 'CommunityChat.tsx'
 
