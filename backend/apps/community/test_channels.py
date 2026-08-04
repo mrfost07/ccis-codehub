@@ -481,3 +481,149 @@ class TestWorkspaceSidebar:
 
         resp = self._client(outsider).get(f'/api/projects/projects/{project.slug}/workspace/')
         assert resp.status_code in (403, 404), resp.status_code
+
+
+@pytest.mark.django_db
+class TestReadableBy:
+    """The predicate the REST API and the WebSocket consumer both use.
+
+    This is the security-critical piece of the realtime work: if the socket were
+    more permissive than the API, subscribing to a channel id would be a way to
+    read a private project's discussion. Both call this, so it is tested once and
+    neither can drift from it.
+    """
+
+    def test_global_rooms_follow_the_users_program(self):
+        cs = ChatRoom.objects.create(name='CS', room_type='CS')
+        it = ChatRoom.objects.create(name='IT', room_type='IT')
+        glob = ChatRoom.objects.create(name='Global', room_type='GLOBAL')
+
+        student = _user('rb_cs')
+        student.program = 'BSCS'
+        student.save(update_fields=['program'])
+
+        readable = set(ChatRoom.objects.readable_by(student).values_list('id', flat=True))
+        assert cs.id in readable
+        assert glob.id in readable
+        assert it.id not in readable
+
+    def test_a_private_projects_channel_is_hidden_from_outsiders(self):
+        owner = _user('rb_owner')
+        outsider = _user('rb_outsider')
+        room = ChatRoom.for_project(_project(owner, 'Priv', 'rb-priv'))
+
+        assert ChatRoom.objects.readable_by(owner).filter(id=room.id).exists()
+        assert not ChatRoom.objects.readable_by(outsider).filter(id=room.id).exists()
+
+    def test_a_public_projects_channel_is_readable_by_anyone(self):
+        owner = _user('rb_pub_owner')
+        other = _user('rb_pub_other')
+        project = _project(owner, 'Pub', 'rb-pub')
+        project.visibility = 'public'
+        project.save(update_fields=['visibility'])
+        room = ChatRoom.for_project(project)
+
+        assert ChatRoom.objects.readable_by(other).filter(id=room.id).exists()
+
+    def test_a_task_channel_follows_its_projects_visibility(self):
+        owner = _user('rb_task_owner')
+        outsider = _user('rb_task_outsider')
+        project = _project(owner, 'T', 'rb-task')
+        task = ProjectTask.objects.create(project=project, title='secret work')
+        room = ChatRoom.for_task(task)
+
+        assert ChatRoom.objects.readable_by(owner).filter(id=room.id).exists()
+        assert not ChatRoom.objects.readable_by(outsider).filter(id=room.id).exists()
+
+
+@pytest.mark.django_db
+class TestAlsoSendToChannel:
+    """Slack's "also send to channel" on a thread reply."""
+
+    def _client(self, user):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        client.force_authenticate(user)
+        return client
+
+    def _setup(self, name):
+        owner = _user(name)
+        project = _project(owner, 'AS', f'{name}-proj')
+        client = self._client(owner)
+        room_id = client.get(f'/api/projects/projects/{project.slug}/channel/').data['id']
+        root_id = client.post(
+            '/api/community/chat/messages/',
+            {'room': room_id, 'content': 'root'}, format='json',
+        ).data['id']
+        return client, room_id, root_id
+
+    def _channel_contents(self, client, room_id):
+        resp = client.get('/api/community/chat/messages/', {'room': room_id})
+        rows = resp.data.get('results', resp.data)
+        return [m['content'] for m in rows]
+
+    def test_off_by_default_the_reply_stays_in_the_thread(self):
+        client, room_id, root_id = self._setup('as_off')
+        client.post(
+            '/api/community/chat/messages/',
+            {'room': room_id, 'content': 'quiet reply', 'thread_root': root_id},
+            format='json',
+        )
+        assert self._channel_contents(client, room_id) == ['root']
+
+    def test_on_it_also_appears_in_the_channel(self):
+        client, room_id, root_id = self._setup('as_on')
+        client.post(
+            '/api/community/chat/messages/',
+            {'room': room_id, 'content': 'loud reply', 'thread_root': root_id,
+             'also_send_to_channel': True},
+            format='json',
+        )
+        # A real second row, not a flag: no reader of the channel has to know to
+        # un-hide certain replies.
+        assert self._channel_contents(client, room_id) == ['root', 'loud reply']
+
+    def test_the_echo_does_not_inflate_the_reply_count(self):
+        client, room_id, root_id = self._setup('as_count')
+        client.post(
+            '/api/community/chat/messages/',
+            {'room': room_id, 'content': 'once', 'thread_root': root_id,
+             'also_send_to_channel': True},
+            format='json',
+        )
+        thread = client.get('/api/community/chat/messages/', {'thread': root_id})
+        rows = thread.data.get('results', thread.data)
+
+        assert len(rows) == 1, 'the channel echo must not become a second reply'
+        root = ChatMessage.objects.get(pk=root_id)
+        assert root.reply_count == 1
+
+
+@pytest.mark.django_db
+class TestChannelReactions:
+    def test_reacting_toggles_and_shows_up_in_the_summary(self):
+        from rest_framework.test import APIClient
+        owner = _user('rx_owner')
+        room = ChatRoom.for_project(_project(owner, 'RX', 'rx-proj'))
+        message = ChatMessage.objects.create(room=room, sender=owner, content='react to me')
+
+        client = APIClient()
+        client.force_authenticate(owner)
+
+        added = client.post(f'/api/community/chat/messages/{message.id}/react/',
+                            {'reaction': '👍'}, format='json')
+        assert added.status_code == 200 and added.data['action'] == 'added'
+
+        listed = client.get('/api/community/chat/messages/', {'room': room.id})
+        rows = listed.data.get('results', listed.data)
+        entry = rows[0]['reactions_summary']['👍']
+        assert entry['count'] == 1
+        assert entry['reacted_by_me'] is True
+
+        removed = client.post(f'/api/community/chat/messages/{message.id}/react/',
+                              {'reaction': '👍'}, format='json')
+        assert removed.data['action'] == 'removed'
+
+        again = client.get('/api/community/chat/messages/', {'room': room.id})
+        rows = again.data.get('results', again.data)
+        assert rows[0]['reactions_summary'] == {}

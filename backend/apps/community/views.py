@@ -965,63 +965,15 @@ class ChatRoomViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        """Get chat rooms accessible to the user based on their program"""
-        user = self.request.user
-        user_program = getattr(user, 'program', None)
-        
-        # Map program names to room types
-        program_map = {
-            'Computer Science': 'CS',
-            'BS Computer Science': 'CS',
-            'BSCS': 'CS',
-            'CS': 'CS',
-            'Information Technology': 'IT',
-            'BS Information Technology': 'IT',
-            'BSIT': 'IT',
-            'IT': 'IT',
-            'Information Systems': 'IS',
-            'BS Information Systems': 'IS',
-            'BSIS': 'IS',
-            'IS': 'IS',
-        }
-        
-        # Get the room type for user's program
-        room_type = program_map.get(user_program, None)
-        
-        # Users can access their program room + GLOBAL
-        accessible_rooms = ['GLOBAL']
-        if room_type:
-            accessible_rooms.append(room_type)
+        """Channels this user may see.
 
-        # Project and task channels have no room_type, so filtering on room_type
-        # alone hid them from this viewset entirely — including from get_object(),
-        # which made every detail route on a project channel a 404.
-        #
-        # Reachability mirrors ProjectViewSet.get_queryset: public projects, ones
-        # you own, ones you are an active member of. A channel must not be a way
-        # around a project's visibility.
-        visible_projects = Q(
-            project__visibility='public',
-        ) | Q(project__owner=user) | Q(
-            project__memberships__user=user, project__memberships__is_active=True,
-        )
-        visible_tasks = Q(
-            task__project__visibility='public',
-        ) | Q(task__project__owner=user) | Q(
-            task__project__memberships__user=user,
-            task__project__memberships__is_active=True,
-        )
+        The predicate lives on the manager because the WebSocket consumer needs
+        the same answer. A socket more permissive than the API would be a way to
+        read a private project's discussion, so the two must not be able to drift.
 
-        return ChatRoom.objects.filter(
-            Q(scope=ChatRoom.SCOPE_GLOBAL, room_type__in=accessible_rooms)
-            | (Q(scope=ChatRoom.SCOPE_PROJECT) & visible_projects)
-            | (Q(scope=ChatRoom.SCOPE_TASK) & visible_tasks)
-            | Q(
-                scope=ChatRoom.SCOPE_ORGANIZATION,
-                organization__memberships__user=user,
-                organization__memberships__status='active',
-            ),
-        ).distinct()
+        The program-name mapping this method used to inline moved there with it.
+        """
+        return ChatRoom.objects.readable_by(self.request.user)
 
     @action(detail=True, methods=['post'])
     def read(self, request, pk=None):
@@ -1100,9 +1052,12 @@ class ChatMessageViewSet(viewsets.ModelViewSet):
         last_reply_at are written in the same transaction — they are denormalised,
         and a second writer would eventually disagree with the rows it summarises.
         """
+        from . import broadcast
+
         root = serializer.validated_data.get('thread_root')
         if root is None:
             serializer.save(sender=self.request.user)
+            broadcast.message_created(serializer.instance, serializer.data)
             return
 
         reply = ChatMessage.post_reply(
@@ -1111,6 +1066,21 @@ class ChatMessageViewSet(viewsets.ModelViewSet):
         )
         # Hand the created row back to DRF so the response body is the reply.
         serializer.instance = reply
+        broadcast.message_created(reply, self.get_serializer(reply).data)
+
+        # Slack's "also send to channel": the reply is additionally posted as a
+        # root so the channel sees it, while the thread keeps it in context.
+        # A real second row rather than a flag, because a flag would mean every
+        # reader of the channel list has to know to un-hide certain replies.
+        if str(self.request.data.get('also_send_to_channel', '')).lower() in ('1', 'true'):
+            echo = ChatMessage.objects.create(
+                room=reply.room, sender=self.request.user,
+                content=reply.content, reply_to=root,
+            )
+            broadcast.message_created(echo, self.get_serializer(echo).data)
+
+        # The root's reply_count moved, so anyone looking at the channel is stale.
+        broadcast.reaction_changed(root, self.get_serializer(root).data)
     
     @action(detail=True, methods=['post'])
     def react(self, request, pk=None):
@@ -1128,10 +1098,12 @@ class ChatMessageViewSet(viewsets.ModelViewSet):
             reaction=reaction_emoji
         ).first()
         
+        from . import broadcast
+
         if existing:
             # Remove reaction
             existing.delete()
-            return Response({'action': 'removed', 'reaction': reaction_emoji})
+            action_taken = 'removed'
         else:
             # Add reaction
             MessageReaction.objects.create(
@@ -1139,7 +1111,13 @@ class ChatMessageViewSet(viewsets.ModelViewSet):
                 user=request.user,
                 reaction=reaction_emoji
             )
-            return Response({'action': 'added', 'reaction': reaction_emoji})
+            action_taken = 'added'
+
+        # Refetched so reactions_summary is rebuilt from the rows that now exist
+        # rather than from a stale prefetch on the instance we mutated.
+        fresh = shaped_chat_messages().get(pk=message.pk)
+        broadcast.reaction_changed(fresh, self.get_serializer(fresh).data)
+        return Response({'action': action_taken, 'reaction': reaction_emoji})
     
     @action(detail=True, methods=['post'])
     def bump(self, request, pk=None):

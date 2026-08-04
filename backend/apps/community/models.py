@@ -263,6 +263,50 @@ class UserBadge(models.Model):
         return f"{self.user.username} - {self.badge.name}"
 
 
+class ChatRoomQuerySet(models.QuerySet):
+    """Reachability, in one place.
+
+    The REST viewset and the WebSocket consumer both have to answer "may this
+    person see this channel", and they must answer it identically — a socket that
+    is more permissive than the API is a way to read a private project's
+    discussion. Two copies of this predicate would drift, which is the failure
+    this codebase keeps repeating.
+    """
+
+    def readable_by(self, user):
+        program_map = {
+            'Computer Science': 'CS', 'BS Computer Science': 'CS', 'BSCS': 'CS', 'CS': 'CS',
+            'Information Technology': 'IT', 'BS Information Technology': 'IT',
+            'BSIT': 'IT', 'IT': 'IT',
+            'Information Systems': 'IS', 'BS Information Systems': 'IS',
+            'BSIS': 'IS', 'IS': 'IS',
+        }
+        program_room = program_map.get(getattr(user, 'program', None))
+        global_rooms = ['GLOBAL'] + ([program_room] if program_room else [])
+
+        # Mirrors ProjectViewSet.get_queryset: public, owned, or actively a member.
+        visible_project = (
+            models.Q(project__visibility='public')
+            | models.Q(project__owner=user)
+            | models.Q(project__memberships__user=user, project__memberships__is_active=True)
+        )
+        visible_task = (
+            models.Q(task__project__visibility='public')
+            | models.Q(task__project__owner=user)
+            | models.Q(task__project__memberships__user=user,
+                       task__project__memberships__is_active=True)
+        )
+
+        return self.filter(
+            models.Q(scope=ChatRoom.SCOPE_GLOBAL, room_type__in=global_rooms)
+            | (models.Q(scope=ChatRoom.SCOPE_PROJECT) & visible_project)
+            | (models.Q(scope=ChatRoom.SCOPE_TASK) & visible_task)
+            | models.Q(scope=ChatRoom.SCOPE_ORGANIZATION,
+                       organization__memberships__user=user,
+                       organization__memberships__status='active')
+        ).distinct()
+
+
 class ChatRoom(models.Model):
     """A channel: a stream of messages with a scope.
 
@@ -332,6 +376,8 @@ class ChatRoom(models.Model):
     icon = models.CharField(max_length=10, default='💬')
     is_archived = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    objects = ChatRoomQuerySet.as_manager()
 
     class Meta:
         ordering = ['scope', 'room_type', 'name']

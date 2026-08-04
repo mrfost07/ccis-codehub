@@ -204,6 +204,17 @@ export const projectsAPI = {
     }),
   markChannelRead: (roomId: string) =>
     api.post(`/community/chat/rooms/${roomId}/read/`),
+  /** Toggles your reaction. The server broadcasts the new summary to the channel. */
+  reactToMessage: (messageId: string, reaction: string) =>
+    api.post(`/community/chat/messages/${messageId}/react/`, { reaction }),
+  /** alsoSendToChannel posts the reply as a channel message too, like Slack. */
+  postThreadReply: (roomId: string, threadRoot: string, content: string, alsoSendToChannel = false) =>
+    api.post('/community/chat/messages/', {
+      room: roomId,
+      content,
+      thread_root: threadRoot,
+      ...(alsoSendToChannel ? { also_send_to_channel: true } : {}),
+    }),
   updateProject: (slug: string, data: any) => api.patch(`/projects/projects/${slug}/`, data),
   deleteProject: (slug: string) => api.delete(`/projects/projects/${slug}/`),
   syncGitHub: (slug: string) => api.post(`/projects/projects/${slug}/sync_github/`),

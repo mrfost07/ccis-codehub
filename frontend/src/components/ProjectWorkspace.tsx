@@ -23,12 +23,24 @@ import { EmptyState, Spinner, cn } from './ui'
  * (one channel per task, created when first opened) and Tracker, instead of
  * Channels/DMs/Activity/Files.
  *
- * Not implemented, deliberately: Slack's "also send to channel" on a reply. It
- * would need a real broadcast concept server-side, and faking it by posting the
- * message twice would leave two rows that drift apart.
+ * Realtime over a WebSocket per open channel, with a slow poll only as a
+ * fallback while the socket is down. The socket is read-only: posting stays on
+ * the REST endpoint, which validates, sets the sender and maintains thread
+ * counters in a transaction.
+ *
+ * "Also send to channel" posts the reply as a real second message rather than
+ * setting a flag, so no reader of the channel has to know to un-hide certain
+ * replies.
  */
 
-const POLL_MS = 6000
+/**
+ * Fallback poll interval, used only while the socket is not open.
+ *
+ * Slower than the old 6s because it is now a safety net rather than the
+ * transport: a socket that is connecting, reconnecting, or blocked by a proxy
+ * should not leave the channel frozen, but it should not be polled hard either.
+ */
+const FALLBACK_POLL_MS = 15000
 /** Consecutive messages from one person inside this window are grouped. */
 const GROUP_WINDOW_MS = 5 * 60 * 1000
 
@@ -40,6 +52,12 @@ interface Sender {
   profile_picture?: string | null
 }
 
+interface ReactionSummary {
+  count: number
+  reacted_by_me: boolean
+  users: Array<{ id: string; username: string }>
+}
+
 interface Message {
   id: string
   content: string
@@ -48,7 +66,11 @@ interface Message {
   reply_count: number
   is_own_message: boolean
   created_at: string
+  reactions_summary?: Record<string, ReactionSummary>
 }
+
+/** Slack shows a small set on hover rather than the whole picker. */
+const QUICK_REACTIONS = ['👍', '❤️', '😂', '🎉', '🔥', '👏']
 
 interface ChannelRow {
   id: string
@@ -106,10 +128,12 @@ function MessageBlock({
   message,
   previous,
   onOpenThread,
+  onReact,
 }: {
   message: Message
   previous?: Message
   onOpenThread?: (m: Message) => void
+  onReact?: (m: Message, emoji: string) => void
 }) {
   const sameAuthor = previous?.sender_info?.id === message.sender_info?.id
   const closeInTime =
@@ -152,6 +176,46 @@ function MessageBlock({
           {message.content}
         </p>
 
+        {/* Existing reactions, as pills that toggle your own. */}
+        {message.reactions_summary && Object.keys(message.reactions_summary).length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {Object.entries(message.reactions_summary).map(([emoji, data]) => (
+              <button
+                key={emoji}
+                onClick={() => onReact?.(message, emoji)}
+                title={data.users.map(u => u.username).join(', ')}
+                className={cn(
+                  'flex h-7 items-center gap-1 rounded-full border px-2 text-[11px] transition-colors',
+                  data.reacted_by_me
+                    ? 'border-purple-400 bg-purple-500/25 text-white'
+                    : 'border-neutral-700 bg-neutral-800 text-neutral-300 hover:border-neutral-600',
+                )}
+              >
+                <span>{emoji}</span>
+                <span className="tabular-nums">{data.count}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {onReact && (
+          // A short set, revealed on hover on a pointer device and always
+          // reachable by tap — Slack shows a handful, not the whole picker.
+          <div className="mt-1 flex flex-wrap gap-0.5 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
+            {QUICK_REACTIONS.map(emoji => (
+              <button
+                key={emoji}
+                onClick={() => onReact(message, emoji)}
+                aria-label={`React ${emoji}`}
+                className="flex h-8 w-8 items-center justify-center rounded-md text-sm
+                  transition-colors hover:bg-neutral-800"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+
         {onOpenThread && (message.reply_count > 0 ? (
           // The parent's reply count is the way into a thread.
           <button
@@ -181,10 +245,12 @@ function MessageBlock({
 function MessageList({
   messages,
   onOpenThread,
+  onReact,
   empty,
 }: {
   messages: Message[]
   onOpenThread?: (m: Message) => void
+  onReact?: (m: Message, emoji: string) => void
   empty: React.ReactNode
 }) {
   if (messages.length === 0) return <>{empty}</>
@@ -212,6 +278,7 @@ function MessageList({
         // Grouping must not reach across a day divider.
         previous={day === dayLabel(messages[index - 1]?.created_at ?? '') ? messages[index - 1] : undefined}
         onOpenThread={onOpenThread}
+        onReact={onReact}
       />,
     )
   })
@@ -222,10 +289,12 @@ function Composer({
   placeholder,
   onSend,
   busy,
+  footer,
 }: {
   placeholder: string
   onSend: (content: string) => Promise<void>
   busy: boolean
+  footer?: React.ReactNode
 }) {
   const [text, setText] = useState('')
 
@@ -264,6 +333,7 @@ function Composer({
           <Send className="h-4 w-4" />
         </button>
       </div>
+      {footer}
     </div>
   )
 }
@@ -388,6 +458,9 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  /** Socket is open. Drives the header dot and disables the fallback poll. */
+  const [live, setLive] = useState(false)
+  const [alsoSendToChannel, setAlsoSendToChannel] = useState(false)
 
   const [thread, setThread] = useState<Message | null>(null)
   const [replies, setReplies] = useState<Message[]>([])
@@ -442,15 +515,99 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
     return () => { cancelled = true }
   }, [slug, loadWorkspace, openRoom])
 
-  // Poll only while the tab is visible — the community chat's original fixed
-  // interval ran regardless and burned mobile battery and data.
+  // Realtime. One socket per open channel, torn down when the selection changes.
+  //
+  // Read-only by design: posting stays on the REST endpoint, which validates,
+  // sets the sender and maintains thread counters in a transaction. The socket
+  // only carries what the server decided.
   useEffect(() => {
+    if (!roomId) return
+
+    const base = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws'
+    let socket: WebSocket | null = null
+    let closed = false
+    let retry: ReturnType<typeof setTimeout> | null = null
+    let attempt = 0
+
+    const connect = () => {
+      if (closed) return
+      socket = new WebSocket(`${base}/channels/${roomId}/`)
+
+      socket.onopen = () => {
+        attempt = 0
+        setLive(true)
+      }
+
+      socket.onmessage = event => {
+        try {
+          const payload = JSON.parse(event.data)
+          if (payload.event === 'message.created') {
+            if (payload.thread_root) {
+              // A thread reply belongs to its thread, not the channel — the same
+              // rule the REST list follows. Only fold it in if that thread is open.
+              setThread(current => {
+                if (current && current.id === payload.thread_root) {
+                  setReplies(existing =>
+                    existing.some(r => r.id === payload.message.id)
+                      ? existing
+                      : [...existing, payload.message],
+                  )
+                }
+                return current
+              })
+            } else {
+              setMessages(existing =>
+                // Guarded against duplicates: the sender also gets this event
+                // after its own POST already appended the row.
+                existing.some(m => m.id === payload.message.id)
+                  ? existing
+                  : [...existing, payload.message],
+              )
+            }
+          } else if (payload.event === 'message.reaction') {
+            const updated = payload.message
+            setMessages(existing =>
+              existing.map(m => (m.id === updated.id ? { ...m, ...updated } : m)),
+            )
+            setReplies(existing =>
+              existing.map(m => (m.id === updated.id ? { ...m, ...updated } : m)),
+            )
+          }
+        } catch {
+          // A malformed frame must not take the channel down.
+        }
+      }
+
+      socket.onclose = event => {
+        setLive(false)
+        // 4401/4403 are our own auth refusals — retrying cannot help.
+        if (closed || event.code === 4401 || event.code === 4403) return
+        attempt += 1
+        const backoff = Math.min(30000, 1000 * 2 ** Math.min(attempt, 5))
+        retry = setTimeout(connect, backoff)
+      }
+    }
+
+    connect()
+    return () => {
+      closed = true
+      if (retry) clearTimeout(retry)
+      socket?.close()
+      setLive(false)
+    }
+  }, [roomId])
+
+  // Fallback poll, and only while the socket is down and the tab is visible.
+  // The community chat's original fixed interval ran regardless of both and had
+  // to be reworked because it burned mobile battery and data.
+  useEffect(() => {
+    if (live) return
     const timer = setInterval(() => {
       if (document.hidden || !roomIdRef.current) return
       loadMessages(roomIdRef.current).catch(() => {})
-    }, POLL_MS)
+    }, FALLBACK_POLL_MS)
     return () => clearInterval(timer)
-  }, [loadMessages])
+  }, [live, loadMessages])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'end' })
@@ -488,6 +645,16 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
     }
   }
 
+  const react = async (message: Message, emoji: string) => {
+    try {
+      await projectsAPI.reactToMessage(message.id, emoji)
+      // No local mutation: the server broadcasts the rebuilt summary, so applying
+      // it here as well would be a second source of truth for the same counts.
+    } catch {
+      setError('Could not react. Try again.')
+    }
+  }
+
   const openThread = async (root: Message) => {
     setThread(root)
     try {
@@ -502,7 +669,7 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
     if (!roomId || !thread) return
     setSending(true)
     try {
-      await projectsAPI.postChannelMessage(roomId, content, thread.id)
+      await projectsAPI.postThreadReply(roomId, thread.id, content, alsoSendToChannel)
       const { data } = await projectsAPI.getThread(thread.id)
       setReplies(rowsOf(data))
       // The root's reply count changed, so the conversation behind is stale.
@@ -611,7 +778,12 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
               {selection?.kind !== 'tracker' && <Hash className="h-4 w-4 text-neutral-500" />}
               {headerLabel}
             </h3>
-            <p className="truncate text-[11px] text-neutral-500">
+            <p className="flex items-center gap-1.5 truncate text-[11px] text-neutral-500">
+              <span
+                title={live ? 'Live' : 'Reconnecting — falling back to refresh'}
+                className={cn('h-1.5 w-1.5 shrink-0 rounded-full',
+                  live ? 'bg-green-400' : 'bg-amber-400')}
+              />
               {selection?.kind === 'task'
                 ? 'Discussion for this task'
                 : selection?.kind === 'tracker'
@@ -631,6 +803,7 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
               <MessageList
                 messages={messages}
                 onOpenThread={openThread}
+                onReact={react}
                 empty={
                   <EmptyState
                     title="No messages yet"
@@ -666,14 +839,30 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto py-2">
             {/* The parent, so the thread reads in context. */}
-            <MessageBlock message={thread} />
+            <MessageBlock message={thread} onReact={react} />
             <div className="mx-4 my-2 border-t border-neutral-800" />
             <MessageList
               messages={replies}
+              onReact={react}
               empty={<p className="px-4 py-4 text-xs text-neutral-500">No replies yet.</p>}
             />
           </div>
-          <Composer placeholder="Reply…" onSend={sendReply} busy={sending} />
+          <Composer
+            placeholder="Reply…"
+            onSend={sendReply}
+            busy={sending}
+            footer={
+              <label className="mt-2 flex items-center gap-2 px-1 text-[11px] text-neutral-400">
+                <input
+                  type="checkbox"
+                  checked={alsoSendToChannel}
+                  onChange={event => setAlsoSendToChannel(event.target.checked)}
+                  className="h-4 w-4 rounded border-neutral-600 bg-neutral-800 accent-purple-500"
+                />
+                Also send to {headerLabel}
+              </label>
+            }
+          />
         </div>
       )}
     </div>
