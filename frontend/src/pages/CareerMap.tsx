@@ -85,24 +85,6 @@ const DEMAND_LABEL: Record<Role['demand'], string> = {
   emerging: 'Emerging',
 }
 
-/** Round expand/collapse control that sits on a node's trailing edge. */
-function Toggle({ open, onClick, label }: { open: boolean; onClick: () => void; label: string }) {
-  return (
-    <button
-      onClick={onClick}
-      aria-expanded={open}
-      aria-label={label}
-      // 40px target on mobile per DESIGN_SYSTEM.md §4; tighter once there is a
-      // pointer, where the control can afford to be quieter.
-      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border
-        border-neutral-700 bg-neutral-900 text-neutral-400 transition-colors
-        hover:border-purple-500 hover:text-purple-300 sm:h-6 sm:w-6"
-    >
-      {open ? <Minus className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-    </button>
-  )
-}
-
 /**
  * One branch of the tree.
  *
@@ -113,16 +95,12 @@ function Branch({
   children,
   hasChildren,
   open,
-  onToggle,
-  toggleLabel,
   card,
   isLast,
 }: {
   children?: React.ReactNode
   hasChildren: boolean
   open: boolean
-  onToggle: () => void
-  toggleLabel: string
   card: React.ReactNode
   isLast: boolean
 }) {
@@ -142,17 +120,13 @@ function Branch({
       />
       <span aria-hidden="true" className="absolute left-0 top-6 h-px w-4 bg-neutral-800" />
 
-      <div className="flex items-start gap-2 py-1.5 pl-4">
-        {card}
-        {hasChildren && (
-          <div className="mt-2.5">
-            <Toggle open={open} onClick={onToggle} label={toggleLabel} />
-          </div>
-        )}
-      </div>
+      {/* pl-3 on mobile: three levels at pl-4 plus a 40px external toggle used
+          about 96px before the deepest card even started, which is a quarter of a
+          phone. The toggle now lives inside the card instead. */}
+      <div className="py-1.5 pl-3 sm:pl-4">{card}</div>
 
       {hasChildren && open && (
-        <ul className="relative ml-6 sm:ml-10">{children}</ul>
+        <ul className="relative ml-3 sm:ml-10">{children}</ul>
       )}
     </li>
   )
@@ -219,6 +193,14 @@ function RoleCard({ role, density }: { role: Role; density: Density }) {
 }
 
 /** Program and category nodes: a compact bar with a count chip on the right. */
+/**
+ * Program and category nodes. The whole card is the expand/collapse control.
+ *
+ * It was a separate 40px round button beside the card. Two problems on a phone:
+ * it and its gap took 48px of a 375px screen at every level, and a 40px circle is
+ * a smaller target than the card sitting next to it. A card that is itself the
+ * button is bigger, and matches how every file tree behaves.
+ */
 function NodeCard({
   title,
   subtitle,
@@ -226,6 +208,9 @@ function NodeCard({
   accent,
   emphasis,
   progress,
+  open,
+  onToggle,
+  toggleLabel,
 }: {
   title: string
   subtitle?: string
@@ -235,12 +220,24 @@ function NodeCard({
   emphasis: boolean
   /** Fraction of roles with a path, 0–1. Program level only. */
   progress?: number
+  open: boolean
+  onToggle: () => void
+  toggleLabel: string
 }) {
   return (
-    <div className={cn(
-      'relative w-full max-w-md overflow-hidden rounded-xl border px-3 py-2.5',
-      emphasis ? 'border-neutral-700 bg-neutral-900' : 'border-neutral-800 bg-neutral-900/50',
-    )}>
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      aria-label={toggleLabel}
+      className={cn(
+        'relative block w-full max-w-md overflow-hidden rounded-xl border px-3 py-2.5 text-left',
+        'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500',
+        emphasis
+          ? 'border-neutral-700 bg-neutral-900 hover:border-neutral-600'
+          : 'border-neutral-800 bg-neutral-900/50 hover:border-neutral-700',
+      )}
+    >
       {/* Accent rule down the leading edge, so a branch stays identifiable after
           its heading has scrolled away. */}
       {accent && <span aria-hidden="true" className={cn('absolute inset-y-0 left-0 w-1', accent.rule)} />}
@@ -252,11 +249,16 @@ function NodeCard({
           </p>
           {subtitle && <p className="truncate text-[11px] text-neutral-500">{subtitle}</p>}
         </div>
-        <span className={cn(
-          'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold',
-          accent ? accent.chip : 'bg-neutral-800 text-neutral-400',
-        )}>
-          {chip}
+        <span className="flex shrink-0 items-center gap-1.5">
+          <span className={cn(
+            'rounded-full px-2 py-0.5 text-[10px] font-bold',
+            accent ? accent.chip : 'bg-neutral-800 text-neutral-400',
+          )}>
+            {chip}
+          </span>
+          {open
+            ? <Minus className="h-4 w-4 text-neutral-500" />
+            : <Plus className="h-4 w-4 text-neutral-500" />}
         </span>
       </div>
 
@@ -270,7 +272,7 @@ function NodeCard({
           />
         </div>
       )}
-    </div>
+    </button>
   )
 }
 
@@ -438,8 +440,12 @@ export default function CareerMap() {
         ) : (
           // Horizontal scroll rather than squeezing: three levels of indentation
           // plus a card is wider than a phone, and a cramped tree is unreadable.
+          // No min-width: it was 34rem, which forced horizontal scrolling on
+          // every phone. With the toggle inside the card and tighter indents the
+          // tree fits; overflow-x-auto stays only as a safety net for an
+          // unbreakable string, not as the normal way to read this.
           <div className="mt-6 overflow-x-auto pb-4">
-            <ul className="min-w-[34rem] space-y-1">
+            <ul className="space-y-1">
               {filtered.map(program => {
                 const programOpen = isOpen(program.key)
                 return (
@@ -448,10 +454,11 @@ export default function CareerMap() {
                     isLast={program === filtered[filtered.length - 1]}
                     hasChildren={program.categories.length > 0}
                     open={programOpen}
-                    onToggle={() => toggle(program.key)}
-                    toggleLabel={`${programOpen ? 'Collapse' : 'Expand'} ${program.label}`}
                     card={
                       <NodeCard
+                        open={programOpen}
+                        onToggle={() => toggle(program.key)}
+                        toggleLabel={`${programOpen ? 'Collapse' : 'Expand'} ${program.label}`}
                         emphasis
                         title={program.label}
                         subtitle={`${program.categories.length} field${program.categories.length === 1 ? '' : 's'} · ${program.with_path} of ${program.role_count} with a path`}
@@ -470,10 +477,11 @@ export default function CareerMap() {
                           isLast={category === program.categories[program.categories.length - 1]}
                           hasChildren={category.roles.length > 0}
                           open={categoryOpen}
-                          onToggle={() => toggle(key)}
-                          toggleLabel={`${categoryOpen ? 'Collapse' : 'Expand'} ${category.name}`}
                           card={
                             <NodeCard
+                              open={categoryOpen}
+                              onToggle={() => toggle(key)}
+                              toggleLabel={`${categoryOpen ? 'Collapse' : 'Expand'} ${category.name}`}
                               emphasis={false}
                               title={category.name}
                               chip={String(category.roles.length)}
@@ -486,8 +494,6 @@ export default function CareerMap() {
                               isLast={role === category.roles[category.roles.length - 1]}
                               hasChildren={false}
                               open={false}
-                              onToggle={() => {}}
-                              toggleLabel=""
                               card={<RoleCard role={role} density={density} />}
                             />
                           ))}

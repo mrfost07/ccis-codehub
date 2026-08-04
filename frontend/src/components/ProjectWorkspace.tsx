@@ -696,7 +696,10 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
         : selection?.name ?? ''
 
   const sidebar = (
-    <div className="flex h-full w-60 shrink-0 flex-col border-r border-neutral-800 bg-neutral-950/60">
+    <div
+      className="flex h-full w-64 max-w-[80vw] shrink-0 flex-col border-r border-neutral-800 bg-neutral-950/60 sm:w-60"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       <div className="flex items-center justify-between border-b border-neutral-800 px-3 py-3">
         <h2 className="truncate text-sm font-bold text-white">{workspace?.project.name}</h2>
         <button
@@ -755,12 +758,13 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
   )
 
   return (
-    <div className="flex h-[75vh] min-h-[30rem] overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900/40">
+    <div className="flex h-[70dvh] min-h-[24rem] overflow-hidden rounded-xl border
+      border-neutral-800 bg-neutral-900/40 sm:h-[75vh] sm:min-h-[30rem]">
       {/* Desktop: a permanent rail. Mobile: a drawer, because 15rem of sidebar
           on a phone leaves nothing for the conversation. */}
       <div className="hidden lg:flex">{sidebar}</div>
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 flex lg:hidden">
+        <div className="fixed inset-0 z-50 flex lg:hidden">
           <div className="absolute inset-0 bg-black/60" onClick={() => setSidebarOpen(false)} />
           <div className="relative h-full">{sidebar}</div>
         </div>
@@ -828,7 +832,16 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
       {/* Thread pane: alongside the conversation on desktop, full-screen on a
           phone where there is no room for two columns. */}
       {thread && (
-        <div className="fixed inset-0 z-40 flex flex-col bg-neutral-950 lg:static lg:z-auto lg:w-96 lg:shrink-0 lg:border-l lg:border-neutral-800 lg:bg-transparent">
+        <div
+          className="fixed inset-0 z-50 flex flex-col bg-neutral-950
+            lg:static lg:z-auto lg:w-96 lg:shrink-0 lg:border-l lg:border-neutral-800
+            lg:bg-transparent"
+          // fixed inset-0 escapes the body padding that reserves room for the
+          // mobile dock, so the reply composer would otherwise sit under the home
+          // indicator. Zeroed from lg up, where this is a static column and the
+          // page owns its own spacing.
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        >
           <div className="flex items-center justify-between border-b border-neutral-800 px-3 py-3">
             <h3 className="text-sm font-bold text-white">Thread</h3>
             <button

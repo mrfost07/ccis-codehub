@@ -146,3 +146,65 @@ describe('Modal, as actually rendered', () => {
     cleanup()
   })
 })
+
+describe('full-screen overlays sit above the mobile dock', () => {
+  /** `fixed inset-0 ... z-NN` — an overlay covering the whole viewport. */
+  const OVERLAY = /fixed inset-0[^"'`]*?z-(?:\[(\d+)\]|(\d+))/g
+
+  function overlayLayersIn(relativePath: string): number[] {
+    const found: number[] = []
+    for (const match of codeOf(relativePath).matchAll(OVERLAY)) {
+      found.push(Number(match[1] ?? match[2]))
+    }
+    return found
+  }
+
+  it('finds the workspace overlays at all', () => {
+    // The channel drawer and the thread pane. If these stop being `fixed
+    // inset-0` the assertion below would pass while checking nothing.
+    expect(overlayLayersIn('ProjectWorkspace.tsx').length).toBeGreaterThan(0)
+  })
+
+  it('never leaves one on the nav layer, where the dock can paint over it', () => {
+    // This recurred: the channel drawer and thread pane shipped at z-40, the
+    // same layer as MobileBottomNav, which is the bug already fixed once for
+    // Modal. An overlay that covers the viewport belongs on the modal layer.
+    const tooLow = overlayLayersIn('ProjectWorkspace.tsx').filter(z => z < MODAL_LAYER)
+
+    expect(tooLow, [
+      `Full-screen overlays in ProjectWorkspace are at z-index ${tooLow.join(', ')},`,
+      `below the modal layer (z-${MODAL_LAYER}). The mobile bottom nav is z-40 and`,
+      'will render on top of them. Raise the overlay, do not lower the nav.',
+    ].join('\n')).toEqual([])
+  })
+
+  it('keeps them below the toast layer', () => {
+    const layers = overlayLayersIn('ProjectWorkspace.tsx')
+    expect(Math.max(...layers)).toBeLessThan(TOAST_LAYER)
+  })
+})
+
+describe('the career tree fits a phone', () => {
+  const CAREER_MAP = '../pages/CareerMap.tsx'
+
+  it('does not force horizontal scrolling with a min-width', () => {
+    // It shipped with min-w-[34rem] — 544px — so every phone had to be scrolled
+    // sideways to read a tree that is meant to be browsed vertically.
+    const wide = [...codeOf(CAREER_MAP).matchAll(/min-w-\[(\d+(?:\.\d+)?)rem\]/g)]
+      .map(match => Number(match[1]))
+      .filter(rem => rem > 20)   // 20rem = 320px, narrower than any phone
+
+    expect(wide, [
+      `CareerMap sets min-w-[${wide.join('rem, ')}rem], which is wider than a phone`,
+      'viewport and forces horizontal scrolling. Reduce indentation instead.',
+    ].join('\n')).toEqual([])
+  })
+
+  it('indents less on mobile than on desktop', () => {
+    // Three levels of desktop indent plus a card leaves nothing on a 375px
+    // screen, so the mobile step has to be smaller.
+    const source = codeOf(CAREER_MAP)
+    expect(source).toMatch(/ml-3 sm:ml-10/)
+    expect(source).toMatch(/pl-3 sm:pl-4/)
+  })
+})
