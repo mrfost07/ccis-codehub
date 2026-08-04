@@ -67,11 +67,21 @@ class ChannelConsumer(AsyncWebsocketConsumer):
     Authorisation is ChatRoom.objects.readable_by() — the same predicate the API
     uses. A socket that were more permissive would be a way to read a private
     project's discussion.
+
+    Authentication is the JWT, not the session. This project issues no session
+    cookie at all — REST auth is simplejwt only and nothing calls
+    django.contrib.auth.login() — so AuthMiddlewareStack hands every socket an
+    AnonymousUser. Relying on scope['user'] would have refused every connection in
+    production and left the channel silently polling forever.
+
+    The token arrives as a WebSocket subprotocol, ['bearer', '<token>'], rather
+    than a query parameter. A query string ends up in nginx access logs and in
+    Referer headers; a subprotocol does not.
     """
 
     async def connect(self):
-        self.user = self.scope.get('user')
-        if self.user is None or not self.user.is_authenticated:
+        self.user = await self._resolve_user()
+        if self.user is None:
             await self.close(code=4401)
             return
 
@@ -84,7 +94,10 @@ class ChannelConsumer(AsyncWebsocketConsumer):
 
         self.group_name = f'channel_{self.room_id}'
         await self.channel_layer.group_add(self.group_name, self.channel_name)
-        await self.accept()
+        # Echo the subprotocol back when one was offered: a browser fails the
+        # handshake if it proposed subprotocols and the server selects none.
+        subprotocols = self.scope.get('subprotocols') or []
+        await self.accept('bearer' if 'bearer' in subprotocols else None)
 
     async def disconnect(self, close_code):
         if hasattr(self, 'group_name'):
@@ -101,6 +114,33 @@ class ChannelConsumer(AsyncWebsocketConsumer):
     async def channel_event(self, event):
         """Fan out whatever the REST layer published."""
         await self.send(text_data=json.dumps(event['payload']))
+
+    async def _resolve_user(self):
+        """The authenticated user, from the session if there is one or the JWT.
+
+        Session first only so this keeps working if session auth is ever added;
+        today it is always the token.
+        """
+        session_user = self.scope.get('user')
+        if session_user is not None and session_user.is_authenticated:
+            return session_user
+
+        subprotocols = self.scope.get('subprotocols') or []
+        if len(subprotocols) < 2 or subprotocols[0] != 'bearer':
+            return None
+        return await self._user_from_token(subprotocols[1])
+
+    @database_sync_to_async
+    def _user_from_token(self, raw_token):
+        from rest_framework_simplejwt.authentication import JWTAuthentication
+
+        try:
+            auth = JWTAuthentication()
+            return auth.get_user(auth.get_validated_token(raw_token))
+        except Exception:
+            # Any failure is just "not authenticated"; the reason must not leak
+            # back to the client.
+            return None
 
     @database_sync_to_async
     def _may_read(self, room_id):

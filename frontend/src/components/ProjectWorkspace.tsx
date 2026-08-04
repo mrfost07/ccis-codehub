@@ -524,6 +524,11 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
     if (!roomId) return
 
     const base = import.meta.env.VITE_WS_URL || 'ws://localhost:8000/ws'
+    // The JWT travels as a subprotocol, not a query parameter: a query string
+    // lands in nginx access logs and Referer headers. The backend has no session
+    // cookie to fall back on — REST auth is simplejwt only — so without this the
+    // socket is refused and the channel silently falls back to polling.
+    const token = localStorage.getItem('token')
     let socket: WebSocket | null = null
     let closed = false
     let retry: ReturnType<typeof setTimeout> | null = null
@@ -531,7 +536,9 @@ export default function ProjectWorkspace({ slug }: { slug: string }) {
 
     const connect = () => {
       if (closed) return
-      socket = new WebSocket(`${base}/channels/${roomId}/`)
+      socket = token
+        ? new WebSocket(`${base}/channels/${roomId}/`, ['bearer', token])
+        : new WebSocket(`${base}/channels/${roomId}/`)
 
       socket.onopen = () => {
         attempt = 0
