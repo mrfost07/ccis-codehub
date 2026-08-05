@@ -77,6 +77,16 @@ const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '�
 const POLL_FALLBACK_MS = 12000
 const POLL_CLOSED_MS = 30000
 
+/**
+ * Reconnects before giving up and living on the fallback poll.
+ *
+ * Needed because a refused socket does not look like a refusal. ChannelConsumer
+ * closes before accept() for an unauthorised or expired token, and closing before
+ * accept() is answered as an HTTP 403 — so the browser reports a failed handshake
+ * with code 1006 and never sees the 4401/4403 the consumer meant to send.
+ */
+const MAX_SOCKET_ATTEMPTS = 6
+
 /** Which room counts as the all-programs one. */
 function isGlobalRoom(room: { room_type: string; name: string }) {
   return room.room_type === 'GLOBAL'
@@ -344,6 +354,15 @@ export default function CommunityChat({
           return
         }
         attempt += 1
+        // Capped. The 4401/4403 check above almost never fires: the consumer
+        // refuses by closing BEFORE accept(), which the browser sees as a failed
+        // handshake with code 1006, not as our close code. So an expired token
+        // reconnected forever — observed in production, eight attempts and still
+        // going. Give up and let the poll carry it.
+        if (attempt > MAX_SOCKET_ATTEMPTS) {
+          scheduleFetch()
+          return
+        }
         retry = setTimeout(connect, Math.min(30000, 1000 * 2 ** Math.min(attempt, 5)))
         scheduleFetch()
       }

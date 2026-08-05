@@ -44,6 +44,9 @@ import { dayLabel, isGroupedWith, startsNewDay } from '../lib/messageGrouping'
  */
 const FALLBACK_POLL_MS = 15000
 
+/** Reconnects before giving up and living on the fallback poll. See onclose. */
+const MAX_SOCKET_ATTEMPTS = 6
+
 interface Sender {
   id: string
   username: string
@@ -715,8 +718,15 @@ export default function ProjectWorkspace({
       socket.onclose = event => {
         setLive(false)
         // 4401/4403 are our own auth refusals — retrying cannot help.
+        //
+        // They almost never arrive, though: the consumer refuses by closing
+        // BEFORE accept(), which is answered as an HTTP 403, so the browser
+        // reports a failed handshake with code 1006 instead. Hence the cap — an
+        // expired token otherwise reconnects forever. The fallback poll takes
+        // over, driven by `live`.
         if (closed || event.code === 4401 || event.code === 4403) return
         attempt += 1
+        if (attempt > MAX_SOCKET_ATTEMPTS) return
         const backoff = Math.min(30000, 1000 * 2 ** Math.min(attempt, 5))
         retry = setTimeout(connect, backoff)
       }

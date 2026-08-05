@@ -207,6 +207,35 @@ describe('the chat reads over the socket', () => {
     expect(screen.getByText('hello there')).toBeTruthy()
   })
 
+  it('stops reconnecting instead of retrying an expired token forever', async () => {
+    // ChannelConsumer refuses by closing BEFORE accept(), which is answered as an
+    // HTTP 403 — so the browser reports a failed handshake with code 1006 and the
+    // 4401/4403 guard never fires. Observed in production: eight attempts and
+    // still climbing. Without a cap every stale tab retries the server forever.
+    // Fake timers, so the backoff actually elapses. With real ones the scheduled
+    // reconnects never fire inside the test and the assertion passes either way —
+    // which is what the first version of this test did.
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      const { default: CommunityChat } = await import('./CommunityChat')
+      render(<CommunityChat variant="page" />)
+      await vi.waitFor(() => expect(sockets.length).toBeGreaterThan(0))
+
+      const CLOSES = 20
+      for (let i = 0; i < CLOSES; i += 1) {
+        sockets.at(-1)?.onclose?.({ code: 1006 })
+        // Past the capped 30s backoff, so any scheduled reconnect has run.
+        await vi.advanceTimersByTimeAsync(35_000)
+      }
+
+      // 1 initial + MAX_SOCKET_ATTEMPTS reconnects, then it lives on the poll.
+      expect(sockets.length).toBeLessThanOrEqual(7)
+      expect(sockets.length).toBeLessThan(CLOSES)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('reads the paged response shape', async () => {
     // The endpoint returns {results, has_more}. Reading response.data as an array
     // would leave the room permanently blank.
