@@ -154,8 +154,11 @@ room = ChatRoom.objects.first()
 if not room:
     print('SKIP no chat rooms'); raise SystemExit
 qs = ChatMessage.objects.filter(room=room).exclude(deleted_for_everyone=True)
-newest = qs.order_by('-created_at').first()
-served = list(qs.order_by('-created_at')[:100])[::-1]
+# Mirrors ChatRoomViewSet.messages, -id tiebreak included. Two messages can share
+# a created_at, and without a stable order this sentinel and the endpoint it
+# guards can disagree about which one is newest.
+newest = qs.order_by('-created_at', '-id').first()
+served = list(qs.order_by('-created_at', '-id')[:40])[::-1]
 print('OK' if served and served[-1].id == newest.id else 'BAD', qs.count(), 'messages')
 PY
 )
