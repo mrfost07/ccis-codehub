@@ -11,23 +11,23 @@ import AdminRoute from './components/AdminRoute'
 import HomeEnhanced from './pages/HomeEnhanced'
 import Login from './pages/Login'
 import Register from './pages/Register'
-import Dashboard from './pages/Dashboard'
-import StudentDashboard from './pages/StudentDashboard'
-import StudentLearningDashboard from './pages/StudentLearningDashboard'
-import QuizTaking from './pages/QuizTaking'
-import PathDetailEnhanced from './pages/PathDetailEnhanced'
-import ModuleLearningEnhanced from './pages/ModuleLearningEnhanced'
-import LearningEnhanced from './pages/LearningEnhanced'
-import AuthCallback from './pages/AuthCallback'
-import CompleteProfile from './pages/CompleteProfile'
-import VerifyEmail from './pages/VerifyEmail'
-import JoinQuiz from './pages/JoinQuiz'
-import QuizLobby from './pages/QuizLobby'
-import QuizResults from './pages/QuizResults'
 // Lazy-load heavy pages so Prism.js + Monaco editor only download when needed.
 // The live/self-paced sessions embed the Monaco editor for coding questions, so
 // keeping them lazy keeps Monaco out of the initial bundle.
 const CodingChallengePage = lazy(() => import('./pages/CodingChallengePage'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const StudentDashboard = lazy(() => import('./pages/StudentDashboard'))
+const StudentLearningDashboard = lazy(() => import('./pages/StudentLearningDashboard'))
+const QuizTaking = lazy(() => import('./pages/QuizTaking'))
+const PathDetailEnhanced = lazy(() => import('./pages/PathDetailEnhanced'))
+const ModuleLearningEnhanced = lazy(() => import('./pages/ModuleLearningEnhanced'))
+const LearningEnhanced = lazy(() => import('./pages/LearningEnhanced'))
+const AuthCallback = lazy(() => import('./pages/AuthCallback'))
+const CompleteProfile = lazy(() => import('./pages/CompleteProfile'))
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'))
+const JoinQuiz = lazy(() => import('./pages/JoinQuiz'))
+const QuizLobby = lazy(() => import('./pages/QuizLobby'))
+const QuizResults = lazy(() => import('./pages/QuizResults'))
 const VideoCoursePage = lazy(() => import('./pages/VideoCoursePage'))
 const LiveQuizSession = lazy(() => import('./pages/LiveQuizSession'))
 const SelfPacedQuizSession = lazy(() => import('./pages/SelfPacedQuizSession'))
