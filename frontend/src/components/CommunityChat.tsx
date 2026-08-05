@@ -738,7 +738,7 @@ export default function CommunityChat({
               <button
                 onClick={handleClose}
                 aria-label="Close chat"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-800 sm:hidden"
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-800 sm:hidden"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -804,7 +804,7 @@ export default function CommunityChat({
         <button
           onClick={() => setMobilePane('list')}
           aria-label="Back to channels"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-700 sm:hidden"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-700 sm:hidden"
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
@@ -830,13 +830,13 @@ export default function CommunityChat({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className="p-2 hover:bg-neutral-700 rounded-lg transition"
+            className="flex h-11 w-11 sm:h-9 sm:w-9 items-center justify-center hover:bg-neutral-700 rounded-lg transition"
           >
             <Settings className="w-5 h-5 text-neutral-400" />
           </button>
           <button
             onClick={handleClose}
-            className="p-2 hover:bg-neutral-700 rounded-lg transition"
+            className="flex h-11 w-11 sm:h-9 sm:w-9 items-center justify-center hover:bg-neutral-700 rounded-lg transition"
           >
             <X className="w-5 h-5 text-neutral-400" />
           </button>
@@ -1099,14 +1099,18 @@ export default function CommunityChat({
 
 
 
-                  {/* Reactions Picker — anchored to message container */}
+                  {/* Reactions Picker — anchored to message container.
+                      flex-wrap and a cap: eight 44px targets plus gaps is wider
+                      than a phone, so the picker becomes two rows rather than
+                      running off the edge of the panel. */}
                   {showReactions === message.id && (
-                    <div data-msg-popover className={`absolute ${message.is_own_message ? 'right-0' : 'left-0'} bottom-full mb-1 bg-neutral-800/95 backdrop-blur rounded-xl p-2 shadow-xl border border-neutral-700 flex gap-1 z-20`}>
+                    <div data-msg-popover className={`absolute ${message.is_own_message ? 'right-0' : 'left-0'} bottom-full mb-1 max-w-[min(20rem,78vw)] bg-neutral-800/95 backdrop-blur rounded-xl p-2 shadow-xl border border-neutral-700 flex flex-wrap gap-1 z-20`}>
                       {REACTIONS.map((emoji) => (
                         <button
                           key={emoji}
                           onClick={() => handleReact(message.id, emoji)}
-                          className="p-1.5 hover:bg-neutral-700 rounded-lg transition text-base hover:scale-110"
+                          aria-label={`React ${emoji}`}
+                          className="flex h-11 w-11 sm:h-8 sm:w-8 items-center justify-center hover:bg-neutral-700 rounded-lg transition text-base hover:scale-110"
                         >
                           {emoji}
                         </button>
@@ -1165,7 +1169,7 @@ export default function CommunityChat({
                     <button
                       data-msg-action
                       onClick={() => { setShowMessageMenu(null); setShowReactions(showReactions === message.id ? null : message.id) }}
-                      className="p-1.5 hover:bg-neutral-700 rounded-md transition bg-neutral-800/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60"
+                      className="flex h-11 w-11 sm:h-7 sm:w-7 items-center justify-center hover:bg-neutral-700 rounded-md transition bg-neutral-800/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60"
                       title="React"
                       aria-label="Add reaction"
                     >
@@ -1174,7 +1178,7 @@ export default function CommunityChat({
                     <button
                       data-msg-action
                       onClick={() => { setShowReactions(null); setShowMessageMenu(showMessageMenu === message.id ? null : message.id) }}
-                      className="p-1.5 hover:bg-neutral-700 rounded-md transition bg-neutral-800/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60"
+                      className="flex h-11 w-11 sm:h-7 sm:w-7 items-center justify-center hover:bg-neutral-700 rounded-md transition bg-neutral-800/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/60"
                       title="More"
                       aria-label="Message actions"
                     >
@@ -1264,7 +1268,7 @@ export default function CommunityChat({
             onClick={handleSendMessage}
             disabled={sending || !newMessage.trim() || !activeRoom}
             aria-label="Send message"
-            className="flex-shrink-0 p-2.5 sm:p-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl sm:rounded-2xl transition-all shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30"
+            className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl sm:rounded-2xl transition-all shadow-lg shadow-purple-500/20 hover:shadow-purple-500/30"
           >
             <Send className="w-5 h-5 text-white" />
           </button>

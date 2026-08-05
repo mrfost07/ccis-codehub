@@ -351,6 +351,23 @@ describe('the community chat widget', () => {
     expect(Number(z![1] ?? z![2])).toBe(MODAL_LAYER)
   })
 
+  it('gives every control in it a thumb-sized box on touch', () => {
+    // Measured on a 390px viewport in production: the back control, the header's
+    // settings and close, and both per-message controls were 36px or 26px. A
+    // 26px target next to a message is the kind of thing that only fails for
+    // people using a phone, which is most of them.
+    const source = codeOf(CHAT)
+
+    expect(source, 'p-1.5 around a 14px icon is a 26px target')
+      .not.toMatch(/className="p-1\.5 hover:bg-neutral-700/)
+    expect(source, 'p-2 around a 20px icon is a 36px target')
+      .not.toMatch(/className="p-2 hover:bg-neutral-700/)
+    // Explicit boxes instead, dropping to a smaller one only from sm up.
+    expect(source).toMatch(/h-11 w-11 sm:h-7 sm:w-7/)
+    expect(source).toMatch(/h-11 w-11 sm:h-9 sm:w-9/)
+    expect(source).toMatch(/h-11 w-11 shrink-0/)
+  })
+
   it('is wide, and sized in dvh so mobile chrome cannot eat the composer', () => {
     // The panel was sm:w-96 — a 384px column — and h-[550px] in vh terms.
     const source = codeOf(CHAT)
