@@ -95,3 +95,83 @@ class TestResponseScoping:
         assert r.status_code == 200
         data = r.data.get('results', r.data)
         assert len(data) == 1
+
+
+class TestFullscreenSkipIsRecorded:
+    """Declining the fullscreen reminder must cost the same as leaving it.
+
+    _record_violation only increments for violation types it recognises, so a new
+    type that is not listed there is silently free — the student would be told
+    "this is recorded" and nothing would be recorded.
+    """
+
+    def _participant(self, quiz, **quiz_kwargs):
+        for field, value in quiz_kwargs.items():
+            setattr(quiz, field, value)
+        if quiz_kwargs:
+            quiz.save()
+        session = LiveQuizSession.objects.create(quiz=quiz)
+        return LiveQuizParticipant.objects.create(
+            session=session, student=_user('skipper'), nickname='skipper',
+        )
+
+    def _record(self, participant, violation_type):
+        from apps.learning.consumers import LiveQuizConsumer
+        # The synchronous body behind the async wrapper.
+        return LiveQuizConsumer._record_violation.__wrapped__(
+            None, participant.id, violation_type,
+        )
+
+    def test_a_skip_increments_the_fullscreen_count(self, quiz):
+        participant = self._participant(quiz)
+
+        result = self._record(participant, 'fullscreen_skip')
+
+        participant.refresh_from_db()
+        assert result['success'] is True
+        assert participant.fullscreen_violations == 1
+        assert result['total_violations'] == 1
+
+    def test_a_skip_costs_the_same_as_an_exit(self, quiz):
+        # Two participants in ONE session: LiveQuizSession is unique per quiz, so
+        # a second session for the same quiz cannot exist.
+        skipper = self._participant(quiz)
+        leaver = LiveQuizParticipant.objects.create(
+            session=skipper.session, student=_user('leaver'), nickname='leaver',
+        )
+
+        self._record(skipper, 'fullscreen_skip')
+        self._record(leaver, 'fullscreen_exit')
+        skipper.refresh_from_db()
+        leaver.refresh_from_db()
+
+        assert skipper.fullscreen_violations == leaver.fullscreen_violations == 1
+
+    def test_a_skip_uses_the_fullscreen_action(self, quiz):
+        # Not the default 'warn': the instructor configured what a fullscreen
+        # problem should do, and declining is a fullscreen problem.
+        participant = self._participant(quiz, fullscreen_exit_action='pause')
+
+        result = self._record(participant, 'fullscreen_skip')
+
+        assert result['action'] == 'pause'
+
+    def test_enough_skips_flag_the_attempt(self, quiz):
+        participant = self._participant(quiz, max_violations=2)
+
+        self._record(participant, 'fullscreen_skip')
+        second = self._record(participant, 'fullscreen_skip')
+
+        participant.refresh_from_db()
+        assert participant.is_flagged is True
+        assert second['is_flagged'] is True
+
+    def test_an_unknown_type_still_records_nothing(self, quiz):
+        # The reason the alias had to be added explicitly, pinned so it stays true.
+        participant = self._participant(quiz)
+
+        result = self._record(participant, 'invented_violation')
+
+        participant.refresh_from_db()
+        assert participant.fullscreen_violations == 0
+        assert result['total_violations'] == 0

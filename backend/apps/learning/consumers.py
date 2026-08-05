@@ -451,14 +451,23 @@ class LiveQuizConsumer(AsyncWebsocketConsumer):
         # Determine action from quiz settings
         action = result.get('action', 'warn')
 
-        if violation_type == 'fullscreen_exit':
+        if violation_type in ('fullscreen_exit', 'fullscreen_skip'):
+            skipped = violation_type == 'fullscreen_skip'
             if action == 'pause':
                 # Pause this student's quiz
-                await self._set_participant_paused(participant_id, True, 'fullscreen_exit')
-                await self._notify_instructor_pause(participant_id, True, 'Fullscreen exit')
+                await self._set_participant_paused(
+                    participant_id, True, violation_type,
+                )
+                await self._notify_instructor_pause(
+                    participant_id, True,
+                    'Declined fullscreen' if skipped else 'Fullscreen exit',
+                )
                 await self.send_json({
                     'type': 'quiz_paused',
-                    'reason': 'You exited fullscreen. Re-enter to continue.',
+                    'reason': (
+                        'Fullscreen is required. Continue to enter it.' if skipped
+                        else 'You exited fullscreen. Re-enter to continue.'
+                    ),
                 })
             elif action == 'close':
                 await self.send_json({
@@ -660,7 +669,13 @@ class LiveQuizConsumer(AsyncWebsocketConsumer):
                 'session__quiz'
             ).get(id=participant_id)
 
-            if violation_type == 'fullscreen_exit':
+            # 'fullscreen_skip' is a student declining the fullscreen prompt. It
+            # counts as a fullscreen violation — refusing to enter and leaving
+            # once you are in are the same thing to a proctor — but keeps its own
+            # name on the wire so the instructor's monitor can say which it was.
+            # An unrecognised type increments nothing, so it must be listed here
+            # or the skip is silently free.
+            if violation_type in ('fullscreen_exit', 'fullscreen_skip'):
                 participant.fullscreen_violations += 1
             elif violation_type == 'tab_switch':
                 participant.tab_switch_count += 1
@@ -687,7 +702,7 @@ class LiveQuizConsumer(AsyncWebsocketConsumer):
 
             # Determine what action to take
             action = 'warn'
-            if violation_type == 'fullscreen_exit':
+            if violation_type in ('fullscreen_exit', 'fullscreen_skip'):
                 action = quiz.fullscreen_exit_action
             elif violation_type == 'tab_switch':
                 action = quiz.alt_tab_action

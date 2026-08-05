@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+
+import FullscreenGate from '../components/exam/FullscreenGate';
+import { isFullscreenNow, requestExamFullscreen } from '../lib/examFullscreen';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
     Timer, CheckCircle, XCircle, AlertCircle, Play, Terminal,
@@ -126,6 +129,16 @@ const LiveQuizSession = () => {
     const [pauseSource, setPauseSource] = useState<'fullscreen' | 'tab_switch' | 'server' | ''>('');
     const [isQuizClosed, setIsQuizClosed] = useState(false);
     const [closeReason, setCloseReason] = useState('');
+    /**
+     * The fullscreen reminder has been answered — entered or skipped.
+     *
+     * Fullscreen used to be an optional button on the waiting screen that gated
+     * nothing, so a student could sit the whole quiz windowed and never trip a
+     * violation: they never entered, so no fullscreenchange ever fired.
+     */
+    const [fullscreenGateAnswered, setFullscreenGateAnswered] = useState(false);
+    /** Seconds left on the resume countdown, or null when not resuming. */
+    const [resumeCountdown, setResumeCountdown] = useState<number | null>(null);
     // Brief "resuming…" loading shown when returning from a pause before the quiz reveals
     const [resuming, setResuming] = useState(false);
 
@@ -148,7 +161,10 @@ const LiveQuizSession = () => {
     // ─────────────────────────────────────────────────────────────────────────
 
     const reportViolation = useCallback(
-        (type: 'fullscreen_exit' | 'tab_switch' | 'copy_paste') => {
+        // 'fullscreen_skip' is declining the reminder. The consumer counts it as a
+        // fullscreen violation but keeps the name, so the monitor can distinguish
+        // "declined fullscreen" from "left fullscreen".
+        (type: 'fullscreen_exit' | 'fullscreen_skip' | 'tab_switch' | 'copy_paste') => {
             if (!sessionState.participantId) return;
             if (wsRef.current?.readyState === WebSocket.OPEN) {
                 wsRef.current.send(JSON.stringify({
@@ -165,14 +181,10 @@ const LiveQuizSession = () => {
     // Fullscreen management
     // ─────────────────────────────────────────────────────────────────────────
 
-    const enterFullscreen = useCallback(() => {
-        const elem = document.documentElement;
-        if (elem.requestFullscreen) {
-            elem.requestFullscreen().catch(() => { });
-        } else if ((elem as any).webkitRequestFullscreen) {
-            (elem as any).webkitRequestFullscreen();
-        }
-    }, []);
+    // Delegates to the shared helper. This was the third near-identical copy of
+    // the same request, alongside useExamLockdown and SelfPacedQuizSession.
+    // Must still be called from a user gesture.
+    const enterFullscreen = useCallback(() => { void requestExamFullscreen(); }, []);
 
     // Fullscreen change detection
     useEffect(() => {
@@ -283,6 +295,31 @@ const LiveQuizSession = () => {
             document.removeEventListener('cut', block);
         };
     }, [gameState.status, reportViolation]);
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Resume countdown
+    //
+    // Ticks after Continue has already asked for fullscreen. It has to be up here
+    // rather than beside doResume, which lives inside a conditional return —
+    // hooks cannot be called after one.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    useEffect(() => {
+        if (resumeCountdown === null) return;
+        if (resumeCountdown <= 0) {
+            setIsQuizPaused(false);
+            setPauseReason('');
+            setPauseSource('');
+            setResuming(false);
+            setResumeCountdown(null);
+            return;
+        }
+        const tick = window.setTimeout(
+            () => setResumeCountdown(c => (c === null ? null : c - 1)),
+            1000,
+        );
+        return () => window.clearTimeout(tick);
+    }, [resumeCountdown]);
 
     // ─────────────────────────────────────────────────────────────────────────
     // Timer countdown (stops when paused or closed)
@@ -698,6 +735,51 @@ const LiveQuizSession = () => {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // ── FULLSCREEN REMINDER ──────────────────────────────────────────────────
+    //
+    // After the closed state (terminal) and before the pause states, so a skip
+    // can hand straight over to the paused overlay.
+    //
+    // Waits for participantId: a skip is a reported violation, and without a
+    // participant there is nobody to attribute it to.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    if (!fullscreenGateAnswered && sessionState.participantId) {
+        // Same heuristic the waiting screen uses; only the wording depends on it.
+        const isCoding = sessionState.quizTitle?.toLowerCase().includes('challenge');
+        return (
+            <FullscreenGate
+                description={
+                    isCoding
+                        ? 'This coding challenge is taken in fullscreen so everyone works under the same conditions.'
+                        : 'This quiz is taken in fullscreen so everyone sits the same assessment.'
+                }
+                onReady={(granted) => {
+                    setFullscreenGateAnswered(true);
+                    // Granted is handled by the fullscreenchange listener. A refusal
+                    // by the browser is the same situation as declining, so it is
+                    // reported rather than passed over in silence.
+                    if (!granted) {
+                        reportViolation('fullscreen_skip');
+                        setIsQuizPaused(true);
+                        setPauseReason('Fullscreen is required. Continue to enter it.');
+                        setPauseSource('fullscreen');
+                    }
+                }}
+                onSkip={() => {
+                    setFullscreenGateAnswered(true);
+                    reportViolation('fullscreen_skip');
+                    // Paused locally rather than waiting for the server's action:
+                    // the student chose to skip, and the reminder said so.
+                    setIsQuizPaused(true);
+                    setPauseReason('Fullscreen is required. Continue to enter it.');
+                    setPauseSource('fullscreen');
+                }}
+            />
+        );
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // ── QUIZ PAUSED STATE ────────────────────────────────────────────────────
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -709,7 +791,14 @@ const LiveQuizSession = () => {
         const mmss = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 
         const doResume = () => {
-            if (!document.fullscreenElement) { enterFullscreen(); return; }
+            // Fullscreen first, synchronously, in this click.
+            //
+            // It used to return early when not fullscreen, so the student had to
+            // press twice: once to go fullscreen, once to resume. And the request
+            // cannot be moved after the countdown — transient user activation is
+            // spent by the time a timer fires and the browser refuses it.
+            if (!isFullscreenNow()) void requestExamFullscreen();
+
             setResuming(true);
             if (wsRef.current?.readyState === WebSocket.OPEN) {
                 wsRef.current.send(JSON.stringify({
@@ -717,21 +806,23 @@ const LiveQuizSession = () => {
                     participant_id: sessionState.participantId,
                 }));
             }
-            // Brief loading beat, then reveal the (still-running) quiz.
-            window.setTimeout(() => {
-                setIsQuizPaused(false);
-                setPauseReason('');
-                setPauseSource('');
-                setResuming(false);
-            }, 1200);
+            // Countdown, then reveal the (still-running) quiz. The effect that
+            // ticks this lives at the top of the component.
+            setResumeCountdown(3);
         };
 
         return (
             <div className="fixed inset-0 z-[60] flex items-center justify-center bg-neutral-950/95 backdrop-blur-md text-white p-6">
                 {resuming ? (
-                    /* Resuming loading state */
+                    /* Resuming: counts down so nobody lands mid-question cold. */
                     <div className="text-center">
-                        <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4 text-purple-400" />
+                        {resumeCountdown !== null && resumeCountdown > 0 ? (
+                            <p className="text-6xl font-bold tabular-nums text-purple-400 mb-3">
+                                {resumeCountdown}
+                            </p>
+                        ) : (
+                            <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4 text-purple-400" />
+                        )}
                         <p className="text-lg font-semibold text-white">Resuming…</p>
                         <p className="text-sm text-neutral-500 mt-1">Bringing you back to the quiz</p>
                     </div>
@@ -766,7 +857,7 @@ const LiveQuizSession = () => {
                                 className="flex items-center gap-2 mx-auto px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-semibold transition-colors"
                             >
                                 <Maximize className="w-5 h-5" />
-                                {document.fullscreenElement ? 'Resume Quiz' : 'Re-enter Fullscreen to Continue'}
+                                Continue
                             </button>
                         )}
                     </div>

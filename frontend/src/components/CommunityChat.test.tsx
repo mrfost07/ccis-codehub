@@ -207,6 +207,7 @@ describe('the chat reads over the socket', () => {
     expect(screen.getByText('hello there')).toBeTruthy()
   })
 
+  // Generous timeout: stepping fake timers through a capped backoff is slow.
   it('stops reconnecting instead of retrying an expired token forever', async () => {
     // ChannelConsumer refuses by closing BEFORE accept(), which is answered as an
     // HTTP 403 — so the browser reports a failed handshake with code 1006 and the
@@ -221,11 +222,14 @@ describe('the chat reads over the socket', () => {
       render(<CommunityChat variant="page" />)
       await vi.waitFor(() => expect(sockets.length).toBeGreaterThan(0))
 
-      const CLOSES = 20
+      // Ten is comfortably past the cap of six and keeps the loop quick. Twenty
+      // rounds of a 35s fake-timer advance was slow enough to hit the 5s per-test
+      // timeout under full-suite load, while passing when run alone.
+      const CLOSES = 10
       for (let i = 0; i < CLOSES; i += 1) {
         sockets.at(-1)?.onclose?.({ code: 1006 })
         // Past the capped 30s backoff, so any scheduled reconnect has run.
-        await vi.advanceTimersByTimeAsync(35_000)
+        await vi.advanceTimersByTimeAsync(31_000)
       }
 
       // 1 initial + MAX_SOCKET_ATTEMPTS reconnects, then it lives on the poll.
