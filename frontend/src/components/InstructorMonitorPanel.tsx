@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
     X, ShieldAlert, UserX, Play, Pause, Users,
-    AlertTriangle, Maximize, Eye, RefreshCw, Wifi, WifiOff,
+    AlertTriangle, Maximize, Eye, RefreshCw, WifiOff,
     ArrowLeftRight, ClipboardX
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -241,194 +241,241 @@ const InstructorMonitorPanel: React.FC<InstructorMonitorPanelProps> = ({ joinCod
         [participants],
     );
 
+    const metrics = [
+        { label: 'In session', value: participants.length, tone: 'text-white' },
+        { label: 'Violations', value: violations.length, tone: 'text-amber-300' },
+        { label: 'Flagged', value: flaggedCount, tone: 'text-red-300' },
+        { label: 'Paused', value: pausedCount, tone: 'text-amber-300' },
+    ];
+
+    /* One row of the live feed. */
+    const violationRow = (v: Violation) => {
+        const VIcon = VIOLATION_ICONS[v.violationType] || AlertTriangle;
+        return (
+            <li key={v.id} className="flex items-start gap-2.5 px-4 py-2.5 transition-colors hover:bg-neutral-800/40">
+                <span className={`mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border ${VIOLATION_COLORS[v.violationType] || 'text-neutral-300 bg-neutral-800 border-neutral-700'}`}>
+                    <VIcon className="h-3 w-3" />
+                </span>
+                <span className="min-w-0 flex-1">
+                    <span className="flex items-baseline gap-1.5">
+                        <span className="truncate text-sm font-medium text-white">{v.nickname}</span>
+                        <span className="shrink-0 text-[11px] tabular-nums text-neutral-600">{relativeTime(v.ts)}</span>
+                    </span>
+                    <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
+                        <span className="text-neutral-400">{VIOLATION_LABELS[v.violationType] || v.violationType}</span>
+                        <span className="text-neutral-600">|</span>
+                        <span className="tabular-nums text-neutral-500">{v.totalViolations} total</span>
+                        {v.isFlagged && (
+                            <span className="inline-flex items-center gap-1 rounded border border-red-500/30 bg-red-500/15 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-red-300">
+                                <UserX className="h-2.5 w-2.5" /> Flagged
+                            </span>
+                        )}
+                    </span>
+                </span>
+            </li>
+        );
+    };
+
+    /* One row of the roster. */
+    const participantRow = (p: ParticipantStatus) => (
+        <li
+            key={p.participantId}
+            className={`relative flex items-center gap-3 px-4 py-3 transition-colors hover:bg-neutral-800/40 ${p.isPaused ? 'bg-amber-500/[0.04]' : ''}`}
+        >
+            {/* A left edge rather than another badge: severity should be scannable
+                down the column without reading every row. */}
+            {(p.isFlagged || p.isPaused) && (
+                <span className={`absolute inset-y-0 left-0 w-0.5 ${p.isFlagged ? 'bg-red-500' : 'bg-amber-500'}`} />
+            )}
+
+            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${p.isFlagged ? 'bg-red-500/15 text-red-300' : p.isPaused ? 'bg-amber-500/15 text-amber-300' : 'bg-neutral-800 text-neutral-300'}`}>
+                {p.nickname.charAt(0).toUpperCase()}
+            </span>
+
+            <span className="min-w-0 flex-1">
+                <span className="flex flex-wrap items-center gap-1.5">
+                    <span className="truncate text-sm font-medium text-white">{p.nickname}</span>
+                    {p.isFlagged && (
+                        <span className="inline-flex items-center gap-1 rounded border border-red-500/30 bg-red-500/20 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-red-300">
+                            <UserX className="h-2.5 w-2.5" /> Flagged
+                        </span>
+                    )}
+                    {p.isPaused && (
+                        <span className="inline-flex items-center gap-1 rounded border border-amber-500/30 bg-amber-500/15 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-300">
+                            <Pause className="h-2.5 w-2.5" /> Paused
+                        </span>
+                    )}
+                </span>
+                <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]">
+                    <span className="tabular-nums text-neutral-400">{p.score} pts</span>
+                    {p.violations > 0 && (
+                        <>
+                            <span className="text-neutral-600">|</span>
+                            <span className="tabular-nums text-amber-400">
+                                {p.violations} violation{p.violations !== 1 ? 's' : ''}
+                            </span>
+                        </>
+                    )}
+                    {p.pauseReason && (
+                        <>
+                            <span className="text-neutral-600">|</span>
+                            <span className="truncate text-neutral-500">{p.pauseReason}</span>
+                        </>
+                    )}
+                </span>
+            </span>
+
+            {p.isPaused ? (
+                <button
+                    onClick={() => resumeParticipant(p)}
+                    title="Resume participant"
+                    className="flex h-11 shrink-0 items-center gap-1.5 rounded-lg bg-green-600/20 px-3 text-xs font-medium text-green-400 transition hover:bg-green-600 hover:text-white sm:h-9"
+                >
+                    <Play className="h-3.5 w-3.5" /> Resume
+                </button>
+            ) : (
+                <button
+                    onClick={() => pauseParticipant(p)}
+                    title="Pause participant"
+                    className="flex h-11 shrink-0 items-center gap-1.5 rounded-lg bg-amber-600/20 px-3 text-xs font-medium text-amber-400 transition hover:bg-amber-600 hover:text-white sm:h-9"
+                >
+                    <Pause className="h-3.5 w-3.5" /> Pause
+                </button>
+            )}
+        </li>
+    );
+
+    const emptyState = (Icon: React.FC<{ className?: string }>, title: string, note: string) => (
+        <div className="px-6 py-14 text-center text-neutral-500">
+            <Icon className="mx-auto mb-3 h-9 w-9 opacity-25" />
+            <p className="text-sm">{title}</p>
+            <p className="mt-1 text-xs opacity-60">{note}</p>
+        </div>
+    );
+
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
-            <div className="relative bg-neutral-900 border border-neutral-800 rounded-t-2xl sm:rounded-2xl w-full max-w-3xl max-h-[92vh] sm:max-h-[90vh] flex flex-col shadow-xl shadow-black/40 overflow-hidden">
+        // z-50, the modal layer. This was z-[60] - the toast tier - so the monitor
+        // sat above every dialog on the platform.
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4">
+            <div
+                className="relative flex h-[92dvh] w-full max-w-6xl flex-col overflow-hidden rounded-t-2xl
+                    border border-neutral-800 bg-neutral-900 shadow-xl shadow-black/40
+                    sm:h-[86dvh] sm:rounded-2xl"
+                style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+            >
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-purple-500/60 to-transparent" />
 
-                {/* ── Header ───────────────────────────────────────────── */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800 flex-shrink-0">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
-                            <ShieldAlert className="w-5 h-5" />
+                {/* Header: identity, live state and the numbers, on one band. */}
+                <header className="shrink-0 border-b border-neutral-800 px-4 py-3 sm:px-5">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                            <span className="rounded-lg bg-purple-500/10 p-2 text-purple-400">
+                                <ShieldAlert className="h-5 w-5" />
+                            </span>
+                            <div className="min-w-0">
+                                <h3 className="truncate text-sm font-bold tracking-tight text-white">
+                                    Live monitoring
+                                </h3>
+                                <p className="truncate text-xs text-neutral-400">
+                                    {quizTitle} · <span className="font-mono">{joinCode}</span>
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="font-bold tracking-tight text-white text-sm">Live Monitoring</h3>
-                            <p className="text-xs text-neutral-400">{quizTitle} · <span className="font-mono">{joinCode}</span></p>
+
+                        <div className="flex items-center gap-2">
+                            {status === 'connected' ? (
+                                <span className="flex items-center gap-1.5 rounded-lg border border-green-500/30 bg-green-500/10 px-2 py-1 text-xs text-green-400">
+                                    <span className="h-1.5 w-1.5 rounded-full bg-green-400" /> Live
+                                </span>
+                            ) : status === 'connecting' ? (
+                                <span className="flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs text-amber-400">
+                                    <RefreshCw className="h-3 w-3 animate-spin" /> Connecting
+                                </span>
+                            ) : (
+                                <button
+                                    onClick={reconnect}
+                                    className="flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-2 py-1 text-xs text-red-400 transition-colors hover:bg-red-500/20"
+                                >
+                                    <WifiOff className="h-3 w-3" /> Reconnect
+                                </button>
+                            )}
+                            <button
+                                onClick={onClose}
+                                aria-label="Close monitor"
+                                className="flex h-11 w-11 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-800 hover:text-white sm:h-9 sm:w-9"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        {/* Connection status */}
-                        {status === 'connected'
-                            ? <span className="flex items-center gap-1 text-xs text-green-400"><Wifi className="w-3.5 h-3.5" /> Live</span>
-                            : status === 'connecting'
-                                ? <span className="flex items-center gap-1 text-xs text-amber-400"><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Connecting</span>
-                                : (
-                                    <button onClick={reconnect} className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300">
-                                        <WifiOff className="w-3.5 h-3.5" /> Reconnect
-                                    </button>
-                                )
-                        }
-                        <button onClick={onClose} className="ml-2 p-1.5 hover:bg-neutral-800 rounded-lg transition-colors text-neutral-400 hover:text-white">
-                            <X className="w-4 h-4" />
+
+                    {/* Chips, not three stacked-icon cells: same numbers, a third of
+                        the height, and room for a fourth. */}
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                        {metrics.map(m => (
+                            <span
+                                key={m.label}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-800 bg-neutral-950 px-2.5 py-1.5 text-xs text-neutral-400"
+                            >
+                                {m.label}
+                                <span className={`font-semibold tabular-nums ${m.tone}`}>{m.value}</span>
+                            </span>
+                        ))}
+                    </div>
+                </header>
+
+                {/* Pane switch, phones only. From lg up both panes show side by
+                    side, which is the point: a proctor needs the roster and the
+                    activity at once, and tabs made that impossible. */}
+                <div className="flex shrink-0 gap-1 border-b border-neutral-800 px-3 py-2 lg:hidden">
+                    {([
+                        ['participants', 'Students', participants.length],
+                        ['violations', 'Activity', violations.length],
+                    ] as const).map(([key, label, count]) => (
+                        <button
+                            key={key}
+                            onClick={() => setTab(key)}
+                            className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-colors ${tab === key ? 'bg-purple-600/20 text-purple-200' : 'text-neutral-400 hover:bg-neutral-800/70'}`}
+                        >
+                            {label}{count > 0 ? ` (${count})` : ''}
                         </button>
-                    </div>
+                    ))}
                 </div>
 
-                {/* ── Stats Bar ────────────────────────────────────────── */}
-                <div className="grid grid-cols-3 border-b border-neutral-800 flex-shrink-0">
-                    <div className="flex flex-col items-center py-3">
-                        <Users className="w-4 h-4 text-neutral-400 mb-0.5" />
-                        <span className="text-lg font-bold text-white tabular-nums">{participants.length}</span>
-                        <span className="text-xs text-neutral-500">Participants</span>
-                    </div>
-                    <div className="flex flex-col items-center py-3 border-x border-neutral-800">
-                        <AlertTriangle className="w-4 h-4 text-amber-400 mb-0.5" />
-                        <span className="text-lg font-bold text-amber-400 tabular-nums">{violations.length}</span>
-                        <span className="text-xs text-neutral-500">Violations</span>
-                    </div>
-                    <div className="flex flex-col items-center py-3">
-                        <UserX className="w-4 h-4 text-red-400 mb-0.5" />
-                        <span className="text-lg font-bold text-red-400 tabular-nums">{flaggedCount}</span>
-                        <span className="text-xs text-neutral-500">Flagged</span>
-                    </div>
-                </div>
-
-                {/* ── Tabs ─────────────────────────────────────────────── */}
-                <div className="flex border-b border-neutral-800 flex-shrink-0">
-                    <button
-                        onClick={() => setTab('violations')}
-                        className={`relative flex-1 py-2.5 text-sm font-medium transition-colors ${tab === 'violations' ? 'text-white' : 'text-neutral-400 hover:text-neutral-200'}`}
-                    >
-                        Violations {violations.length > 0 && <span className="ml-1 rounded-full border border-amber-500/30 bg-amber-500/15 px-1.5 text-xs text-amber-300 tabular-nums">{violations.length}</span>}
-                        {tab === 'violations' && <span className="absolute inset-x-4 -bottom-px h-0.5 rounded-full bg-purple-500" />}
-                    </button>
-                    <button
-                        onClick={() => setTab('participants')}
-                        className={`relative flex-1 py-2.5 text-sm font-medium transition-colors ${tab === 'participants' ? 'text-white' : 'text-neutral-400 hover:text-neutral-200'}`}
-                    >
-                        Participants
-                        {pausedCount > 0 && <span className="ml-1 rounded-full border border-amber-500/30 bg-amber-500/15 px-1.5 text-xs text-amber-300 tabular-nums">{pausedCount} paused</span>}
-                        {tab === 'participants' && <span className="absolute inset-x-4 -bottom-px h-0.5 rounded-full bg-purple-500" />}
-                    </button>
-                </div>
-
-                {/* ── Content ───────────────────────────────────────────── */}
-                <div className="flex-1 overflow-y-auto">
-
-                    {/* ── Violations Tab ─────────────────────────────────── */}
-                    {tab === 'violations' && (
-                        <div className="divide-y divide-neutral-800">
-                            {violations.length === 0 ? (
-                                <div className="text-center py-16 text-neutral-500">
-                                    <ShieldAlert className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                                    <p className="text-sm">No violations yet</p>
-                                    <p className="text-xs mt-1 opacity-60">Violations will appear here in real-time</p>
-                                </div>
-                            ) : (
-                                violations.map(v => {
-                                    const VIcon = VIOLATION_ICONS[v.violationType] || AlertTriangle;
-                                    return (
-                                    <div key={v.id} className="flex items-center gap-3 px-5 py-3 hover:bg-neutral-800/40 transition-colors">
-                                        <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-xs font-medium whitespace-nowrap ${VIOLATION_COLORS[v.violationType] || 'text-neutral-300 bg-neutral-800 border-neutral-700'}`}>
-                                            <VIcon className="w-3 h-3" />
-                                            {VIOLATION_LABELS[v.violationType] || v.violationType}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <span className="text-white text-sm font-medium truncate block">{v.nickname}</span>
-                                            <span className="text-neutral-500 text-xs">
-                                                {v.totalViolations} total violation{v.totalViolations !== 1 ? 's' : ''}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center gap-2 flex-shrink-0">
-                                            {v.isFlagged && (
-                                                <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 text-xs rounded border border-red-500/30 flex items-center gap-1">
-                                                    <UserX className="w-3 h-3" /> Flagged
-                                                </span>
-                                            )}
-                                            <span className="text-xs text-neutral-600 tabular-nums">{relativeTime(v.ts)}</span>
-                                        </div>
-                                    </div>
-                                    );
-                                })
-                            )}
+                <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_24rem]">
+                    {/* Roster */}
+                    <section className={`min-h-0 flex-col overflow-hidden lg:flex ${tab === 'participants' ? 'flex' : 'hidden'}`}>
+                        <h4 className="hidden shrink-0 items-center gap-2 border-b border-neutral-800 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-500 lg:flex">
+                            <Users className="h-3.5 w-3.5" />
+                            Students — flagged first
+                        </h4>
+                        <div className="min-h-0 flex-1 overflow-y-auto">
+                            {participants.length === 0
+                                ? emptyState(Users, 'Nobody has joined yet', 'Students appear as they enter the session')
+                                : <ul className="divide-y divide-neutral-800">{sortedParticipants.map(participantRow)}</ul>}
                         </div>
-                    )}
+                    </section>
 
-                    {/* ── Participants Tab ───────────────────────────────── */}
-                    {tab === 'participants' && (
-                        <div className="divide-y divide-neutral-800">
-                            {participants.length === 0 ? (
-                                <div className="text-center py-16 text-neutral-500">
-                                    <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                                    <p className="text-sm">No participants yet</p>
-                                </div>
-                            ) : (
-                                sortedParticipants
-                                    .map(p => (
-                                        <div key={p.participantId} className={`flex items-center gap-3 px-5 py-3 hover:bg-neutral-800/40 transition-colors ${p.isPaused ? 'bg-amber-500/[0.04]' : ''}`}>
-                                            {/* Avatar / status dot */}
-                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0 ${p.isFlagged ? 'bg-red-500/15 text-red-300' : p.isPaused ? 'bg-amber-500/15 text-amber-300' : 'bg-neutral-800 text-neutral-300'}`}>
-                                                {p.nickname.charAt(0).toUpperCase()}
-                                            </div>
-
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <span className="text-white text-sm font-medium truncate">{p.nickname}</span>
-                                                    {p.isFlagged && (
-                                                        <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 text-xs rounded border border-red-500/30 flex items-center gap-1">
-                                                            <UserX className="w-2.5 h-2.5" /> Flagged
-                                                        </span>
-                                                    )}
-                                                    {p.isPaused && (
-                                                        <span className="px-1.5 py-0.5 bg-amber-500/15 text-amber-400 text-xs rounded border border-amber-500/30 flex items-center gap-1">
-                                                            <Pause className="w-2.5 h-2.5" /> Paused
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-3 mt-0.5">
-                                                    <span className="text-neutral-400 text-xs tabular-nums">Score: {p.score}</span>
-                                                    {p.violations > 0 && (
-                                                        <span className="text-amber-400 text-xs tabular-nums">{p.violations} violation{p.violations !== 1 ? 's' : ''}</span>
-                                                    )}
-                                                    {p.pauseReason && (
-                                                        <span className="text-neutral-500 text-xs truncate max-w-[160px]">{p.pauseReason}</span>
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            {/* Controls */}
-                                            <div className="flex gap-1.5 flex-shrink-0">
-                                                {p.isPaused ? (
-                                                    <button
-                                                        onClick={() => resumeParticipant(p)}
-                                                        className="flex items-center gap-1 px-2.5 py-1.5 bg-green-600/20 hover:bg-green-600 text-green-400 hover:text-white rounded-lg text-xs transition font-medium"
-                                                        title="Resume participant"
-                                                    >
-                                                        <Play className="w-3 h-3" /> Resume
-                                                    </button>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => pauseParticipant(p)}
-                                                        className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white rounded-lg text-xs transition font-medium"
-                                                        title="Pause participant"
-                                                    >
-                                                        <Pause className="w-3 h-3" /> Pause
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))
-                            )}
+                    {/* Live activity */}
+                    <section className={`min-h-0 flex-col overflow-hidden border-neutral-800 lg:flex lg:border-l ${tab === 'violations' ? 'flex' : 'hidden'}`}>
+                        <h4 className="hidden shrink-0 items-center gap-2 border-b border-neutral-800 px-4 py-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-500 lg:flex">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            Activity — newest first
+                        </h4>
+                        <div className="min-h-0 flex-1 overflow-y-auto">
+                            {violations.length === 0
+                                ? emptyState(ShieldAlert, 'Nothing flagged yet', 'Violations arrive here as they happen')
+                                : <ul className="divide-y divide-neutral-800">{violations.map(violationRow)}</ul>}
                         </div>
-                    )}
+                    </section>
                 </div>
 
-                {/* ── Footer hint ──────────────────────────────────────── */}
-                <div className="border-t border-neutral-800 px-5 py-2.5 flex-shrink-0 flex items-center gap-2">
-                    <Eye className="w-3.5 h-3.5 text-neutral-600" />
-                    <p className="text-xs text-neutral-600">Updates are live via WebSocket · Sorted by violations</p>
-                </div>
+                <footer className="flex shrink-0 items-center gap-2 border-t border-neutral-800 px-4 py-2.5">
+                    <Eye className="h-3.5 w-3.5 text-neutral-600" />
+                    <p className="text-xs text-neutral-600">
+                        Live over WebSocket · pausing a student holds their questions until you resume
+                    </p>
+                </footer>
             </div>
         </div>
     );
