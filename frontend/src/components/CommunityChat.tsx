@@ -1104,7 +1104,7 @@ export default function CommunityChat({
                       than a phone, so the picker becomes two rows rather than
                       running off the edge of the panel. */}
                   {showReactions === message.id && (
-                    <div data-msg-popover className={`absolute ${message.is_own_message ? 'right-0' : 'left-0'} bottom-full mb-1 max-w-[min(20rem,78vw)] bg-neutral-800/95 backdrop-blur rounded-xl p-2 shadow-xl border border-neutral-700 flex flex-wrap gap-1 z-20`}>
+                    <div data-msg-popover className={`absolute ${message.is_own_message ? 'right-0' : 'left-0'} bottom-full mb-1 w-52 max-w-[78vw] bg-neutral-800/95 backdrop-blur rounded-xl p-2 shadow-xl border border-neutral-700 flex flex-wrap gap-1 z-20`}>
                       {REACTIONS.map((emoji) => (
                         <button
                           key={emoji}
