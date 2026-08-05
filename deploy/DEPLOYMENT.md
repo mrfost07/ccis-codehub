@@ -405,6 +405,29 @@ two environments will drift on uploads until this is split.
 
 ---
 
+## 7b. Local development database
+
+`backend/.env` points `DATABASE_URL` at the **us-east-1** Neon project, which is
+the production fallback snapshot. Reading it is harmless; `migrate`, `flush` or a
+stray `loaddata` writes to the only rollback copy there is.
+
+The test suite is already safe — it always runs on in-memory SQLite regardless of
+`DATABASE_URL`. `runserver` is not.
+
+To develop against a local file instead, add to `backend/.env`:
+
+```bash
+USE_SQLITE=1
+```
+
+Then `python manage.py migrate` and `createsuperuser`. Nothing in the app uses a
+Postgres-only feature — no `ArrayField`, no `HStore`, no `SearchVector` — so
+SQLite behaves the same for development. You lose the copy of real data, which is
+the tradeoff.
+
+With `USE_SQLITE` unset and `DJANGO_DEBUG=True`, startup prints a warning naming
+the remote host. It is silent when `DEBUG=False`, so production says nothing.
+
 ## 8. Backups
 
 Neon handles the database. `media/` is the only irreplaceable state on the box —

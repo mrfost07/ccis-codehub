@@ -25,7 +25,12 @@ SECRET_KEY = env('DJANGO_SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 # Must parse as a boolean — env('...') returns the raw string, so "False"
 # would be truthy and silently keep DEBUG on (disabling the prod security block).
-DEBUG = env.bool('DJANGO_DEBUG', default=True)
+#
+# Defaults to False. It defaulted to True, and .env_example ships DJANGO_DEBUG=True,
+# so a deploy that copied the template and skipped verify.sh served tracebacks,
+# SQL and settings to the internet. Both environments set this explicitly today;
+# the default only decides what a MISSING value means, and that should be safe.
+DEBUG = env.bool('DJANGO_DEBUG', default=False)
 
 ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['localhost', '127.0.0.1', '.onrender.com', '.vercel.app'])
 
@@ -157,6 +162,17 @@ ASGI_APPLICATION = 'core.asgi.application'
 # Check for DATABASE_URL first (for Neon/production)
 DATABASE_URL = env('DATABASE_URL', default=None)
 
+# USE_SQLITE=1 ignores DATABASE_URL and works against a local file.
+#
+# There is no Postgres-only feature anywhere in the app — no ArrayField, no
+# HStore, no SearchVector — so SQLite is a faithful enough local database, and it
+# is the only way to develop without a network round trip per query.
+#
+# Worth having because the alternative is what was configured: a local
+# DATABASE_URL pointing at a remote Neon project. See the warning below.
+if env.bool('USE_SQLITE', default=False):
+    DATABASE_URL = None
+
 if DATABASE_URL:
     # Parse DATABASE_URL for Neon PostgreSQL
     import dj_database_url
@@ -216,6 +232,38 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
+
+def remote_database_warning(debug, host):
+    """The text to show when DEBUG is on and the database is somewhere else, else None.
+
+    The local .env pointed at a remote Neon project — the one kept as the
+    production fallback snapshot. `runserver` against it is one thing; `migrate`,
+    `flush` or a stray `loaddata` write to the only rollback copy there is.
+
+    A warning rather than a refusal: this is how the project has been developed
+    and breaking that without notice would be worse than saying it out loud. Set
+    USE_SQLITE=1 to develop locally instead.
+
+    Takes its inputs as arguments so the DEBUG=False case can be tested. Reading
+    the module globals directly made the one branch that must never fire in
+    production the one branch that could not be exercised.
+    """
+    if not debug or not host:
+        return None
+    if host in ('localhost', '127.0.0.1', '::1'):
+        return None
+    return (
+        f'\n  WARNING  DEBUG=True but the database is remote: {host}\n'
+        '           Writes here hit shared data, not a local copy.\n'
+        '           Set USE_SQLITE=1 in backend/.env to develop against a local file.\n'
+    )
+
+
+_db_warning = remote_database_warning(DEBUG, DATABASES['default'].get('HOST') or '')
+if _db_warning:
+    import sys as _sys
+    print(_db_warning, file=_sys.stderr)
 
 
 # `manage.py test` runs against in-memory SQLite, never the configured database.
