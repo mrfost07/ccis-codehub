@@ -289,3 +289,65 @@ describe('useExamLockdown', () => {
     expect(onViolation).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('fullscreen entry is the caller\'s job', () => {
+  /** Install a fake requestFullscreen and report how it was used. */
+  const stubFullscreen = (behaviour: 'resolve' | 'reject') => {
+    const calls: number[] = []
+    Object.defineProperty(document.documentElement, 'requestFullscreen', {
+      configurable: true,
+      writable: true,
+      value: () => {
+        calls.push(Date.now())
+        return behaviour === 'resolve'
+          ? Promise.resolve()
+          : Promise.reject(new TypeError('Permissions check failed'))
+      },
+    })
+    return calls
+  }
+
+  it('does not request fullscreen from an effect', async () => {
+    // It used to. An effect has no user activation, so the browser refuses it —
+    // Chrome 148 answers `TypeError: Permissions check failed` and
+    // fullscreenElement stays null. The lockdown then reported itself as engaged
+    // while the exam was never actually locked down, because the rejection was
+    // swallowed. Entry has to be gated behind a real gesture by the caller.
+    const calls = stubFullscreen('resolve')
+
+    renderHook(() => useExamLockdown({ active: true, enforceFullscreen: true }))
+    await act(async () => { await Promise.resolve() })
+
+    expect(calls, [
+      'useExamLockdown called requestFullscreen on activate.',
+      'That cannot succeed outside a user gesture. Gate it behind a button in the',
+      'page, the way SelfPacedQuizSession does with "Start in Fullscreen".',
+    ].join('\n')).toHaveLength(0)
+  })
+
+  it('still exposes enterFullscreen for the caller to use from a click', () => {
+    const calls = stubFullscreen('resolve')
+    const { result } = renderHook(() => useExamLockdown({ active: true }))
+
+    act(() => { result.current.enterFullscreen() })
+
+    expect(calls).toHaveLength(1)
+  })
+
+  it('reports a refusal rather than swallowing it', async () => {
+    // `.catch(() => {})` meant a caller that got the gesture wrong saw silence.
+    stubFullscreen('reject')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { result } = renderHook(() => useExamLockdown({ active: true }))
+
+    expect(result.current.fullscreenDenied).toBe(false)
+    await act(async () => {
+      result.current.enterFullscreen()
+      await Promise.resolve()
+    })
+
+    expect(result.current.fullscreenDenied).toBe(true)
+    expect(warn).toHaveBeenCalled()
+    warn.mockRestore()
+  })
+})

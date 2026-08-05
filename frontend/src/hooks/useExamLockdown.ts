@@ -4,8 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  * Reusable in-browser exam lockdown for quizzes and coding challenges.
  *
  * Honest scope: a web page CANNOT block OS-level Alt-Tab or suspend other
- * processes — only the operating system can. What this hook does enforce:
- *   - fullscreen (re-entry prompted on exit)
+ * processes — only the operating system can. Nor can it enter fullscreen by
+ * itself: that needs a user gesture, so the CALLER must gate entry behind a
+ * button and this hook only detects and reports what happens afterwards.
+ * What it does enforce:
+ *   - fullscreen EXIT detection (re-entry prompted), not entry
  *   - focus-loss detection (tab switch / window blur) with violation counting
  *   - clipboard blocking (copy / cut / paste) and right-click
  *   - devtools / print / view-source / save keyboard-shortcut blocking
@@ -50,6 +53,11 @@ export interface ExamLockdownState {
   enterFullscreen: () => void
   /** Clear the paused state after the user returns to fullscreen. */
   resume: () => void
+  /**
+   * A fullscreen request was refused. Almost always because it was not made from
+   * a user gesture, which means the exam is not locked down.
+   */
+  fullscreenDenied: boolean
 }
 
 const COOLDOWN_MS = 600 // coalesce blur+visibility firing for one tab switch
@@ -65,6 +73,7 @@ export function useExamLockdown(options: ExamLockdownOptions): ExamLockdownState
   const [violations, setViolations] = useState(0)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [paused, setPaused] = useState(false)
+  const [fullscreenDenied, setFullscreenDenied] = useState(false)
 
   // Latest values for use inside listeners without re-subscribing.
   const optsRef = useRef(options)
@@ -74,14 +83,34 @@ export function useExamLockdown(options: ExamLockdownOptions): ExamLockdownState
   const lastViolationAt = useRef(0)
   const maxFiredRef = useRef(false)
 
+  /**
+   * Request fullscreen. MUST be called from a user gesture.
+   *
+   * Browsers require transient user activation: a call from an effect, a timer or
+   * a socket message is rejected — Chrome 148 gives
+   * `TypeError: Permissions check failed` and fullscreenElement stays null.
+   * There is no way to enter fullscreen without the user acting, so "auto
+   * fullscreen on mount" is not implementable; a gesture has to gate it.
+   *
+   * The rejection used to be swallowed by `.catch(() => {})`, so a caller that
+   * got this wrong saw silence rather than an unlocked exam.
+   */
   const enterFullscreen = useCallback(() => {
     const el = document.documentElement as HTMLElement & {
       webkitRequestFullscreen?: () => void
     }
     if (el.requestFullscreen) {
-      el.requestFullscreen().catch(() => {})
+      el.requestFullscreen().catch((error) => {
+        setFullscreenDenied(true)
+        console.warn(
+          '[examLockdown] fullscreen refused — requestFullscreen needs a user '
+          + 'gesture, so the exam is NOT locked down:', error,
+        )
+      })
     } else if (el.webkitRequestFullscreen) {
       el.webkitRequestFullscreen()
+    } else {
+      setFullscreenDenied(true)
     }
   }, [])
 
@@ -109,10 +138,15 @@ export function useExamLockdown(options: ExamLockdownOptions): ExamLockdownState
     [],
   )
 
-  // Fullscreen: enter on activate, watch for exit.
+  // Fullscreen: watch for exit.
+  //
+  // It used to call enterFullscreen() here as well. That is an effect, so there
+  // is no user activation and the browser refuses it — the lockdown reported
+  // itself as engaged while the page was never actually fullscreen. Callers must
+  // gate entry behind a gesture, as SelfPacedQuizSession's "Start in Fullscreen"
+  // screen does; `fullscreenDenied` is there to surface it when they do not.
   useEffect(() => {
     if (!active || !enforceFullscreen) return
-    enterFullscreen()
 
     const onFsChange = () => {
       const full = !!document.fullscreenElement
@@ -125,7 +159,7 @@ export function useExamLockdown(options: ExamLockdownOptions): ExamLockdownState
       document.removeEventListener('fullscreenchange', onFsChange)
       document.removeEventListener('webkitfullscreenchange', onFsChange)
     }
-  }, [active, enforceFullscreen, enterFullscreen, registerViolation])
+  }, [active, enforceFullscreen, registerViolation])
 
   // Focus loss: tab switch (visibility) + window blur.
   useEffect(() => {
@@ -220,7 +254,7 @@ export function useExamLockdown(options: ExamLockdownOptions): ExamLockdownState
     if (!active) maxFiredRef.current = false
   }, [active])
 
-  return { violations, isFullscreen, paused, enterFullscreen, resume }
+  return { violations, isFullscreen, paused, enterFullscreen, resume, fullscreenDenied }
 }
 
 export default useExamLockdown

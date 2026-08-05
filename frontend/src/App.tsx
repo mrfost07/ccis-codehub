@@ -66,10 +66,20 @@ const queryClient = new QueryClient({
   },
 })
 
-/** Hide the AI Mentor on immersive pages like quizzes and coding challenges */
+/**
+ * Hide the AI Mentor on anything being graded.
+ *
+ * '/challenges/' never matched: coding challenges are at
+ * /learning/challenges/:slug, so startsWith('/challenges/') was false and an AI
+ * assistant sat on top of a page that blocks the clipboard and counts
+ * tab-switches. /quiz/:quizId was not listed at all.
+ *
+ * Prefixes are broad on purpose — '/quiz/' covers every quiz route, so renaming
+ * or adding one cannot silently re-expose the mentor mid-exam.
+ */
 function ConditionalAIMentor() {
   const { pathname } = useLocation()
-  const hideOnRoutes = ['/quiz/live/', '/quiz/self-paced/', '/quiz/lobby/', '/challenges/']
+  const hideOnRoutes = ['/quiz/', '/learning/challenges/']
   const shouldHide = hideOnRoutes.some(r => pathname.startsWith(r))
   if (shouldHide) return null
   return <FloatingAIMentor />

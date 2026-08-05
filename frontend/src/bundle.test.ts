@@ -47,3 +47,48 @@ describe('page imports in App.tsx', () => {
     expect(APP).toMatch(/<Suspense fallback=/)
   })
 })
+
+/**
+ * The AI Mentor must not be reachable on anything being graded.
+ *
+ * hideOnRoutes listed '/challenges/', but coding challenges live at
+ * /learning/challenges/:slug — so startsWith() never matched and a floating AI
+ * assistant sat on top of a page that blocks the clipboard and counts
+ * tab-switches. /quiz/:quizId was not listed at all.
+ */
+describe('AI Mentor visibility', () => {
+  const hideList = (() => {
+    const match = /const hideOnRoutes = \[([^\]]+)\]/.exec(APP)
+    return match ? [...match[1].matchAll(/'([^']+)'/g)].map(m => m[1]) : null
+  })()
+
+  /** Every route that renders a graded surface, taken from the route table. */
+  const GRADED = [
+    '/quiz/live/ABC123',
+    '/quiz/self-paced/ABC123',
+    '/quiz/lobby/ABC123',
+    '/quiz/some-quiz-id',
+    '/learning/challenges/two-sum',
+  ]
+
+  it('has a hide list at all', () => {
+    expect(hideList, 'hideOnRoutes was renamed or removed').not.toBeNull()
+    expect(hideList!.length).toBeGreaterThan(0)
+  })
+
+  it('covers every graded route', () => {
+    const exposed = GRADED.filter(path => !hideList!.some(prefix => path.startsWith(prefix)))
+
+    expect(exposed, [
+      `The AI Mentor is reachable on: ${exposed.join(', ')}.`,
+      `hideOnRoutes is [${hideList!.join(', ')}] and these paths do not start with`,
+      'any of them. An AI assistant during a graded exam defeats the lockdown.',
+    ].join('\n')).toEqual([])
+  })
+
+  it('leaves ordinary pages alone', () => {
+    for (const path of ['/dashboard', '/learning', '/projects', '/community', '/chat']) {
+      expect(hideList!.some(p => path.startsWith(p)), `${path} should keep the mentor`).toBe(false)
+    }
+  })
+})
