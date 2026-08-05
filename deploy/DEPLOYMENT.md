@@ -407,13 +407,55 @@ two environments will drift on uploads until this is split.
 
 ## 8. Backups
 
-Neon handles database backups. Not covered automatically:
+Neon handles the database. `media/` is the only irreplaceable state on the box —
+profile pictures, project files, certificates, the CEO signature. It was lost
+once, when the old VPS was decommissioned, and had to be rebuilt by hand.
+
+**Automated, running now.** A systemd timer archives `media/` daily at 18:30 UTC
+(02:30 Manila) and keeps the last 14:
 
 ```bash
-# user uploads — the only irreplaceable state on the box
-tar czf ~/media-$(date +%F).tar.gz -C /home/deploy/CCIS-CodeHub/backend media
+systemctl list-timers ccis-backup.timer      # when it next runs
+journalctl -u ccis-backup.service -n 20      # what it did last time
+ls -lh /home/deploy/backups/media/           # the archives
+sudo /usr/local/bin/ccis-backup              # run one now
+```
 
-# configuration (contains secrets — store securely)
+The script refuses to archive an empty `media/` — far more likely a broken
+deploy than a real state worth keeping — and deletes any archive that does not
+read back, so a failure means no backup was taken rather than a bad one
+replacing good ones. Verified by restoring: 50/50 files, byte-for-byte identical
+to live media.
+
+Restore:
+
+```bash
+A=$(ls -1t /home/deploy/backups/media/media-*.tar.gz | head -1)
+sudo tar -xzf "$A" -C /home/deploy/CCIS-CodeHub/backend   # paths are relative to media/
+sudo chown -R deploy:www-data /home/deploy/CCIS-CodeHub/backend/media
+```
+
+**Still needed: get a copy off the box.** Everything above lives on the same disk
+as the data, so it covers accidental deletion, a bad deploy and an app bug — not
+losing the host, which is exactly how the uploads went the first time. Two ways,
+both needing the AWS console:
+
+1. *EBS snapshots* (simplest, protects the whole box). EC2 → Lifecycle Manager →
+   create a daily snapshot policy for this instance's volume. No changes on the box.
+2. *S3* (just the uploads, cheapest). Create a bucket, attach an instance role
+   that can `s3:PutObject` to it, `sudo apt install awscli`, then add to
+   `/etc/systemd/system/ccis-backup.service`:
+
+   ```ini
+   Environment="BACKUP_REMOTE=s3://your-bucket/media"
+   ```
+
+   `systemctl daemon-reload` and the next run pushes there too. The script warns
+   in the journal if `BACKUP_REMOTE` is set but the CLI is missing.
+
+Configuration is not backed up automatically because it contains secrets:
+
+```bash
 cp /home/deploy/CCIS-CodeHub/backend/.env ~/env-backup-$(date +%F)
 ```
 

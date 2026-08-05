@@ -1,0 +1,14 @@
+[Unit]
+Description=Run the CCIS CodeHub media backup daily
+
+[Timer]
+# 18:30 UTC is 02:30 in Manila — after the day's uploads, before anyone is up.
+OnCalendar=*-*-* 18:30:00
+# Catch up if the box was off at the scheduled time. Without this a reboot
+# window silently skips a day.
+Persistent=true
+# Spread the start so it never lands exactly on certbot's renewal tick.
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

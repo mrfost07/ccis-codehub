@@ -1,0 +1,27 @@
+[Unit]
+Description=CCIS CodeHub media backup
+# Nothing to archive if the disk is not mounted yet.
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=deploy
+Group=deploy
+
+# Set BACKUP_REMOTE here to also push each archive off the box, e.g.
+#   Environment="BACKUP_REMOTE=s3://ccis-codehub-backups/media"
+# Without it the archives sit on the same disk as the data they protect, which
+# does not survive losing the host — which is exactly how the uploads were lost
+# the first time.
+Environment="KEEP=14"
+
+ExecStart=/usr/local/bin/ccis-backup
+
+# The script refuses to archive an empty media directory and deletes any archive
+# that does not read back, so a failure here means no backup was taken rather
+# than a bad one replacing good ones.
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
