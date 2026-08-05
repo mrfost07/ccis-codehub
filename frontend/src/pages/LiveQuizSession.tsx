@@ -127,6 +127,10 @@ const LiveQuizSession = () => {
     isQuizPausedRef.current = isQuizPaused;
     const [pauseReason, setPauseReason] = useState('');
     const [pauseSource, setPauseSource] = useState<'fullscreen' | 'tab_switch' | 'server' | ''>('');
+    // Read by the resume countdown, which must not clear an instructor pause that
+    // arrived while it was ticking.
+    const pauseSourceRef = useRef(pauseSource);
+    pauseSourceRef.current = pauseSource;
     const [isQuizClosed, setIsQuizClosed] = useState(false);
     const [closeReason, setCloseReason] = useState('');
     /**
@@ -307,11 +311,16 @@ const LiveQuizSession = () => {
     useEffect(() => {
         if (resumeCountdown === null) return;
         if (resumeCountdown <= 0) {
+            setResuming(false);
+            setResumeCountdown(null);
+            // An instructor pause that landed mid-countdown outranks this resume.
+            // Clearing it here would put the student back into a quiz the
+            // instructor had just stopped. The window used to be the old 1200ms
+            // beat; a 3s countdown makes it wider, so it has to be checked.
+            if (pauseSourceRef.current === 'server') return;
             setIsQuizPaused(false);
             setPauseReason('');
             setPauseSource('');
-            setResuming(false);
-            setResumeCountdown(null);
             return;
         }
         const tick = window.setTimeout(
