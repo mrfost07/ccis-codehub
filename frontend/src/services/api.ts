@@ -321,6 +321,16 @@ export const communityAPI = {
   getComments: (postId: string) => api.get('/community/comments/', { params: { post: postId } }),
   createComment: (data: any) => api.post('/community/comments/', data),
   updateComment: (id: string, content: string) => api.patch(`/community/comments/${id}/`, { content }),
+  /**
+   * Update a comment with anything — text, an image, or a null to clear one.
+   *
+   * Takes the body as-is so the caller can pass FormData for an upload. The
+   * request interceptor drops the JSON content-type when it sees FormData, which
+   * is what lets the browser set the multipart boundary.
+   */
+  updateCommentData: (id: string, data: any) => api.patch(`/community/comments/${id}/`, data),
+  /** Create a comment from FormData, for one that carries an image. */
+  createCommentData: (data: any) => api.post('/community/comments/', data),
   deleteComment: (id: string) => api.delete(`/community/comments/${id}/`),
   likeComment: (id: string) => api.post(`/community/comments/${id}/like/`),
   /** Sends a post into a community chat channel as a message. The post stays. */

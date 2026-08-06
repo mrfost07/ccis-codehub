@@ -34,11 +34,25 @@ const sizes = { sm: 'sm:max-w-sm', md: 'sm:max-w-lg', lg: 'sm:max-w-2xl', xl: 's
 export function Modal({ open, onClose, title, size = 'md', children, footer, className }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
 
+  /**
+   * onClose, read through a ref so the effect below depends only on `open`.
+   *
+   * It used to be a dependency. Callers pass an inline arrow — `onClose={() =>
+   * setCommentsPostId(null)}` — which is a new function on every render, so the
+   * effect tore down and set up again on every parent render. Each run calls
+   * `previouslyFocused?.focus()` on cleanup and `panelRef.current?.focus()` on
+   * setup, so typing in a field inside a dialog moved focus off that field on
+   * every keystroke. On a phone that closes the keyboard, which is exactly how it
+   * was reported: "when I type a comment the keyboard just auto closes".
+   */
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
   useEffect(() => {
     if (!open) return
     const previouslyFocused = document.activeElement as HTMLElement | null
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') onCloseRef.current()
       if (e.key === 'Tab' && panelRef.current) {
         // Minimal focus trap: keep Tab cycling inside the panel.
         const focusables = panelRef.current.querySelectorAll<HTMLElement>(
@@ -65,7 +79,8 @@ export function Modal({ open, onClose, title, size = 'md', children, footer, cla
       document.body.style.overflow = prevOverflow
       previouslyFocused?.focus()
     }
-  }, [open, onClose])
+    // `open` only. See onCloseRef above.
+  }, [open])
 
   if (!open) return null
 

@@ -127,11 +127,15 @@ class CommentSerializer(serializers.ModelSerializer):
     author = AuthorSerializer(read_only=True)
     is_liked = serializers.SerializerMethodField()
     replies = serializers.SerializerMethodField()
-    
+    # allow_null so a null clears it, the same as PostSerializer.image.
+    image = serializers.ImageField(required=False, allow_null=True)
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = Comment
         fields = [
             'id', 'post', 'author', 'parent', 'content',
+            'image', 'image_url',
             'like_count', 'is_edited', 'is_liked', 'replies',
             'created_at', 'updated_at'
         ]
@@ -140,6 +144,15 @@ class CommentSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at'
         ]
     
+    def get_image_url(self, obj):
+        """Absolute URL for the comment's image, if it has one."""
+        if not obj.image:
+            return None
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(obj.image.url)
+        return obj.image.url
+
     def get_is_liked(self, obj):
         """Check if current user has liked this comment"""
         request = self.context.get('request')
@@ -150,6 +163,24 @@ class CommentSerializer(serializers.ModelSerializer):
         if mine is not None:
             return bool(mine)
         return CommentLike.objects.filter(comment=obj, user=request.user).exists()
+
+    def validate(self, attrs):
+        """A comment needs words, a picture, or both.
+
+        `image` present in attrs is authoritative even when it is None — that is
+        how a clear is expressed. Falling back to the instance's current image
+        whenever attrs['image'] was falsy let "remove the image" through on a
+        comment that had no text, leaving a row with neither.
+        """
+        content = attrs.get('content', getattr(self.instance, 'content', '') or '')
+        if 'image' in attrs:
+            has_image = bool(attrs['image'])
+        else:
+            has_image = bool(getattr(self.instance, 'image', None))
+
+        if not str(content).strip() and not has_image:
+            raise serializers.ValidationError('Write something or attach an image.')
+        return attrs
 
     def get_replies(self, obj):
         """Get replies to this comment"""

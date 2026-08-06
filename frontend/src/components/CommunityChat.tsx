@@ -1018,7 +1018,7 @@ export default function CommunityChat({
 
                   {/* Message Bubble */}
                   <div
-                    className={`relative rounded-2xl px-3 py-2 sm:px-4 sm:py-2.5 shadow-md ${message.is_own_message
+                    className={`relative rounded-2xl px-3 py-1.5 sm:px-3.5 sm:py-2 ${message.is_own_message
                       ? 'bg-gradient-to-br from-purple-600 to-purple-700 rounded-br-sm'
                       : 'bg-neutral-700/80 backdrop-blur rounded-bl-sm'
                       } ${message.deleted_for_everyone ? 'opacity-60' : ''}`}

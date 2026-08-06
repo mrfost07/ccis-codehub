@@ -290,3 +290,143 @@ class TestShareToChannel:
             f'/api/community/posts/{post.id}/share-to-channel/', {}, format='json',
         )
         assert response.status_code == 400
+
+
+def _png_upload(name='pic.png'):
+    """A genuine PNG.
+
+    Built with Pillow rather than pasted as base64: ImageField validates through
+    Pillow, and a base64 blob that is one byte wrong fails as
+    "not an image or a corrupted image" — which reads like a product bug.
+    """
+    import io as _io
+
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from PIL import Image
+
+    buffer = _io.BytesIO()
+    Image.new('RGB', (2, 2), (120, 80, 200)).save(buffer, format='PNG')
+    return SimpleUploadedFile(name, buffer.getvalue(), content_type='image/png')
+
+
+@pytest.mark.django_db
+class TestCommentImages:
+    """A comment can be a picture, words, or both — but not neither."""
+
+    def test_a_comment_can_carry_an_image(self, author, post):
+        response = _client(author).post('/api/community/comments/', {
+            'post': str(post.id), 'content': 'look at this', 'image': _png_upload(),
+        }, format='multipart')
+
+        assert response.status_code == 201, response.data
+        comment = Comment.objects.get()
+        assert comment.image
+        assert response.data['image_url']
+
+    def test_an_image_only_comment_is_allowed(self, author, post):
+        # content is blank=True for exactly this, matching image-only posts.
+        response = _client(author).post('/api/community/comments/', {
+            'post': str(post.id), 'content': '', 'image': _png_upload(),
+        }, format='multipart')
+
+        assert response.status_code == 201, response.data
+        assert Comment.objects.get().content == ''
+
+    def test_an_empty_comment_with_no_image_is_refused(self, author, post):
+        response = _client(author).post('/api/community/comments/', {
+            'post': str(post.id), 'content': '   ',
+        }, format='multipart')
+
+        assert response.status_code == 400
+        assert Comment.objects.count() == 0
+
+    def test_the_image_can_be_replaced_on_edit(self, author, post):
+        created = _client(author).post('/api/community/comments/', {
+            'post': str(post.id), 'content': 'first', 'image': _png_upload('one.png'),
+        }, format='multipart')
+        comment_id = created.data['id']
+        first = Comment.objects.get(pk=comment_id).image.name
+
+        updated = _client(author).patch(f'/api/community/comments/{comment_id}/', {
+            'image': _png_upload('two.png'),
+        }, format='multipart')
+
+        assert updated.status_code == 200, updated.data
+        assert Comment.objects.get(pk=comment_id).image.name != first
+
+    def test_the_image_can_be_removed_on_edit(self, author, post):
+        created = _client(author).post('/api/community/comments/', {
+            'post': str(post.id), 'content': 'keeps words', 'image': _png_upload(),
+        }, format='multipart')
+        comment_id = created.data['id']
+
+        updated = _client(author).patch(f'/api/community/comments/{comment_id}/',
+                                        {'image': None}, format='json')
+
+        assert updated.status_code == 200, updated.data
+        assert not Comment.objects.get(pk=comment_id).image
+
+    def test_removing_the_image_from_an_image_only_comment_is_refused(self, author, post):
+        # It would leave a comment with neither words nor a picture.
+        created = _client(author).post('/api/community/comments/', {
+            'post': str(post.id), 'content': '', 'image': _png_upload(),
+        }, format='multipart')
+        comment_id = created.data['id']
+
+        updated = _client(author).patch(f'/api/community/comments/{comment_id}/',
+                                        {'image': None}, format='json')
+
+        assert updated.status_code == 400, updated.data
+        assert Comment.objects.get(pk=comment_id).image
+
+
+@pytest.mark.django_db
+class TestPostImageEditing:
+    """Editing a post must be able to change or drop its picture."""
+
+    def test_the_image_can_be_replaced(self, author):
+        post = Post.objects.create(author=author, content='with a picture',
+                                   image=_png_upload('before.png'))
+        before = post.image.name
+
+        response = _client(author).patch(f'/api/community/posts/{post.id}/', {
+            'image': _png_upload('after.png'),
+        }, format='multipart')
+
+        assert response.status_code == 200, response.data
+        post.refresh_from_db()
+        assert post.image.name != before
+
+    def test_the_image_can_be_removed(self, author):
+        post = Post.objects.create(author=author, content='words remain',
+                                   image=_png_upload())
+
+        response = _client(author).patch(f'/api/community/posts/{post.id}/',
+                                         {'image': None}, format='json')
+
+        assert response.status_code == 200, response.data
+        post.refresh_from_db()
+        assert not post.image
+
+    def test_an_image_can_be_added_to_a_text_post(self, author):
+        post = Post.objects.create(author=author, content='no picture yet')
+
+        response = _client(author).patch(f'/api/community/posts/{post.id}/', {
+            'image': _png_upload(),
+        }, format='multipart')
+
+        assert response.status_code == 200, response.data
+        post.refresh_from_db()
+        assert post.image
+
+    def test_someone_else_cannot_change_the_image(self, author):
+        post = Post.objects.create(author=author, content='mine')
+        intruder = _user('pi_intruder')
+
+        response = _client(intruder).patch(f'/api/community/posts/{post.id}/', {
+            'image': _png_upload(),
+        }, format='multipart')
+
+        assert response.status_code in (403, 404), response.status_code
+        post.refresh_from_db()
+        assert not post.image

@@ -13,6 +13,7 @@ import { Skeleton, SkeletonListRow, Modal, Button } from '../components/ui'
 import ContentActionMenu, { buildContentActions } from '../components/community/ContentActionMenu'
 import ReportDialog from '../components/community/ReportDialog'
 import MoveToChannelDialog from '../components/community/MoveToChannelDialog'
+import EditContentDialog from '../components/community/EditContentDialog'
 import Reactors from '../components/Reactors'
 
 interface Author {
@@ -403,7 +404,7 @@ function GroupPostCard({
   }
 
   const handleEditPost = () => {
-    setEditedPostContent(post.content)
+    // The dialog owns the text and the image; this only opens it.
     setIsEditingPost(true)
   }
 
@@ -606,35 +607,9 @@ function GroupPostCard({
         </div>
       </div>
 
-      {/* Post Content - Edit Mode or Display */}
-      {isEditingPost ? (
-        <div className="mb-3">
-          <textarea
-            value={editedPostContent}
-            onChange={(e) => setEditedPostContent(e.target.value)}
-            className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:outline-none"
-            rows={4}
-          />
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={handleSavePostEdit}
-              className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-lg flex items-center gap-1"
-            >
-              <Check className="w-4 h-4" />
-              Save
-            </button>
-            <button
-              onClick={handleCancelPostEdit}
-              className="px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-white text-sm rounded-lg flex items-center gap-1"
-            >
-              <X className="w-4 h-4" />
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
-        <p className="text-neutral-200 text-[15px] leading-relaxed mb-3 whitespace-pre-wrap break-words">{post.content}</p>
-      )}
+      {/* Editing happens in EditContentDialog now: the inline textarea here only
+          ever sent `content`, so a post's image could not be changed. */}
+      <p className="text-neutral-200 text-[15px] leading-relaxed mb-3 whitespace-pre-wrap break-words">{post.content}</p>
 
       {post.image_url && (
         <div className="rounded-xl overflow-hidden border border-neutral-800 bg-neutral-950 mb-3">
@@ -752,7 +727,7 @@ function GroupPostCard({
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="inline-block max-w-full bg-neutral-800 rounded-2xl px-3.5 py-2 relative">
+                        <div className="inline-block max-w-full bg-neutral-800 rounded-2xl px-3 py-1.5 relative">
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-white text-xs font-semibold">{comment.author.username}</span>
                             <div className="flex items-center gap-2">
@@ -1008,6 +983,16 @@ function GroupPostCard({
           )}
         </div>
       )}
+
+      <EditContentDialog
+        open={isEditingPost}
+        onClose={() => setIsEditingPost(false)}
+        kind="post"
+        id={post.id}
+        initialContent={post.content}
+        initialImageUrl={post.image_url}
+        onSaved={() => onRefresh()}
+      />
 
       {/* Opened from this card's action menu. */}
       <ReportDialog
@@ -2051,8 +2036,8 @@ export default function CommunityEnhanced() {
   }
 
   const handleEditPost = (post: Post) => {
+    // Just marks which post the dialog is for; it owns the text and the image.
     setEditingPostId(post.id)
-    setEditedPostContent(post.content)
   }
 
   const handleSavePostEdit = async (postId: string) => {
@@ -2754,33 +2739,9 @@ export default function CommunityEnhanced() {
                       <h3 className="text-lg font-semibold text-white mb-2 break-words">{post.title}</h3>
                     )}
 
-                    {/* Post Content - Edit Mode or Display */}
-                    {editingPostId === post.id ? (
-                      <div className="mb-4">
-                        <textarea
-                          value={editedPostContent}
-                          onChange={(e) => setEditedPostContent(e.target.value)}
-                          className="w-full px-3 py-2 bg-neutral-800 border border-neutral-700 rounded-lg text-white text-sm resize-none focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                          rows={4}
-                        />
-                        <div className="flex gap-2 mt-2">
-                          <button
-                            onClick={() => handleSavePostEdit(post.id)}
-                            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-lg flex items-center gap-1"
-                          >
-                            <Check className="w-4 h-4" />
-                            Save
-                          </button>
-                          <button
-                            onClick={handleCancelPostEdit}
-                            className="px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-white text-sm rounded-lg flex items-center gap-1"
-                          >
-                            <X className="w-4 h-4" />
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
+                    {/* Editing happens in EditContentDialog: this inline textarea
+                        only ever sent `content`, so the image could not change. */}
+                    {(
                       <div className="mb-4">
                         <p className={`text-neutral-200 text-[15px] leading-relaxed whitespace-pre-wrap break-words ${!expandedPosts[post.id] ? 'line-clamp-5' : ''}`}>
                           {post.content}
@@ -2931,7 +2892,7 @@ export default function CommunityEnhanced() {
                               <div key={comment.id} className="space-y-2">
                                 {/* Main Comment */}
                                 <div className="flex gap-3">
-                                  <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                  <div className="w-7 h-7 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
                                     {commentProfilePic ? (
                                       <img src={commentProfilePic} alt="" className="w-full h-full object-cover" />
                                     ) : (
@@ -2941,7 +2902,7 @@ export default function CommunityEnhanced() {
                                     )}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <div className="inline-block max-w-full bg-neutral-800 rounded-2xl px-3.5 py-2 relative">
+                                    <div className="inline-block max-w-full bg-neutral-800 rounded-2xl px-3 py-1.5 relative">
                                       <div className="flex items-center justify-between gap-2">
                                         <Link
                                           to={`/user/${comment.author.id}`}
@@ -3590,6 +3551,25 @@ export default function CommunityEnhanced() {
 
       {/* Opened from the action menu. Mounted at the page root so a dialog is
           never a child of the scrolling card that launched it. */}
+      {(() => {
+        const editing = posts.find(p => p.id === editingPostId)
+        return (
+          <EditContentDialog
+            open={!!editing}
+            onClose={() => setEditingPostId(null)}
+            kind="post"
+            id={editing?.id ?? ''}
+            initialContent={editing?.content ?? ''}
+            initialImageUrl={editing?.image_url}
+            onSaved={next => {
+              setPosts(prev => prev.map(p => (p.id === editing?.id
+                ? ({ ...p, content: next.content, image_url: next.imageUrl ?? undefined } as Post)
+                : p)))
+            }}
+          />
+        )
+      })()}
+
       <ReportDialog
         open={reportTarget !== null}
         onClose={() => setReportTarget(null)}

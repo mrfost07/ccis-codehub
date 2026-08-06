@@ -175,3 +175,81 @@ describe('the menu as rendered', () => {
     expect(screen.queryByRole('button', { name: /more actions/i })).toBeNull()
   })
 })
+
+describe('the menu is not clipped by whatever contains it', () => {
+  const actions = () => buildContentActions({
+    kind: 'comment', canEdit: false, canDelete: false, ...handlers(),
+  })
+
+  it('renders outside the clipping ancestor, not inside it', async () => {
+    // The reported bug: inside the comments dialog the menu was `absolute` in a
+    // narrow column under an overflow-hidden ancestor, so a 224px panel anchored
+    // right-0 ran off the left edge and was sliced — "py Link", "port Comment".
+    // Being a child of that box is what made clipping possible.
+    const view = render(
+      <div data-testid="clipper" style={{ overflow: 'hidden', width: 120 }}>
+        <ContentActionMenu actions={actions()} />
+      </div>,
+    )
+    await userEvent.click(screen.getByRole('button', { name: /more actions/i }))
+
+    const menu = screen.getByRole('menu')
+    const clipper = view.getByTestId('clipper')
+
+    expect(clipper.contains(menu), [
+      'The menu is still inside the overflow-hidden container.',
+      'It must be portalled out, or any clipping ancestor can slice it.',
+    ].join('\n')).toBe(false)
+    expect(document.body.contains(menu)).toBe(true)
+  })
+
+  it('is positioned fixed, so an ancestor transform or scroll cannot move it', async () => {
+    render(<ContentActionMenu actions={actions()} />)
+    await userEvent.click(screen.getByRole('button', { name: /more actions/i }))
+
+    const menu = screen.getByRole('menu')
+    expect(menu.className).toContain('fixed')
+    expect(menu.className).not.toContain('absolute')
+  })
+
+  it('sits above the dialog it opens from', async () => {
+    // It opens from inside the comments dialog, and DESIGN_SYSTEM.md §6 puts
+    // dialogs at z-50. The popover tier would render underneath.
+    render(<ContentActionMenu actions={actions()} />)
+    await userEvent.click(screen.getByRole('button', { name: /more actions/i }))
+
+    const z = /z-\[(\d+)\]|z-(\d+)/.exec(screen.getByRole('menu').className)
+    expect(z, 'menu has no z-index').not.toBeNull()
+    const layer = Number(z![1] ?? z![2])
+    expect(layer).toBeGreaterThan(50)
+    expect(layer).toBeLessThan(60)   // below toasts
+  })
+
+  it('keeps itself inside the viewport when the button is near the right edge', async () => {
+    render(
+      <div style={{ position: 'absolute', left: 780 }}>
+        <ContentActionMenu actions={actions()} />
+      </div>,
+    )
+    await userEvent.click(screen.getByRole('button', { name: /more actions/i }))
+
+    const left = parseFloat(screen.getByRole('menu').style.left)
+    // jsdom reports innerWidth 1024 by default.
+    expect(left).toBeGreaterThanOrEqual(8)
+    expect(left + 224).toBeLessThanOrEqual(window.innerWidth - 8 + 1)
+  })
+
+  it('still fires an item, even though the menu is not inside the wrapper', async () => {
+    // The outside-click handler had to learn about the portal, or clicking an item
+    // reads as clicking outside and the menu closes before it runs.
+    const spies = handlers()
+    render(<ContentActionMenu actions={buildContentActions({
+      kind: 'comment', canEdit: false, canDelete: false, ...spies,
+    })} />)
+    await userEvent.click(screen.getByRole('button', { name: /more actions/i }))
+
+    await userEvent.click(screen.getByRole('menuitem', { name: /copy link/i }))
+
+    expect(spies.onCopyLink).toHaveBeenCalledTimes(1)
+  })
+})

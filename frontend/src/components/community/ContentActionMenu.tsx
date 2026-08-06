@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Ban, Edit3, Flag, Link2, MoreHorizontal, Share2, Trash2,
 } from 'lucide-react'
@@ -40,6 +41,12 @@ const ICONS: Record<ContentActionKey, typeof Link2> = {
   'toggle-comments': Ban,
 }
 
+/** Menu width, in px. Needed before render to keep it inside the viewport. */
+const MENU_WIDTH = 224
+
+/** Row height plus the container's padding — close enough to decide flip. */
+const estimatedHeight = (rows: number) => rows * 44 + 8
+
 export default function ContentActionMenu({
   actions,
   label = 'More actions',
@@ -49,13 +56,19 @@ export default function ContentActionMenu({
 }) {
   const [open, setOpen] = useState(false)
   const wrapper = useRef<HTMLDivElement>(null)
+  const button = useRef<HTMLButtonElement>(null)
+  const menu = useRef<HTMLDivElement>(null)
 
   // Close on an outside click or Escape. Without both, the menu of one post stays
   // open while you read another, and on a phone there is nothing else to tap.
   useEffect(() => {
     if (!open) return
     const onPointerDown = (event: MouseEvent | TouchEvent) => {
-      if (!wrapper.current?.contains(event.target as Node)) setOpen(false)
+      const target = event.target as Node
+      // The menu is portalled out of `wrapper`, so it has to be checked too or
+      // clicking an item counts as clicking outside and closes before it fires.
+      if (wrapper.current?.contains(target) || menu.current?.contains(target)) return
+      setOpen(false)
     }
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setOpen(false)
@@ -78,10 +91,60 @@ export default function ContentActionMenu({
     action.onSelect()
   }
 
+  /**
+   * Where to draw the menu, in viewport coordinates.
+   *
+   * Measured on open and rendered through a portal, because `absolute` inside the
+   * card is clipped by any ancestor with overflow-hidden — which the comments
+   * dialog has. That is the bug in the screenshot: a 224px menu anchored right-0
+   * in a narrow column ran off the left edge of the modal and was sliced in half,
+   * leaving "py Link" and "port Comment".
+   */
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
+
+  const place = () => {
+    const anchor = button.current?.getBoundingClientRect()
+    if (!anchor) return
+    const MARGIN = 8
+    // Right-aligned to the button, then pulled back inside the viewport rather
+    // than trusting there is room.
+    let left = anchor.right - MENU_WIDTH
+    left = Math.max(MARGIN, Math.min(left, window.innerWidth - MENU_WIDTH - MARGIN))
+
+    const height = estimatedHeight(actions.length)
+    // Flip above the button when there is not room below.
+    const below = anchor.bottom + 4
+    const top = below + height > window.innerHeight - MARGIN
+      ? Math.max(MARGIN, anchor.top - height - 4)
+      : below
+
+    setCoords({ top, left })
+  }
+
+  const toggle = () => {
+    if (open) { setOpen(false); return }
+    place()
+    setOpen(true)
+  }
+
+  // Reposition while open: a scroll or resize moves the button but not a fixed
+  // menu, which would otherwise float away from what it belongs to.
+  useEffect(() => {
+    if (!open) return
+    const reposition = () => place()
+    window.addEventListener('scroll', reposition, true)
+    window.addEventListener('resize', reposition)
+    return () => {
+      window.removeEventListener('scroll', reposition, true)
+      window.removeEventListener('resize', reposition)
+    }
+  }, [open, actions.length])
+
   return (
     <div ref={wrapper} className="relative">
       <button
-        onClick={event => { event.stopPropagation(); setOpen(v => !v) }}
+        ref={button}
+        onClick={event => { event.stopPropagation(); toggle() }}
         aria-label={label}
         aria-expanded={open}
         aria-haspopup="menu"
@@ -92,13 +155,19 @@ export default function ContentActionMenu({
         <MoreHorizontal className="h-4 w-4" />
       </button>
 
-      {open && (
+      {open && coords && createPortal(
         <div
+          ref={menu}
           role="menu"
-          // z-30, the popover tier (DESIGN_SYSTEM.md §6). Above the card, below
-          // any dialog an item opens.
-          className="absolute right-0 z-30 mt-1 w-56 overflow-hidden rounded-xl border
-            border-neutral-800 bg-neutral-900 py-1 shadow-xl shadow-black/50"
+          style={{ top: coords.top, left: coords.left, width: MENU_WIDTH }}
+          // Fixed and portalled, so no ancestor can clip it.
+          //
+          // z-[55] rather than the popover tier: this opens from inside a dialog,
+          // and DESIGN_SYSTEM.md §6 puts dialogs at z-50. It sits in the gap
+          // between the modal layer and toasts (z-60), which keeps a toast about
+          // the action visible above the menu that triggered it.
+          className="fixed z-[55] overflow-hidden rounded-xl border border-neutral-800
+            bg-neutral-900 py-1 shadow-xl shadow-black/50"
         >
           {actions.map(action => {
             const Icon = ICONS[action.key]
@@ -119,7 +188,8 @@ export default function ContentActionMenu({
               </button>
             )
           })}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )

@@ -59,7 +59,10 @@ class Comment(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='comments')
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
-    content = models.TextField()
+    # blank=True so a comment can be an image with no words, the same way Post
+    # allows an image-only post.
+    content = models.TextField(blank=True, default='')
+    image = models.ImageField(upload_to='comment_images/', blank=True, null=True)
     like_count = models.IntegerField(default=0)
     is_edited = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
