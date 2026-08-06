@@ -47,7 +47,7 @@ nginx :443  ── /            → frontend/dist        (React SPA, static)
             ── /media/      → backend/media        (user uploads)
             ── /static/     → backend/staticfiles  (Django admin assets)
             ── /api/    ┐
-            ── /admin/  ├─→ 127.0.0.1:8000  daphne (ASGI)
+            ── /django-admin/ ├─→ 127.0.0.1:8000  daphne (ASGI)
             ── /ws/     ┘   └─ WebSockets: Upgrade headers + 1h timeouts
                                 └─ Channels → Redis (127.0.0.1:6379)
                                 └─ Django   → Neon Postgres

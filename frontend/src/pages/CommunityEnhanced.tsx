@@ -274,6 +274,22 @@ function OrgAdminPanel({ org, onUpdate }: { org: Organization; onUpdate: () => v
 }
 
 // Group Post Card Component with Comments and Replies
+/**
+ * Ownership, decided only when BOTH ids are known.
+ *
+ * These compared `a?.id?.toString() === b?.id?.toString()`, so when both sides
+ * were undefined — an auth context still loading, or a payload without a nested
+ * author id — `undefined === undefined` came out true and the viewer was treated
+ * as the author of everything. That is how a menu ends up offering Delete on
+ * someone else's comment. The API refuses it, so nothing was lost, but the menu
+ * should not offer what the server will reject.
+ */
+function sameUser(a: any, b: any) {
+  const mine = a?.id
+  const theirs = b?.id
+  return !!mine && !!theirs && String(mine) === String(theirs)
+}
+
 function GroupPostCard({
   post,
   onLike,
@@ -328,7 +344,7 @@ function GroupPostCard({
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
   const [editedCommentContent, setEditedCommentContent] = useState('')
 
-  const isPostAuthor = currentUser?.id?.toString() === post.author.id?.toString()
+  const isPostAuthor = sameUser(currentUser, post.author)
 
   const fetchComments = async () => {
     try {
@@ -462,9 +478,7 @@ function GroupPostCard({
     setEditedCommentContent('')
   }
 
-  const isCommentAuthor = (comment: Comment) => {
-    return currentUser?.id?.toString() === comment.author.id?.toString()
-  }
+  const isCommentAuthor = (comment: Comment) => sameUser(currentUser, comment.author)
 
   const handleReply = async (parentCommentId: string) => {
     const content = replyInputs[parentCommentId]
@@ -2062,14 +2076,10 @@ export default function CommunityEnhanced() {
     setEditedPostContent('')
   }
 
-  const isPostAuthor = (post: Post) => {
-    return user?.id?.toString() === post.author.id?.toString()
-  }
+  const isPostAuthor = (post: Post) => sameUser(user, post.author)
 
   // Comment edit/delete handlers for main feed
-  const isCommentAuthor = (comment: Comment) => {
-    return user?.id?.toString() === comment.author.id?.toString()
-  }
+  const isCommentAuthor = (comment: Comment) => sameUser(user, comment.author)
 
   const handleDeleteComment = async (postId: string, commentId: string) => {
     if (!confirm('Are you sure you want to delete this comment?')) return

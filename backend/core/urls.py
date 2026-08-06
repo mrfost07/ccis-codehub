@@ -23,7 +23,14 @@ urlpatterns = [
     path('api/admin/analytics/', admin_analytics, name='admin-analytics'),
     path('api/admin/projects/', admin_projects, name='admin-projects'),
     path('api/admin/tasks/', admin_tasks, name='admin-tasks'),
-    path('admin/', admin.site.urls),
+    # /django-admin/, not /admin/.
+    #
+    # The SPA owns /admin — that is the platform's own admin dashboard. While
+    # Django sat on /admin/, nginx's prefix location 301'd /admin to /admin/ and
+    # Django then 302'd to its login, so refreshing the dashboard threw you into
+    # Django's admin instead. Client-side navigation worked, which is why it only
+    # showed up on a reload.
+    path('django-admin/', admin.site.urls),
     
     # API Documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
