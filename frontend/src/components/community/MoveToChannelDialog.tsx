@@ -41,7 +41,13 @@ export default function MoveToChannelDialog({
     api.get('/community/chat/rooms/')
       .then(response => {
         if (cancelled) return
-        setRooms(response.data?.results ?? response.data ?? [])
+        const all: Room[] = response.data?.results ?? response.data ?? []
+        // Community chat channels only. /chat/rooms/ returns everything the user
+        // can read, which includes every project and task channel — a list with
+        // "stfu" and "efef" in it is noise when you meant the program channels.
+        // room_type is set for the global rooms (GLOBAL/CS/IT/IS) and null for the
+        // project- and task-scoped ones.
+        setRooms(all.filter(room => !!room.room_type))
       })
       .catch(() => { if (!cancelled) setRooms([]) })
     return () => { cancelled = true }

@@ -85,7 +85,8 @@ export default function ContentActionMenu({
         aria-label={label}
         aria-expanded={open}
         aria-haspopup="menu"
-        className="flex h-9 w-9 items-center justify-center rounded-lg text-neutral-400
+        // 44px on touch per DESIGN_SYSTEM.md §4; smaller only where there is a pointer.
+        className="flex h-11 w-11 sm:h-9 sm:w-9 items-center justify-center rounded-lg text-neutral-400
           transition-colors hover:bg-neutral-800 hover:text-white"
       >
         <MoreHorizontal className="h-4 w-4" />
