@@ -10,6 +10,9 @@ import { Heart, MessageCircle, Share2, Image, Send, X, Reply, ChevronDown, Chevr
 import { useAuth } from '../contexts/AuthContext'
 import { getMediaUrl } from '../utils/mediaUrl'
 import { Skeleton, SkeletonListRow, Modal, Button } from '../components/ui'
+import ContentActionMenu, { buildContentActions } from '../components/community/ContentActionMenu'
+import ReportDialog from '../components/community/ReportDialog'
+import MoveToChannelDialog from '../components/community/MoveToChannelDialog'
 import Reactors from '../components/Reactors'
 
 interface Author {
@@ -291,9 +294,34 @@ function GroupPostCard({
   const [showReplies, setShowReplies] = useState<{ [key: string]: boolean }>({})
 
   // Post menu state
-  const [showPostMenu, setShowPostMenu] = useState(false)
   const [isEditingPost, setIsEditingPost] = useState(false)
   const [editedPostContent, setEditedPostContent] = useState(post.content)
+  // Dialog state is local rather than threaded down from the page: both dialogs
+  // call the API themselves, and Modal portals to the body, so nothing is gained
+  // by hoisting it.
+  const [reportOpen, setReportOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
+
+  const copyPostLink = async (postId: string) => {
+    const url = `${window.location.origin}/community/posts/${postId}`
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success('Link copied')
+    } catch {
+      toast.error(`Could not copy. The link is ${url}`)
+    }
+  }
+
+  const toggleComments = async () => {
+    const next = !(post as any).comments_disabled
+    try {
+      await communityAPI.updatePost(post.id, { comments_disabled: next })
+      toast.success(next ? 'Comments turned off' : 'Comments turned back on')
+      onRefresh()
+    } catch {
+      toast.error('Could not change that. Try again.')
+    }
+  }
 
   // Comment menu state
   const [showCommentMenu, setShowCommentMenu] = useState<{ [key: string]: boolean }>({})
@@ -356,13 +384,11 @@ function GroupPostCard({
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to delete post')
     }
-    setShowPostMenu(false)
   }
 
   const handleEditPost = () => {
     setEditedPostContent(post.content)
     setIsEditingPost(true)
-    setShowPostMenu(false)
   }
 
   const handleSavePostEdit = async () => {
@@ -384,6 +410,19 @@ function GroupPostCard({
   }
 
   // Comment edit/delete handlers
+  const copyCommentLink = async (comment: Comment) => {
+    // A comment has no page of its own, so the link is the post plus a hash.
+    const url = `${window.location.origin}/community/posts/${post.id}#comment-${comment.id}`
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success('Link copied')
+    } catch {
+      toast.error(`Could not copy. The link is ${url}`)
+    }
+  }
+
+  const [commentReportId, setCommentReportId] = useState<string | null>(null)
+
   const handleDeleteComment = async (commentId: string) => {
     if (!confirm('Are you sure you want to delete this comment?')) return
 
@@ -504,9 +543,9 @@ function GroupPostCard({
 
   const profilePicUrl = getProfilePic(post.author)
 
-  // Close menu when clicking outside
+  // ContentActionMenu handles its own outside-click and Escape, so this only
+  // still clears the legacy comment-menu map.
   const handleClickOutside = () => {
-    setShowPostMenu(false)
     setShowCommentMenu({})
   }
 
@@ -529,39 +568,28 @@ function GroupPostCard({
           </div>
         </div>
 
-        {/* 3-dot menu for post owner */}
-        {isPostAuthor && (
-          <div className="relative">
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowPostMenu(!showPostMenu) }}
-              className="p-1 rounded-full hover:bg-neutral-700 transition"
-            >
-              <MoreVertical className="w-5 h-5 text-neutral-400" />
-            </button>
-
-            {showPostMenu && (
-              <div
-                className="absolute right-0 mt-1 w-32 bg-neutral-800 border border-neutral-700 rounded-lg shadow-xl z-50"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  onClick={handleEditPost}
-                  className="w-full px-3 py-2 text-left text-sm text-neutral-300 hover:bg-neutral-700 flex items-center gap-2 rounded-t-lg"
-                >
-                  <Edit3 className="w-4 h-4" />
-                  Edit
-                </button>
-                <button
-                  onClick={handleDeletePost}
-                  className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-neutral-700 flex items-center gap-2 rounded-b-lg"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Delete
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+        {/*
+          The same shared menu as the main feed. This copy offered edit and delete
+          to the author only, on the modal layer (z-50), and had already drifted
+          from the other one on width and rounding.
+        */}
+        <div onClick={e => e.stopPropagation()}>
+          <ContentActionMenu
+            label="Post actions"
+            actions={buildContentActions({
+              kind: 'post',
+              canEdit: isPostAuthor,
+              canDelete: isPostAuthor || currentUser?.role === 'admin',
+              commentsDisabled: !!(post as any).comments_disabled,
+              onCopyLink: () => copyPostLink(post.id),
+              onReport: () => setReportOpen(true),
+              onDelete: handleDeletePost,
+              onMoveToChannel: () => setShareOpen(true),
+              onEdit: handleEditPost,
+              onToggleComments: toggleComments,
+            })}
+          />
+        </div>
       </div>
 
       {/* Post Content - Edit Mode or Display */}
@@ -654,7 +682,16 @@ function GroupPostCard({
       {/* Comments Section */}
       {showComments && (
         <div className="mt-4 pt-4 border-t border-neutral-700">
-          {/* Add Comment Form — pill input with inline send */}
+          {/*
+            Said, rather than a composer that accepts text and then fails. The
+            server refuses these too — this only saves the typing.
+          */}
+          {(post as any).comments_disabled ? (
+            <p className="mb-4 rounded-lg border border-neutral-800 bg-neutral-900/60 px-3 py-2.5 text-xs text-neutral-400">
+              The author has turned off comments for this post.
+            </p>
+          ) : (
+          /* Add Comment Form — pill input with inline send */
           <form onSubmit={handleAddComment} className="relative mb-4">
             <input
               type="text"
@@ -672,6 +709,7 @@ function GroupPostCard({
               <Send className="w-4 h-4" />
             </button>
           </form>
+          )}
 
           {/* Comments List */}
           {loadingComments ? (
@@ -706,39 +744,21 @@ function GroupPostCard({
                             <div className="flex items-center gap-2">
                               <span className="text-neutral-600 text-[11px] tabular-nums">{timeAgo(comment.created_at)}</span>
 
-                              {/* 3-dot menu for comment owner */}
-                              {isCommentAuthor(comment) && (
-                                <div className="relative">
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); setShowCommentMenu({ ...showCommentMenu, [comment.id]: !showCommentMenu[comment.id] }) }}
-                                    className="p-0.5 rounded hover:bg-neutral-700 transition"
-                                  >
-                                    <MoreVertical className="w-4 h-4 text-neutral-400" />
-                                  </button>
-
-                                  {showCommentMenu[comment.id] && (
-                                    <div
-                                      className="absolute right-0 mt-1 w-32 bg-neutral-900 border border-neutral-700/60 rounded-xl shadow-xl shadow-black/40 z-30 p-1 animate-scale-in origin-top-right"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <button
-                                        onClick={() => handleEditComment(comment)}
-                                        className="w-full px-2 py-1.5 text-left text-xs text-neutral-300 hover:bg-neutral-600 flex items-center gap-2 rounded-t-lg"
-                                      >
-                                        <Edit3 className="w-3 h-3" />
-                                        Edit
-                                      </button>
-                                      <button
-                                        onClick={() => handleDeleteComment(comment.id)}
-                                        className="w-full px-2 py-1.5 text-left text-xs text-red-400 hover:bg-neutral-600 flex items-center gap-2 rounded-b-lg"
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                        Delete
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
+                              {/* Shared menu. Was edit/delete for the author only, in four places. */}
+                              <div onClick={e => e.stopPropagation()}>
+                                <ContentActionMenu
+                                  label="Comment actions"
+                                  actions={buildContentActions({
+                                    kind: 'comment',
+                                    canEdit: isCommentAuthor(comment),
+                                    canDelete: isCommentAuthor(comment) || currentUser?.role === 'admin',
+                                    onCopyLink: () => copyCommentLink(comment),
+                                    onReport: () => setCommentReportId(comment.id),
+                                    onDelete: () => handleDeleteComment(comment.id),
+                                    onEdit: () => handleEditComment(comment),
+                                  })}
+                                />
+                              </div>
                             </div>
                           </div>
 
@@ -857,39 +877,21 @@ function GroupPostCard({
                                           <div className="flex items-center gap-2">
                                             <span className="text-neutral-500 text-xs">{new Date(reply.created_at).toLocaleDateString()}</span>
 
-                                            {/* 3-dot menu for reply owner */}
-                                            {isCommentAuthor(reply) && (
-                                              <div className="relative">
-                                                <button
-                                                  onClick={(e) => { e.stopPropagation(); setShowCommentMenu({ ...showCommentMenu, [reply.id]: !showCommentMenu[reply.id] }) }}
-                                                  className="p-0.5 rounded hover:bg-neutral-600 transition"
-                                                >
-                                                  <MoreVertical className="w-3 h-3 text-neutral-400" />
-                                                </button>
-
-                                                {showCommentMenu[reply.id] && (
-                                                  <div
-                                                    className="absolute right-0 mt-1 w-24 bg-neutral-700 border border-neutral-600 rounded-lg shadow-xl z-50"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                  >
-                                                    <button
-                                                      onClick={() => handleEditComment(reply)}
-                                                      className="w-full px-2 py-1 text-left text-xs text-neutral-300 hover:bg-neutral-600 flex items-center gap-1 rounded-t-lg"
-                                                    >
-                                                      <Edit3 className="w-3 h-3" />
-                                                      Edit
-                                                    </button>
-                                                    <button
-                                                      onClick={() => handleDeleteComment(reply.id)}
-                                                      className="w-full px-2 py-1 text-left text-xs text-red-400 hover:bg-neutral-600 flex items-center gap-1 rounded-b-lg"
-                                                    >
-                                                      <Trash2 className="w-3 h-3" />
-                                                      Delete
-                                                    </button>
-                                                  </div>
-                                                )}
-                                              </div>
-                                            )}
+                                            {/* Shared menu. Was edit/delete for the author only, in four places. */}
+                                            <div onClick={e => e.stopPropagation()}>
+                                              <ContentActionMenu
+                                                label="Comment actions"
+                                                actions={buildContentActions({
+                                                  kind: 'comment',
+                                                  canEdit: isCommentAuthor(reply),
+                                                  canDelete: isCommentAuthor(reply) || currentUser?.role === 'admin',
+                                                  onCopyLink: () => copyCommentLink(reply),
+                                                  onReport: () => setCommentReportId(reply.id),
+                                                  onDelete: () => handleDeleteComment(reply.id),
+                                                  onEdit: () => handleEditComment(reply),
+                                                })}
+                                              />
+                                            </div>
                                           </div>
                                         </div>
 
@@ -992,6 +994,25 @@ function GroupPostCard({
           )}
         </div>
       )}
+
+      {/* Opened from this card's action menu. */}
+      <ReportDialog
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        targetType="post"
+        targetId={post.id}
+      />
+      <ReportDialog
+        open={commentReportId !== null}
+        onClose={() => setCommentReportId(null)}
+        targetType="comment"
+        targetId={commentReportId ?? ''}
+      />
+      <MoveToChannelDialog
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        postId={post.id}
+      />
     </div>
   )
 }
@@ -1547,7 +1568,6 @@ export default function CommunityEnhanced() {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null)
 
   // Post edit/delete state for main feed
-  const [showPostMenu, setShowPostMenu] = useState<{ [key: string]: boolean }>({})
   const [editingPostId, setEditingPostId] = useState<string | null>(null)
   const [editedPostContent, setEditedPostContent] = useState('')
 
@@ -1962,6 +1982,47 @@ export default function CommunityEnhanced() {
     }
   }
 
+  /**
+   * The rest of the action menu, shared by posts and comments.
+   *
+   * Kept beside the existing edit/delete handlers so there is one place that owns
+   * what a menu item does, rather than a copy per surface.
+   */
+  const postUrl = (postId: string) => `${window.location.origin}/community/posts/${postId}`
+  /** A comment has no page of its own, so it is the post plus a hash. */
+  const commentUrl = (postId: string, commentId: string) =>
+    `${postUrl(postId)}#comment-${commentId}`
+
+  const handleCopyLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success('Link copied')
+    } catch {
+      // Clipboard access is refused on an insecure origin and in some embedded
+      // browsers. Showing the link is better than a silent failure.
+      toast.error(`Could not copy. The link is ${url}`)
+    }
+  }
+
+  const handleToggleComments = async (post: Post) => {
+    const next = !(post as any).comments_disabled
+    try {
+      await communityAPI.updatePost(post.id, { comments_disabled: next })
+      setPosts(prev => prev.map(p =>
+        p.id === post.id ? ({ ...p, comments_disabled: next } as Post) : p,
+      ))
+      toast.success(next ? 'Comments turned off' : 'Comments turned back on')
+    } catch {
+      toast.error('Could not change that. Try again.')
+    }
+  }
+
+  /** Which post or comment a dialog is currently open for. */
+  const [reportTarget, setReportTarget] = useState<
+    { type: 'post' | 'comment'; id: string } | null
+  >(null)
+  const [shareTargetId, setShareTargetId] = useState<string | null>(null)
+
   // Post edit/delete handlers for main feed
   const handleDeletePost = async (postId: string) => {
     if (!confirm('Are you sure you want to delete this post?')) return
@@ -1973,13 +2034,11 @@ export default function CommunityEnhanced() {
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to delete post')
     }
-    setShowPostMenu({ ...showPostMenu, [postId]: false })
   }
 
   const handleEditPost = (post: Post) => {
     setEditingPostId(post.id)
     setEditedPostContent(post.content)
-    setShowPostMenu({ ...showPostMenu, [post.id]: false })
   }
 
   const handleSavePostEdit = async (postId: string) => {
@@ -2658,37 +2717,26 @@ export default function CommunityEnhanced() {
                       </div>
 
                       <div className="flex items-center gap-2">
-
-                        {/* 3-dot menu for post owner */}
-                        {isPostAuthor(post) && (
-                          <div className="relative">
-                            <button
-                              onClick={() => setShowPostMenu({ ...showPostMenu, [post.id]: !showPostMenu[post.id] })}
-                              className="p-1 rounded-full hover:bg-neutral-700 transition"
-                            >
-                              <MoreVertical className="w-5 h-5 text-neutral-400" />
-                            </button>
-
-                            {showPostMenu[post.id] && (
-                              <div className="absolute right-0 mt-1 w-36 bg-neutral-900 border border-neutral-700/60 rounded-xl shadow-xl shadow-black/40 z-30 p-1 animate-scale-in origin-top-right">
-                                <button
-                                  onClick={() => handleEditPost(post)}
-                                  className="w-full px-3 py-2 text-left text-sm text-neutral-300 hover:bg-neutral-800 hover:text-white flex items-center gap-2 rounded-lg transition-colors"
-                                >
-                                  <Edit3 className="w-4 h-4" />
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => handleDeletePost(post.id)}
-                                  className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2 rounded-lg transition-colors"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                  Delete
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                        {/*
+                          The full menu, for everyone. It used to render only for
+                          the author, so nobody else could copy a link or report
+                          anything — the two items a reader most needs.
+                        */}
+                        <ContentActionMenu
+                          label="Post actions"
+                          actions={buildContentActions({
+                            kind: 'post',
+                            canEdit: isPostAuthor(post),
+                            canDelete: isPostAuthor(post) || user?.role === 'admin',
+                            commentsDisabled: !!(post as any).comments_disabled,
+                            onCopyLink: () => handleCopyLink(postUrl(post.id)),
+                            onReport: () => setReportTarget({ type: 'post', id: post.id }),
+                            onDelete: () => handleDeletePost(post.id),
+                            onMoveToChannel: () => setShareTargetId(post.id),
+                            onEdit: () => handleEditPost(post),
+                            onToggleComments: () => handleToggleComments(post),
+                          })}
+                        />
                       </div>
                     </div>
 
@@ -2825,6 +2873,13 @@ export default function CommunityEnhanced() {
                               <span className="text-xs text-white font-semibold">{user?.username?.charAt(0).toUpperCase() || 'U'}</span>
                             )}
                           </div>
+                          {(post as any).comments_disabled ? (
+                            /* Said, rather than a composer that takes text and then
+                               fails. The server refuses these too. */
+                            <p className="flex-1 rounded-full border border-neutral-800 bg-neutral-900/60 px-4 py-2 text-xs text-neutral-400">
+                              The author has turned off comments for this post.
+                            </p>
+                          ) : (
                           <div className="relative flex-1">
                             <input
                               type="text"
@@ -2843,6 +2898,7 @@ export default function CommunityEnhanced() {
                               <Send className="w-4 h-4" />
                             </button>
                           </div>
+                          )}
                         </div>
                       }
                     >
@@ -2884,36 +2940,21 @@ export default function CommunityEnhanced() {
                                           {comment.author.username}
                                         </Link>
 
-                                        {/* 3-dot menu for comment owner */}
-                                        {isCommentAuthor(comment) && (
-                                          <div className="relative">
-                                            <button
-                                              onClick={() => setShowCommentMenu({ ...showCommentMenu, [comment.id]: !showCommentMenu[comment.id] })}
-                                              className="p-1 rounded hover:bg-neutral-700 transition"
-                                            >
-                                              <MoreVertical className="w-4 h-4 text-neutral-400" />
-                                            </button>
-
-                                            {showCommentMenu[comment.id] && (
-                                              <div className="absolute right-0 mt-1 w-32 bg-neutral-900 border border-neutral-700/60 rounded-xl shadow-xl shadow-black/40 z-30 p-1 animate-scale-in origin-top-right">
-                                                <button
-                                                  onClick={() => handleEditComment(comment)}
-                                                  className="w-full px-2.5 py-1.5 text-left text-xs text-neutral-300 hover:bg-neutral-800 hover:text-white flex items-center gap-2 rounded-lg transition-colors"
-                                                >
-                                                  <Edit3 className="w-3 h-3" />
-                                                  Edit
-                                                </button>
-                                                <button
-                                                  onClick={() => handleDeleteComment(post.id, comment.id)}
-                                                  className="w-full px-2.5 py-1.5 text-left text-xs text-red-400 hover:bg-red-500/10 flex items-center gap-2 rounded-lg transition-colors"
-                                                >
-                                                  <Trash2 className="w-3 h-3" />
-                                                  Delete
-                                                </button>
-                                              </div>
-                                            )}
-                                          </div>
-                                        )}
+                                        {/* Shared menu. Was edit/delete for the author only, in four places. */}
+                                        <div onClick={e => e.stopPropagation()}>
+                                          <ContentActionMenu
+                                            label="Comment actions"
+                                            actions={buildContentActions({
+                                              kind: 'comment',
+                                              canEdit: isCommentAuthor(comment),
+                                              canDelete: isCommentAuthor(comment) || user?.role === 'admin',
+                                              onCopyLink: () => handleCopyLink(commentUrl(post.id, comment.id)),
+                                              onReport: () => setReportTarget({ type: 'comment', id: comment.id }),
+                                              onDelete: () => handleDeleteComment(post.id, comment.id),
+                                              onEdit: () => handleEditComment(comment),
+                                            })}
+                                          />
+                                        </div>
                                       </div>
 
                                       {/* Comment Content - Edit Mode or Display */}
@@ -3046,36 +3087,21 @@ export default function CommunityEnhanced() {
                                                         {reply.author.username}
                                                       </Link>
 
-                                                      {/* 3-dot menu for reply owner */}
-                                                      {isCommentAuthor(reply) && (
-                                                        <div className="relative">
-                                                          <button
-                                                            onClick={() => setShowCommentMenu({ ...showCommentMenu, [reply.id]: !showCommentMenu[reply.id] })}
-                                                            className="p-0.5 rounded hover:bg-neutral-700 transition"
-                                                          >
-                                                            <MoreVertical className="w-3 h-3 text-neutral-400" />
-                                                          </button>
-
-                                                          {showCommentMenu[reply.id] && (
-                                                            <div className="absolute right-0 mt-1 w-28 bg-neutral-900 border border-neutral-700/60 rounded-xl shadow-xl shadow-black/40 z-30 p-1 animate-scale-in origin-top-right">
-                                                              <button
-                                                                onClick={() => handleEditComment(reply)}
-                                                                className="w-full px-2.5 py-1.5 text-left text-xs text-neutral-300 hover:bg-neutral-800 hover:text-white flex items-center gap-1.5 rounded-lg transition-colors"
-                                                              >
-                                                                <Edit3 className="w-3 h-3" />
-                                                                Edit
-                                                              </button>
-                                                              <button
-                                                                onClick={() => handleDeleteComment(post.id, reply.id)}
-                                                                className="w-full px-2.5 py-1.5 text-left text-xs text-red-400 hover:bg-red-500/10 flex items-center gap-1.5 rounded-lg transition-colors"
-                                                              >
-                                                                <Trash2 className="w-3 h-3" />
-                                                                Delete
-                                                              </button>
-                                                            </div>
-                                                          )}
-                                                        </div>
-                                                      )}
+                                                      {/* Shared menu. Was edit/delete for the author only, in four places. */}
+                                                      <div onClick={e => e.stopPropagation()}>
+                                                        <ContentActionMenu
+                                                          label="Comment actions"
+                                                          actions={buildContentActions({
+                                                            kind: 'comment',
+                                                            canEdit: isCommentAuthor(reply),
+                                                            canDelete: isCommentAuthor(reply) || user?.role === 'admin',
+                                                            onCopyLink: () => handleCopyLink(commentUrl(post.id, reply.id)),
+                                                            onReport: () => setReportTarget({ type: 'comment', id: reply.id }),
+                                                            onDelete: () => handleDeleteComment(post.id, reply.id),
+                                                            onEdit: () => handleEditComment(reply),
+                                                          })}
+                                                        />
+                                                      </div>
                                                     </div>
 
                                                     {/* Reply Content - Edit Mode or Display */}
@@ -3550,6 +3576,20 @@ export default function CommunityEnhanced() {
           setShowFollowRequests(false)
           fetchPendingCount()
         }}
+      />
+
+      {/* Opened from the action menu. Mounted at the page root so a dialog is
+          never a child of the scrolling card that launched it. */}
+      <ReportDialog
+        open={reportTarget !== null}
+        onClose={() => setReportTarget(null)}
+        targetType={reportTarget?.type ?? 'post'}
+        targetId={reportTarget?.id ?? ''}
+      />
+      <MoveToChannelDialog
+        open={shareTargetId !== null}
+        onClose={() => setShareTargetId(null)}
+        postId={shareTargetId ?? ''}
       />
     </div>
   )
