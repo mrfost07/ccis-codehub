@@ -107,8 +107,10 @@ export default function ContentActionMenu({
                 key={action.key}
                 role="menuitem"
                 onClick={event => { event.stopPropagation(); run(action) }}
-                className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm
-                  transition-colors ${action.destructive
+                // py-3 on touch: py-2.5 around text-sm is a 40px row, and these are
+                // the rows that delete a post.
+                className={`flex w-full items-center gap-3 px-3 py-3 text-left text-sm
+                  sm:py-2.5 transition-colors ${action.destructive
                     ? 'text-red-400 hover:bg-red-500/10'
                     : 'text-neutral-200 hover:bg-neutral-800'}`}
               >
