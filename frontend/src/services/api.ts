@@ -323,6 +323,26 @@ export const communityAPI = {
   updateComment: (id: string, content: string) => api.patch(`/community/comments/${id}/`, { content }),
   deleteComment: (id: string) => api.delete(`/community/comments/${id}/`),
   likeComment: (id: string) => api.post(`/community/comments/${id}/like/`),
+  /** Sends a post into a community chat channel as a message. The post stays. */
+  sharePostToChannel: (id: string, room: string) =>
+    api.post(`/community/posts/${id}/share-to-channel/`, { room }),
+  /**
+   * File a report against a post or a comment.
+   *
+   * targetType, not a ContentType primary key — those differ per database, so a
+   * hardcoded one would point at the wrong model after a rebuild.
+   */
+  reportContent: (targetType: 'post' | 'comment', targetId: string,
+                  reportType: string, reason: string) =>
+    api.post('/community/reports/', {
+      target_type: targetType, target_id: targetId,
+      report_type: reportType, reason,
+    }),
+  /** Moderator queue. status: pending (default) | reviewing | resolved | dismissed | all */
+  getReportQueue: (status = 'pending') =>
+    api.get('/community/reports/queue/', { params: { status } }),
+  resolveReport: (id: string, action: 'resolved' | 'dismissed' | 'reviewing') =>
+    api.post(`/community/reports/${id}/resolve/`, { action }),
   // Replies are Comments with a parent, so this serves replies too.
   getCommentLikers: (id: string, page = 1) =>
     api.get(`/community/comments/${id}/likers/`, { params: { page } }),
