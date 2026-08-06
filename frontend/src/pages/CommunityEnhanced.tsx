@@ -59,6 +59,8 @@ interface Comment {
   is_liked: boolean
   parent?: string
   replies?: Comment[]
+  /** Absolute URL when the comment carries a picture. */
+  image_url?: string | null
 }
 
 interface Organization {
@@ -2153,15 +2155,47 @@ export default function CommunityEnhanced() {
     }
   }
 
+  /** Image chosen for the comment being written on a given post. */
+  const [commentImages, setCommentImages] = useState<{ [key: string]: File }>({})
+
+  const pickCommentImage = (postId: string, file: File | null) => {
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error('That is not an image.')
+      return
+    }
+    setCommentImages(prev => ({ ...prev, [postId]: file }))
+  }
+
+  const clearCommentImage = (postId: string) => {
+    setCommentImages(prev => {
+      const next = { ...prev }
+      delete next[postId]
+      return next
+    })
+  }
+
   const handleComment = async (postId: string) => {
-    const content = commentInputs[postId]
-    if (!content?.trim()) return
+    const content = commentInputs[postId] || ''
+    const image = commentImages[postId]
+    // Words or a picture. The serializer enforces the same rule.
+    if (!content.trim() && !image) return
 
     try {
-      const response = await communityAPI.createComment({
-        post: postId,
-        content: content
-      })
+      let response
+      if (image) {
+        // Multipart, or the file never leaves the browser.
+        const form = new FormData()
+        form.append('post', postId)
+        form.append('content', content)
+        form.append('image', image)
+        response = await communityAPI.createCommentData(form)
+      } else {
+        response = await communityAPI.createComment({
+          post: postId,
+          content: content
+        })
+      }
 
       // Add comment to the post
       setPosts(posts.map(post =>
@@ -2176,6 +2210,7 @@ export default function CommunityEnhanced() {
 
       // Clear input — the dialog shows the full thread, so the new comment is visible
       setCommentInputs({ ...commentInputs, [postId]: '' })
+      clearCommentImage(postId)
       toast.success('Comment posted!')
     } catch (error) {
       console.error('Failed to post comment:', error)
@@ -2851,23 +2886,59 @@ export default function CommunityEnhanced() {
                               The author has turned off comments for this post.
                             </p>
                           ) : (
-                          <div className="relative flex-1">
-                            <input
-                              type="text"
-                              value={commentInputs[post.id] || ''}
-                              onChange={(e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
-                              onKeyPress={(e) => e.key === 'Enter' && handleComment(post.id)}
-                              placeholder="Write a comment…"
-                              className="w-full h-9 rounded-full bg-neutral-800 border border-neutral-700 pl-4 pr-10 text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-purple-500 transition-colors"
-                            />
-                            <button
-                              onClick={() => handleComment(post.id)}
-                              disabled={!commentInputs[post.id]?.trim()}
-                              aria-label="Post comment"
-                              className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-purple-400 hover:bg-neutral-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
-                            >
-                              <Send className="w-4 h-4" />
-                            </button>
+                          <div className="min-w-0 flex-1">
+                            {/* The chosen image, above the field, so it is obvious
+                                it will be sent and easy to change your mind. */}
+                            {commentImages[post.id] && (
+                              <div className="mb-2 flex items-center gap-2 rounded-lg border border-neutral-700 bg-neutral-800/70 p-1.5">
+                                <img
+                                  src={URL.createObjectURL(commentImages[post.id])}
+                                  alt=""
+                                  className="h-10 w-10 rounded object-cover"
+                                />
+                                <span className="min-w-0 flex-1 truncate text-[11px] text-neutral-400">
+                                  {commentImages[post.id].name}
+                                </span>
+                                <button
+                                  onClick={() => clearCommentImage(post.id)}
+                                  aria-label="Remove attached image"
+                                  className="flex h-8 w-8 items-center justify-center rounded text-neutral-400 hover:bg-neutral-700 hover:text-white"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            )}
+                            <div className="relative">
+                              <input
+                                type="text"
+                                value={commentInputs[post.id] || ''}
+                                onChange={(e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
+                                onKeyPress={(e) => e.key === 'Enter' && handleComment(post.id)}
+                                placeholder="Write a comment…"
+                                className="w-full h-9 rounded-full bg-neutral-800 border border-neutral-700 pl-4 pr-20 text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-purple-500 transition-colors"
+                              />
+                              <label
+                                aria-label="Attach an image"
+                                title="Attach an image"
+                                className="absolute right-9 top-1/2 -translate-y-1/2 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-neutral-700 hover:text-neutral-200"
+                              >
+                                <Image className="w-4 h-4" />
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => pickCommentImage(post.id, e.target.files?.[0] ?? null)}
+                                />
+                              </label>
+                              <button
+                                onClick={() => handleComment(post.id)}
+                                disabled={!commentInputs[post.id]?.trim() && !commentImages[post.id]}
+                                aria-label="Post comment"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-purple-400 hover:bg-neutral-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+                              >
+                                <Send className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                           )}
                         </div>
@@ -2956,7 +3027,21 @@ export default function CommunityEnhanced() {
                                           </div>
                                         </div>
                                       ) : (
-                                        <p className="text-sm text-neutral-200 mt-0.5 whitespace-pre-wrap break-words">{comment.content}</p>
+                                        <>
+                                          {/* Content is optional now: a comment may
+                                              be a picture with no words. */}
+                                          {comment.content && (
+                                            <p className="text-sm text-neutral-200 mt-0.5 whitespace-pre-wrap break-words">{comment.content}</p>
+                                          )}
+                                          {comment.image_url && (
+                                            <img
+                                              src={getMediaUrl(comment.image_url ?? undefined) ?? undefined}
+                                              alt=""
+                                              loading="lazy"
+                                              className="mt-1.5 max-h-64 rounded-lg border border-neutral-700 object-contain"
+                                            />
+                                          )}
+                                        </>
                                       )}
                                     </div>
 
