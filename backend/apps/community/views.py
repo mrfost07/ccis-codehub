@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.throttling import UserRateThrottle
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from django.db.models import Q, F, Value, Exists, OuterRef
 from django.db.models.functions import Greatest
 from django.shortcuts import get_object_or_404
@@ -239,6 +240,54 @@ class PostViewSet(viewsets.ModelViewSet):
         post = self.get_object()
         return _paginated_reactors(self, request, PostLike.objects.filter(post=post))
 
+    @action(detail=True, methods=['post'], url_path='share-to-channel',
+            permission_classes=[IsAuthenticated])
+    def share_to_channel(self, request, pk=None):
+        """Send this post into a community chat channel.
+
+        A share, not a move: the post stays where it is. Re-parenting it would
+        leave its comments, likes and image behind, and "move" is not worth
+        losing those.
+
+        Body: {"room": "<chat room id>"}
+
+        The room must be one the sharer can read — otherwise this becomes a way to
+        write into a channel you have no access to.
+        """
+        post = self.get_object()
+        room_id = request.data.get('room')
+        if not room_id:
+            raise ValidationError({'room': 'A channel id is required.'})
+
+        room = ChatRoom.objects.readable_by(request.user).filter(id=room_id).first()
+        if room is None:
+            raise PermissionDenied('You cannot post in that channel.')
+
+        # Imported here, matching the other call sites in this module.
+        from django.conf import settings
+        from . import broadcast
+
+        excerpt = (post.content or post.title or '').strip()
+        if len(excerpt) > 300:
+            excerpt = excerpt[:300].rstrip() + '…'
+
+        # A plain message with a link. The channel stays a conversation rather than
+        # growing a second renderer for embedded posts.
+        lines = [f'Shared a post by @{post.author.username}']
+        if excerpt:
+            lines.append(excerpt)
+        lines.append(f'{settings.FRONTEND_URL.rstrip("/")}/community/posts/{post.id}')
+
+        message = ChatMessage.objects.create(
+            room=room, sender=request.user, content='\n'.join(lines),
+        )
+        broadcast.message_created(message, ChatMessageSerializer(message).data)
+
+        return Response(
+            {'room': str(room.id), 'room_name': room.name, 'message_id': str(message.id)},
+            status=status.HTTP_201_CREATED,
+        )
+
     @action(detail=True, methods=['get'])
     def comments(self, request, pk=None):
         """Get all comments for a post"""
@@ -373,6 +422,12 @@ class CommentViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         """Create comment with current user as author"""
+        # Refused server-side, not just hidden in the UI. The author turned
+        # commenting off; a client that keeps posting anyway must not get through.
+        post = serializer.validated_data.get('post')
+        if post is not None and post.comments_disabled:
+            raise ValidationError('Comments are turned off for this post.')
+
         comment = serializer.save(author=self.request.user)
         
         # Update post comment count
@@ -951,6 +1006,128 @@ class ReportViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Create report with current user as reporter"""
         serializer.save(reporter=self.request.user)
+
+    @action(detail=False, methods=['get'], url_path='queue')
+    def queue(self, request):
+        """The moderator queue: reports with enough context to act on.
+
+        A report is a generic relation, so on its own a row says "post
+        f3a2… was reported for spam" and a moderator has to go and find it. This
+        resolves the target and returns the author and an excerpt alongside.
+
+        ?status=  pending (default) | reviewing | resolved | dismissed | all
+        """
+        if not request.user.is_staff:
+            return Response(
+                {'detail': 'Moderator access required.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        wanted = request.query_params.get('status', 'pending')
+        reports = Report.objects.select_related(
+            'reporter', 'moderator', 'reported_content_type',
+        )
+        if wanted != 'all':
+            reports = reports.filter(status=wanted)
+        reports = list(reports.order_by('-created_at')[:200])
+
+        # Targets fetched per model in one query each, rather than per report.
+        # GenericForeignKey has no join, so touching report.reported_object in a
+        # loop is a query per row.
+        wanted_ids = {}
+        for report in reports:
+            model = getattr(report.reported_content_type, 'model', None)
+            wanted_ids.setdefault(model, set()).add(report.reported_object_id)
+
+        posts = {
+            str(p.id): p for p in Post.objects.filter(
+                id__in=wanted_ids.get('post', ()),
+            ).select_related('author')
+        }
+        comments = {
+            str(c.id): c for c in Comment.objects.filter(
+                id__in=wanted_ids.get('comment', ()),
+            ).select_related('author', 'post')
+        }
+
+        def described(report):
+            model = getattr(report.reported_content_type, 'model', None)
+            key = str(report.reported_object_id)
+            if model == 'post':
+                target = posts.get(key)
+                if target is None:
+                    return None
+                return {
+                    'type': 'post',
+                    'id': key,
+                    'author': AuthorSerializer(target.author, context={'request': request}).data,
+                    'excerpt': (target.content or target.title or '')[:280],
+                    'image': target.image.url if target.image else None,
+                    'created_at': target.created_at,
+                }
+            if model == 'comment':
+                target = comments.get(key)
+                if target is None:
+                    return None
+                return {
+                    'type': 'comment',
+                    'id': key,
+                    'author': AuthorSerializer(target.author, context={'request': request}).data,
+                    'excerpt': (target.content or '')[:280],
+                    'image': None,
+                    'post_id': str(target.post_id),
+                    'created_at': target.created_at,
+                }
+            return None
+
+        rows = []
+        for report in reports:
+            rows.append({
+                'id': str(report.id),
+                'report_type': report.report_type,
+                'reason': report.reason,
+                'status': report.status,
+                'created_at': report.created_at,
+                'reporter': AuthorSerializer(report.reporter, context={'request': request}).data,
+                'moderator': (
+                    AuthorSerializer(report.moderator, context={'request': request}).data
+                    if report.moderator_id else None
+                ),
+                # None when the target has since been deleted. Reported rather than
+                # hidden: "the thing was removed" is a legitimate outcome and the
+                # report should still be closable.
+                'target': described(report),
+            })
+
+        return Response({'results': rows, 'count': len(rows)})
+
+    @action(detail=True, methods=['post'])
+    def resolve(self, request, pk=None):
+        """Close a report as actioned or dismissed.
+
+        ?/body action= resolved | dismissed | reviewing
+        """
+        if not request.user.is_staff:
+            return Response(
+                {'detail': 'Moderator access required.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        report = get_object_or_404(Report, pk=pk)
+        outcome = request.data.get('action', 'resolved')
+        if outcome not in ('resolved', 'dismissed', 'reviewing'):
+            return Response(
+                {'detail': 'action must be resolved, dismissed or reviewing.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        report.status = outcome
+        report.moderator = request.user
+        # Only a terminal outcome stamps a time; 'reviewing' means still open.
+        report.resolved_at = timezone.now() if outcome != 'reviewing' else None
+        report.save(update_fields=['status', 'moderator', 'resolved_at'])
+
+        return Response(ReportSerializer(report, context={'request': request}).data)
 
 
 # Chat ViewSets

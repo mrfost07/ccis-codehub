@@ -30,6 +30,10 @@ class Post(models.Model):
     post_type = models.CharField(max_length=20, choices=POST_TYPE_CHOICES, default='text')
     is_pinned = models.BooleanField(default=False)
     is_locked = models.BooleanField(default=False)
+    # Author (or a moderator) has turned commenting off. Distinct from is_locked,
+    # which is a moderation state for the whole post; this is the author's own
+    # switch and leaves existing comments visible.
+    comments_disabled = models.BooleanField(default=False)
     like_count = models.IntegerField(default=0)
     comment_count = models.IntegerField(default=0)
     view_count = models.IntegerField(default=0)

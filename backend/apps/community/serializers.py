@@ -58,6 +58,9 @@ class PostSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'author', 'organization', 'organization_data', 'title', 'content', 'code_snippet',
             'image', 'image_url', 'post_type', 'is_pinned', 'is_locked',
+            # Writable: it is the author's own switch, applied through the ordinary
+            # PATCH that the viewset already restricts to the author or an admin.
+            'comments_disabled',
             'like_count', 'comment_count', 'view_count',
             'is_liked', 'tags', 'created_at', 'updated_at'
         ]
@@ -213,20 +216,63 @@ class NotificationSerializer(serializers.ModelSerializer):
 
 
 class ReportSerializer(serializers.ModelSerializer):
-    """Serializer for Report model"""
+    """Serializer for Report model.
+
+    Reporting is driven from a menu on a post or a comment, so the client sends
+    `target_type: 'post' | 'comment'` and `target_id`. Asking a UI for a
+    ContentType primary key means hardcoding database ids in the frontend, which
+    differ between environments.
+    """
     reporter = AuthorSerializer(read_only=True)
-    
+
+    TARGET_MODELS = {'post': 'post', 'comment': 'comment'}
+
+    target_type = serializers.ChoiceField(
+        choices=list(TARGET_MODELS), write_only=True, required=True,
+    )
+    target_id = serializers.UUIDField(write_only=True, required=True)
+    # Echoed back so a client does not have to resolve the ContentType to know
+    # what a report it just filed points at.
+    target = serializers.SerializerMethodField()
+
     class Meta:
         model = Report
         fields = [
             'id', 'reporter', 'reported_content_type', 'reported_object_id',
+            'target_type', 'target_id', 'target',
             'report_type', 'reason', 'status', 'moderator',
             'created_at', 'resolved_at'
         ]
         read_only_fields = [
-            'id', 'reporter', 'status', 'moderator',
-            'created_at', 'resolved_at'
+            'id', 'reporter', 'reported_content_type', 'reported_object_id',
+            'status', 'moderator', 'created_at', 'resolved_at'
         ]
+
+    def get_target(self, obj):
+        model = getattr(obj.reported_content_type, 'model', None)
+        return {'type': model, 'id': str(obj.reported_object_id)}
+
+    def validate(self, attrs):
+        """Resolve the friendly target into the generic relation.
+
+        Also checks the object exists. Without this a typo files a report that
+        points at nothing, and the moderator queue shows a row it cannot render.
+        """
+        from django.contrib.contenttypes.models import ContentType
+
+        target_type = attrs.pop('target_type')
+        target_id = attrs.pop('target_id')
+
+        model_name = self.TARGET_MODELS[target_type]
+        content_type = ContentType.objects.get(app_label='community', model=model_name)
+        if not content_type.model_class().objects.filter(pk=target_id).exists():
+            raise serializers.ValidationError(
+                {'target_id': f'No {target_type} with that id.'},
+            )
+
+        attrs['reported_content_type'] = content_type
+        attrs['reported_object_id'] = target_id
+        return attrs
 
 
 class UserFollowSerializer(serializers.ModelSerializer):
