@@ -128,6 +128,30 @@ class ManifestError(ValueError):
     """A manifest that would produce a path nobody can complete."""
 
 
+def check_questions(questions, where):
+    """Problems in one quiz's questions. Empty list if they are sound."""
+    problems = []
+    for number, question in enumerate(questions, start=1):
+        at = f'{where} Q{number}'
+        choices = ['True', 'False'] if question.get('true_false') else \
+            question.get('choices') or []
+        if len(choices) < 2:
+            problems.append(f'{at}: fewer than two choices')
+        correct = question.get('correct')
+        if not isinstance(correct, int) or not 0 <= correct < len(choices):
+            # The one that silently produces an unpassable question.
+            problems.append(f'{at}: correct index {correct!r} is not one of its choices')
+        if len(set(choices)) != len(choices):
+            problems.append(f'{at}: duplicate choice text')
+        if any('<' in str(c) for c in choices):
+            # QuizViewer's final capture is [^<]+, so a tag truncates the label
+            # to nothing and the choice renders blank.
+            problems.append(f'{at}: markup in a choice label')
+        if not question.get('text'):
+            problems.append(f'{at}: no question text')
+    return problems
+
+
 def check_manifest(manifest):
     """Problems that must not reach the database. Empty list if it is sound.
 
@@ -148,19 +172,7 @@ def check_manifest(manifest):
         if not quiz or not quiz.get('questions'):
             problems.append(f'{where}: no quiz questions')
             continue
-
-        for number, question in enumerate(quiz['questions'], start=1):
-            at = f'{where} Q{number}'
-            choices = ['True', 'False'] if question.get('true_false') else \
-                question.get('choices') or []
-            if len(choices) < 2:
-                problems.append(f'{at}: fewer than two choices')
-            correct = question.get('correct')
-            if not isinstance(correct, int) or not 0 <= correct < len(choices):
-                # The one that silently produces an unpassable question.
-                problems.append(f'{at}: correct index {correct!r} is not one of its choices')
-            if len(set(choices)) != len(choices):
-                problems.append(f'{at}: duplicate choice text')
+        problems.extend(check_questions(quiz['questions'], where))
     return problems
 
 
