@@ -147,3 +147,71 @@ class CertificateDownload(TestCase):
         self.client.force_authenticate(other)
 
         self.assertEqual(self.fetch().status_code, 404)
+
+
+@override_settings(MEDIA_ROOT=MEDIA)
+class ClaimingACertificate(TestCase):
+    """
+    Claiming from the certificates page must hand over the certificate.
+
+    Finishing the last module renders the file through
+    ModuleViewSet.check_and_award_certificate. Claiming came through
+    CertificateViewSet.check_and_award, which created the row and stopped — so
+    the student got a certificate with no file behind it.
+    """
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(MEDIA, ignore_errors=True)
+        super().tearDownClass()
+
+    def setUp(self):
+        from apps.learning.models import LearningModule, UserProgress
+
+        self.student = User.objects.create_user(
+            username='claim_stu', email='claim@ssct.edu.ph', password='x',
+            role='student', first_name='Kim', last_name='Atuel')
+        self.path = CareerPath.objects.create(
+            name='Python Programming Fundamentals', slug='ppf-claim',
+            description='d', program_type='bscs', difficulty_level='beginner',
+            estimated_duration=6, approval_status='approved', is_active=True)
+        module = LearningModule.objects.create(
+            career_path=self.path, title='M1', description='d', order=0)
+        Enrollment.objects.create(
+            user=self.student, career_path=self.path, status='active')
+        UserProgress.objects.create(
+            user=self.student, career_path=self.path, learning_module=module,
+            is_completed=True, completion_percentage=100)
+
+        self.client = APIClient()
+        self.client.force_authenticate(self.student)
+
+    def claim(self):
+        return self.client.post(
+            '/api/learning/certificates/check_and_award/',
+            {'career_path_id': str(self.path.id)}, format='json')
+
+    def test_claiming_renders_the_file_there_and_then(self):
+        response = self.claim()
+
+        self.assertIn(response.status_code, (200, 201), response.data)
+        certificate = Certificate.objects.get(user=self.student)
+        self.assertTrue(certificate.pdf_url, 'claimed but never rendered')
+        self.assertTrue(os.path.exists(
+            os.path.join(MEDIA, certificate.pdf_url.lstrip('/')[len('media/'):])))
+
+    def test_the_response_carries_the_file_so_the_page_can_show_it(self):
+        # The page renders from the response's pdf_url; empty means it offers
+        # "generate" on a certificate that was just awarded.
+        response = self.claim()
+
+        self.assertTrue(response.data['certificate']['pdf_url'])
+
+    def test_claiming_twice_does_not_re_render(self):
+        self.claim()
+        first = Certificate.objects.get(user=self.student).pdf_url
+
+        second = self.claim()
+
+        self.assertEqual(second.data['created'], False)
+        self.assertEqual(Certificate.objects.get(user=self.student).pdf_url, first)

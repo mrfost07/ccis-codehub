@@ -961,7 +961,25 @@ class CertificateViewSet(viewsets.ReadOnlyModelViewSet):
                 profile.save(update_fields=['certificates_earned'])
             except Exception:
                 pass
-        
+
+        # Render the certificate now. Completing the last module renders it via
+        # ModuleViewSet.check_and_award_certificate, but claiming from the
+        # certificates page comes through here — and used not to render at all,
+        # so a claim produced a row with no file and the page could only offer
+        # to generate it on a second press.
+        if not cert.pdf_url:
+            try:
+                from .utils.certificate_generator import generate_certificate_pdf
+                pdf_path = generate_certificate_pdf(
+                    certificate=cert, career_path=career_path)
+                if pdf_path:
+                    cert.pdf_url = pdf_path
+                    cert.save(update_fields=['pdf_url'])
+            except Exception:
+                # The certificate is still awarded; the page offers to render it.
+                logger.exception('certificate render failed on claim for %s / %s',
+                                 request.user.username, career_path.name)
+
         serializer = self.get_serializer(cert)
         return Response({
             'created': created,
