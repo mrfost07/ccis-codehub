@@ -6,6 +6,8 @@ command reads nothing else, so a path that is not registered cannot be seeded by
 accident, and one that is registered is always seedable.
 """
 from .backend_engineer import MANIFEST as BACKEND_ENGINEER
+from .business_analyst import MANIFEST as BUSINESS_ANALYST
+from .data_analyst import MANIFEST as DATA_ANALYST
 from .data_science import MANIFEST as DATA_SCIENCE
 from .frontend_engineer import MANIFEST as FRONTEND_ENGINEER
 from .full_stack_engineer import MANIFEST as FULL_STACK_ENGINEER
@@ -19,6 +21,8 @@ REGISTRY = {
     FULL_STACK_ENGINEER['slug']: FULL_STACK_ENGINEER,
     NETWORK_ADMINISTRATOR['slug']: NETWORK_ADMINISTRATOR,
     IT_SUPPORT_ENGINEER['slug']: IT_SUPPORT_ENGINEER,
+    BUSINESS_ANALYST['slug']: BUSINESS_ANALYST,
+    DATA_ANALYST['slug']: DATA_ANALYST,
 }
 
 
