@@ -15,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { getMediaUrl } from '../utils/mediaUrl'
 import { LoadingState } from '../components/ui'
 import ChallengeProgress from '../components/profile/ChallengeProgress'
+import ProfileOverview, { ProfileHeadline, type Overview } from '../components/profile/ProfileOverview'
 
 type BackgroundType = 'hyperspeed' | 'akira' | 'golden' | 'split' | 'highway' | 'gradient' | 'aurora' | 'cyber'
 
@@ -230,6 +231,7 @@ export default function ProfileEnhanced() {
   // save the avatar/username stay stale until the next full reload.
   const { refreshUser } = useAuth()
   const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [overview, setOverview] = useState<Overview | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -275,6 +277,11 @@ export default function ProfileEnhanced() {
   useEffect(() => {
     fetchProfile()
     fetchFollowData()
+    // Cross-domain summary, computed from source. Its own request so a slow
+    // count never holds up the profile header.
+    api.get('/auth/profile/overview/')
+      .then(({ data }) => setOverview(data))
+      .catch(() => setOverview(null))
   }, [])
 
   const fetchAchievedSkills = async () => {
@@ -668,37 +675,21 @@ export default function ProfileEnhanced() {
                 </div>
               </div>
 
-              {/* Stats Row */}
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 mt-6 pt-6 border-t border-neutral-800">
-                <button
-                  onClick={() => setShowFollowersModal(true)}
-                  className="text-center hover:bg-neutral-800/50 rounded-lg py-2 transition"
-                >
-                  <p className="text-2xl font-bold text-white tabular-nums">{followers.length}</p>
-                  <p className="text-sm text-neutral-400">Followers</p>
-                </button>
-                <button
-                  onClick={() => setShowFollowingModal(true)}
-                  className="text-center hover:bg-neutral-800/50 rounded-lg py-2 transition"
-                >
-                  <p className="text-2xl font-bold text-white tabular-nums">{following.length}</p>
-                  <p className="text-sm text-neutral-400">Following</p>
-                </button>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-white tabular-nums">{profile?.profile?.total_courses_completed || 0}</p>
-                  <p className="text-sm text-neutral-400">Courses</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-white tabular-nums">{profile?.profile?.total_projects || 0}</p>
-                  <p className="text-sm text-neutral-400">Projects</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-white tabular-nums">{profile?.profile?.contribution_points || 0}</p>
-                  <p className="text-sm text-neutral-400">Points</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-white tabular-nums">{profile?.profile?.certificates_earned || 0}</p>
-                  <p className="text-sm text-neutral-400">Certificates</p>
+              {/* Stats Row — from the overview endpoint. These used to read
+                  denormalised counters on Profile, and they were wrong:
+                  total_courses_completed was 0 for a student with two finished
+                  paths and two certificates. */}
+              <div className="mt-6 border-t border-neutral-800 pt-6">
+                <ProfileHeadline overview={overview} />
+                <div className="mt-2 flex justify-center gap-4 text-xs text-neutral-500">
+                  <button onClick={() => setShowFollowersModal(true)}
+                    className="hover:text-purple-300">
+                    {followers.length} followers
+                  </button>
+                  <button onClick={() => setShowFollowingModal(true)}
+                    className="hover:text-purple-300">
+                    {following.length} following
+                  </button>
                 </div>
               </div>
             </div>
@@ -709,9 +700,9 @@ export default function ProfileEnhanced() {
         <div className="flex gap-1 mb-6 border-b border-neutral-800 overflow-x-auto scrollbar-hide px-4 sm:px-0">
           {[
             { id: 'overview', label: 'Overview' },
-            { id: 'achievements', label: 'Achievements' },
+            { id: 'activity', label: 'Coding' },
             { id: 'skills', label: 'Skills' },
-            { id: 'activity', label: 'Activity' },
+            { id: 'achievements', label: 'Achievements' },
             { id: 'settings', label: 'Settings' },
           ].map((tab) => (
             <button
@@ -743,6 +734,10 @@ export default function ProfileEnhanced() {
           <div className="lg:col-span-2 space-y-6">
             {activeTab === 'overview' && (
               <>
+                {/* Everything this person has done, across learning, projects
+                    and community. */}
+                <ProfileOverview />
+
                 {/* About */}
                 <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
                   <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">

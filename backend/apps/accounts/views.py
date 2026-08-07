@@ -967,3 +967,33 @@ class CreateGoogleAccountView(APIView):
             )
 
 
+
+
+class ProfileOverviewView(APIView):
+    """Learning, challenges, projects and community, in one request.
+
+    Computed from the source tables rather than the denormalised counters on
+    Profile — those read zero for a student with two finished paths, because
+    nothing updates them when a path completes.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from apps.accounts.profile_overview import profile_overview
+        return Response(profile_overview(request.user))
+
+
+class PublicProfileOverviewView(APIView):
+    """Another user's overview, without their marks.
+
+    Same figures as your own profile minus quiz scores — paths finished,
+    challenges solved, projects and community activity are what a profile is
+    for; marks are between a student and their instructor.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, user_id):
+        from django.shortcuts import get_object_or_404
+        from apps.accounts.profile_overview import profile_overview
+        target = get_object_or_404(User, id=user_id, is_active=True)
+        return Response(profile_overview(target, public=True))

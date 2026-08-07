@@ -8,7 +8,8 @@ from .views import (
     UserRegistrationView, UserLoginView, UserProfileView,
     UserViewSet, UserStatsAPIView, PublicUserProfileView, PublicStatsView,
     GoogleOAuthCallbackView, CreateGoogleAccountView,
-    CaptchaChallengeView, VerifyEmailView, ResendVerificationView
+    CaptchaChallengeView, VerifyEmailView, ResendVerificationView,
+    ProfileOverviewView, PublicProfileOverviewView,
 )
 from .admin_views import AdminDashboardView, AdminUsersView, AdminContentView
 
@@ -31,11 +32,14 @@ urlpatterns = [
     # enabled, the response also returns a new refresh token. (Req 20.)
     path('token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
     path('profile/', UserProfileView.as_view(), name='profile'),
+    path('profile/overview/', ProfileOverviewView.as_view(), name='profile-overview'),
     path('stats/', UserStatsAPIView.as_view(), name='user-stats'),
     path('public-stats/', PublicStatsView.as_view(), name='public-stats'),
     
     # Public user profile
     path('user/<uuid:user_id>/', PublicUserProfileView.as_view(), name='public-user-profile'),
+    path('user/<uuid:user_id>/overview/', PublicProfileOverviewView.as_view(),
+         name='public-profile-overview'),
     
     # Admin endpoints
     path('admin/dashboard/', AdminDashboardView.as_view(), name='admin-dashboard'),

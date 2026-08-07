@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
+import ProfileOverview from '../components/profile/ProfileOverview'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   User, Mail, Calendar, BookOpen, Code, Trophy, Star,
@@ -536,10 +537,6 @@ export default function UserProfileView() {
                 <p className="text-lg sm:text-xl font-bold text-white tabular-nums">{profile.profile?.total_posts || 0}</p>
                 <p className="text-xs sm:text-sm text-neutral-400">Posts</p>
               </div>
-              <div className="text-center px-2 py-1 sm:px-3 sm:py-2">
-                <p className="text-lg sm:text-xl font-bold text-white tabular-nums">{profile.profile?.contribution_points || 0}</p>
-                <p className="text-xs sm:text-sm text-neutral-400">Points</p>
-              </div>
             </div>
           </div>
         </div>
@@ -596,31 +593,10 @@ export default function UserProfileView() {
             </div>
           </div>
 
-          {/* Stats */}
-          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-purple-400" />
-              Activity Stats
-            </h2>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-neutral-400">Courses Completed</span>
-                <span className="text-white font-bold">{profile.profile?.total_courses_completed || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-400">Modules Completed</span>
-                <span className="text-white font-bold">{profile.profile?.total_modules_completed || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-400">Projects</span>
-                <span className="text-white font-bold">{profile.profile?.total_projects || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-400">Certificates</span>
-                <span className="text-white font-bold">{profile.profile?.certificates_earned || 0}</span>
-              </div>
-            </div>
-          </div>
+          {/* What they have actually done. This block used to read
+              denormalised counters, which were wrong — a student with two
+              finished paths and two certificates showed zero courses. */}
+          <ProfileOverview userId={profile.id} />
 
           {/* Social Links */}
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
