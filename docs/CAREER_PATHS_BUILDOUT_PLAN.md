@@ -247,7 +247,42 @@ the *declared* option still marked correct, carry no markup in a label (which
 renders blank), and not read as true/false by accident. One bad question in
 eighty-five is invisible by eye.
 
-### Phase 2b — Core module library (1–2 sessions)
+### Phase 2b — Module library and the first composed path — ✅ DONE 2026-08-07
+
+The composition mechanism now exists: a manifest names modules by key
+(`core.version_control`) and the builder resolves them from a shared library.
+**Backend Engineer is the first path built this way — four shared modules plus
+one capstone.** The next engineering path costs a capstone, not five modules.
+
+Library so far (5 modules, 44 questions): `core.version_control`,
+`core.http_and_apis`, `core.relational_data`, `core.automated_testing`,
+`capstones.backend_engineer`.
+
+An unknown key **raises** rather than being skipped — skipping would seed a
+shorter path than the manifest describes and nothing downstream would notice.
+
+**A defect this phase shipped and then fixed.** Every multiple-choice answer
+authored for the library and the quiz packs sat at option A — all 115, with 85
+already live. A student would notice in one sitting and score full marks without
+reading. Each quiz now gets a balanced set of answer positions, deterministically
+shuffled from its title, and a test fails if any body of content clusters. Live
+distribution across all 185 multiple-choice questions is now
+`{A:57, B:43, C:50, D:35}`.
+
+Two things went wrong on the way and are worth recording:
+
+- The first fix rotated choices by splicing individual element spans, which
+  **merged two adjacent options** where one spanned several lines — silently
+  turning a four-option question into three. Structurally invisible; caught by
+  counting choices per question. The rewrite replaces whole list literals.
+- A hash-derived shift is random, and random clusters: one eight-question quiz
+  put five answers in the same place. Balanced-then-shuffled fixes it by
+  construction.
+
+**All 8 active paths pass `validate_paths`, certificates included.** 213
+questions live. 2 of 79 roles now lead to a path.
+
+### Phase 2c — Rest of the core library (1–2 sessions)
 
 Author the ~10 core modules and the ~8 track families' shared modules
 (~40 modules). These are the highest-leverage content in the project: each one
