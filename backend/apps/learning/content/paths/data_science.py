@@ -1230,4 +1230,8 @@ MODULES = [
     },
 ]
 
-MANIFEST = dict(PATH, slug='data-science-and-machine-learning', modules=MODULES)
+# `role` wires the career map. This path was wired by data migration 0026
+# before manifests carried it; declaring it here means re-seeding keeps it
+# wired rather than quietly dropping the link.
+MANIFEST = dict(PATH, slug='data-science-and-machine-learning',
+                role='bscs-data-scientist', modules=MODULES)

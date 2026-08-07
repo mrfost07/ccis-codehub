@@ -16,10 +16,15 @@ Keys are `area.name`:
 from .capstones import backend_engineer as _cap_backend_engineer
 from .capstones import frontend_engineer as _cap_frontend_engineer
 from .capstones import full_stack_engineer as _cap_full_stack_engineer
+from .capstones import it_support_engineer as _cap_it_support_engineer
+from .capstones import network_administrator as _cap_network_administrator
 from .core import automated_testing as _automated_testing
 from .core import frontend_foundations as _frontend_foundations
 from .core import http_and_apis as _http_and_apis
+from .core import linux_and_systems as _linux_and_systems
+from .core import networking as _networking
 from .core import relational_data as _relational_data
+from .core import security_fundamentals as _security_fundamentals
 from .core import version_control as _version_control
 
 REGISTRY = {
@@ -28,9 +33,14 @@ REGISTRY = {
     'core.relational_data': _relational_data.MODULE,
     'core.automated_testing': _automated_testing.MODULE,
     'core.frontend_foundations': _frontend_foundations.MODULE,
+    'core.networking': _networking.MODULE,
+    'core.linux_and_systems': _linux_and_systems.MODULE,
+    'core.security_fundamentals': _security_fundamentals.MODULE,
     'capstones.backend_engineer': _cap_backend_engineer.MODULE,
     'capstones.frontend_engineer': _cap_frontend_engineer.MODULE,
     'capstones.full_stack_engineer': _cap_full_stack_engineer.MODULE,
+    'capstones.network_administrator': _cap_network_administrator.MODULE,
+    'capstones.it_support_engineer': _cap_it_support_engineer.MODULE,
 }
 
 

@@ -9,12 +9,16 @@ from .backend_engineer import MANIFEST as BACKEND_ENGINEER
 from .data_science import MANIFEST as DATA_SCIENCE
 from .frontend_engineer import MANIFEST as FRONTEND_ENGINEER
 from .full_stack_engineer import MANIFEST as FULL_STACK_ENGINEER
+from .it_support_engineer import MANIFEST as IT_SUPPORT_ENGINEER
+from .network_administrator import MANIFEST as NETWORK_ADMINISTRATOR
 
 REGISTRY = {
     BACKEND_ENGINEER['slug']: BACKEND_ENGINEER,
     DATA_SCIENCE['slug']: DATA_SCIENCE,
     FRONTEND_ENGINEER['slug']: FRONTEND_ENGINEER,
     FULL_STACK_ENGINEER['slug']: FULL_STACK_ENGINEER,
+    NETWORK_ADMINISTRATOR['slug']: NETWORK_ADMINISTRATOR,
+    IT_SUPPORT_ENGINEER['slug']: IT_SUPPORT_ENGINEER,
 }
 
 

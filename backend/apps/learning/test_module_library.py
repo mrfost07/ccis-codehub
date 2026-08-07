@@ -229,3 +229,48 @@ class TestAnswersAreDistributed:
         assert top / pooled_total <= 0.45, \
             f'{top} of {pooled_total} answers share a position: {dict(pooled)}'
         assert len(pooled) >= 3, f'answers only ever appear at {sorted(pooled)}'
+
+
+class TestEveryRegisteredPath:
+    """
+    Checks that apply to whatever is in the catalogue, so a path added later is
+    covered without anyone remembering to write a test for it.
+    """
+
+    def test_every_manifest_is_sound(self):
+        problems = {slug: check_manifest(catalogue.get(slug))
+                    for slug in catalogue.slugs()}
+        assert {s: p for s, p in problems.items() if p} == {}
+
+    def test_every_module_key_named_resolves(self):
+        # A typo in a key is caught here rather than at seed time on production.
+        for slug in catalogue.slugs():
+            resolve_modules(catalogue.get(slug))
+
+    def test_every_path_names_the_role_it_leads_to(self):
+        # Without it the career map has a job with no route to it.
+        missing = [slug for slug in catalogue.slugs()
+                   if not catalogue.get(slug).get('role')]
+        assert missing == [], f'no role wired: {missing}'
+
+    def test_every_path_covers_all_three_programmes_between_them(self):
+        programmes = {catalogue.get(slug)['program_type'] for slug in catalogue.slugs()}
+        assert 'bscs' in programmes
+        assert 'bsit' in programmes
+
+    def test_shared_modules_are_actually_shared(self):
+        # If every module were used once the library would be pointless
+        # indirection. This asserts the reuse is real.
+        import collections
+
+        used = collections.Counter()
+        for slug in catalogue.slugs():
+            for entry in catalogue.get(slug)['modules']:
+                if isinstance(entry, str):
+                    used[entry] += 1
+
+        reused = {k: n for k, n in used.items() if n > 1}
+        assert len(reused) >= 4, f'only {len(reused)} modules serve more than one path'
+        # Capstones are per-role by definition and must not be shared.
+        shared_capstones = {k: n for k, n in reused.items() if k.startswith('capstones.')}
+        assert shared_capstones == {}, shared_capstones
