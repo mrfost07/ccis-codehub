@@ -218,6 +218,10 @@ class Command(BaseCommand):
         parser.add_argument('--dry-run', action='store_true',
                             help='Report what would be created and change nothing.')
         parser.add_argument('--quiz', help='Only this quiz id.')
+        parser.add_argument(
+            '--fill-missing', action='store_true',
+            help='Also import questions absent from a quiz that already has '
+                 'some — for questions skipped by an earlier run.')
 
     def handle(self, *args, **options):
         dry_run = options['dry_run']
@@ -234,18 +238,31 @@ class Command(BaseCommand):
         # it. Named individually — a count alone is not actionable.
         needs_answer = []
 
+        fill_missing = options['fill_missing']
+
         for quiz in quizzes.order_by('learning_module__order', 'title'):
-            if quiz.questions.exists():
+            # Questions already imported, by text. Empty for an untouched quiz,
+            # so the default run behaves exactly as before.
+            existing = {normalise(t) for t in
+                        quiz.questions.values_list('question_text', flat=True)}
+            if existing and not fill_missing:
                 skipped_existing += 1
                 continue
 
             parsed = parse_slides(quiz.content)
             if not parsed:
-                no_questions.append(quiz.title)
+                if not existing:
+                    no_questions.append(quiz.title)
                 continue
 
-            self.stdout.write(f'{quiz.title[:58]}: {len(parsed)} question(s)')
-            for index, item in enumerate(parsed):
+            wanted = [(i, item) for i, item in enumerate(parsed)
+                      if normalise(item['text']) not in existing]
+            if not wanted:
+                skipped_existing += 1
+                continue
+
+            self.stdout.write(f'{quiz.title[:58]}: {len(wanted)} question(s)')
+            for index, item in wanted:
                 correct = [c for c in item['choices'] if c['correct']]
                 if item['choices'] and not correct:
                     # The slide marks no answer. Fall back to the authored table;

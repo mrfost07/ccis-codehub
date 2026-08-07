@@ -18,6 +18,7 @@ from io import StringIO
 from apps.learning.models import (
     CareerPath, LearningModule, Question, QuestionChoice, Quiz,
 )
+from apps.learning.management.commands import import_quiz_questions as cmd
 from apps.learning.management.commands.import_quiz_questions import (
     AUTHORED_ANSWERS, apply_authored_answer, normalise, parse_slides,
 )
@@ -194,6 +195,9 @@ TRUE_FALSE_SLIDE = '''
 '''
 
 
+WHILE_LOOP = 'A while loop can run forever if its condition never becomes false.'
+
+
 def _true_false(prompt):
     return TRUE_FALSE_SLIDE.replace('{prompt}', prompt)
 
@@ -280,3 +284,60 @@ class TestAuthoredAnswers:
         check = QuizViewSet()._check_answer
         assert check(question, 'true') is True
         assert check(question, 'false') is False
+
+
+@pytest.mark.django_db
+class TestFillingMissingQuestions:
+    """
+    An earlier run skipped the questions whose answer was not in the slide. The
+    quiz then had questions, so the idempotency guard skipped the whole quiz on
+    every later run — the skipped ones could never come in.
+    """
+
+    def test_the_default_run_still_leaves_a_finished_quiz_alone(self, quiz):
+        _run()
+        Question.objects.update(question_text='hand edited')
+
+        _run()
+
+        assert Question.objects.count() == 1
+        assert Question.objects.get().question_text == 'hand edited'
+
+    def test_fill_missing_adds_only_what_is_absent(self, quiz, monkeypatch):
+        quiz.content = SLIDE + _true_false(WHILE_LOOP)
+        quiz.save(update_fields=['content'])
+        # The first run does not know the answer, so it skips that question --
+        # which is how production ended up with nine of them missing.
+        monkeypatch.setattr(cmd, 'AUTHORED_ANSWERS', {})
+        _run()
+        assert Question.objects.count() == 1
+
+        monkeypatch.undo()
+        _run(fill_missing=True)
+
+        assert Question.objects.count() == 2
+        added = Question.objects.get(question_type='true_false')
+        assert added.correct_answer == 'true'
+
+    def test_fill_missing_does_not_duplicate_the_ones_already_there(self, quiz):
+        _run()
+        first = Question.objects.get()
+
+        _run(fill_missing=True)
+
+        assert list(Question.objects.all()) == [first]
+
+    def test_the_added_question_takes_the_slide_position_left_empty(self, quiz, monkeypatch):
+        # The first run numbered by slide index and skipped one, so there is a
+        # gap. Filling it anywhere else reorders the quiz for every student.
+        quiz.content = SLIDE + _true_false(WHILE_LOOP) + SLIDE.replace(
+            'Which level of analysis is that?', 'A third question?')
+        quiz.save(update_fields=['content'])
+        monkeypatch.setattr(cmd, 'AUTHORED_ANSWERS', {})
+        _run()
+        assert sorted(Question.objects.values_list('order', flat=True)) == [0, 2]
+
+        monkeypatch.undo()
+        _run(fill_missing=True)
+
+        assert sorted(Question.objects.values_list('order', flat=True)) == [0, 1, 2]
