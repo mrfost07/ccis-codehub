@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import ProfileOverview from '../components/profile/ProfileOverview'
+import ChallengeProgress from '../components/profile/ChallengeProgress'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   User, Mail, Calendar, BookOpen, Code, Trophy, Star,
@@ -597,6 +598,11 @@ export default function UserProfileView() {
               denormalised counters, which were wrong — a student with two
               finished paths and two certificates showed zero courses. */}
           <ProfileOverview userId={profile.id} />
+
+          {/* Solved counts, the year heatmap and recent solves — the same panel
+              the owner sees under their Coding tab. A profile that summarises
+              coding without showing the work is the weaker half of it. */}
+          <ChallengeProgress userId={profile.id} />
 
           {/* Social Links */}
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">

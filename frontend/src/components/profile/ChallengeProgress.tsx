@@ -1,16 +1,25 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Flame, Target, Trophy } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Terminal } from 'lucide-react'
 
 import api from '../../services/api'
 
 /**
- * Coding progress on the profile: solved counts per difficulty and a year of
- * daily activity.
+ * Coding progress on the profile: solved counts per difficulty, a year of daily
+ * activity, and the last few solves.
  *
  * The heatmap is built from a sparse list — the API sends only days with
  * something on them, because a year is 365 entries and most are empty for most
  * students. The grid here is the full year regardless, so an empty stretch
  * reads as an empty stretch rather than silently collapsing.
+ *
+ * A year is 53 columns, which is wider than a phone whatever the cell size. So
+ * it scrolls, and it starts scrolled to today — the right-hand end is the part
+ * anyone actually wants, and a grid that opens on last August looks empty.
+ *
+ * With a `userId` it shows somebody else's, for their public profile. Same
+ * panel either way — what changes is only the copy that addresses the reader,
+ * because "your first solve shows up here" is wrong when the work is not
+ * theirs to do.
  */
 
 interface Progress {
@@ -33,6 +42,10 @@ const LEVELS = [
   { key: 'medium' as const, label: 'Medium', ring: 'stroke-amber-400', text: 'text-amber-400' },
   { key: 'hard' as const, label: 'Hard', ring: 'stroke-red-400', text: 'text-red-400' },
 ]
+
+const DIFFICULTY_DOT: Record<string, string> = {
+  easy: 'bg-green-400', medium: 'bg-amber-400', hard: 'bg-red-400',
+}
 
 const DAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', '']
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -60,11 +73,11 @@ function Ring({ solved, total, className }: {
   const share = total > 0 ? Math.min(solved / total, 1) : 0
 
   return (
-    <svg viewBox="0 0 64 64" className="h-16 w-16 -rotate-90">
+    <svg viewBox="0 0 64 64" className="h-14 w-14 -rotate-90 sm:h-16 sm:w-16">
       <circle cx="32" cy="32" r={radius} fill="none"
-        className="stroke-neutral-800" strokeWidth="6" />
+        className="stroke-white/5" strokeWidth="5" />
       <circle
-        cx="32" cy="32" r={radius} fill="none" strokeWidth="6"
+        cx="32" cy="32" r={radius} fill="none" strokeWidth="5"
         strokeLinecap="round" className={className}
         strokeDasharray={circumference}
         strokeDashoffset={circumference * (1 - share)}
@@ -73,17 +86,22 @@ function Ring({ solved, total, className }: {
   )
 }
 
-export default function ChallengeProgress() {
+export default function ChallengeProgress({ userId }: { userId?: string } = {}) {
   const [progress, setProgress] = useState<Progress | null>(null)
   const [failed, setFailed] = useState(false)
+  const scroller = useRef<HTMLDivElement>(null)
+  const mine = !userId
 
   useEffect(() => {
     let cancelled = false
-    api.get('/learning/challenges/progress/')
+    setProgress(null)
+    setFailed(false)
+    api.get('/learning/challenges/progress/',
+      userId ? { params: { user: userId } } : undefined)
       .then(({ data }) => { if (!cancelled) setProgress(data) })
       .catch(() => { if (!cancelled) setFailed(true) })
     return () => { cancelled = true }
-  }, [])
+  }, [userId])
 
   // The full year as weeks of seven days, with counts filled in from the
   // sparse response.
@@ -129,18 +147,27 @@ export default function ChallengeProgress() {
     return labels
   }, [weeks])
 
+  // Open on today. On a phone the grid is several screens wide, and the end is
+  // the only part worth landing on.
+  useEffect(() => {
+    const element = scroller.current
+    if (element) element.scrollLeft = element.scrollWidth
+  }, [weeks.length])
+
   if (failed) {
     return (
-      <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
-        <p className="text-sm text-neutral-500">Could not load your coding progress.</p>
+      <section className="rounded-3xl bg-neutral-900/70 p-5 ring-1 ring-white/5">
+        <p className="text-sm text-neutral-500">
+          Could not load {mine ? 'your' : 'this'} coding progress.
+        </p>
       </section>
     )
   }
 
   if (!progress) {
     return (
-      <section className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
-        <div className="h-40 animate-pulse rounded-xl bg-neutral-800/60" />
+      <section className="rounded-3xl bg-neutral-900/70 p-5 ring-1 ring-white/5">
+        <div className="h-48 animate-pulse rounded-2xl bg-neutral-800/40" />
       </section>
     )
   }
@@ -149,93 +176,110 @@ export default function ChallengeProgress() {
   const totalSubmissionsThisYear = progress.activity.reduce((n, a) => n + a.count, 0)
 
   return (
-    <section className="space-y-5 rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="rounded-lg bg-purple-500/10 p-2 text-purple-400">
-            <Trophy className="h-5 w-5" />
-          </span>
+    <section className="relative overflow-hidden rounded-3xl bg-neutral-900/70 p-4
+      ring-1 ring-white/5 sm:p-5">
+      {/* A single soft wash rather than another border — the card already sits
+          inside a bordered page section. */}
+      <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-40 w-40
+        rounded-full bg-emerald-500 opacity-20 blur-3xl" />
+
+      <header className="relative flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
+        <div className="flex items-center gap-2.5">
+          <span className="text-neutral-400"><Terminal className="h-4 w-4" /></span>
           <div>
-            <h2 className="text-base font-bold text-white">Coding challenges</h2>
-            <p className="text-xs text-neutral-500">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+              Coding activity
+            </h2>
+            <p className="mt-1 text-sm tabular-nums text-neutral-300">
               {progress.solved.total} of {progress.available.total} solved
             </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <span className="flex items-center gap-1.5 rounded-lg border border-neutral-800 px-3 py-1.5 text-xs text-neutral-300">
-            <Flame className="h-3.5 w-3.5 text-amber-400" />
-            <span className="font-semibold tabular-nums text-white">{progress.streak.current}</span>
-            day streak
-          </span>
-          <span className="flex items-center gap-1.5 rounded-lg border border-neutral-800 px-3 py-1.5 text-xs text-neutral-300">
-            <Target className="h-3.5 w-3.5 text-purple-400" />
-            <span className="font-semibold tabular-nums text-white">
+        <div className="flex items-end gap-6 sm:gap-8">
+          <div>
+            <p className={`text-2xl font-semibold tracking-tight tabular-nums ${
+              progress.streak.current > 0 ? 'text-amber-300' : 'text-white'}`}>
+              {progress.streak.current}
+            </p>
+            <p className="mt-0.5 text-[11px] font-medium text-neutral-400">day streak</p>
+          </div>
+          <div>
+            <p className="text-2xl font-semibold tracking-tight tabular-nums text-white">
               {progress.submissions.acceptance_rate}%
-            </span>
-            accepted
-          </span>
+            </p>
+            <p className="mt-0.5 text-[11px] font-medium text-neutral-400">accepted</p>
+          </div>
         </div>
       </header>
 
-      {/* Per difficulty */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Per difficulty. Unframed — a ring is already a shape; putting it in a
+          box draws a second one around it. */}
+      <div className="relative mt-5 grid grid-cols-3 gap-2">
         {LEVELS.map(level => {
           const solved = progress.solved[level.key]
           const total = progress.available[level.key]
           return (
-            <div key={level.key}
-              className="flex flex-col items-center gap-1.5 rounded-xl border border-neutral-800 bg-neutral-950/40 p-3">
+            <div key={level.key} className="flex flex-col items-center gap-1">
               <div className="relative">
                 <Ring solved={solved} total={total} className={level.ring} />
-                <span className="absolute inset-0 flex items-center justify-center text-sm font-bold tabular-nums text-white">
+                <span className="absolute inset-0 flex items-center justify-center
+                  text-sm font-semibold tabular-nums text-white">
                   {solved}
                 </span>
               </div>
-              <p className={`text-xs font-semibold ${level.text}`}>{level.label}</p>
-              <p className="text-[11px] tabular-nums text-neutral-500">of {total}</p>
+              <p className={`text-[11px] font-medium ${level.text}`}>{level.label}</p>
+              <p className="text-[10px] tabular-nums text-neutral-500">of {total}</p>
             </div>
           )
         })}
       </div>
 
       {/* A year of activity */}
-      <div>
-        <div className="mb-2 flex items-baseline justify-between">
-          <p className="text-xs text-neutral-400">
-            <span className="font-semibold text-white tabular-nums">{totalSubmissionsThisYear}</span>
+      <div className="relative mt-6">
+        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <p className="text-[11px] text-neutral-400">
+            <span className="font-semibold tabular-nums text-white">{totalSubmissionsThisYear}</span>
             {' '}submissions on{' '}
-            <span className="font-semibold text-white tabular-nums">{activeDays}</span>
+            <span className="font-semibold tabular-nums text-white">{activeDays}</span>
             {' '}days in the past year
           </p>
-          <p className="text-[11px] text-neutral-500">
+          <p className="text-[11px] tabular-nums text-neutral-500">
             longest streak {progress.streak.longest}
           </p>
         </div>
 
-        <div className="overflow-x-auto pb-1">
+        {/* Bleeds to the card edge on a phone so the grid does not look boxed
+            in, and scrolls from there. */}
+        <div ref={scroller}
+          className="-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0
+            [--cell:10px] [--gap:3px] sm:[--cell:11px]">
           <div className="inline-block min-w-full">
-            <div className="flex gap-[3px] pl-8 text-[10px] text-neutral-500">
+            <div className="flex gap-[var(--gap)] pl-0 text-[10px] text-neutral-500 sm:pl-8">
               {weeks.map((_, index) => {
                 const label = monthLabels.find(m => m.index === index)
                 return (
-                  <span key={index} className="w-[11px] shrink-0">
+                  <span key={index} className="w-[var(--cell)] shrink-0">
                     {label ? label.label : ''}
                   </span>
                 )
               })}
             </div>
 
-            <div className="flex gap-[3px]">
-              <div className="flex w-8 shrink-0 flex-col gap-[3px] pr-1 text-right text-[10px] text-neutral-500">
+            <div className="flex gap-[var(--gap)]">
+              {/* Dropped on a phone — the labels cost a quarter of the width to
+                  say what the shape already says. */}
+              <div className="hidden w-8 shrink-0 flex-col gap-[var(--gap)] pr-1
+                text-right text-[10px] text-neutral-500 sm:flex">
                 {DAY_LABELS.map((label, index) => (
-                  <span key={index} className="h-[11px] leading-[11px]">{label}</span>
+                  <span key={index} className="h-[var(--cell)] leading-[var(--cell)]">
+                    {label}
+                  </span>
                 ))}
               </div>
 
               {weeks.map((week, weekIndex) => (
-                <div key={weekIndex} className="flex shrink-0 flex-col gap-[3px]">
+                <div key={weekIndex} className="flex shrink-0 flex-col gap-[var(--gap)]">
                   {week.map(day => (
                     <span
                       key={day.date}
@@ -246,7 +290,7 @@ export default function ChallengeProgress() {
                         ? `No submissions on ${day.date}`
                         : `${day.count} submission${day.count === 1 ? '' : 's'}, `
                           + `${day.solved} solved on ${day.date}`}
-                      className={`h-[11px] w-[11px] rounded-[2px] ${
+                      className={`h-[var(--cell)] w-[var(--cell)] rounded-[2px] ${
                         day.future ? 'bg-transparent' : shade(day.count)}`}
                     />
                   ))}
@@ -259,39 +303,39 @@ export default function ChallengeProgress() {
         <div className="mt-2 flex items-center justify-end gap-1.5 text-[10px] text-neutral-500">
           <span>Less</span>
           {[0, 2, 5, 9, 12].map(n => (
-            <span key={n} className={`h-[11px] w-[11px] rounded-[2px] ${shade(n)}`} />
+            <span key={n} className={`h-[10px] w-[10px] rounded-[2px] ${shade(n)}`} />
           ))}
           <span>More</span>
         </div>
       </div>
 
       {/* Recently solved */}
-      <div>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+      <div className="relative mt-6">
+        <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
           Recently solved
         </h3>
         {progress.recent.length === 0 ? (
-          <p className="rounded-xl border border-neutral-800 bg-neutral-950/40 px-4 py-6 text-center text-sm text-neutral-500">
-            Nothing solved yet. Pick a challenge and your first solve shows up here.
+          <p className="rounded-2xl bg-white/[0.02] px-4 py-6 text-center text-sm text-neutral-500">
+            {mine
+              ? 'Nothing solved yet. Pick a challenge and your first solve shows up here.'
+              : 'Nothing solved yet.'}
           </p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="divide-y divide-white/5 overflow-hidden rounded-2xl bg-white/[0.02]">
             {progress.recent.map(item => (
-              <li key={item.slug}
-                className="flex flex-wrap items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-950/40 px-4 py-2.5">
-                <span className={`rounded border px-2 py-0.5 text-[10px] font-semibold uppercase ${
-                  item.difficulty === 'easy'
-                    ? 'border-green-500/30 bg-green-500/10 text-green-400'
-                    : item.difficulty === 'medium'
-                      ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
-                      : 'border-red-500/30 bg-red-500/10 text-red-400'}`}>
-                  {item.difficulty}
-                </span>
+              <li key={item.slug} className="flex items-center gap-2.5 px-3 py-2.5 sm:gap-3 sm:px-4">
+                <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                  DIFFICULTY_DOT[item.difficulty] ?? 'bg-neutral-500'}`} />
                 <a href={`/learning/challenges/${item.slug}`}
-                  className="text-sm font-medium text-white hover:text-purple-300">
+                  className="min-w-0 flex-1 truncate text-sm text-white
+                    transition-colors hover:text-purple-300">
                   {item.title}
                 </a>
-                <span className="ml-auto text-[11px] tabular-nums text-neutral-500">
+                <span className="hidden shrink-0 text-[10px] font-medium uppercase
+                  tracking-wide text-neutral-500 sm:inline">
+                  {item.difficulty}
+                </span>
+                <span className="shrink-0 text-[11px] tabular-nums text-neutral-500">
                   {new Date(item.solved_at).toLocaleDateString('en-GB', {
                     day: 'numeric', month: 'short', year: 'numeric',
                   })}

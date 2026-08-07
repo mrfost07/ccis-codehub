@@ -230,3 +230,86 @@ class TestTheEndpoint:
 
         with django_assert_max_num_queries(8):
             client.get('/api/learning/challenges/progress/')
+
+
+@pytest.mark.django_db
+class TestViewingSomebodyElse:
+    """`?user=<id>`, for the coding panel on a public profile."""
+
+    @pytest.fixture
+    def viewer(self, db):
+        return User.objects.create_user(
+            username='cp_viewer', email='cpv@ssct.edu.ph', password='x')
+
+    def test_it_returns_that_student_s_progress(self, student, viewer, challenges):
+        submit(student, challenges['easy-0'])
+        client = APIClient()
+        client.force_authenticate(viewer)
+
+        response = client.get(
+            '/api/learning/challenges/progress/', {'user': str(student.id)})
+
+        assert response.status_code == 200
+        assert response.data['solved']['easy'] == 1
+
+    def test_it_is_not_quietly_the_viewer_s_own_progress(
+            self, student, viewer, challenges):
+        # The failure that would look fine: ignoring the parameter and
+        # answering for request.user, so every profile shows the viewer.
+        submit(student, challenges['easy-0'])
+        submit(viewer, challenges['hard-0'])
+        client = APIClient()
+        client.force_authenticate(viewer)
+
+        response = client.get(
+            '/api/learning/challenges/progress/', {'user': str(student.id)})
+
+        assert response.data['solved']['easy'] == 1
+        assert response.data['solved']['hard'] == 0
+
+    def test_no_parameter_still_means_your_own(self, student, viewer, challenges):
+        submit(student, challenges['easy-0'])
+        client = APIClient()
+        client.force_authenticate(viewer)
+
+        response = client.get('/api/learning/challenges/progress/')
+
+        assert response.data['solved']['total'] == 0
+
+    def test_it_needs_a_signed_in_viewer(self, student):
+        assert APIClient().get(
+            '/api/learning/challenges/progress/',
+            {'user': str(student.id)}).status_code in (401, 403)
+
+    def test_an_unknown_user_is_a_404(self, viewer, challenges):
+        client = APIClient()
+        client.force_authenticate(viewer)
+
+        response = client.get(
+            '/api/learning/challenges/progress/',
+            {'user': '00000000-0000-0000-0000-000000000000'})
+
+        assert response.status_code == 404
+
+    def test_a_malformed_id_is_a_404_rather_than_a_500(self, viewer, challenges):
+        # A UUID field raises on a non-UUID string, and that exception goes
+        # straight past DRF's handler into a server error.
+        client = APIClient()
+        client.force_authenticate(viewer)
+
+        response = client.get(
+            '/api/learning/challenges/progress/', {'user': 'not-a-uuid'})
+
+        assert response.status_code == 404
+
+    def test_a_deactivated_account_is_not_browsable(self, student, viewer, challenges):
+        submit(student, challenges['easy-0'])
+        student.is_active = False
+        student.save(update_fields=['is_active'])
+        client = APIClient()
+        client.force_authenticate(viewer)
+
+        response = client.get(
+            '/api/learning/challenges/progress/', {'user': str(student.id)})
+
+        assert response.status_code == 404

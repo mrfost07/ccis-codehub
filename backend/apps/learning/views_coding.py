@@ -4,7 +4,9 @@ LeetCode-style coding challenges with CodeExecutor integration
 """
 import logging
 import time
+import uuid
 
+from django.http import Http404
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -506,9 +508,28 @@ class CodingChallengeViewSet(viewsets.ModelViewSet):
         Everything the profile needs in one request. The activity list is sparse
         - only days with something on them - because a year is 365 entries and
         most are empty for most students.
+
+        `?user=<id>` answers for somebody else, for their public profile. What
+        it returns is the same thing a public profile is for - what they have
+        solved and when they worked. It carries no code, no marks and no
+        failures attributed to a problem, so there is nothing here that is
+        theirs alone. Signed-in only, like the rest of a profile.
         """
         from apps.learning.challenge_progress import challenge_progress
-        return Response(challenge_progress(request.user))
+
+        target = request.user
+        user_id = request.query_params.get('user')
+        if user_id:
+            from apps.accounts.models import User
+            try:
+                uuid.UUID(str(user_id))
+            except ValueError:
+                # A malformed id is a missing user, not a server error — the
+                # UUID field would otherwise raise straight past DRF into a 500.
+                raise Http404
+            target = get_object_or_404(User, id=user_id, is_active=True)
+
+        return Response(challenge_progress(target))
 
     @action(detail=False, methods=['get'], url_path='stats')
     def stats(self, request):

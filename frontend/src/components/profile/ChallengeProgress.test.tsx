@@ -180,3 +180,58 @@ describe('recently solved', () => {
     await waitFor(() => expect(screen.getByText(/nothing solved yet/i)).toBeTruthy())
   })
 })
+
+describe('viewing somebody else', () => {
+  it('asks for that user rather than the signed-in one', async () => {
+    render(<ChallengeProgress userId="abc-123" />)
+
+    await waitFor(() => expect(get).toHaveBeenCalledWith(
+      '/learning/challenges/progress/', { params: { user: 'abc-123' } }))
+  })
+
+  it('asks for your own when no user is given', async () => {
+    render(<ChallengeProgress />)
+
+    await waitFor(() => expect(get).toHaveBeenCalledWith(
+      '/learning/challenges/progress/', undefined))
+  })
+
+  it('is the same panel, heatmap included', async () => {
+    // The point of the prop: somebody else's profile shows what your own
+    // shows. It previously showed no coding progress at all.
+    render(<ChallengeProgress userId="abc-123" />)
+
+    await waitFor(() => expect(screen.getByText(/17 of 160 solved/)).toBeTruthy())
+    expect(screen.getAllByTestId('heatmap-day').length).toBeGreaterThan(365)
+    expect(screen.getByText('Pair That Sums to a Target')).toBeTruthy()
+  })
+
+  it('refetches when the profile being viewed changes', async () => {
+    const { rerender } = render(<ChallengeProgress userId="abc-123" />)
+    await waitFor(() => expect(get).toHaveBeenCalledWith(
+      '/learning/challenges/progress/', { params: { user: 'abc-123' } }))
+
+    rerender(<ChallengeProgress userId="def-456" />)
+
+    await waitFor(() => expect(get).toHaveBeenCalledWith(
+      '/learning/challenges/progress/', { params: { user: 'def-456' } }))
+  })
+
+  it('does not tell a viewer to go and solve something', async () => {
+    // "your first solve shows up here" addresses the wrong person when the
+    // work is not theirs to do.
+    get.mockResolvedValue({ data: progress({ recent: [] }) })
+    render(<ChallengeProgress userId="abc-123" />)
+
+    await waitFor(() => expect(screen.getByText(/nothing solved yet/i)).toBeTruthy())
+    expect(screen.queryByText(/your first solve/i)).toBeNull()
+  })
+
+  it('says "this" rather than "your" when it cannot load', async () => {
+    get.mockRejectedValue(new Error('nope'))
+    render(<ChallengeProgress userId="abc-123" />)
+
+    await waitFor(() => expect(
+      screen.getByText(/could not load this coding progress/i)).toBeTruthy())
+  })
+})
