@@ -27,6 +27,12 @@ const progress = (over: Record<string, any> = {}) => ({
     { date: '2026-08-06', count: 2, solved: 1 },
     { date: '2026-08-07', count: 12, solved: 4 },
   ],
+  recent: [
+    { slug: 'two-sum', title: 'Pair That Sums to a Target', difficulty: 'easy',
+      language: 'python', points: 10, solved_at: '2026-08-07T09:00:00Z' },
+    { slug: 'edit-distance', title: 'Fewest Edits Between Words', difficulty: 'hard',
+      language: 'python', points: 35, solved_at: '2026-08-06T09:00:00Z' },
+  ],
   window_days: 365,
   today: '2026-08-08',
   ...over,
@@ -128,6 +134,7 @@ describe('the heatmap', () => {
       submissions: { total: 0, accepted: 0, acceptance_rate: 0 },
       streak: { current: 0, longest: 0 },
       activity: [],
+      recent: [],
     }) })
     render(<ChallengeProgress />)
 
@@ -143,5 +150,33 @@ describe('when it cannot load', () => {
 
     await waitFor(() => expect(
       screen.getByText(/could not load your coding progress/i)).toBeTruthy())
+  })
+})
+
+
+describe('recently solved', () => {
+  it('lists real solves rather than invented ones', async () => {
+    // The tab previously showed two hardcoded entries — "Completed a module,
+    // 2 hours ago" — identically to every user, whatever they had done.
+    render(<ChallengeProgress />)
+
+    await waitFor(() => expect(
+      screen.getByText('Pair That Sums to a Target')).toBeTruthy())
+    expect(screen.getByText('Fewest Edits Between Words')).toBeTruthy()
+    expect(screen.queryByText(/Completed a module/)).toBeNull()
+  })
+
+  it('links each solve to its challenge', async () => {
+    render(<ChallengeProgress />)
+
+    const link = await screen.findByRole('link', { name: 'Pair That Sums to a Target' })
+    expect(link.getAttribute('href')).toBe('/learning/challenges/two-sum')
+  })
+
+  it('says so honestly when nothing has been solved', async () => {
+    get.mockResolvedValue({ data: progress({ recent: [] }) })
+    render(<ChallengeProgress />)
+
+    await waitFor(() => expect(screen.getByText(/nothing solved yet/i)).toBeTruthy())
   })
 })

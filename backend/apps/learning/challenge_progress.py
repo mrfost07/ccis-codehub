@@ -107,6 +107,26 @@ def challenge_progress(user, today=None):
             'solved': row['solved'],
         })
 
+    # The last few solves, for the profile's activity list. Newest first, one
+    # entry per challenge — re-solving the same problem is not a second event.
+    recent, seen = [], set()
+    for row in (submissions.filter(status='accepted')
+                .select_related('challenge')
+                .order_by('-submitted_at')[:40]):
+        if row.challenge_id in seen:
+            continue
+        seen.add(row.challenge_id)
+        recent.append({
+            'slug': row.challenge.slug,
+            'title': row.challenge.title,
+            'difficulty': row.challenge.difficulty,
+            'language': row.language,
+            'points': row.points_earned,
+            'solved_at': row.submitted_at.isoformat(),
+        })
+        if len(recent) == 8:
+            break
+
     current, longest = _streaks(days_with_activity)
     total_submissions = tally['total'] or 0
     accepted = tally['accepted'] or 0
@@ -126,6 +146,7 @@ def challenge_progress(user, today=None):
         'points': tally['points'] or 0,
         'streak': {'current': current, 'longest': longest},
         'activity': activity,
+        'recent': recent,
         'window_days': WINDOW_DAYS,
         'today': today.isoformat(),
     }

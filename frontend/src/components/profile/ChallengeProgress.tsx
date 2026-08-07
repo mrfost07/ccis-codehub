@@ -20,6 +20,10 @@ interface Progress {
   points: number
   streak: { current: number; longest: number }
   activity: Array<{ date: string; count: number; solved: number }>
+  recent: Array<{
+    slug: string; title: string; difficulty: string
+    language: string; points: number; solved_at: string
+  }>
   window_days: number
   today: string
 }
@@ -259,6 +263,43 @@ export default function ChallengeProgress() {
           ))}
           <span>More</span>
         </div>
+      </div>
+
+      {/* Recently solved */}
+      <div>
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+          Recently solved
+        </h3>
+        {progress.recent.length === 0 ? (
+          <p className="rounded-xl border border-neutral-800 bg-neutral-950/40 px-4 py-6 text-center text-sm text-neutral-500">
+            Nothing solved yet. Pick a challenge and your first solve shows up here.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {progress.recent.map(item => (
+              <li key={item.slug}
+                className="flex flex-wrap items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-950/40 px-4 py-2.5">
+                <span className={`rounded border px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                  item.difficulty === 'easy'
+                    ? 'border-green-500/30 bg-green-500/10 text-green-400'
+                    : item.difficulty === 'medium'
+                      ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+                      : 'border-red-500/30 bg-red-500/10 text-red-400'}`}>
+                  {item.difficulty}
+                </span>
+                <a href={`/learning/challenges/${item.slug}`}
+                  className="text-sm font-medium text-white hover:text-purple-300">
+                  {item.title}
+                </a>
+                <span className="ml-auto text-[11px] tabular-nums text-neutral-500">
+                  {new Date(item.solved_at).toLocaleDateString('en-GB', {
+                    day: 'numeric', month: 'short', year: 'numeric',
+                  })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </section>
   )

@@ -901,39 +901,11 @@ export default function ProfileEnhanced() {
               </div>
             )}
 
-            {activeTab === 'activity' && (
-              <div className="space-y-6">
-              <ChallengeProgress />
-              <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-                <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-purple-400" />
-                  Recent Activity
-                </h2>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4 p-4 bg-neutral-800/50 rounded-lg">
-                    <div className="p-2 bg-green-600/20 rounded-lg">
-                      <CheckCircle className="w-5 h-5 text-green-400" />
-                    </div>
-                    <div>
-                      <p className="text-white font-medium">Completed a module</p>
-                      <p className="text-sm text-neutral-400">Introduction to Programming</p>
-                    </div>
-                    <span className="ml-auto text-sm text-neutral-500">2 hours ago</span>
-                  </div>
-                  <div className="flex items-center gap-4 p-4 bg-neutral-800/50 rounded-lg">
-                    <div className="p-2 bg-purple-600/20 rounded-lg">
-                      <Trophy className="w-5 h-5 text-purple-400" />
-                    </div>
-                    <div>
-                      <p className="text-white font-medium">Earned 50 points</p>
-                      <p className="text-sm text-neutral-400">Quiz completion bonus</p>
-                    </div>
-                    <span className="ml-auto text-sm text-neutral-500">Yesterday</span>
-                  </div>
-                </div>
-              </div>
-              </div>
-            )}
+            {/* The activity tab used to show two invented entries — "Completed
+                a module, 2 hours ago" — identically to every user, whatever
+                they had actually done. Real progress now, or an honest empty
+                state. */}
+            {activeTab === 'activity' && <ChallengeProgress />}
 
             {/* ── ACHIEVEMENTS TAB ─────────────────────── */}
             {activeTab === 'achievements' && (
