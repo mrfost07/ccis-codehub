@@ -992,7 +992,7 @@ export default function ProfileEnhanced() {
                     <Trophy className="w-4 h-4 text-amber-400" />
                     Badge Showcase
                     {badgeCatalog && (
-                      <span className="ml-auto text-xs text-neutral-500 font-normal">
+                      <span className="ml-auto text-[11px] font-normal normal-case tracking-normal text-neutral-500">
                         {badgeCatalog.filter(b => b.earned).length}/{badgeCatalog.length} earned
                       </span>
                     )}
@@ -1178,7 +1178,7 @@ export default function ProfileEnhanced() {
                 <Trophy className="w-4 h-4 text-amber-400" />
                 Achievements
                 {badgeCatalog && (
-                  <span className="ml-auto text-xs text-neutral-500 font-normal">
+                  <span className="ml-auto text-[11px] font-normal normal-case tracking-normal tabular-nums text-neutral-500">
                     {badgeCatalog.filter(b => b.earned).length}/{badgeCatalog.length}
                   </span>
                 )}
