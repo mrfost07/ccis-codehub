@@ -159,23 +159,32 @@ export default function ChallengeProgress({ userId }: { userId?: string } = {}) 
     const element = scroller.current
     if (!element || weeks.length === 0) return
 
-    let readerHasScrolled = false
-    const pin = () => { if (!readerHasScrolled) element.scrollLeft = element.scrollWidth }
-    const noteScroll = () => {
-      const distanceFromEnd = element.scrollWidth - element.clientWidth - element.scrollLeft
-      if (distanceFromEnd > 2) readerHasScrolled = true
-    }
+    // Only a gesture counts as the reader taking over. Watching the scroll
+    // event was wrong: the browser resets scrollLeft to 0 on some reflows,
+    // that reset fires a scroll event, and the panel then read its own reset
+    // as the reader's intent and stopped re-pinning — leaving the grid parked
+    // on last August. Seen on production after the first pin succeeded.
+    let readerTookOver = false
+    const handOver = () => { readerTookOver = true }
+    const pin = () => { if (!readerTookOver) element.scrollLeft = element.scrollWidth }
 
     pin()
-    element.addEventListener('scroll', noteScroll, { passive: true })
+    const gestures = ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const
+    gestures.forEach(name =>
+      element.addEventListener(name, handOver, { passive: true }))
+    window.addEventListener('resize', pin)
     // jsdom has no ResizeObserver; the pin is a no-op there anyway.
     const observer = typeof ResizeObserver === 'undefined'
       ? null
       : new ResizeObserver(pin)
-    if (observer && element.firstElementChild) observer.observe(element.firstElementChild)
+    if (observer) {
+      observer.observe(element)
+      if (element.firstElementChild) observer.observe(element.firstElementChild)
+    }
 
     return () => {
-      element.removeEventListener('scroll', noteScroll)
+      gestures.forEach(name => element.removeEventListener(name, handOver))
+      window.removeEventListener('resize', pin)
       observer?.disconnect()
     }
   }, [weeks.length])
