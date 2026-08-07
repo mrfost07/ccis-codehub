@@ -19,6 +19,7 @@ import AdminAnalytics from '../components/AdminAnalytics'
 import LearningAnalytics from '../components/LearningAnalytics'
 import ProjectAdmin from '../components/ProjectAdmin'
 import ContentModeration from '../components/ContentModeration'
+import ReportQueue from '../components/admin/ReportQueue'
 
 // Extracted admin components
 import {
@@ -513,6 +514,9 @@ export default function AdminDashboard() {
 
                 {/* Content Tab */}
                 {activeTab === 'content' && <ContentModeration />}
+
+                {/* The report queue built on /community/reports/queue/. */}
+                {activeTab === 'reports' && <ReportQueue />}
 
                 {/* Analytics Tab */}
                 {activeTab === 'analytics' && <AdminAnalytics />}

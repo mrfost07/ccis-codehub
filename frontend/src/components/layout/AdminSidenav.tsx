@@ -9,7 +9,7 @@
 import { useState, useEffect, ReactNode } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import {
-    LayoutDashboard, Users, BookOpen, Briefcase, FileText,
+    LayoutDashboard, Users, BookOpen, Briefcase, FileText, Flag,
     BarChart3, Settings, Shield, ChevronLeft, ChevronRight,
     Menu, X, LogOut, User, ArrowLeft
 } from 'lucide-react'
@@ -34,6 +34,7 @@ const sidenavItems: AdminSidenavItem[] = [
     { id: 'projects', label: 'Project Admin', icon: Briefcase },
     { id: 'users', label: 'User Management', icon: Users },
     { id: 'content', label: 'Content Moderation', icon: FileText },
+    { id: 'reports', label: 'Reports', icon: Flag },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'settings', label: 'System Settings', icon: Settings }
 ]

@@ -368,10 +368,15 @@ function GroupPostCard({
     setShowComments(!showComments)
   }
 
+  /** A comment is being posted on this card. */
+  const [postingComment, setPostingComment] = useState(false)
+
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!newComment.trim()) return
+    if (postingComment) return
 
+    setPostingComment(true)
     try {
       await communityAPI.createComment({ post: post.id, content: newComment })
       setNewComment('')
@@ -380,6 +385,8 @@ function GroupPostCard({
       toast.success('Comment added!')
     } catch (error) {
       toast.error('Failed to add comment')
+    } finally {
+      setPostingComment(false)
     }
   }
 
@@ -693,11 +700,13 @@ function GroupPostCard({
             />
             <button
               type="submit"
-              disabled={!newComment.trim()}
-              aria-label="Post comment"
+              disabled={postingComment || !newComment.trim()}
+              aria-label={postingComment ? 'Posting comment' : 'Post comment'}
               className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-purple-400 hover:bg-neutral-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
             >
-              <Send className="w-4 h-4" />
+              {postingComment
+                ? <span className="block h-4 w-4 animate-spin rounded-full border-2 border-purple-400 border-t-transparent" />
+                : <Send className="w-4 h-4" />}
             </button>
           </form>
           )}
@@ -2175,12 +2184,20 @@ export default function CommunityEnhanced() {
     })
   }
 
+  /** Posts with a comment currently in flight. */
+  const [postingComment, setPostingComment] = useState<{ [key: string]: boolean }>({})
+
   const handleComment = async (postId: string) => {
     const content = commentInputs[postId] || ''
     const image = commentImages[postId]
     // Words or a picture. The serializer enforces the same rule.
     if (!content.trim() && !image) return
+    // One at a time. Without this, tapping Send repeatedly during an upload fired
+    // a request per tap — the server kept one and the rest arrived as a stack of
+    // "Comment posted!" toasts for work that never appeared.
+    if (postingComment[postId]) return
 
+    setPostingComment(prev => ({ ...prev, [postId]: true }))
     try {
       let response
       if (image) {
@@ -2215,6 +2232,12 @@ export default function CommunityEnhanced() {
     } catch (error) {
       console.error('Failed to post comment:', error)
       toast.error('Failed to post comment')
+    } finally {
+      setPostingComment(prev => {
+        const next = { ...prev }
+        delete next[postId]
+        return next
+      })
     }
   }
 
@@ -2914,8 +2937,9 @@ export default function CommunityEnhanced() {
                                 value={commentInputs[post.id] || ''}
                                 onChange={(e) => setCommentInputs({ ...commentInputs, [post.id]: e.target.value })}
                                 onKeyPress={(e) => e.key === 'Enter' && handleComment(post.id)}
-                                placeholder="Write a comment…"
-                                className="w-full h-9 rounded-full bg-neutral-800 border border-neutral-700 pl-4 pr-20 text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-purple-500 transition-colors"
+                                placeholder={postingComment[post.id] ? 'Posting…' : 'Write a comment…'}
+                                disabled={postingComment[post.id]}
+                                className="w-full h-9 rounded-full bg-neutral-800 border border-neutral-700 pl-4 pr-20 text-sm text-neutral-100 placeholder-neutral-500 focus:outline-none focus:border-purple-500 transition-colors disabled:opacity-60"
                               />
                               <label
                                 aria-label="Attach an image"
@@ -2932,11 +2956,16 @@ export default function CommunityEnhanced() {
                               </label>
                               <button
                                 onClick={() => handleComment(post.id)}
-                                disabled={!commentInputs[post.id]?.trim() && !commentImages[post.id]}
-                                aria-label="Post comment"
+                                disabled={
+                                  postingComment[post.id]
+                                  || (!commentInputs[post.id]?.trim() && !commentImages[post.id])
+                                }
+                                aria-label={postingComment[post.id] ? 'Posting comment' : 'Post comment'}
                                 className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-purple-400 hover:bg-neutral-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
                               >
-                                <Send className="w-4 h-4" />
+                                {postingComment[post.id]
+                                  ? <span className="block h-4 w-4 animate-spin rounded-full border-2 border-purple-400 border-t-transparent" />
+                                  : <Send className="w-4 h-4" />}
                               </button>
                             </div>
                           </div>
