@@ -16,6 +16,11 @@ Keys are `area.name`:
 from .capstones import backend_engineer as _cap_backend_engineer
 from .capstones import business_analyst as _cap_business_analyst
 from .capstones import data_analyst as _cap_data_analyst
+from .capstones import qa_automation_engineer as _cap_qa_automation_engineer
+from .capstones import systems_administrator as _cap_systems_administrator
+from .capstones import soc_analyst as _cap_soc_analyst
+from .capstones import database_administrator as _cap_database_administrator
+from .capstones import it_auditor as _cap_it_auditor
 from .capstones import frontend_engineer as _cap_frontend_engineer
 from .capstones import full_stack_engineer as _cap_full_stack_engineer
 from .capstones import it_support_engineer as _cap_it_support_engineer
@@ -49,6 +54,11 @@ REGISTRY = {
     'capstones.it_support_engineer': _cap_it_support_engineer.MODULE,
     'capstones.business_analyst': _cap_business_analyst.MODULE,
     'capstones.data_analyst': _cap_data_analyst.MODULE,
+    'capstones.qa_automation_engineer': _cap_qa_automation_engineer.MODULE,
+    'capstones.systems_administrator': _cap_systems_administrator.MODULE,
+    'capstones.soc_analyst': _cap_soc_analyst.MODULE,
+    'capstones.database_administrator': _cap_database_administrator.MODULE,
+    'capstones.it_auditor': _cap_it_auditor.MODULE,
 }
 
 
