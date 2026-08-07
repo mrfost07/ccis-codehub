@@ -212,7 +212,42 @@ because they are existing, enrolled paths, they come before any new role's path.
 
 **Exit:** `seed_path --all` reproduces the current two good paths exactly, and `validate_paths` passes.
 
-### Phase 2 — Core module library (1–2 sessions)
+### Phase 2a — The five paths that could not assess — ✅ DONE 2026-08-07
+
+85 questions across 14 modules, each drawn from what its module actually
+teaches. **Every active path now passes `validate_paths`, certificates included:**
+
+```
+ ok  Cloud Computing Fundamentals      modules=2  questions=16
+ ok  Comprehensive Data Structures     modules=3  questions=24
+ ok  Comprehensive Web Development     modules=3  questions=15
+ ok  Data Science and Machine Learning modules=5  questions=40
+ ok  Fundamentals of SQL               modules=3  questions=15
+ ok  Hosting a Website on AWS EC2      modules=3  questions=15
+ ok  Python Programming Fundamentals   modules=5  questions=44
+
+all 7 active path(s) pass
+```
+
+**Quiz packs**, a second mechanism alongside path manifests: these five paths
+have real teaching content authored before this system, and declaring them as
+full manifests would mean transcribing fourteen modules of HTML into slide
+dictionaries — risking loss or alteration of content nobody asked to change. A
+pack declares *only* quizzes, matched to modules by title. `seed_quizzes` never
+writes module content, and a test asserts it (mutation-checked). New paths are
+still declared whole in `content/paths/`.
+
+Question count is proportionate: 5 for a thirty-minute module, 8 for a long one.
+The standard in §4 said 8–10 uniformly; that would have been a twenty-minute
+exam on a half-hour lesson.
+
+Content-wide tests, not spot checks — every question in every pack must have
+exactly one correct answer, survive the round trip through the real parser with
+the *declared* option still marked correct, carry no markup in a label (which
+renders blank), and not read as true/false by accident. One bad question in
+eighty-five is invisible by eye.
+
+### Phase 2b — Core module library (1–2 sessions)
 
 Author the ~10 core modules and the ~8 track families' shared modules
 (~40 modules). These are the highest-leverage content in the project: each one
