@@ -9,6 +9,7 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from apps.core.permissions import IsInstructorOrAdmin
 from rest_framework.throttling import UserRateThrottle
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q
@@ -38,6 +39,17 @@ class CodingChallengeViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     lookup_field = 'slug'
 
+    # Authoring is not a student capability. This was a plain ModelViewSet with
+    # IsAuthenticated, so any signed-in student could create challenges — and
+    # destroy() looked one up by slug and deleted it with no further check,
+    # which meant a student could remove every challenge on the platform.
+    WRITE_ACTIONS = {'create', 'update', 'partial_update', 'destroy', 'go_live'}
+
+    def get_permissions(self):
+        if self.action in self.WRITE_ACTIONS:
+            return [IsAuthenticated(), IsInstructorOrAdmin()]
+        return [IsAuthenticated()]
+
     def get_queryset(self):
         qs = CodingChallenge.objects.filter(is_active=True)
 
@@ -58,8 +70,31 @@ class CodingChallengeViewSet(viewsets.ModelViewSet):
         return qs
 
     def create(self, request):
-        """Create a new coding challenge"""
+        """Create a new coding challenge.
+
+        Validated before it is saved. A challenge whose expected outputs are
+        blank, or which has no tests, cannot be graded honestly - grading
+        compares stdout to the expected output, so a blank expectation passes
+        for any program that prints nothing.
+
+        Warnings are returned alongside the created challenge rather than
+        blocking it: 'no hidden tests' means cheatable, not broken, and the
+        author is the right person to decide.
+        """
+        from apps.learning.challenge_validation import check_challenge
+
         data = request.data
+        errors, warnings = check_challenge({
+            'title': data.get('title', ''),
+            'description': data.get('description', ''),
+            'test_cases': data.get('test_cases', []),
+            'solution_code': data.get('solution_code', {}),
+        })
+        if errors:
+            return Response(
+                {'detail': 'This challenge cannot be graded.', 'errors': errors},
+                status=status.HTTP_400_BAD_REQUEST)
+
         try:
             challenge = CodingChallenge.objects.create(
                 title=data.get('title', ''),
@@ -72,8 +107,13 @@ class CodingChallengeViewSet(viewsets.ModelViewSet):
                 constraints=data.get('constraints', ''),
                 points=int(data.get('points', 10)),
                 time_limit_seconds=int(data.get('time_limit_seconds', 300)),
+                solution_code=data.get('solution_code', {}),
+                created_by=request.user,
             )
-            return Response({'id': str(challenge.id), 'slug': challenge.slug, 'title': challenge.title}, status=status.HTTP_201_CREATED)
+            return Response({
+                'id': str(challenge.id), 'slug': challenge.slug,
+                'title': challenge.title, 'warnings': warnings,
+            }, status=status.HTTP_201_CREATED)
         except Exception as e:
             logger.error(f'Failed to create challenge: {e}')
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
