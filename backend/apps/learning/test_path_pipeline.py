@@ -233,6 +233,15 @@ class TestTheSeedCommand:
 
         assert 'slides differ' in output
 
+    def test_the_commands_survive_django_system_checks(self):
+        # call_command skips system checks; the command line does not. A method
+        # named `check` on the Command shadows BaseCommand's own and blew up
+        # only when run for real.
+        _run('seed_path', list=True, skip_checks=False)
+        _run('seed_path', 'data-science-and-machine-learning', check=True,
+             skip_checks=False)
+        _run('validate_paths', skip_certificates=True, skip_checks=False)
+
     def test_check_writes_nothing(self):
         _run('seed_path', 'data-science-and-machine-learning', check=True)
 

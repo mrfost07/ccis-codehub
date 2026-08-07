@@ -66,7 +66,7 @@ class Command(BaseCommand):
             raise CommandError('give a slug, or --all, or --list')
 
         if options['check']:
-            self.check(targets)
+            self.report_drift(targets)
             return
 
         from apps.accounts.models import User
@@ -102,8 +102,13 @@ class Command(BaseCommand):
             self.stdout.write(
                 'now run: python manage.py import_quiz_questions --fill-missing')
 
-    def check(self, targets):
-        """Render each manifest and say where the database differs."""
+    def report_drift(self, targets):
+        """Render each manifest and say where the database differs.
+
+        Not named `check`: that is BaseCommand's system-check hook, and
+        shadowing it breaks the command on the command line while leaving
+        call_command working, because call_command skips system checks.
+        """
         from apps.learning.models import CareerPath
 
         drifted = 0
