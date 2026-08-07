@@ -217,14 +217,14 @@ export function useCareerPaths(filters?: { program?: string; difficulty?: string
             if (filters?.difficulty) params.append('difficulty_level', filters.difficulty)
             if (filters?.search) params.append('search', filters.search)
 
-            // Try admin endpoint first, fall back to regular
-            try {
-                const response = await api.get(`/learning/admin/career-paths/?${params}`)
-                return response.data.results || response.data || []
-            } catch {
-                const response = await api.get(`/learning/career-paths/?${params}`)
-                return response.data.results || response.data || []
-            }
+            // The student catalogue, and only the student catalogue, uses this.
+            // It used to try /learning/admin/career-paths/ first and fall back on
+            // 401 — which meant a student saw the ten published paths while an
+            // admin or instructor saw thirteen, including retired and draft ones,
+            // in the same course list. The admin dashboard has its own calls for
+            // those.
+            const response = await api.get(`/learning/career-paths/?${params}`)
+            return response.data.results || response.data || []
         },
         staleTime: CACHE_TIMES.CAREER_PATHS,
     })
