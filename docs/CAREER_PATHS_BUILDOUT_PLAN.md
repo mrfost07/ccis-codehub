@@ -282,7 +282,38 @@ Two things went wrong on the way and are worth recording:
 **All 8 active paths pass `validate_paths`, certificates included.** 213
 questions live. 2 of 79 roles now lead to a path.
 
-### Phase 2c — Rest of the core library (1–2 sessions)
+### Phase 2c — Frontend and Full-Stack, verified in a browser — ✅ DONE 2026-08-07
+
+**10 active paths, all passing `validate_paths`.** Frontend Engineer cost one
+core module plus a capstone; **Full-Stack Engineer cost only a capstone** — every
+other module already existed. That is the library paying off, stated as a fact:
+
+```
+Backend Engineer      version_control · http_and_apis · relational_data · automated_testing · capstone
+Frontend Engineer     version_control · http_and_apis · frontend_foundations · automated_testing · capstone
+Full-Stack Engineer   version_control · http_and_apis · relational_data · frontend_foundations · capstone
+```
+
+Library: 7 modules (4 core, 3 capstones). Live: 303 questions.
+
+**A bug only the browser could find.** The catalogue page reported *"Showing 13
+of 13 courses"* while the API returned 10 — the two retired shells and the
+merged duplicate were still listed, with their placeholder descriptions
+("asdfasdf"). Cause: `useCareerPaths` tried `/learning/admin/career-paths/`
+first and fell back to the public list on 401, so **a student saw ten courses
+and an admin saw thirteen on the same page**. The public endpoint already
+filters `is_active=True`, so asking it is the whole fix. Now *"Showing 10 of
+10"*, retired paths gone. 4 tests, mutation-checked.
+
+Verified live, anonymously, in the browser:
+
+```
+quizzes visible        20        answer key leaks      0
+questions              159       blank choice labels   0
+choice counts seen     [2, 4]    correct_answer/is_correct/explanation served: none
+```
+
+### Phase 2d — Rest of the core library (1–2 sessions)
 
 Author the ~10 core modules and the ~8 track families' shared modules
 (~40 modules). These are the highest-leverage content in the project: each one
