@@ -332,7 +332,45 @@ shared (with capstones asserted *not* shared). One of them immediately caught
 Data Science not declaring its role — it had been wired by data migration 0026,
 so re-seeding would have quietly dropped the link.
 
-### Phase 2e — Rest of the core library (1–2 sessions)
+### Phase 2e — BSIS, and all three programmes covered — ✅ DONE 2026-08-07
+
+BSIS was the last programme at zero. Two new core modules —
+`core.requirements_analysis`, `core.data_analysis_reporting` — and two paths:
+**Business Analyst** and **Data Analyst**.
+
+Data Analyst reuses `core.relational_data`, which was written for Backend
+Engineer. The same module now serves a **BSCS engineering role and a BSIS
+analysis role** — reuse across programmes, not just within one.
+
+**14 active paths, all passing. Every programme represented:**
+
+```
+bscs 6    bsit 4    bsis 2    general 2
+```
+
+Library: 16 modules (9 core, 7 capstones). Live: **489 questions**, 8 roles
+wired.
+
+Verified in the browser: *"Showing 14 of 14 courses"*, both BSIS paths
+rendering, and across **55 quizzes / 489 questions** served — 0 answer-key
+leaks, 0 blank labels. Answer positions as students see them:
+`{A:136, B:113, C:116, D:96}` of 461.
+
+---
+
+## Where the buildout stands
+
+| | done | remaining |
+|---|---|---|
+| Paths | 14 | ~30 more for Tier 1+2 coverage |
+| Roles wired | 8 / 79 | 71 |
+| Library modules | 16 | ~40 for full family coverage |
+| Questions | 489 | — |
+
+The machinery is finished and the pattern is proven three times over: the second
+path in a family costs one capstone. What remains is content, family by family.
+
+### Next — rest of the core library (1–2 sessions each)
 
 Author the ~10 core modules and the ~8 track families' shared modules
 (~40 modules). These are the highest-leverage content in the project: each one
