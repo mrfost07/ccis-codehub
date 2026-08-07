@@ -47,6 +47,10 @@ class SlideParser(HTMLParser):
         self.questions = []
         self._question = None
         self._capture = None          # which field the current text belongs to
+        # Where each slide begins and ends in the source, so a caller can
+        # replace one without guessing at its boundaries by string search.
+        self._source = ''
+        self._line_starts = [0]
         # Open <div> count since the slide started. The slide is finished when it
         # returns to zero. An earlier version closed the slide on "the first
         # </div> after some text" and de-duplicated the results with `not in`,
@@ -55,6 +59,27 @@ class SlideParser(HTMLParser):
         self._buffer = []
 
     # -- helpers ---------------------------------------------------------
+    def parse(self, html):
+        """Feed `html`, remembering it so slide offsets can be resolved."""
+        self._source = html or ''
+        self._line_starts = [0]
+        offset = 0
+        for line in self._source.splitlines(keepends=True):
+            offset += len(line)
+            self._line_starts.append(offset)
+        self.feed(self._source)
+        self.close()
+        return self.questions
+
+    def _index(self):
+        """Absolute offset of the tag being handled.
+
+        getpos() is (line, column); the source is stored so the two can be
+        turned into the one number a slice needs.
+        """
+        line, column = self.getpos()
+        return self._line_starts[line - 1] + column
+
     def _classes(self, attrs):
         return (dict(attrs).get('class') or '').split()
 
@@ -71,6 +96,7 @@ class SlideParser(HTMLParser):
         if 'module-slide' in classes:
             self._question = {
                 'text': '', 'type': 'multiple_choice', 'points': 1, 'choices': [],
+                'start': self._index(), 'end': None,
             }
             self._slide_depth = 1
             return
@@ -126,6 +152,10 @@ class SlideParser(HTMLParser):
 
         # Back to zero means this </div> closed the slide.
         if self._slide_depth <= 0:
+            # Past the '>' of this closing tag, so the span is the whole slide.
+            closing = self._source.find('>', self._index())
+            self._question['end'] = (
+                closing + 1 if closing != -1 else len(self._source))
             self.questions.append(self._question)
             self._question = None
             self._slide_depth = 0
@@ -201,8 +231,7 @@ def apply_authored_answer(item):
 def parse_slides(html):
     """Questions found in one quiz's content. Empty list if there are none."""
     parser = SlideParser()
-    parser.feed(html or '')
-    parser.close()
+    parser.parse(html or '')
     # A slide with no prompt or no choices is not a question — the seeds also use
     # module-slide for prose.
     return [
