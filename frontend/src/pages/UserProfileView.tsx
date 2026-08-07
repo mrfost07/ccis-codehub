@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
-import ProfileOverview from '../components/profile/ProfileOverview'
+import ProfileOverview, { type Overview } from '../components/profile/ProfileOverview'
 import ChallengeProgress from '../components/profile/ChallengeProgress'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
@@ -8,7 +8,7 @@ import {
   UserCheck, ArrowLeft, Github, Linkedin, Globe, X
 } from 'lucide-react'
 import Navbar from '../components/Navbar'
-import { communityAPI } from '../services/api'
+import api, { communityAPI } from '../services/api'
 import toast from 'react-hot-toast'
 // three.js-backed background — lazy so it only downloads when this profile
 // actually uses an animated background.
@@ -230,10 +230,26 @@ export default function UserProfileView() {
   const [loadingFollowers, setLoadingFollowers] = useState(false)
   const [loadingFollowing, setLoadingFollowing] = useState(false)
 
+  // Loaded here rather than only inside ProfileOverview, because the header
+  // stat row needs it too — its post count came from `total_posts`, a Profile
+  // counter nothing writes, so every profile read "0 Posts" while the card
+  // below it said "2 likes across 1 post".
+  const [overview, setOverview] = useState<Overview | null>(null)
+
   useEffect(() => {
     if (userId) {
       fetchUserProfile()
     }
+  }, [userId])
+
+  useEffect(() => {
+    if (!userId) return
+    let cancelled = false
+    setOverview(null)
+    api.get(`/auth/user/${userId}/overview/`)
+      .then(({ data }) => { if (!cancelled) setOverview(data) })
+      .catch(() => { if (!cancelled) setOverview(null) })
+    return () => { cancelled = true }
   }, [userId])
 
   const fetchUserProfile = async () => {
@@ -535,7 +551,9 @@ export default function UserProfileView() {
                 <p className="text-xs sm:text-sm text-neutral-400">Following</p>
               </button>
               <div className="text-center px-2 py-1 sm:px-3 sm:py-2">
-                <p className="text-lg sm:text-xl font-bold text-white tabular-nums">{profile.profile?.total_posts || 0}</p>
+                <p className="text-lg sm:text-xl font-bold text-white tabular-nums">
+                  {overview ? overview.community.posts : '—'}
+                </p>
                 <p className="text-xs sm:text-sm text-neutral-400">Posts</p>
               </div>
             </div>
@@ -597,7 +615,7 @@ export default function UserProfileView() {
           {/* What they have actually done. This block used to read
               denormalised counters, which were wrong — a student with two
               finished paths and two certificates showed zero courses. */}
-          <ProfileOverview userId={profile.id} />
+          <ProfileOverview userId={profile.id} overview={overview} />
 
           {/* Solved counts, the year heatmap and recent solves — the same panel
               the owner sees under their Coding tab. A profile that summarises

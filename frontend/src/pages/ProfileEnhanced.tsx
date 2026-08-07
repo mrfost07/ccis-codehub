@@ -735,13 +735,14 @@ export default function ProfileEnhanced() {
             {activeTab === 'overview' && (
               <>
                 {/* Everything this person has done, across learning, projects
-                    and community. */}
-                <ProfileOverview />
+                    and community. Handed the overview the page already loaded
+                    for the headline row, rather than fetching it twice. */}
+                <ProfileOverview overview={overview} />
 
                 {/* About */}
-                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <User className="w-5 h-5 text-purple-400" />
+                <div className="rounded-3xl bg-neutral-900/70 p-5 ring-1 ring-white/5">
+                  <h2 className="mb-4 flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+                    <User className="w-4 h-4" />
                     About
                   </h2>
                   {editing ? (
@@ -760,9 +761,9 @@ export default function ProfileEnhanced() {
                 </div>
 
                 {/* Personal Info */}
-                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <Settings className="w-5 h-5 text-purple-400" />
+                <div className="rounded-3xl bg-neutral-900/70 p-5 ring-1 ring-white/5">
+                  <h2 className="mb-4 flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+                    <Settings className="w-4 h-4" />
                     Personal Information
                   </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -847,10 +848,11 @@ export default function ProfileEnhanced() {
             )}
 
             {activeTab === 'skills' && (
-              <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-                <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <Code className="w-5 h-5 text-purple-400" />
-                  Skills & Technologies
+              <div className="rounded-3xl bg-neutral-900/70 p-5 ring-1 ring-white/5">
+                <h2 className="mb-4 flex items-center gap-2.5 text-[11px] font-semibold
+                  uppercase tracking-[0.14em] text-neutral-400">
+                  <Code className="w-4 h-4" />
+                  Skills &amp; technologies
                 </h2>
 
                 {editing && (
@@ -905,31 +907,36 @@ export default function ProfileEnhanced() {
             {/* ── ACHIEVEMENTS TAB ─────────────────────── */}
             {activeTab === 'achievements' && (
               <div className="space-y-6">
-                {/* Stats row */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 text-center">
-                    <Zap className="w-6 h-6 text-amber-400 mx-auto mb-1" />
-                    <p className="text-2xl font-bold text-white tabular-nums">{achievedSkills?.total ?? 0}</p>
-                    <p className="text-xs text-neutral-400">Skills Earned</p>
-                  </div>
-                  <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 text-center">
-                    <Trophy className="w-6 h-6 text-purple-400 mx-auto mb-1" />
-                    <p className="text-2xl font-bold text-white tabular-nums">{profile?.profile?.certificates_earned ?? 0}</p>
-                    <p className="text-xs text-neutral-400">Certificates</p>
-                  </div>
-                  <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 text-center">
-                    <Target className="w-6 h-6 text-green-400 mx-auto mb-1" />
-                    <p className="text-2xl font-bold text-white tabular-nums">{profile?.profile?.total_modules_completed ?? 0}</p>
-                    <p className="text-xs text-neutral-400">Modules Done</p>
-                  </div>
+                {/* Certificates and modules came from Profile counters, which
+                    is what showed 0 certificates to a student holding two.
+                    From the overview endpoint now, like everything else. */}
+                <div className="grid grid-cols-3 gap-px overflow-hidden rounded-2xl bg-white/5">
+                  {[
+                    { icon: <Zap className="w-4 h-4 text-amber-400" />,
+                      value: achievedSkills?.total ?? 0, label: 'Skills earned' },
+                    { icon: <Trophy className="w-4 h-4 text-purple-400" />,
+                      value: overview?.learning.certificates ?? 0, label: 'Certificates' },
+                    { icon: <Target className="w-4 h-4 text-green-400" />,
+                      value: overview?.learning.modules_completed ?? 0, label: 'Modules done' },
+                  ].map(tile => (
+                    <div key={tile.label} className="bg-neutral-900 px-3 py-4 text-center">
+                      <span className="mx-auto mb-1.5 flex justify-center">{tile.icon}</span>
+                      <p className="text-2xl font-semibold tracking-tight tabular-nums text-white">
+                        {tile.value}
+                      </p>
+                      <p className="mt-0.5 text-[11px] font-medium text-neutral-400">{tile.label}</p>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Skills by category */}
-                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <Award className="w-5 h-5 text-purple-400" />
-                    Verified Skills
-                    <span className="ml-auto text-xs text-neutral-500 font-normal">Earned through learning</span>
+                <div className="rounded-3xl bg-neutral-900/70 p-5 ring-1 ring-white/5">
+                  <h2 className="mb-4 flex items-center gap-2.5 text-[11px] font-semibold
+                    uppercase tracking-[0.14em] text-neutral-400">
+                    <Award className="w-4 h-4" />
+                    Verified skills
+                    <span className="ml-auto text-[11px] font-normal normal-case tracking-normal
+                      text-neutral-500">Earned through learning</span>
                   </h2>
 
                   {skillsLoading ? (
@@ -980,9 +987,9 @@ export default function ProfileEnhanced() {
                 </div>
 
                 {/* Badge Showcase */}
-                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-                  <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-amber-400" />
+                <div className="rounded-3xl bg-neutral-900/70 p-5 ring-1 ring-white/5">
+                  <h2 className="mb-4 flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+                    <Trophy className="w-4 h-4 text-amber-400" />
                     Badge Showcase
                     {badgeCatalog && (
                       <span className="ml-auto text-xs text-neutral-500 font-normal">
@@ -1040,11 +1047,13 @@ export default function ProfileEnhanced() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-purple-600/20 rounded-lg">
-                      <Award className="w-5 h-5 text-purple-400" />
+                      <Award className="w-4 h-4" />
                     </div>
                     <div>
                       <p className="font-medium text-white">View All Certificates</p>
-                      <p className="text-xs text-neutral-400">{profile?.profile?.certificates_earned ?? 0} certificates earned</p>
+                      <p className="text-xs text-neutral-400">
+                        {overview ? overview.learning.certificates : '—'} certificates earned
+                      </p>
                     </div>
                   </div>
                   <Code className="w-5 h-5 text-neutral-600 group-hover:text-purple-400 transition" />
@@ -1070,9 +1079,9 @@ export default function ProfileEnhanced() {
             )}
 
             {activeTab === 'settings' && (
-              <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-                <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-purple-400" />
+              <div className="rounded-3xl bg-neutral-900/70 p-5 ring-1 ring-white/5">
+                <h2 className="mb-4 flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+                  <Globe className="w-4 h-4" />
                   Social Links
                 </h2>
                 <div className="space-y-4">
@@ -1131,35 +1140,42 @@ export default function ProfileEnhanced() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Quick Stats */}
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-              <h3 className="text-lg font-bold text-white mb-4">Quick Stats</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-neutral-400 flex items-center gap-2">
-                    <Clock className="w-4 h-4" /> Current Streak
-                  </span>
-                  <span className="text-white font-bold">{profile?.profile?.current_streak || 0} days</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-neutral-400 flex items-center gap-2">
-                    <BookOpen className="w-4 h-4" /> Modules Done
-                  </span>
-                  <span className="text-white font-bold">{profile?.profile?.total_modules_completed || 0}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-neutral-400 flex items-center gap-2">
-                    <Star className="w-4 h-4" /> Total Posts
-                  </span>
-                  <span className="text-white font-bold">{profile?.profile?.total_posts || 0}</span>
-                </div>
+            {/* Quick Stats — from the overview endpoint, like the headline row.
+                These read Profile counters, and two of them are never written
+                by anything: `current_streak` and `total_posts` are 0 for every
+                user on the platform. Confirmed on production, where an account
+                with two posts was shown "Total Posts 0". */}
+            <div className="rounded-3xl bg-neutral-900/70 p-5 ring-1 ring-white/5">
+              <h3 className="mb-4 text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+                Quick stats
+              </h3>
+              <div className="space-y-3.5">
+                {[
+                  { icon: <Clock className="w-4 h-4" />, label: 'Coding streak',
+                    value: overview ? `${overview.challenges.streak.current} days` : '—' },
+                  { icon: <BookOpen className="w-4 h-4" />, label: 'Modules done',
+                    value: overview ? overview.learning.modules_completed : '—' },
+                  { icon: <Code className="w-4 h-4" />, label: 'Challenges solved',
+                    value: overview ? overview.challenges.solved.total : '—' },
+                  { icon: <Star className="w-4 h-4" />, label: 'Posts',
+                    value: overview ? overview.community.posts : '—' },
+                ].map(row => (
+                  <div key={row.label} className="flex items-center justify-between">
+                    <span className="flex items-center gap-2 text-sm text-neutral-400">
+                      <span className="text-neutral-500">{row.icon}</span> {row.label}
+                    </span>
+                    <span className="text-sm font-semibold tabular-nums text-white">
+                      {row.value}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
 
             {/* Achievements */}
-            <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
-              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-amber-400" />
+            <div className="rounded-3xl bg-neutral-900/70 p-5 ring-1 ring-white/5">
+              <h3 className="mb-4 flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-neutral-400">
+                <Trophy className="w-4 h-4 text-amber-400" />
                 Achievements
                 {badgeCatalog && (
                   <span className="ml-auto text-xs text-neutral-500 font-normal">

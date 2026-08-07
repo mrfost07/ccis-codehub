@@ -122,22 +122,30 @@ function Meter({ label, done, total, className }: {
   )
 }
 
-export default function ProfileOverview({ userId }: { userId?: string } = {}) {
-  const [overview, setOverview] = useState<Overview | null>(null)
+export default function ProfileOverview({ userId, overview: given }: {
+  userId?: string
+  /** Pass this when the page already holds the overview, to save a second
+      request for the same data. Omit it and the panel fetches its own. */
+  overview?: Overview | null
+} = {}) {
+  const supplied = given !== undefined
+  const [fetched, setFetched] = useState<Overview | null>(null)
   const [failed, setFailed] = useState(false)
+  const overview = supplied ? given : fetched
 
   useEffect(() => {
+    if (supplied) return
     let cancelled = false
-    setOverview(null)
+    setFetched(null)
     setFailed(false)
     const url = userId
       ? `/auth/user/${userId}/overview/`
       : '/auth/profile/overview/'
     api.get(url)
-      .then(({ data }) => { if (!cancelled) setOverview(data) })
+      .then(({ data }) => { if (!cancelled) setFetched(data) })
       .catch(() => { if (!cancelled) setFailed(true) })
     return () => { cancelled = true }
-  }, [userId])
+  }, [userId, supplied])
 
   if (failed) {
     return (

@@ -124,6 +124,25 @@ describe('the overview', () => {
   })
 })
 
+describe('when the page already has the overview', () => {
+  it('uses it instead of asking again', async () => {
+    // Both profile pages load the overview for their headline row. Fetching
+    // it a second time here was two requests for one answer.
+    render(<ProfileOverview overview={overview() as any} />)
+
+    await screen.findByText('Learning')
+    expect(get).not.toHaveBeenCalled()
+    expect(screen.getByText('2 / 4')).toBeTruthy()
+  })
+
+  it('shows the loading state while the page is still fetching', () => {
+    const { container } = render(<ProfileOverview overview={null} />)
+
+    expect(get).not.toHaveBeenCalled()
+    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0)
+  })
+})
+
 describe('the headline row', () => {
   it('shows the six figures from the same source', async () => {
     render(<ProfileHeadline overview={overview() as any} />)
