@@ -313,7 +313,26 @@ questions              159       blank choice labels   0
 choice counts seen     [2, 4]    correct_answer/is_correct/explanation served: none
 ```
 
-### Phase 2d — Rest of the core library (1–2 sessions)
+### Phase 2d — BSIT reaches the catalogue — ✅ DONE 2026-08-07
+
+BSIT had no paths at all. Three new core modules — `core.networking`,
+`core.linux_and_systems`, `core.security_fundamentals` — put a floor under most
+of its 28 roles, and two paths sit on them: **Network Administrator** and
+**IT Support Engineer**. The second cost one capstone.
+
+**12 active paths, all passing `validate_paths`.** Library: 12 modules (7 core,
+5 capstones). Verified live in the browser: *"Showing 12 of 12 courses"*, both
+BSIT paths rendering, and across **47 quizzes / 394 questions** served to a
+visitor — **0 answer-key leaks, 0 blank choice labels**.
+
+Catalogue-wide tests now cover any path added later without anyone remembering
+to write one: every manifest sound, every module key resolves, every path names
+the role it leads to, programmes covered, and the shared modules genuinely
+shared (with capstones asserted *not* shared). One of them immediately caught
+Data Science not declaring its role — it had been wired by data migration 0026,
+so re-seeding would have quietly dropped the link.
+
+### Phase 2e — Rest of the core library (1–2 sessions)
 
 Author the ~10 core modules and the ~8 track families' shared modules
 (~40 modules). These are the highest-leverage content in the project: each one
