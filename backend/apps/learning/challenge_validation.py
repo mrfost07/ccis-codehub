@@ -118,16 +118,23 @@ def verify_reference_solution(challenge, executor=None, language=None):
         from apps.learning.code_executor import CodeExecutor
         executor = CodeExecutor()
 
-    result = executor.run_tests(code, language, tests)
-    if result.get('status') == 'accepted':
+    result = executor.run(language, code, tests)
+    if result.get('all_passed'):
         return True, f'{len(tests)} test(s) pass'
 
     failed = [
-        f'test {i + 1}: expected {r.get("expected")!r}, got {r.get("stdout")!r}'
+        f'test {i + 1}: expected {(tests[i].get("expected_output") or "")!r}, '
+        f'got {(r.get("stdout") or "")!r}'
         for i, r in enumerate(result.get('results') or [])
         if not r.get('passed')
     ]
     return False, (result.get('status') or 'failed') + '; ' + '; '.join(failed[:3])
+
+
+# Below this many distinct expected outputs, finding them all in the source
+# proves nothing: a problem answering `true` or `false` forces any correct
+# solution to contain both words.
+MIN_DISTINCT_FOR_LOOKUP_CHECK = 3
 
 
 def looks_like_a_lookup_table(challenge):
@@ -136,6 +143,14 @@ def looks_like_a_lookup_table(challenge):
     An author can defeat their own challenge as easily as a student can. If the
     reference is a lookup table, every test passes and the challenge teaches
     nothing.
+
+    Only meaningful when the answers are varied. The first version of this
+    rejected three perfectly good challenges — anagrams, balanced brackets,
+    palindromes — because each prints `true` or `false` and so must contain
+    those two words. The executor's own detector avoids the same trap by
+    requiring a second signal, that the output does not react to changed input;
+    here the equivalent is to only draw the inference when there are enough
+    distinct answers for the coincidence to be implausible.
     """
     solutions = challenge.get('solution_code') or {}
     code = ' '.join(str(v) for v in solutions.values())
@@ -145,7 +160,7 @@ def looks_like_a_lookup_table(challenge):
     expected = [str(t.get('expected_output', '')).strip()
                 for t in _tests(challenge)]
     expected = [e for e in expected if e]
-    if len(expected) < 2:
+    if len(set(expected)) < MIN_DISTINCT_FOR_LOOKUP_CHECK:
         return False
     return all(
         re.search(r'(?<![\w.])' + re.escape(answer) + r'(?![\w.])', code)

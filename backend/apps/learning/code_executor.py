@@ -332,10 +332,21 @@ class CodeExecutor:
         reversed_lines = '\n'.join(line[::-1] for line in stdin_data.splitlines())
         if reversed_lines != stdin_data and reversed_lines not in mutations:
             mutations.append(reversed_lines)
+        # Change ONE line only. Mutating every line alike leaves a relationship
+        # between them intact — reverse both words of an anagram pair and they
+        # are still anagrams — so a correct solution answers the same and looks
+        # hardcoded. Disturbing one side breaks that.
+        lines = stdin_data.splitlines()
+        if len(lines) > 1:
+            single = '\n'.join(
+                (line + 'x') if index == len(lines) - 1 else line
+                for index, line in enumerate(lines))
+            if single != stdin_data and single not in mutations:
+                mutations.append(single)
         appended = '\n'.join(line + 'x' for line in stdin_data.splitlines())
         if appended != stdin_data and appended not in mutations:
             mutations.append(appended)
-        return mutations[:3]
+        return mutations[:4]
 
     def _detect_hardcoding(self, language: str, code: str, test_cases: list,
                            run_cmd: list, tmpdir: str, results: list) -> str | None:
@@ -365,6 +376,15 @@ class CodeExecutor:
 
         # Tier 2 — literal corroboration first (cheap), probes second (subprocess)
         expected_outputs = [tc.get('expected_output', '') for _, tc in input_tests]
+
+        # With only a couple of distinct answers — true/false, yes/no — every
+        # correct solution necessarily contains them both, so the literal
+        # signal carries no information and the tier can only produce false
+        # accusations. Hidden tests and Tier 1 still apply to these.
+        distinct = {(o or '').strip() for o in expected_outputs}
+        if len(distinct) < 3:
+            return None
+
         if not self._expected_as_literals(code, expected_outputs):
             return None
 

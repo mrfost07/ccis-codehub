@@ -189,9 +189,32 @@ class TestCheckingAChallenge:
 class TestSpottingALookupTable:
     def test_a_reference_that_prints_the_answers_is_caught(self):
         # An author can defeat their own challenge as easily as a student can.
-        assert looks_like_a_lookup_table(sound_challenge(solution_code={
-            'python': 'a=int(input())\nb=int(input())\n'
-                      'print(5 if a==2 else 17)'})) is True
+        assert looks_like_a_lookup_table(sound_challenge(
+            test_cases=[
+                {'input': '2\n3', 'expected_output': '5'},
+                {'input': '10\n7', 'expected_output': '17'},
+                {'input': '1\n1', 'expected_output': '2'},
+                {'input': '4\n5', 'expected_output': '9'},
+            ],
+            solution_code={'python':
+                           'a = int(input())\n'
+                           'print(5 if a == 2 else 17 if a == 10 else 2 if a == 1 else 9)'},
+        )) is True
+
+    def test_a_true_false_problem_is_not_mistaken_for_one(self):
+        # Any correct solution to a yes/no problem contains both answers. The
+        # first version of this check rejected three good challenges — anagrams,
+        # balanced brackets, palindromes — for exactly that reason.
+        assert looks_like_a_lookup_table({
+            'test_cases': [
+                {'input': 'listen\nsilent', 'expected_output': 'true'},
+                {'input': 'hello\nworld', 'expected_output': 'false'},
+                {'input': 'ab\nba', 'expected_output': 'true'},
+            ],
+            'solution_code': {'python':
+                              'a = input()\nb = input()\n'
+                              'print("true" if sorted(a) == sorted(b) else "false")'},
+        }) is False
 
     def test_a_real_solution_is_not(self):
         assert looks_like_a_lookup_table(sound_challenge()) is False
