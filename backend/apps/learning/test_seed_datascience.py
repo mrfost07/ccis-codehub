@@ -19,12 +19,8 @@ import re
 
 from django.test import TestCase
 
-from apps.learning.management.commands.seed_datascience_path import (
-    MODULES,
-    PATH,
-    render_quiz,
-    render_slides,
-)
+from apps.learning.content.builder import render_quiz, render_slides
+from apps.learning.content.paths.data_science import MODULES, PATH
 
 # --- ported verbatim from QuizViewer.parseQuestions ------------------------
 SLIDE_RE = re.compile(
