@@ -358,17 +358,47 @@ leaks, 0 blank labels. Answer positions as students see them:
 
 ---
 
+### Phase 2f — Five paths for five files — ✅ DONE 2026-08-08
+
+**No new core modules at all.** QA Automation Engineer, Systems Administrator,
+SOC Analyst, Database Administrator and IT Auditor were each composed entirely
+from modules that already existed, plus one capstone. Five files, five paths,
+across all three programmes.
+
+```
+QA Automation Engineer  version_control · automated_testing · http_and_apis · frontend_foundations · capstone
+Systems Administrator   linux_and_systems · networking · security_fundamentals · capstone
+SOC Analyst             security_fundamentals · networking · linux_and_systems · capstone
+Database Administrator  relational_data · linux_and_systems · security_fundamentals · capstone
+IT Auditor              security_fundamentals · requirements_analysis · data_analysis_reporting · capstone
+```
+
+**19 active paths, all passing.** Verified in the browser: *"Showing 19 of 19
+courses"*, all five new paths rendering, and across **76 quizzes / 726
+questions** served — 0 answer-key leaks, 0 blank labels, 0 questions without
+choices. Answer positions live: `{A:202, B:173, C:174, D:149}` of 698.
+
+---
+
 ## Where the buildout stands
 
 | | done | remaining |
 |---|---|---|
-| Paths | 14 | ~30 more for Tier 1+2 coverage |
-| Roles wired | 8 / 79 | 71 |
-| Library modules | 16 | ~40 for full family coverage |
-| Questions | 489 | — |
+| Paths | 19 | ~25 more for Tier 1+2 coverage |
+| Roles wired | 13 / 79 | 66 |
+| Library modules | 21 (9 core, 12 capstones) | ~10 more core for full family coverage |
+| Questions | 726 | — |
 
-The machinery is finished and the pattern is proven three times over: the second
-path in a family costs one capstone. What remains is content, family by family.
+```
+bscs  5 of 29 roles wired      bsit  5 of 26      bsis  3 of 24
+```
+
+The machinery is finished, and the economics are now demonstrated at scale: the
+last five paths cost one file each. The remaining core modules worth writing are
+cloud and virtualisation (unlocks Cloud Engineer, DevOps, SRE, Virtualisation
+Engineer), mobile development, project delivery (IT Project Manager, Scrum
+Master, Product Owner) and enterprise systems (ERP, CRM, Salesforce). Each
+unlocks a family of capstone-only paths behind it.
 
 ### Next — rest of the core library (1–2 sessions each)
 
