@@ -275,53 +275,58 @@ export default function ChallengeProgress({ userId }: { userId?: string } = {}) 
           </p>
         </div>
 
-        {/* Bleeds to the card edge on a phone so the grid does not look boxed
-            in, and scrolls from there. */}
-        <div ref={scroller}
-          className="-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0
-            [--cell:10px] [--gap:3px] sm:[--cell:11px]">
-          <div className="inline-block min-w-full">
-            <div className="flex gap-[var(--gap)] pl-0 text-[10px] text-neutral-500 sm:pl-8">
-              {weeks.map((_, index) => {
-                const label = monthLabels.find(m => m.index === index)
-                return (
-                  <span key={index} className="w-[var(--cell)] shrink-0">
-                    {label ? label.label : ''}
-                  </span>
-                )
-              })}
-            </div>
+        <div className="flex gap-[var(--gap)] [--cell:10px] [--gap:3px] sm:[--cell:11px]">
+          {/* Outside the scroller, not inside it. Inside, the labels scrolled
+              away the moment the grid landed on today — which is every time.
+              Dropped altogether on a phone, where they cost a tenth of the
+              width to say what the shape already says. */}
+          <div className="hidden w-8 shrink-0 flex-col gap-[var(--gap)] pr-1
+            text-right text-[10px] text-neutral-500 sm:flex">
+            <span aria-hidden className="h-4" />
+            {DAY_LABELS.map((label, index) => (
+              <span key={index} className="h-[var(--cell)] leading-[var(--cell)]">
+                {label}
+              </span>
+            ))}
+          </div>
 
-            <div className="flex gap-[var(--gap)]">
-              {/* Dropped on a phone — the labels cost a quarter of the width to
-                  say what the shape already says. */}
-              <div className="hidden w-8 shrink-0 flex-col gap-[var(--gap)] pr-1
-                text-right text-[10px] text-neutral-500 sm:flex">
-                {DAY_LABELS.map((label, index) => (
-                  <span key={index} className="h-[var(--cell)] leading-[var(--cell)]">
-                    {label}
-                  </span>
-                ))}
+          {/* Bleeds to the card edge on a phone so the grid does not look boxed
+              in, and scrolls from there. */}
+          <div ref={scroller}
+            className="-mx-4 min-w-0 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+            <div className="inline-block min-w-full">
+              <div className="mb-[var(--gap)] flex h-4 gap-[var(--gap)]
+                text-[10px] leading-4 text-neutral-500">
+                {weeks.map((_, index) => {
+                  const label = monthLabels.find(m => m.index === index)
+                  return (
+                    <span key={index} className="w-[var(--cell)] shrink-0">
+                      {label ? label.label : ''}
+                    </span>
+                  )
+                })}
               </div>
 
-              {weeks.map((week, weekIndex) => (
-                <div key={weekIndex} className="flex shrink-0 flex-col gap-[var(--gap)]">
-                  {week.map(day => (
-                    <span
-                      key={day.date}
-                      data-testid="heatmap-day"
-                      data-date={day.date}
-                      data-count={day.count}
-                      title={day.count === 0
-                        ? `No submissions on ${day.date}`
-                        : `${day.count} submission${day.count === 1 ? '' : 's'}, `
-                          + `${day.solved} solved on ${day.date}`}
-                      className={`h-[var(--cell)] w-[var(--cell)] rounded-[2px] ${
-                        day.future ? 'bg-transparent' : shade(day.count)}`}
-                    />
-                  ))}
-                </div>
-              ))}
+              <div className="flex gap-[var(--gap)]">
+                {weeks.map((week, weekIndex) => (
+                  <div key={weekIndex} className="flex shrink-0 flex-col gap-[var(--gap)]">
+                    {week.map(day => (
+                      <span
+                        key={day.date}
+                        data-testid="heatmap-day"
+                        data-date={day.date}
+                        data-count={day.count}
+                        title={day.count === 0
+                          ? `No submissions on ${day.date}`
+                          : `${day.count} submission${day.count === 1 ? '' : 's'}, `
+                            + `${day.solved} solved on ${day.date}`}
+                        className={`h-[var(--cell)] w-[var(--cell)] rounded-[2px] ${
+                          day.future ? 'bg-transparent' : shade(day.count)}`}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
