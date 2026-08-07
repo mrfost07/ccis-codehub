@@ -41,13 +41,18 @@ Frontend Developer                            general     0        0         0  
 Software Enginering                           bscs        0        0         0   ❌ empty + typo
 ```
 
-### Data problems to clear first
+### Data problems to clear first — ✅ DONE 2026-08-07
 
-- **2 duplicate path names**: "Comprehensive Data Structures for College Students" exists twice (bscs and bsit, different slugs).
-- **2 duplicate roles in the catalogue**: `ERP / Low-Code Developer` vs `ERP and Low-Code Developer`; `System Administrator` vs `Systems Administrator`.
-- **`program_type='general'`** on two paths — not a member of `PROGRAM_CHOICES` (bsit/bscs/bsis). Nothing validates it on the way in.
-- **"Software Enginering"** — missing an `i`, and it prints onto certificates.
-- 4 paths have quizzes whose slides the importer cannot parse (`no questions found in content: 10`).
+- ~~**2 duplicate path names**: "Comprehensive Data Structures for College Students" exists twice.~~ Merged; the BSIT copy is retired. The one student on it was already enrolled on the survivor, so nothing had to move. Retyped `general`, since Data Structures is foundational to both programs and leaving it `bscs` would have dropped it off the BSIT branch of the map.
+- ~~**2 duplicate roles in the catalogue**~~ — wrong: `--prune` had already deactivated both older spellings. Nothing to do.
+- ~~**`program_type='general'`** — not a member of `PROGRAM_CHOICES`~~ — **wrong**. `general` *is* a valid choice on `CareerPath` (I had compared against `User.PROGRAM_CHOICES`). It is the right bucket for a foundational path that serves all three programs, which is what Python Programming Fundamentals is. No change needed, and no constraint should be added.
+- ~~**"Software Enginering"**~~ — retired. It had no modules and no enrolments; a real Software Architect path supersedes it in Phase 3. "Frontend Developer" retired for the same reason.
+- ~~4 paths have quizzes the importer cannot parse~~ — **wrong**: those 10 quizzes had **empty** `content`, not unparseable content. Placeholder rows, zero attempts, deleted. A module with no quiz is honest; a module with an empty quiz is a broken promise.
+- Also done: `Data Scientist` is now wired to the Data Science and Machine Learning path — the first of 79 roles.
+
+Two reusable commands came out of this and are tested (14 tests):
+`prune_empty_quizzes` and `merge_career_paths --from … --into …`, both with
+`--dry-run`. Duplicates and placeholders will happen again.
 
 ---
 
