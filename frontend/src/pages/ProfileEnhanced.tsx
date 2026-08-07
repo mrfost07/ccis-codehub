@@ -14,6 +14,7 @@ const Hyperspeed = lazy(() => import('../components/backgrounds/Hyperspeed'))
 import { useAuth } from '../contexts/AuthContext'
 import { getMediaUrl } from '../utils/mediaUrl'
 import { LoadingState } from '../components/ui'
+import ChallengeProgress from '../components/profile/ChallengeProgress'
 
 type BackgroundType = 'hyperspeed' | 'akira' | 'golden' | 'split' | 'highway' | 'gradient' | 'aurora' | 'cyber'
 
@@ -901,6 +902,8 @@ export default function ProfileEnhanced() {
             )}
 
             {activeTab === 'activity' && (
+              <div className="space-y-6">
+              <ChallengeProgress />
               <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-6">
                 <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-purple-400" />
@@ -928,6 +931,7 @@ export default function ProfileEnhanced() {
                     <span className="ml-auto text-sm text-neutral-500">Yesterday</span>
                   </div>
                 </div>
+              </div>
               </div>
             )}
 

@@ -499,6 +499,17 @@ class CodingChallengeViewSet(viewsets.ModelViewSet):
             logger.error(f'Failed to create live challenge from {challenge.slug}: {e}')
             return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['get'], url_path='progress')
+    def progress(self, request):
+        """Solved counts, a year of daily activity, and streaks.
+
+        Everything the profile needs in one request. The activity list is sparse
+        - only days with something on them - because a year is 365 entries and
+        most are empty for most students.
+        """
+        from apps.learning.challenge_progress import challenge_progress
+        return Response(challenge_progress(request.user))
+
     @action(detail=False, methods=['get'], url_path='stats')
     def stats(self, request):
         """Get user's overall coding stats"""
