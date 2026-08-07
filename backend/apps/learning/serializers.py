@@ -92,34 +92,87 @@ class LearningModuleListSerializer(LearningModuleSerializer):
         fields = None  # DRF rejects `fields` and `exclude` together
 
 
+def may_see_answers(request):
+    """Whether this request is allowed the answer key.
+
+    Anything else - students, and anonymous callers, since quiz retrieve is
+    IsAuthenticatedOrReadOnly - gets the student shape. Defaults to no when
+    there is no request in the serializer context, so a new call site is safe
+    by omission rather than by remembering.
+    """
+    user = getattr(request, 'user', None)
+    if user is None or not user.is_authenticated:
+        return False
+    return user.is_staff or getattr(user, 'role', '') in ('instructor', 'admin')
+
+
 class QuestionChoiceSerializer(serializers.ModelSerializer):
-    """Serializer for QuestionChoice model"""
-    
+    """Full choice, including `is_correct`. Authoring only."""
+
     class Meta:
         model = QuestionChoice
         fields = '__all__'
         read_only_fields = ['id']
 
 
+class StudentQuestionChoiceSerializer(serializers.ModelSerializer):
+    """A choice as a student may see it: which one is right is not in here."""
+
+    class Meta:
+        model = QuestionChoice
+        fields = ['id', 'question', 'choice_text', 'order']
+        read_only_fields = fields
+
+
 class QuestionSerializer(serializers.ModelSerializer):
-    """Serializer for Question model"""
+    """Full question, including `correct_answer`. Authoring only."""
     choices = QuestionChoiceSerializer(many=True, read_only=True)
-    
+
     class Meta:
         model = Question
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at']
 
 
+class StudentQuestionSerializer(serializers.ModelSerializer):
+    """A question as a student may see it, before answering it.
+
+    `correct_answer` and `explanation` are left out. Grading happens in
+    QuizViewSet._check_answer against the database, so the client never needs
+    them; serving them let anyone read the answer key out of the network tab.
+    """
+    choices = StudentQuestionChoiceSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Question
+        fields = [
+            'id', 'quiz', 'question_text', 'question_type', 'points', 'order',
+            'choices', 'created_at', 'updated_at',
+        ]
+        read_only_fields = fields
+
+
 class QuizSerializer(serializers.ModelSerializer):
     """Serializer for Quiz model"""
-    questions = QuestionSerializer(many=True, read_only=True)
+    questions = serializers.SerializerMethodField()
     module_title = serializers.CharField(source='learning_module.title', read_only=True)
-    
+
     class Meta:
         model = Quiz
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_questions(self, quiz):
+        # Chosen per request rather than per viewset: the same quiz is nested
+        # into attempts and admin responses, and each of those would otherwise
+        # need its own reminder not to leak.
+        serializer = (
+            QuestionSerializer if may_see_answers(self.context.get('request'))
+            else StudentQuestionSerializer
+        )
+        return serializer(
+            quiz.questions.all(), many=True, context=self.context,
+        ).data
 
 
 class QuizListSerializer(QuizSerializer):

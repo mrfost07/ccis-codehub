@@ -135,6 +135,69 @@ class SlideParser(HTMLParser):
             self._buffer.append(data)
 
 
+# Answers that are not in the slides.
+#
+# Nine true/false slides carry no data-correct marker on either choice, so the
+# answer is not in the content and cannot be derived from it - only authored.
+# Every one of these is settled Python semantics rather than a course
+# convention, so they are written down here instead of left for somebody to
+# retype into the admin. Anything genuinely open to an instructor's judgement
+# does not belong in this table; it belongs in the admin.
+AUTHORED_ANSWERS = {
+    'the value true is a boolean value': True,
+    'and is a logical operator in many programming languages': True,
+    'in python indentation is crucial for defining code blocks and is not just '
+    'a stylistic choice': True,
+    # `=` assigns; `==` compares.
+    'the single equals sign is used to compare two values for equality in '
+    'python': False,
+    # elif is only reached when the preceding conditions were false.
+    'if the initial if condition in an if elif else chain evaluates to true '
+    'python will still check the subsequent elif conditions before executing '
+    'the if block': False,
+    'a while loop can run forever if its condition never becomes false': True,
+    # A function without return gives back None.
+    'all python functions must explicitly return a value using the return '
+    'keyword': False,
+    # input() returns str; the caller converts.
+    'the input function always returns a string regardless of what the user '
+    'types': True,
+    'variables defined inside a function are local to that function and cannot '
+    'be accessed directly from outside the function': True,
+}
+
+
+def normalise(text):
+    """A question's text reduced to what it is asking.
+
+    Keys are matched on this rather than the raw prompt so that punctuation, the
+    "True or False:" lead-in and stray whitespace in the seeds do not decide
+    whether a question gets its answer.
+    """
+    text = re.sub(r'^\s*true or false\s*[:\-]?\s*', '', text.strip().lower())
+    return re.sub(r'[^a-z0-9]+', ' ', text).strip()
+
+
+def apply_authored_answer(item):
+    """Mark the authored choice correct. True if one was applied.
+
+    Only true/false questions offering exactly True and False: the table is
+    keyed by text, and a text match on some other shape of question would be
+    marking an answer by coincidence.
+    """
+    answer = AUTHORED_ANSWERS.get(normalise(item['text']))
+    if answer is None or item['type'] != 'true_false':
+        return False
+
+    labels = {c['text'].strip().lower() for c in item['choices']}
+    if labels != {'true', 'false'}:
+        return False
+
+    for choice in item['choices']:
+        choice['correct'] = (choice['text'].strip().lower() == 'true') == answer
+    return True
+
+
 def parse_slides(html):
     """Questions found in one quiz's content. Empty list if there are none."""
     parser = SlideParser()
@@ -165,6 +228,7 @@ class Command(BaseCommand):
         created_questions = 0
         touched_quizzes = 0
         skipped_existing = 0
+        authored = 0
         no_questions = []
         # Questions whose answer is missing from the slide, so somebody has to set
         # it. Named individually — a count alone is not actionable.
@@ -184,14 +248,16 @@ class Command(BaseCommand):
             for index, item in enumerate(parsed):
                 correct = [c for c in item['choices'] if c['correct']]
                 if item['choices'] and not correct:
-                    # Importing it would create a question nobody can pass. Some
-                    # seeded true/false slides carry no answer marker at all — the
-                    # answer is not in the content, so it cannot be derived, only
-                    # authored.
-                    self.stdout.write(self.style.WARNING(
-                        f'  - skipped Q{index + 1}: no correct answer in the slide'))
-                    needs_answer.append((quiz.title, index + 1, item['text'][:70]))
-                    continue
+                    # The slide marks no answer. Fall back to the authored table;
+                    # what is not in there cannot be derived, only authored, and
+                    # importing it would create a question nobody can pass.
+                    if apply_authored_answer(item):
+                        authored += 1
+                    else:
+                        self.stdout.write(self.style.WARNING(
+                            f'  - skipped Q{index + 1}: no correct answer in the slide'))
+                        needs_answer.append((quiz.title, index + 1, item['text'][:70]))
+                        continue
 
                 if dry_run:
                     created_questions += 1
@@ -237,6 +303,9 @@ class Command(BaseCommand):
         verb = 'would create' if dry_run else 'created'
         self.stdout.write(self.style.SUCCESS(
             f'{verb} {created_questions} question(s) across {touched_quizzes} quiz(zes)'))
+        if authored:
+            self.stdout.write(
+                f'answered from the authored table (not in the slides): {authored}')
         if skipped_existing:
             self.stdout.write(f'left alone (already had questions): {skipped_existing}')
         if no_questions:

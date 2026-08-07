@@ -18,7 +18,9 @@ from io import StringIO
 from apps.learning.models import (
     CareerPath, LearningModule, Question, QuestionChoice, Quiz,
 )
-from apps.learning.management.commands.import_quiz_questions import parse_slides
+from apps.learning.management.commands.import_quiz_questions import (
+    AUTHORED_ANSWERS, apply_authored_answer, normalise, parse_slides,
+)
 
 
 SLIDE = '''
@@ -173,3 +175,108 @@ class TestImporting:
         _run()
 
         assert list(Question.objects.filter(quiz=quiz)) == [existing]
+
+
+TRUE_FALSE_SLIDE = '''
+<div class="module-slide" data-slide="3">
+  <h2>Question 3</h2>
+  <div class="question-content"><p>True or False: {prompt}</p></div>
+  <div class="question-info"><span>TRUE / FALSE</span><span>1 point</span></div>
+  <div class="quiz-choices">
+    <div class="quiz-choice" data-choice-id="1" data-correct="false">
+      <label><input type="radio"><span>True</span></label>
+    </div>
+    <div class="quiz-choice" data-choice-id="2" data-correct="false">
+      <label><input type="radio"><span>False</span></label>
+    </div>
+  </div>
+</div>
+'''
+
+
+def _true_false(prompt):
+    return TRUE_FALSE_SLIDE.replace('{prompt}', prompt)
+
+
+class TestAuthoredAnswers:
+    """
+    Nine true/false slides mark neither choice correct, so the answer is not in
+    the content. They are settled Python semantics, so they are authored in the
+    command rather than left for somebody to retype.
+
+    What has to hold: the table reaches the questions it is for, it does not
+    reach anything else, and the answer it writes is the one grading will accept.
+    """
+
+    def test_fills_in_an_answer_the_slide_does_not_carry(self):
+        parsed = parse_slides(_true_false(
+            'The input() function always returns a string, regardless of what '
+            'the user types.'))
+
+        assert apply_authored_answer(parsed[0]) is True
+        assert [c['correct'] for c in parsed[0]['choices']] == [True, False]
+
+    def test_marks_false_where_the_answer_is_false(self):
+        # A table that only ever said "True" would pass a test that checked one
+        # direction.
+        parsed = parse_slides(_true_false(
+            'All Python functions must explicitly return a value using the '
+            'return keyword.'))
+
+        assert apply_authored_answer(parsed[0]) is True
+        assert [c['correct'] for c in parsed[0]['choices']] == [False, True]
+
+    def test_leaves_a_question_it_has_no_answer_for_alone(self):
+        parsed = parse_slides(_true_false('Some question nobody authored.'))
+
+        assert apply_authored_answer(parsed[0]) is False
+        assert not any(c['correct'] for c in parsed[0]['choices'])
+
+    def test_does_not_answer_a_question_of_another_shape(self):
+        # Keyed by text: a multiple-choice question that happened to read the
+        # same would otherwise get an answer marked by coincidence.
+        item = {
+            'text': 'A while loop can run forever if its condition never becomes false.',
+            'type': 'multiple_choice', 'points': 1,
+            'choices': [{'text': 'Yes', 'correct': False},
+                        {'text': 'No', 'correct': False}],
+        }
+
+        assert apply_authored_answer(item) is False
+
+    def test_matching_ignores_punctuation_and_the_lead_in(self):
+        assert (normalise('True or False: The value True is a boolean value.')
+                == normalise('the  value true is a  boolean value'))
+
+    def test_every_authored_answer_is_reachable(self):
+        # A key that matches nothing is a silent no-op: the question stays
+        # unimportable and the table looks like it covers it.
+        for key in AUTHORED_ANSWERS:
+            assert normalise(key) == key, f'key is not in normalised form: {key}'
+
+    @pytest.mark.django_db
+    def test_an_authored_question_is_imported_and_grades(self, db):
+        # End to end through the real grader.
+        from apps.learning.views import QuizViewSet
+        path = CareerPath.objects.create(
+            name='PF', slug='pf-authored', description='d',
+            program_type='BSCS', difficulty_level='beginner', estimated_duration=4,
+        )
+        module = LearningModule.objects.create(
+            career_path=path, title='M', description='d', order=0)
+        Quiz.objects.create(
+            learning_module=module, title='Module 5 Quiz', description='d',
+            content=_true_false(
+                'The input() function always returns a string, regardless of '
+                'what the user types.'),
+        )
+
+        output = _run()
+
+        question = Question.objects.get()
+        assert question.question_type == 'true_false'
+        assert question.correct_answer == 'true'
+        assert 'authored table' in output
+        check = QuizViewSet()._check_answer
+        assert check(question, 'true') is True
+        assert check(question, 'false') is False
