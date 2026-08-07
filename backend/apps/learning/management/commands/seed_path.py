@@ -23,8 +23,14 @@ from django.core.management.base import BaseCommand, CommandError
 
 from apps.learning.content import paths as catalogue
 from apps.learning.content.builder import (
-    ManifestError, check_manifest, render_path, seed_path,
+    ManifestError, check_manifest, render_path, resolve_modules, seed_path,
 )
+
+
+def _counts(manifest):
+    """(modules, questions) for a manifest whose modules may be library keys."""
+    modules = resolve_modules(manifest)
+    return len(modules), sum(len(m['quiz']['questions']) for m in modules)
 
 
 class Command(BaseCommand):
@@ -48,10 +54,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if options['list']:
             for slug in catalogue.slugs():
-                manifest = catalogue.get(slug)
+                modules, questions = _counts(catalogue.get(slug))
                 self.stdout.write(
-                    f'  {slug:44} {len(manifest["modules"])} modules  '
-                    f'{sum(len(m["quiz"]["questions"]) for m in manifest["modules"])} questions')
+                    f'  {slug:44} {modules} modules  {questions} questions')
             return
 
         if options['all']:
@@ -90,10 +95,10 @@ class Command(BaseCommand):
             except ManifestError as e:
                 self.stdout.write(self.style.ERROR(f'{slug}: refused — {e}'))
                 continue
-            questions = sum(len(m['quiz']['questions']) for m in manifest['modules'])
+            modules, questions = _counts(manifest)
             self.stdout.write(
                 f'  {"+" if created else "~"} {path.name[:46]:48} '
-                f'{len(manifest["modules"])} modules, {questions} questions')
+                f'{modules} modules, {questions} questions')
             seeded += 1
 
         self.stdout.write('')

@@ -152,6 +152,36 @@ def check_questions(questions, where):
     return problems
 
 
+class UnknownModule(KeyError):
+    """A manifest naming a module that is not in the library."""
+
+
+def resolve_modules(manifest):
+    """The manifest's modules as definitions.
+
+    An entry is either a key into the shared library ('core.version_control')
+    or a module declared inline. Keys are what make eighty-one paths tractable:
+    most roles overlap heavily, so a module is authored once and composed into
+    every path that needs it.
+
+    Raises rather than skipping an unknown key — silently dropping a module
+    would seed a shorter path than the manifest describes.
+    """
+    from apps.learning.content import modules as library
+
+    resolved = []
+    for entry in manifest.get('modules') or []:
+        if isinstance(entry, str):
+            found = library.get(entry)
+            if found is None:
+                raise UnknownModule(
+                    f'{manifest.get("slug", "?")}: no module "{entry}" in the library')
+            resolved.append(found)
+        else:
+            resolved.append(entry)
+    return resolved
+
+
 def check_manifest(manifest):
     """Problems that must not reach the database. Empty list if it is sound.
 
@@ -164,7 +194,12 @@ def check_manifest(manifest):
         if not manifest.get(field):
             problems.append(f'missing {field}')
 
-    for index, module in enumerate(manifest.get('modules') or [], start=1):
+    try:
+        modules = resolve_modules(manifest)
+    except UnknownModule as e:
+        return problems + [str(e)]
+
+    for index, module in enumerate(modules, start=1):
         where = f'module {index} ({module.get("title", "untitled")[:40]})'
         if not module.get('slides'):
             problems.append(f'{where}: no slides')
@@ -179,7 +214,7 @@ def check_manifest(manifest):
 def render_path(manifest):
     """The HTML each module and quiz would be given, without touching the DB."""
     rendered = []
-    for module in manifest['modules']:
+    for module in resolve_modules(manifest):
         rendered.append({
             'title': module['title'],
             'content': render_slides(module['slides']),
@@ -202,7 +237,7 @@ def seed_path(manifest, instructor, status='approved'):
     if problems:
         raise ManifestError('; '.join(problems))
 
-    modules = manifest['modules']
+    modules = resolve_modules(manifest)
     path, created = CareerPath.objects.update_or_create(
         slug=manifest.get('slug') or slugify(manifest['name']),
         defaults={
