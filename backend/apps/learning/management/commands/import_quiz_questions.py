@@ -237,6 +237,9 @@ class Command(BaseCommand):
         # Questions whose answer is missing from the slide, so somebody has to set
         # it. Named individually — a count alone is not actionable.
         needs_answer = []
+        # Written-answer questions the grader cannot score. Reported, not
+        # created, and named so an instructor can rewrite them.
+        ungradeable = []
 
         fill_missing = options['fill_missing']
 
@@ -263,6 +266,15 @@ class Command(BaseCommand):
 
             self.stdout.write(f'{quiz.title[:58]}: {len(wanted)} question(s)')
             for index, item in wanted:
+                if not item['choices']:
+                    # Written prose. _check_answer grades short_answer by exact
+                    # string equality against correct_answer, and the slides
+                    # carry no model answer — so an imported one scores a blank
+                    # submission full marks and a correct answer zero. Absent
+                    # beats graded backwards.
+                    ungradeable.append((quiz.title, index + 1, item['text'][:70]))
+                    continue
+
                 correct = [c for c in item['choices'] if c['correct']]
                 if item['choices'] and not correct:
                     # The slide marks no answer. Fall back to the authored table;
@@ -330,6 +342,15 @@ class Command(BaseCommand):
                 f'no questions found in content: {len(no_questions)}')
             for title in no_questions[:10]:
                 self.stdout.write(f'  - {title[:60]}')
+
+        if ungradeable:
+            self.stdout.write('')
+            self.stdout.write(self.style.WARNING(
+                f'{len(ungradeable)} written-answer question(s) were NOT '
+                'imported: grading compares the text exactly, so they cannot be '
+                'scored. Rewrite them as multiple choice or true/false:'))
+            for quiz_title, number, text in ungradeable:
+                self.stdout.write(f'  - {quiz_title[:44]} Q{number}: {text}')
 
         if needs_answer:
             self.stdout.write('')

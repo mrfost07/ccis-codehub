@@ -341,3 +341,52 @@ class TestFillingMissingQuestions:
         _run(fill_missing=True)
 
         assert sorted(Question.objects.values_list('order', flat=True)) == [0, 1, 2]
+
+
+PROSE_ANSWER_SLIDE = '''
+<div class="module-slide" data-slide="5">
+  <h2>Question 5: Explain</h2>
+  <div class="question-content"><p>Describe the primary purpose of input().</p></div>
+  <div class="question-info"><span>SHORT ANSWER</span><span>2 points</span></div>
+</div>
+'''
+
+
+@pytest.mark.django_db
+class TestWrittenAnswerQuestions:
+    """
+    _check_answer grades short_answer by exact string equality against
+    correct_answer. The slides carry no model answer, so importing one stored an
+    empty string — which marked a blank submission correct and a real answer
+    wrong. Graded backwards is worse than absent.
+    """
+
+    def test_a_written_answer_question_is_not_imported(self, quiz):
+        quiz.content = PROSE_ANSWER_SLIDE
+        quiz.save(update_fields=['content'])
+
+        output = _run()
+
+        assert Question.objects.count() == 0
+        assert 'cannot be scored' in output
+        # Named, so an instructor can rewrite it.
+        assert 'Describe the primary purpose' in output
+
+    def test_the_gradeable_questions_beside_it_still_import(self, quiz):
+        quiz.content = SLIDE + PROSE_ANSWER_SLIDE
+        quiz.save(update_fields=['content'])
+
+        _run()
+
+        assert Question.objects.count() == 1
+        assert Question.objects.get().question_type == 'multiple_choice'
+
+    def test_the_scoring_this_prevents(self, quiz):
+        # The bug in one assertion: had it been imported with a blank answer,
+        # this is what a student would have got.
+        from apps.learning.views import QuizViewSet
+        stored_blank = Question(question_type='short_answer', correct_answer='')
+
+        check = QuizViewSet()._check_answer
+        assert check(stored_blank, '') is True                    # blank -> full marks
+        assert check(stored_blank, 'a correct answer') is False   # correct -> zero
