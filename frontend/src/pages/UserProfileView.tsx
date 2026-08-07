@@ -235,6 +235,9 @@ export default function UserProfileView() {
   // counter nothing writes, so every profile read "0 Posts" while the card
   // below it said "2 likes across 1 post".
   const [overview, setOverview] = useState<Overview | null>(null)
+  // Kept apart from `overview` because null has to mean "not here yet"; a page
+  // that reports failure as null leaves the panel pulsing grey forever.
+  const [overviewFailed, setOverviewFailed] = useState(false)
 
   useEffect(() => {
     if (userId) {
@@ -246,9 +249,10 @@ export default function UserProfileView() {
     if (!userId) return
     let cancelled = false
     setOverview(null)
+    setOverviewFailed(false)
     api.get(`/auth/user/${userId}/overview/`)
       .then(({ data }) => { if (!cancelled) setOverview(data) })
-      .catch(() => { if (!cancelled) setOverview(null) })
+      .catch(() => { if (!cancelled) setOverviewFailed(true) })
     return () => { cancelled = true }
   }, [userId])
 
@@ -615,7 +619,8 @@ export default function UserProfileView() {
           {/* What they have actually done. This block used to read
               denormalised counters, which were wrong — a student with two
               finished paths and two certificates showed zero courses. */}
-          <ProfileOverview userId={profile.id} overview={overview} />
+          <ProfileOverview userId={profile.id} overview={overview}
+            overviewFailed={overviewFailed} />
 
           {/* Solved counts, the year heatmap and recent solves — the same panel
               the owner sees under their Coding tab. A profile that summarises

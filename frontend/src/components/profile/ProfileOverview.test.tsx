@@ -141,6 +141,22 @@ describe('when the page already has the overview', () => {
     expect(get).not.toHaveBeenCalled()
     expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0)
   })
+
+  it('says so when the page\'s request failed, rather than pulsing forever', () => {
+    // Both pages swallow a failed overview into null. Without being told the
+    // difference, the panel cannot tell "still loading" from "gave up", and
+    // shows four grey boxes that never resolve.
+    const { container } = render(<ProfileOverview overview={null} overviewFailed />)
+
+    expect(screen.getByText(/could not load your overview/i)).toBeTruthy()
+    expect(container.querySelectorAll('.animate-pulse').length).toBe(0)
+  })
+
+  it('still says "this" for somebody else when the page\'s request failed', () => {
+    render(<ProfileOverview userId="abc-123" overview={null} overviewFailed />)
+
+    expect(screen.getByText(/could not load this overview/i)).toBeTruthy()
+  })
 })
 
 describe('the headline row', () => {

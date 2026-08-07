@@ -232,6 +232,9 @@ export default function ProfileEnhanced() {
   const { refreshUser } = useAuth()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [overview, setOverview] = useState<Overview | null>(null)
+  // Kept apart from `overview` because null has to mean "not here yet"; a page
+  // that reports failure as null leaves the panel pulsing grey forever.
+  const [overviewFailed, setOverviewFailed] = useState(false)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -281,7 +284,7 @@ export default function ProfileEnhanced() {
     // count never holds up the profile header.
     api.get('/auth/profile/overview/')
       .then(({ data }) => setOverview(data))
-      .catch(() => setOverview(null))
+      .catch(() => setOverviewFailed(true))
   }, [])
 
   const fetchAchievedSkills = async () => {
@@ -737,7 +740,7 @@ export default function ProfileEnhanced() {
                 {/* Everything this person has done, across learning, projects
                     and community. Handed the overview the page already loaded
                     for the headline row, rather than fetching it twice. */}
-                <ProfileOverview overview={overview} />
+                <ProfileOverview overview={overview} overviewFailed={overviewFailed} />
 
                 {/* About */}
                 <div className="rounded-3xl bg-neutral-900/70 p-5 ring-1 ring-white/5">

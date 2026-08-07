@@ -167,6 +167,27 @@ class TestChallenges:
         assert challenges['available']['easy'] == 1
         assert challenges['acceptance_rate'] == 100.0
 
+    def test_points_come_from_accepted_submissions(self, student):
+        # The learning dashboard needs a points figure. The only maintained one
+        # is this: `Profile.contribution_points` is never written, and the
+        # dashboard was reading a field the profile payload does not have.
+        challenge = CodingChallenge.objects.create(
+            title='P', slug='ov-p', description='d', difficulty='medium',
+            supported_languages=['python'], starter_code={}, solution_code={},
+            test_cases=[{'input': '1', 'expected_output': '1'}])
+        CodingSubmission.objects.create(
+            user=student, challenge=challenge, language='python', code='x',
+            status='accepted', points_earned=20)
+        CodingSubmission.objects.create(
+            user=student, challenge=challenge, language='python', code='x',
+            status='failed', points_earned=0)
+
+        assert profile_overview(student)['challenges']['points'] == 20
+
+    def test_a_student_who_has_solved_nothing_scores_zero_not_none(self, student):
+        # `Sum` returns None over an empty set, and None renders as "null".
+        assert profile_overview(student)['challenges']['points'] == 0
+
 
 @pytest.mark.django_db
 class TestTheEndpoint:

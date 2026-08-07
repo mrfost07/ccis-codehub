@@ -70,22 +70,29 @@ export default function StudentLearningDashboard() {
       const activeCount = enrollmentsData.filter((e: Enrollment) => e.status === 'active').length
       const completedCount = enrollmentsData.filter((e: Enrollment) => e.status === 'completed').length
       
-      // Fetch user profile for points
+      // Everything else comes from the overview endpoint, which computes from
+      // the source tables. This block read the profile instead, and every
+      // figure in it was wrong: the streak was the literal 3 for every student
+      // on the platform; `total_courses_completed` was shown as "modules
+      // done"; certificates counted finished enrolments rather than
+      // certificates; and `total_points` is not a field on that payload, so it
+      // was 0 for everybody.
       try {
-        const profileResponse = await api.get('/auth/profile/')
-        const profile = profileResponse.data
-        
+        const { data: overview } = await api.get('/auth/profile/overview/')
+
         setStats({
           total_enrollments: enrollmentsData.length,
           active_enrollments: activeCount,
           completed_paths: completedCount,
-          total_modules_completed: profile.total_courses_completed || 0,
-          total_points: profile.total_points || 0,
-          certificates_earned: completedCount,
-          current_streak: 3 // TODO: Calculate actual streak
+          total_modules_completed: overview.learning.modules_completed,
+          total_points: overview.challenges.points,
+          certificates_earned: overview.learning.certificates,
+          current_streak: overview.challenges.streak.current,
         })
-      } catch (profileError) {
-        console.log('Could not fetch profile:', profileError)
+      } catch (overviewError) {
+        // Leave the zeroes rather than inventing figures — the enrolment
+        // counts above are real either way.
+        console.log('Could not fetch the overview:', overviewError)
       }
       
     } catch (error) {
@@ -162,7 +169,9 @@ export default function StudentLearningDashboard() {
               <span className="text-3xl font-bold text-white tabular-nums">{stats.completed_paths}</span>
             </div>
             <h3 className="text-neutral-200 font-semibold">Completed Paths</h3>
-            <p className="text-neutral-500 text-sm">{stats.certificates_earned} certificates</p>
+            <p className="text-neutral-500 text-sm">
+              {stats.certificates_earned} certificate{stats.certificates_earned === 1 ? '' : 's'}
+            </p>
           </div>
 
           {/* Total Points */}
@@ -173,8 +182,10 @@ export default function StudentLearningDashboard() {
               </div>
               <span className="text-3xl font-bold text-white tabular-nums">{stats.total_points}</span>
             </div>
-            <h3 className="text-neutral-200 font-semibold">Total Points</h3>
-            <p className="text-neutral-500 text-sm">{stats.total_modules_completed} modules done</p>
+            <h3 className="text-neutral-200 font-semibold">Challenge Points</h3>
+            <p className="text-neutral-500 text-sm">
+              {stats.total_modules_completed} module{stats.total_modules_completed === 1 ? '' : 's'} done
+            </p>
           </div>
 
           {/* Current Streak */}
@@ -186,7 +197,9 @@ export default function StudentLearningDashboard() {
               <span className="text-3xl font-bold text-white tabular-nums">{stats.current_streak}</span>
             </div>
             <h3 className="text-neutral-200 font-semibold">Day Streak</h3>
-            <p className="text-neutral-500 text-sm">Keep it going!</p>
+            <p className="text-neutral-500 text-sm">
+              {stats.current_streak > 0 ? 'Keep it going!' : 'Solve a challenge to start one'}
+            </p>
           </div>
         </div>
 

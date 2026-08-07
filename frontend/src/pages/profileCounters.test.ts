@@ -25,7 +25,15 @@ import { describe, expect, it } from 'vitest'
  * figure. What actually needs pinning is the rule — don't read these fields.
  */
 
-const PAGES = ['ProfileEnhanced.tsx', 'UserProfileView.tsx']
+const PAGES = [
+  'ProfileEnhanced.tsx',
+  'UserProfileView.tsx',
+  // Every figure on this one was wrong: a literal `current_streak: 3` shown to
+  // every student, `total_courses_completed` labelled "modules done",
+  // certificates counting finished enrolments, and a `total_points` that is
+  // not on the profile payload at all.
+  'StudentLearningDashboard.tsx',
+]
 
 const FORBIDDEN = [
   'current_streak',
@@ -40,13 +48,20 @@ const FORBIDDEN = [
 const source = (file: string) =>
   readFileSync(join(__dirname, file), 'utf8')
 
-/** `profile?.profile?.x` / `profile.profile.x` — a read, not the type declaration. */
+/** `profile.x` or `profile?.profile?.x` — a read, not the type declaration. */
 const readsCounter = (text: string, field: string) =>
-  new RegExp(`profile\\??\\.profile\\??\\.${field}\\b`).test(text)
+  new RegExp(`profile\\??\\.(?:profile\\??\\.)?${field}\\b`).test(text)
 
 describe.each(PAGES)('%s', file => {
   it.each(FORBIDDEN)('does not show %s from the Profile counter', field => {
     expect(readsCounter(source(file), field)).toBe(false)
+  })
+
+  it('does not hand every reader the same invented figure', () => {
+    // It shipped `current_streak: 3 // TODO: Calculate actual streak`, so
+    // every student on the platform was congratulated on a three-day streak.
+    // A zero initial value is honest; a non-zero literal is not.
+    expect(source(file)).not.toMatch(/(streak|solved|completed|earned):\s*[1-9]/)
   })
 
   it('takes its figures from the overview endpoint instead', () => {

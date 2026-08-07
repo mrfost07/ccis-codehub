@@ -122,28 +122,35 @@ function Meter({ label, done, total, className }: {
   )
 }
 
-export default function ProfileOverview({ userId, overview: given }: {
+export default function ProfileOverview({
+  userId, overview: given, overviewFailed,
+}: {
   userId?: string
   /** Pass this when the page already holds the overview, to save a second
       request for the same data. Omit it and the panel fetches its own. */
   overview?: Overview | null
+  /** Required alongside `overview`: a page that reports a failure as null
+      leaves the panel unable to tell "still loading" from "gave up", and it
+      then pulses grey forever. */
+  overviewFailed?: boolean
 } = {}) {
   const supplied = given !== undefined
   const [fetched, setFetched] = useState<Overview | null>(null)
-  const [failed, setFailed] = useState(false)
+  const [fetchFailed, setFetchFailed] = useState(false)
   const overview = supplied ? given : fetched
+  const failed = supplied ? Boolean(overviewFailed) : fetchFailed
 
   useEffect(() => {
     if (supplied) return
     let cancelled = false
     setFetched(null)
-    setFailed(false)
+    setFetchFailed(false)
     const url = userId
       ? `/auth/user/${userId}/overview/`
       : '/auth/profile/overview/'
     api.get(url)
       .then(({ data }) => { if (!cancelled) setFetched(data) })
-      .catch(() => { if (!cancelled) setFailed(true) })
+      .catch(() => { if (!cancelled) setFetchFailed(true) })
     return () => { cancelled = true }
   }, [userId, supplied])
 

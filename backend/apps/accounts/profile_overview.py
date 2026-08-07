@@ -52,6 +52,11 @@ def _challenges(user):
         'streak': progress['streak'],
         'acceptance_rate': progress['submissions']['acceptance_rate'],
         'submissions': progress['submissions']['total'],
+        # Already computed above, and it is the only points figure the platform
+        # actually maintains — `Profile.contribution_points` is never written,
+        # and the learning dashboard read a `total_points` that does not exist
+        # on the profile payload at all, so it showed 0 to everybody.
+        'points': progress['points'],
     }
 
 
