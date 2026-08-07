@@ -1,13 +1,16 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
-import { Award, Trophy, ChevronLeft, Download, CheckCircle, Clock, Lock, ExternalLink, Star, Shield } from 'lucide-react'
+import { Award, Trophy, ChevronLeft, Download, CheckCircle, Clock, Lock, ExternalLink, Star, Shield, FileText, RefreshCw } from 'lucide-react'
 import api from '../services/api'
 import toast from 'react-hot-toast'
+import { getMediaUrl } from '../utils/mediaUrl'
 
 interface Certificate {
   id: string
   certificate_id: string
   issued_at: string
+  /** Media path of the rendered certificate; absent until it has been generated. */
+  pdf_url?: string | null
   career_path: { id: string; name: string; description?: string; difficulty?: string }
   user?: { first_name: string; last_name: string; username: string }
 }
@@ -22,116 +25,82 @@ interface EligibilityItem {
   has_certificate: boolean
 }
 
-// ── Certificate PDF Renderer ──────────────────────────────────────────────
-function printCertificate(cert: Certificate, userName: string) {
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8"/>
-  <title>Certificate — ${cert.career_path.name}</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    @page { size: A4 landscape; margin: 0; }
-    body { width: 297mm; height: 210mm; font-family: 'Georgia', serif; background: #fff; display: flex; align-items: center; justify-content: center; }
-    .cert {
-      width: 272mm; height: 185mm;
-      border: 12px double #7c3aed;
-      outline: 2px solid #a78bfa;
-      outline-offset: -18px;
-      padding: 32px 48px;
-      display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-      background: linear-gradient(135deg, #faf5ff 0%, #ffffff 50%, #eff6ff 100%);
-      position: relative;
-      text-align: center;
-    }
-    .corner {
-      position: absolute; width: 60px; height: 60px;
-      border-color: #7c3aed; border-style: solid;
-    }
-    .tl { top: 12px; left: 12px; border-width: 3px 0 0 3px; }
-    .tr { top: 12px; right: 12px; border-width: 3px 3px 0 0; }
-    .bl { bottom: 12px; left: 12px; border-width: 0 0 3px 3px; }
-    .br { bottom: 12px; right: 12px; border-width: 0 3px 3px 0; }
-    .logo { font-size: 13px; color: #7c3aed; font-weight: bold; letter-spacing: 0.15em; text-transform: uppercase; }
-    .title { font-size: 36px; color: #1e293b; font-weight: bold; letter-spacing: -0.5px; }
-    .subtitle { font-size: 14px; color: #64748b; letter-spacing: 0.2em; text-transform: uppercase; margin-top: 4px; }
-    .presented { font-size: 14px; color: #64748b; margin: 6px 0; }
-    .name { font-size: 38px; color: #7c3aed; font-style: italic; margin: 4px 0; }
-    .desc { font-size: 13px; color: #475569; max-width: 480px; line-height: 1.6; }
-    .path-name { font-size: 20px; font-weight: bold; color: #1e293b; }
-    .footer { display: flex; width: 100%; justify-content: space-between; align-items: flex-end; }
-    .sig-block { text-align: center; }
-    .sig-line { border-top: 1px solid #334155; width: 140px; margin: 4px auto; padding-top: 4px; font-size: 11px; color: #64748b; }
-    .cert-id { font-size: 10px; color: #94a3b8; font-family: monospace; }
-    .seal { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #7c3aed, #2563eb); display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; }
-  </style>
-</head>
-<body>
-  <div class="cert">
-    <div class="corner tl"></div><div class="corner tr"></div>
-    <div class="corner bl"></div><div class="corner br"></div>
-
-    <div>
-      <div class="logo">✦ CCIS-CodeHub ✦</div>
-      <div style="margin-top:8px">
-        <div class="title">Certificate of Completion</div>
-        <div class="subtitle">CCIS College of Computing and Information Sciences</div>
-      </div>
-    </div>
-
-    <div>
-      <div class="presented">This certifies that</div>
-      <div class="name">${userName}</div>
-      <div class="presented">has successfully completed</div>
-      <div class="path-name">${cert.career_path.name}</div>
-      <div class="desc" style="margin-top:8px">
-        Demonstrating proficiency and commitment to excellence in the CCIS-CodeHub learning platform.
-      </div>
-    </div>
-
-    <div class="footer">
-      <div class="sig-block">
-        <div class="sig-line">Platform Director</div>
-        <div class="cert-id">CCIS-CodeHub</div>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
-        <div class="seal">🏆</div>
-        <div class="cert-id">Verified</div>
-      </div>
-      <div class="sig-block">
-        <div class="sig-line">${new Date(cert.issued_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-        <div class="cert-id">${cert.certificate_id}</div>
-      </div>
-    </div>
-  </div>
-  <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }</script>
-</body>
-</html>`
-
-  const win = window.open('', '_blank', 'width=1000,height=720')
-  if (win) { win.document.write(html); win.document.close() }
-}
-
 // ── Certificate Card ──────────────────────────────────────────────────────
-function CertificateCardPro({ cert, userName }: { cert: Certificate; userName: string }) {
+/**
+ * The certificate is rendered on the server, with the SNSU and CCIS seals, the
+ * instructor's name and the CEO's scanned signature. This page used to draw its
+ * own HTML lookalike and print that instead — the same platform issuing two
+ * different documents, and the one students actually received carried none of
+ * the institutional marks. So: preview the real file, download the real file.
+ */
+function CertificateCardPro({ cert, onRegenerated }: { cert: Certificate; onRegenerated: () => void }) {
   const date = new Date(cert.issued_at)
-  const COLORS = ['border-purple-500/30 bg-purple-500/5', 'border-purple-500/30 bg-purple-500/5', 'border-green-500/30 bg-green-500/5', 'border-amber-500/30 bg-amber-500/5']
-  const ICON_COLORS = ['text-purple-400', 'text-purple-400', 'text-green-400', 'text-amber-400']
-  const colorIdx = cert.career_path.name.charCodeAt(0) % COLORS.length
+  const [busy, setBusy] = useState<'png' | 'pdf' | 'generate' | null>(null)
+  const preview = getMediaUrl(cert.pdf_url)
+
+  const save = async (format: 'png' | 'pdf') => {
+    setBusy(format)
+    try {
+      const response = await api.get(`/learning/certificates/${cert.id}/download/`, {
+        params: format === 'pdf' ? { as: 'pdf' } : undefined,
+        responseType: 'blob',
+      })
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute(
+        'download',
+        `Certificate_${cert.career_path.name.replace(/\s+/g, '_')}_${cert.certificate_id}.${format}`,
+      )
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+      toast.success('Certificate downloaded')
+    } catch {
+      toast.error('Could not download that certificate.')
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const generate = async () => {
+    setBusy('generate')
+    try {
+      await api.post(`/learning/certificates/${cert.id}/claim/`)
+      toast.success('Certificate generated')
+      onRegenerated()
+    } catch {
+      toast.error('Could not generate that certificate.')
+    } finally {
+      setBusy(null)
+    }
+  }
 
   return (
     <div className="group relative rounded-2xl overflow-hidden border border-neutral-700/60 hover:border-purple-500/50 transition-all bg-neutral-900">
-      {/* Certificate preview header */}
-      <div className={`relative h-28 border-b ${COLORS[colorIdx]} flex flex-col items-center justify-center p-4 overflow-hidden`}>
-        {/* Subtle corner accents */}
-        <div className="absolute top-2 left-2 w-4 h-4 border-l border-t border-white/10 rounded-tl" />
-        <div className="absolute top-2 right-2 w-4 h-4 border-r border-t border-white/10 rounded-tr" />
-        <div className="absolute bottom-2 left-2 w-4 h-4 border-l border-b border-white/10 rounded-bl" />
-        <div className="absolute bottom-2 right-2 w-4 h-4 border-r border-b border-white/10 rounded-br" />
-        <Trophy className={`w-7 h-7 mb-1 relative z-10 ${ICON_COLORS[colorIdx]}`} />
-        <p className="text-white/80 font-semibold text-center text-xs leading-tight relative z-10">Certificate of Completion</p>
-        <p className="text-neutral-500 text-[10px] mt-1 relative z-10">CCIS-CodeHub</p>
-      </div>
+      {/* The certificate itself, not an impression of one. */}
+      {preview ? (
+        <a
+          href={preview}
+          target="_blank"
+          rel="noreferrer"
+          className="block border-b border-neutral-800 bg-neutral-950"
+          title="Open full size"
+        >
+          <img
+            src={preview}
+            alt={`Certificate of completion for ${cert.career_path.name}`}
+            loading="lazy"
+            className="w-full object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+          />
+        </a>
+      ) : (
+        <div className="flex h-28 flex-col items-center justify-center border-b border-neutral-800 bg-neutral-950 p-4 text-center">
+          <Trophy className="mb-1 h-7 w-7 text-neutral-600" />
+          <p className="text-xs text-neutral-500">Not rendered yet</p>
+        </div>
+      )}
 
       {/* Certificate body */}
       <div className="p-4">
@@ -151,13 +120,39 @@ function CertificateCardPro({ cert, userName }: { cert: Certificate; userName: s
           <span>Issued {date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
         </div>
 
-        <button
-          onClick={() => printCertificate(cert, userName)}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-xl transition"
-        >
-          <Download className="w-4 h-4" />
-          Download PDF
-        </button>
+        {preview ? (
+          <div className="flex gap-2">
+            <button
+              onClick={() => save('pdf')}
+              disabled={busy !== null}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 py-2.5 text-sm
+                font-medium text-white transition hover:bg-purple-700 disabled:opacity-60"
+            >
+              <FileText className="h-4 w-4" />
+              {busy === 'pdf' ? 'Preparing…' : 'PDF'}
+            </button>
+            <button
+              onClick={() => save('png')}
+              disabled={busy !== null}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-neutral-700
+                px-4 py-2.5 text-sm font-medium text-neutral-300 transition hover:bg-neutral-800
+                disabled:opacity-60"
+            >
+              <Download className="h-4 w-4" />
+              {busy === 'png' ? 'Preparing…' : 'Image'}
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={generate}
+            disabled={busy !== null}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 py-2.5
+              text-sm font-medium text-white transition hover:bg-purple-700 disabled:opacity-60"
+          >
+            <RefreshCw className={`h-4 w-4 ${busy === 'generate' ? 'animate-spin' : ''}`} />
+            {busy === 'generate' ? 'Generating…' : 'Generate certificate'}
+          </button>
+        )}
       </div>
     </div>
   )
@@ -227,23 +222,20 @@ export default function Certificates() {
   const [eligibility, setEligibility] = useState<EligibilityItem[]>([])
   const [loading, setLoading] = useState(true)
   const [awarding, setAwarding] = useState<string | null>(null)
-  const [userName, setUserName] = useState('')
 
   useEffect(() => { fetchAll() }, [])
 
   const fetchAll = async () => {
     try {
       setLoading(true)
-      const [certRes, eligRes, profileRes] = await Promise.all([
+      // The name on the certificate comes from the render, so this page no
+      // longer needs the profile.
+      const [certRes, eligRes] = await Promise.all([
         api.get('/learning/certificates/'),
         api.get('/learning/certificates/eligibility/'),
-        api.get('/users/profile/').catch(() => ({ data: {} })),
       ])
       setCertificates(certRes.data.results || certRes.data || [])
       setEligibility(eligRes.data || [])
-      const p = profileRes.data
-      const name = `${p.first_name || ''} ${p.last_name || ''}`.trim() || p.username || 'Student'
-      setUserName(name)
     } catch {
       toast.error('Failed to load certificates')
     } finally {
@@ -342,9 +334,9 @@ export default function Certificates() {
                 <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                   <Trophy className="w-5 h-5 text-purple-400" /> Earned Certificates ({certificates.length})
                 </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                   {certificates.map(cert => (
-                    <CertificateCardPro key={cert.id} cert={cert} userName={userName} />
+                    <CertificateCardPro key={cert.id} cert={cert} onRegenerated={fetchAll} />
                   ))}
                 </div>
               </section>

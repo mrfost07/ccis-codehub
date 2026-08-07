@@ -971,56 +971,66 @@ class CertificateViewSet(viewsets.ReadOnlyModelViewSet):
     
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
-        """Download certificate image as attachment"""
+        """Download the rendered certificate.
+
+        `?as=pdf` serves the PDF written beside the PNG, for printing. The client
+        asks by kind rather than swapping the extension itself, so the naming
+        stays known only to the generator. Not `?format=`: DRF reserves that for
+        renderer selection and answers 404 for one it has no renderer for.
+        """
         import os
-        from django.http import FileResponse, Http404
+        from django.http import FileResponse
         from django.conf import settings
-        
+
         certificate = self.get_object()
-        
+
         if not certificate.pdf_url:
             return Response(
                 {'error': 'Certificate image not yet generated. Please claim it first.'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
-        # Resolve the file path from the relative URL
-        # pdf_url is stored as '/media/certificates/issued/filename.png'
-        relative_path = certificate.pdf_url.lstrip('/')
-        if relative_path.startswith('media/'):
-            relative_path = relative_path[6:]  # Remove 'media/' prefix
-        
-        file_path = os.path.join(settings.MEDIA_ROOT, relative_path)
-        
+
+        def to_disk(url):
+            # pdf_url is stored as '/media/certificates/issued/filename.png'
+            relative = url.lstrip('/')
+            if relative.startswith('media/'):
+                relative = relative[6:]
+            return os.path.join(settings.MEDIA_ROOT, relative)
+
+        file_path = to_disk(certificate.pdf_url)
+
         if not os.path.exists(file_path):
-            # Try to regenerate
             try:
                 from .utils.certificate_generator import generate_certificate_pdf
                 new_path = generate_certificate_pdf(
                     certificate=certificate,
                     career_path=certificate.career_path
                 )
-                if new_path:
-                    certificate.pdf_url = new_path
-                    certificate.save(update_fields=['pdf_url'])
-                    relative_path = new_path.lstrip('/')
-                    if relative_path.startswith('media/'):
-                        relative_path = relative_path[6:]
-                    file_path = os.path.join(settings.MEDIA_ROOT, relative_path)
-                else:
-                    raise Http404("Certificate file could not be generated")
             except Exception as e:
                 return Response(
                     {'error': f'Certificate file not found and regeneration failed: {str(e)}'},
                     status=status.HTTP_404_NOT_FOUND
                 )
-        
-        # Serve the file as a downloadable attachment
-        filename = f"Certificate_{certificate.career_path.name.replace(' ', '_')}_{certificate.certificate_id}.png"
-        response = FileResponse(
-            open(file_path, 'rb'),
-            content_type='image/png'
-        )
+            if not new_path:
+                return Response(
+                    {'error': 'Certificate file could not be generated'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            certificate.pdf_url = new_path
+            certificate.save(update_fields=['pdf_url'])
+            file_path = to_disk(new_path)
+
+        extension, content_type = 'png', 'image/png'
+        if request.query_params.get('as') == 'pdf':
+            # Certificates issued before the PDF was written alongside have only
+            # the PNG; serving that beats a 404 on a document they earned.
+            sibling = os.path.splitext(file_path)[0] + '.pdf'
+            if os.path.exists(sibling):
+                file_path, extension, content_type = sibling, 'pdf', 'application/pdf'
+
+        safe_name = certificate.career_path.name.replace(' ', '_')
+        filename = f"Certificate_{safe_name}_{certificate.certificate_id}.{extension}"
+        response = FileResponse(open(file_path, 'rb'), content_type=content_type)
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
     
