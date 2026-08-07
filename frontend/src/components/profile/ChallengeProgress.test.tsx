@@ -75,6 +75,19 @@ describe('the summary', () => {
     await waitFor(() => expect(screen.getByText('14')).toBeTruthy())
     expect(screen.getByText('2')).toBeTruthy()
   })
+
+  it('does not say "1 submissions on 1 days"', async () => {
+    // Which is what a student with a single solve was shown on production.
+    get.mockResolvedValue({ data: progress({
+      activity: [{ date: '2026-08-07', count: 1, solved: 1 }],
+    }) })
+    render(<ChallengeProgress />)
+
+    await waitFor(() => expect(
+      screen.getByText(/submission on/)).toBeTruthy())
+    expect(screen.queryByText(/submissions on/)).toBeNull()
+    expect(screen.queryByText(/1 days in the past year/)).toBeNull()
+  })
 })
 
 describe('the heatmap', () => {

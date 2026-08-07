@@ -149,9 +149,35 @@ export default function ChallengeProgress({ userId }: { userId?: string } = {}) 
 
   // Open on today. On a phone the grid is several screens wide, and the end is
   // the only part worth landing on.
+  //
+  // Setting scrollLeft once is not enough: the grid keeps growing after the
+  // effect runs — web fonts land and the month labels get wider — so a single
+  // pin lands short of the end by however much it grew afterwards. Measured at
+  // 79px short on production. So it re-pins while the content is still
+  // settling, and stops the moment the reader scrolls it themselves.
   useEffect(() => {
     const element = scroller.current
-    if (element) element.scrollLeft = element.scrollWidth
+    if (!element || weeks.length === 0) return
+
+    let readerHasScrolled = false
+    const pin = () => { if (!readerHasScrolled) element.scrollLeft = element.scrollWidth }
+    const noteScroll = () => {
+      const distanceFromEnd = element.scrollWidth - element.clientWidth - element.scrollLeft
+      if (distanceFromEnd > 2) readerHasScrolled = true
+    }
+
+    pin()
+    element.addEventListener('scroll', noteScroll, { passive: true })
+    // jsdom has no ResizeObserver; the pin is a no-op there anyway.
+    const observer = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(pin)
+    if (observer && element.firstElementChild) observer.observe(element.firstElementChild)
+
+    return () => {
+      element.removeEventListener('scroll', noteScroll)
+      observer?.disconnect()
+    }
   }, [weeks.length])
 
   if (failed) {
@@ -240,9 +266,9 @@ export default function ChallengeProgress({ userId }: { userId?: string } = {}) 
         <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <p className="text-[11px] text-neutral-400">
             <span className="font-semibold tabular-nums text-white">{totalSubmissionsThisYear}</span>
-            {' '}submissions on{' '}
+            {' '}submission{totalSubmissionsThisYear === 1 ? '' : 's'} on{' '}
             <span className="font-semibold tabular-nums text-white">{activeDays}</span>
-            {' '}days in the past year
+            {' '}day{activeDays === 1 ? '' : 's'} in the past year
           </p>
           <p className="text-[11px] tabular-nums text-neutral-500">
             longest streak {progress.streak.longest}
