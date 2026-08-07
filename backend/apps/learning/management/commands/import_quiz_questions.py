@@ -166,6 +166,9 @@ class Command(BaseCommand):
         touched_quizzes = 0
         skipped_existing = 0
         no_questions = []
+        # Questions whose answer is missing from the slide, so somebody has to set
+        # it. Named individually — a count alone is not actionable.
+        needs_answer = []
 
         for quiz in quizzes.order_by('learning_module__order', 'title'):
             if quiz.questions.exists():
@@ -181,9 +184,13 @@ class Command(BaseCommand):
             for index, item in enumerate(parsed):
                 correct = [c for c in item['choices'] if c['correct']]
                 if item['choices'] and not correct:
-                    # Importing it would create a question nobody can pass.
+                    # Importing it would create a question nobody can pass. Some
+                    # seeded true/false slides carry no answer marker at all — the
+                    # answer is not in the content, so it cannot be derived, only
+                    # authored.
                     self.stdout.write(self.style.WARNING(
-                        f'  - skipped Q{index + 1}: no choice marked correct'))
+                        f'  - skipped Q{index + 1}: no correct answer in the slide'))
+                    needs_answer.append((quiz.title, index + 1, item['text'][:70]))
                     continue
 
                 if dry_run:
@@ -237,3 +244,12 @@ class Command(BaseCommand):
                 f'no questions found in content: {len(no_questions)}')
             for title in no_questions[:10]:
                 self.stdout.write(f'  - {title[:60]}')
+
+        if needs_answer:
+            self.stdout.write('')
+            self.stdout.write(self.style.WARNING(
+                f'{len(needs_answer)} question(s) have no correct answer in the '
+                'slide and were NOT imported. Set the answer in the learning '
+                'admin, then run this again:'))
+            for quiz_title, number, text in needs_answer:
+                self.stdout.write(f'  - {quiz_title[:44]} Q{number}: {text}')

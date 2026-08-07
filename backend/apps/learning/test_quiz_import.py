@@ -159,7 +159,10 @@ class TestImporting:
         output = _run()
 
         assert Question.objects.count() == 0
-        assert 'no choice marked correct' in output
+        assert 'no correct answer in the slide' in output
+        # Named, not just counted: somebody has to go and author the answer.
+        assert 'Broken quiz' in output
+        assert 'Which level of analysis' in output
 
     def test_a_quiz_that_already_has_questions_is_left_alone(self, quiz):
         existing = Question.objects.create(
