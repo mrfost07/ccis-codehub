@@ -168,7 +168,36 @@ three that are easy to get wrong:
 
 **Exit:** no duplicates, no invalid `program_type`, no path with modules but zero questions.
 
-### Phase 1 — Infrastructure (1 session)
+### Phase 1 — Infrastructure — ✅ DONE 2026-08-07
+
+Built and deployed:
+
+- `apps/learning/content/builder.py` — render functions moved verbatim, plus `check_manifest`, `render_path` and `seed_path`.
+- `apps/learning/content/paths/` — content registry; the Data Science path's 1,223 lines moved here unchanged, and `seed_datascience_path` is now a 42-line shim onto the generic command.
+- `manage.py seed_path <slug> | --all | --list | --check` — `--check` renders a manifest and diffs it against the database.
+- `manage.py validate_paths` — promotes the checks previously run by hand into a gate that exits non-zero.
+
+**The refactor is proven, not assumed:** `seed_path data-science-and-machine-learning --check` against production reports *"matches the database exactly"*. 27 new tests; suite at 367.
+
+`seed_path` refuses a manifest that would produce an unfinishable path — a `correct` index outside its choices, duplicate choice text, a module with no questions — **before** writing anything, because a half-seeded path is visible, enrollable and unfinishable.
+
+**What `validate_paths` immediately found** (the honest state after Phase 0 removed the placeholder quizzes):
+
+```
+ ok   Data Science and Machine Learning        modules=5  questions=40
+ ok   Python Programming Fundamentals          modules=5  questions=44
+ FAIL Cloud Computing Fundamentals             modules=2  no quizzes
+ FAIL Comprehensive Data Structures            modules=3  no quizzes
+ FAIL Comprehensive Web Development Course     modules=3  no quizzes
+ FAIL Fundamentals of SQL                      modules=3  no quizzes
+ FAIL Hosting a Website on AWS EC2             modules=3  no quizzes
+```
+
+Five paths teach but cannot assess. Their module content is real; only the
+quizzes were never written. Writing them is the first job of Phase 2 — and
+because they are existing, enrolled paths, they come before any new role's path.
+
+### Phase 1 — Infrastructure (original plan, for reference)
 
 1. Extract the HTML builder from `seed_datascience_path.py` into `content/builder.py`, unchanged in behaviour — pin it with tests that the existing DS path still renders byte-identically.
 2. Define the module and manifest format; write `content/paths.py` with the two existing complete paths expressed as manifests.
