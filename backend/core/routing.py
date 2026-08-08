@@ -3,6 +3,7 @@ WebSocket routing for CodeHub
 """
 from django.urls import path
 from apps.community.consumers import ChannelConsumer, NotificationConsumer
+from apps.lab.consumers import LabTerminalConsumer
 from apps.learning.consumers import LiveQuizConsumer
 
 # The server-side camera proctor (apps.ai_proctor) was removed — it opened the
@@ -14,5 +15,8 @@ websocket_urlpatterns = [
     # the REST API uses (ChatRoom.objects.readable_by).
     path('ws/channels/<str:room_id>/', ChannelConsumer.as_asgi()),
     path('ws/quiz/<str:join_code>/', LiveQuizConsumer.as_asgi()),
+    # One live process per tab. The consumer kills the container on
+    # disconnect, because students close tabs rather than pressing Stop.
+    path('ws/lab/<str:lab_id>/terminal/', LabTerminalConsumer.as_asgi()),
 ]
 

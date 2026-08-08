@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import Editor from '@monaco-editor/react'
-import { AlertTriangle, CheckCircle2, Clock, Play, Send, Terminal } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Play, Send } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 import Navbar from '../components/Navbar'
 import { LoadingState } from '../components/ui'
-import { useLabRun } from '../hooks/useLabRun'
+import LabTerminal from '../components/lab/Terminal'
+import { useLabTerminal } from '../hooks/useLabTerminal'
 import api from '../services/api'
 import '../lib/monacoSetup'
 
@@ -57,10 +58,10 @@ export default function LabWorkspace() {
   const [language, setLanguage] = useState('python')
   // Code is kept per problem, so switching between them does not lose work.
   const [drafts, setDrafts] = useState<Record<string, string>>({})
-  const [stdin, setStdin] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  const { run, running, failed: runFailed, start } = useLabRun(labId)
+  const terminal = useLabTerminal(labId)
+  const running = terminal.state === 'running'
 
   const active = problems.find(p => p.id === activeId) || null
   const languages: string[] = useMemo(
@@ -109,7 +110,7 @@ export default function LabWorkspace() {
 
   const onRun = () => {
     if (!active) return
-    start({ language, code, stdin, problem: active.id })
+    terminal.run(language, code)
   }
 
   const onSubmit = async () => {
@@ -123,8 +124,8 @@ export default function LabWorkspace() {
     setSubmitting(true)
     try {
       await api.post(`/lab/labs/${labId}/submit/`, {
-        problem: active.id, language, code, stdin,
-        student_output: run?.stdout || '',
+        problem: active.id, language, code,
+        student_output: terminal.output,
       })
       toast.success('Submitted. Your instructor will review it.')
       refreshSubmissions()
@@ -280,58 +281,21 @@ export default function LabWorkspace() {
             />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label htmlFor="lab-stdin"
-                className="mb-1 block text-[11px] font-semibold uppercase
-                  tracking-[0.14em] text-neutral-400">
-                Input
-              </label>
-              <textarea id="lab-stdin" value={stdin} rows={5}
-                onChange={e => setStdin(e.target.value)}
-                placeholder="Anything your program reads from input"
-                className="w-full rounded-xl bg-neutral-900 p-3 font-mono text-xs
-                  text-neutral-200 ring-1 ring-white/5 placeholder:text-neutral-600" />
-            </div>
-
-            <div>
-              <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold
-                uppercase tracking-[0.14em] text-neutral-400">
-                <Terminal className="h-3 w-3" /> Output
-              </p>
-              <div className="h-[7.5rem] overflow-auto rounded-xl bg-black/50 p-3
-                font-mono text-xs ring-1 ring-white/5">
-                {runFailed ? (
-                  <p className="flex items-center gap-1.5 text-red-300">
-                    <AlertTriangle className="h-3 w-3" /> {runFailed}
-                  </p>
-                ) : running && run?.state !== 'running' ? (
-                  <p className="flex items-center gap-1.5 text-neutral-400">
-                    <Clock className="h-3 w-3" />
-                    {run && run.queue_position > 0
-                      ? `Queued — ${run.queue_position} ahead of you`
-                      : 'Starting…'}
-                  </p>
-                ) : running ? (
-                  <p className="text-neutral-400">Running…</p>
-                ) : run ? (
-                  <>
-                    {run.stdout && (
-                      <pre className="whitespace-pre-wrap text-neutral-200">{run.stdout}</pre>
-                    )}
-                    {run.stderr && (
-                      <pre className="whitespace-pre-wrap text-red-300">{run.stderr}</pre>
-                    )}
-                    {!run.stdout && !run.stderr && (
-                      <p className="text-neutral-500">Finished without printing anything.</p>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-neutral-600">Press Run to see what your code prints.</p>
-                )}
-              </div>
-            </div>
-          </div>
+          {/* One terminal, no input box. A program that wants something asks
+              for it here and waits, the way it would in any editor. */}
+          {terminal.error && (
+            <p className="flex items-center gap-1.5 rounded-xl bg-red-500/5 p-3
+              text-xs text-red-300">
+              <AlertTriangle className="h-3 w-3" /> {terminal.error}
+            </p>
+          )}
+          <LabTerminal
+            lines={terminal.output}
+            state={terminal.state}
+            exitCode={terminal.exitCode}
+            onInput={terminal.send}
+            onStop={terminal.stop}
+          />
         </section>
       </div>
     </div>
