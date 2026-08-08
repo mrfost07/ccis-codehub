@@ -314,9 +314,12 @@ bitten by more than once.
 
 ## 6. Phases
 
+Decided: engineer for **one class of 40–60**, sandbox with **self-hosted
+Piston**, start at Phase 0.
+
 | Phase | Delivers | Notes |
 |---|---|---|
-| **0. Sandbox** | Piston deployed, `CodeExecutor` routed through it, existing challenges still green | **Blocks everything.** Also fixes Java. |
+| **0. Sandbox** ✅ | Piston deployed, `CodeExecutor` routed through it, existing challenges still green | **Done** — see §8. Java now compiles. |
 | **1. Model + REST** | `apps/lab`, migrations, CRUD for labs/sets/problems, instructor-only writes | Permissions mirror `IsInstructorOrAdmin` |
 | **2. Student workspace** | Join, statement/editor/console, Run via Celery, queue position | Feature-complete for one student |
 | **3. Realtime** | Presence channel, snapshot debounce, on-demand student streams | Where the scale work lives |
@@ -342,3 +345,43 @@ arithmetic is where capacity plans go wrong.
    submit early to fish for feedback.
 5. **Java.** `javac` is missing on production. Phase 0 fixes it via Piston —
    confirm Java matters, since it changes the runtime set to install.
+
+---
+
+## 8. Phase 0 as built
+
+Piston runs on the application box as a container on `127.0.0.1:2000` — never
+exposed, because it executes arbitrary code on request. Runtimes pinned:
+python 3.12.0, javascript 20.11.1, c++ 10.2.0, java 15.0.2. Runtimes live in
+`/var/lib/piston`, so the container can be recreated without reinstalling them.
+
+Service limits are set to match the executor's contract rather than the other
+way round — `PISTON_RUN_TIMEOUT=5000`, `PISTON_COMPILE_TIMEOUT=15000`,
+`PISTON_RUN_MEMORY_LIMIT=256M`, `PISTON_OUTPUT_MAX_SIZE=16384`. Lowering our
+timeouts to fit Piston's defaults would have failed any solution that legitimately
+took more than three seconds, which is a grading change disguised as a config
+change. (Piston's default compile cap is 10 s and rejected our 15 s outright,
+which is how this was found: every challenge failed 0/N in under four seconds.)
+
+Only the process-spawning primitive changed. `_build_run_cmd` returns a sandbox
+handle instead of an argv list, and `_run_single_with_cmd` dispatches on it.
+Wrapping, output normalisation and the hardcode detector are untouched.
+
+**Verified after the switch:**
+
+| Check | Result |
+|---|---|
+| `validate_challenges` over all 160 | 0 unsolvable, 0 passable by printing, 0 passable by branching — identical to before |
+| Filesystem root, via `CodeExecutor` | 10 entries (the jail), against 38 on the host |
+| Read `backend/.env` | denied |
+| Secrets in the environment | `[]` |
+| Network egress | denied |
+| Fork bomb | capped |
+| Backend errors since the switch | 0 |
+
+Cost: ~91 s for roughly a thousand sandboxed executions, about 90 ms each.
+
+`PISTON_URL` unset keeps the old subprocess path, so local development and CI
+need no Docker. When it is set and the sandbox cannot be reached, execution
+fails closed with `sandbox_unavailable` — it never falls back to the host,
+because a silent fallback would restore the hole on the day the container dies.
