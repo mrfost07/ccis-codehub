@@ -87,5 +87,5 @@ class UserAdmin(BaseUserAdmin):
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
     """Admin interface for UserProfile model"""
-    list_display = ['user', 'github_username', 'location', 'total_courses_completed']
+    list_display = ['user', 'github_username', 'location', 'total_modules_completed']
     search_fields = ['user__email', 'user__username', 'github_username']

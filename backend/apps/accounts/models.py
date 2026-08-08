@@ -119,18 +119,19 @@ class UserProfile(models.Model):
     website_url = models.URLField(blank=True, null=True)
     location = models.CharField(max_length=255, blank=True, null=True)
     
-    # Statistics
-    total_courses_completed = models.IntegerField(default=0)
+    # Statistics.
+    #
+    # Eight more of these were dropped in 0016. Nothing in the codebase ever
+    # wrote them — total_courses_completed, total_projects, total_posts,
+    # total_likes_received, total_comments, contribution_points, current_streak
+    # and longest_streak were 0 for every profile on production, and pages that
+    # displayed them told students they had done nothing. Every one of those
+    # figures is computed from the source tables by profile_overview().
+    #
+    # Before adding another: a stored count is a second copy of a fact, and it
+    # is only worth the drift if you need to sort by it in SQL. Ranking is
+    # already served by LeaderboardSnapshot, which recalculates from source.
     total_modules_completed = models.IntegerField(default=0)
-    total_projects = models.IntegerField(default=0)
-    total_posts = models.IntegerField(default=0)
-    total_likes_received = models.IntegerField(default=0)
-    total_comments = models.IntegerField(default=0)
-    contribution_points = models.IntegerField(default=0)
-    
-    # Learning Progress
-    current_streak = models.IntegerField(default=0)
-    longest_streak = models.IntegerField(default=0)
     certificates_earned = models.IntegerField(default=0)
     
     # Preferences

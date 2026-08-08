@@ -22,19 +22,17 @@ class UserProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = UserProfile
+        # `total_projects` stays in the payload but is a method field computed
+        # from the projects tables — it never was the dropped column.
         fields = [
             'github_username', 'linkedin_url', 'website_url', 'location',
-            'total_courses_completed', 'total_modules_completed', 
-            'total_projects', 'total_posts', 'total_likes_received',
-            'total_comments', 'contribution_points', 'current_streak',
-            'longest_streak', 'certificates_earned', 'theme_preference',
-            'profile_background', 'created_at', 'updated_at', 'tasks_completed', 
+            'total_modules_completed', 'total_projects',
+            'certificates_earned', 'theme_preference',
+            'profile_background', 'created_at', 'updated_at', 'tasks_completed',
             'active_projects'
         ]
-        read_only_fields = ['created_at', 'updated_at', 'total_courses_completed',
-                          'total_modules_completed', 'total_projects', 'total_posts',
-                          'total_likes_received', 'total_comments', 'contribution_points',
-                          'current_streak', 'longest_streak', 'certificates_earned']
+        read_only_fields = ['created_at', 'updated_at',
+                          'total_modules_completed', 'certificates_earned']
     
     # These three fields cost SIX queries per user. On a list endpoint that is
     # 6N, and against a database ~250 ms away /api/auth/users/ spent 10 s on
@@ -56,7 +54,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
             return (Project.objects.filter(owner=user).count()
                     + ProjectMembership.objects.filter(user=user, is_active=True).count())
         except Exception:
-            return obj.total_projects
+            # Fell back to obj.total_projects, a column that was never written
+            # and has since been dropped. Zero is at least honestly unknown.
+            return 0
 
     def get_tasks_completed(self, obj):
         annotated = self._annotated(obj, 'tasks_done_total')
@@ -93,9 +93,8 @@ class PublicUserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = [
-            'location', 'total_courses_completed', 'total_modules_completed',
-            'total_projects', 'total_posts', 'contribution_points',
-            'current_streak', 'certificates_earned',
+            'location', 'total_modules_completed',
+            'total_projects', 'certificates_earned',
             # The animated cover on a profile page. It is a cosmetic choice that
             # exists to be seen by other people, so it belongs in the public
             # shape. Leaving it out made UserProfileView.tsx fall back to

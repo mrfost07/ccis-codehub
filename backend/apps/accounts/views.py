@@ -640,15 +640,22 @@ class UserStatsAPIView(APIView):
             likes_received=_Count('likes', distinct=True),
         )
 
-        # Points live on the profile, not on progress rows.
-        profile = getattr(user, 'profile', None)
+        # Points earned on accepted coding submissions. This read
+        # `profile.contribution_points`, which nothing ever wrote — so every
+        # figure around it was computed from source and this one was 0 for
+        # everybody. The column is gone as of 0016.
+        from django.db.models import Sum
+        from apps.learning.models import CodingSubmission
+        points = CodingSubmission.objects.filter(
+            user=user, status='accepted',
+        ).aggregate(n=Sum('points_earned'))['n'] or 0
 
         stats = {
             'learning': {
                 'enrolled_courses': learning['enrolled'],
                 'completed_courses': learning['completed'],
                 'certificates': UserCertificate.objects.filter(user=user).count(),
-                'total_points': getattr(profile, 'contribution_points', 0) or 0,
+                'total_points': points,
             },
             'projects': {
                 'owned': projects['owned'],

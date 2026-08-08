@@ -215,12 +215,11 @@ interface UserProfile {
     linkedin_url: string
     website_url: string
     location: string
-    total_courses_completed: number
+    // Eight sibling counters were dropped in accounts migration 0010: nothing
+    // wrote them, and displaying them told students they had done nothing.
+    // Figures for the profile come from /auth/profile/overview/.
     total_modules_completed: number
     total_projects: number
-    total_posts: number
-    contribution_points: number
-    current_streak: number
     certificates_earned: number
   }
 }

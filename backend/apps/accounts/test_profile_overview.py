@@ -38,13 +38,12 @@ def path(db):
 
 @pytest.mark.django_db
 class TestLearning:
-    def test_a_completed_path_is_counted_even_though_the_counter_says_zero(
-            self, student, path):
-        # The exact production bug: two finished paths, counter reading 0.
+    def test_a_completed_path_is_counted_from_the_enrolment(self, student, path):
+        # The production bug this replaced: `total_courses_completed` read 0
+        # for a student with two finished paths, because nothing wrote it. That
+        # column has since been dropped, so there is no counter left to
+        # disagree with — this pins where the figure does come from.
         Enrollment.objects.create(user=student, career_path=path, status='completed')
-        if hasattr(student, 'profile'):
-            student.profile.total_courses_completed = 0
-            student.profile.save(update_fields=['total_courses_completed'])
 
         learning = profile_overview(student)['learning']
 
