@@ -2,6 +2,7 @@
 Views for Learning app
 """
 import logging
+import uuid
 
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -1100,11 +1101,29 @@ class EnrollmentViewSet(viewsets.ModelViewSet):
         # user.username, so an un-shaped queryset cost ~5 queries per row.
         # Prefetch (not select_related) for career_path because the nested
         # serializer needs the annotations, which select_related cannot carry.
-        return Enrollment.objects.filter(user=self.request.user).select_related(
+        queryset = Enrollment.objects.filter(user=self.request.user).select_related(
             'user'
         ).prefetch_related(
             Prefetch('career_path', queryset=annotated_career_paths())
         )
+
+        # The path detail page asks for ?career_path=<id>. This was not
+        # implemented, so the parameter was ignored and every enrolment came
+        # back; the page took the first row and showed it as this path's. The
+        # result was that every path a student had not taken displayed as
+        # "Enrolled", with another path's date and progress, and the enrol
+        # button was hidden — so they could not enrol in anything new.
+        career_path = self.request.query_params.get('career_path')
+        if career_path:
+            try:
+                uuid.UUID(str(career_path))
+            except ValueError:
+                # An unreadable id matches nothing. Returning everything is how
+                # this went wrong in the first place.
+                return queryset.none()
+            queryset = queryset.filter(career_path_id=career_path)
+
+        return queryset
     
     def create(self, request, *args, **kwargs):
         """Enroll user in a career path"""

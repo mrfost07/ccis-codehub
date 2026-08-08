@@ -94,12 +94,24 @@ export default function PathDetailEnhanced() {
         const enrollmentResponse = await api.get(`/learning/enrollments/?career_path=${pathId}`)
         const enrollments = enrollmentResponse.data.results || enrollmentResponse.data || []
 
-        if (enrollments.length > 0) {
-          setEnrollment(enrollments[0])
+        // Check the row actually belongs to this path rather than trusting the
+        // server to have filtered. It did not: the career_path parameter was
+        // ignored, every enrolment came back, and taking row zero showed one
+        // path's enrolment on another's page — "Enrolled on 8/5/2026" against a
+        // path created that morning, with the enrol button hidden so nobody
+        // could enrol in anything new. The server filters now; this makes the
+        // page correct even when the answer to a query is wider than it asked.
+        const mine = enrollments.find((e: any) => {
+          const path = e?.career_path
+          return (typeof path === 'string' ? path : path?.id) === pathId
+        })
+
+        if (mine) {
+          setEnrollment(mine)
 
           // Fetch module progress
           try {
-            const progressResponse = await api.get(`/learning/enrollments/${enrollments[0].id}/progress/`)
+            const progressResponse = await api.get(`/learning/enrollments/${mine.id}/progress/`)
             const progressData = progressResponse.data || []
 
             // Also check UserProgress for completion status
