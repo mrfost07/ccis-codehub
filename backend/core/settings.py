@@ -117,6 +117,7 @@ INSTALLED_APPS = [
     # Local apps
     'apps.accounts',
     'apps.learning',
+    'apps.lab',
     'apps.community',
     'apps.projects',
     'apps.competitions',

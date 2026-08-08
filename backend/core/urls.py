@@ -41,6 +41,7 @@ urlpatterns = [
     path('api/auth/', include('apps.accounts.urls')),
     path('api/users/', include('apps.accounts.urls')),
     path('api/learning/', include('apps.learning.urls')),
+    path('api/lab/', include('apps.lab.urls')),
     path('api/community/', include('apps.community.urls')),
     path('api/projects/', include('apps.projects.urls')),
     # NOTE: apps.competitions has no implemented endpoints. Its route and API-root
