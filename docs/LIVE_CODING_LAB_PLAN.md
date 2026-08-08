@@ -321,7 +321,7 @@ Piston**, start at Phase 0.
 |---|---|---|
 | **0. Sandbox** ✅ | Piston deployed, `CodeExecutor` routed through it, existing challenges still green | **Done** — see §8. Java now compiles. |
 | **1. Model + REST** ✅ | `apps/lab`, migrations, CRUD for labs/sets/problems, join, instructor-only writes | **Done** — see §9 |
-| **2. Student workspace** | Join, statement/editor/console, Run via Celery, queue position | Feature-complete for one student |
+| **2. Execution** ✅ | Run via Celery with backpressure, submit re-run server-side | **Backend done** — see §10. UI is next. |
 | **3. Realtime** | Presence channel, snapshot debounce, on-demand student streams | Where the scale work lives |
 | **4. Review** | Wall, filters, keyboard review, accept/return, profile write | The instructor half |
 | **5. Sets** | A/B/C, deterministic assignment, per-set analytics | Small once 1–4 exist |
@@ -439,3 +439,49 @@ mode worth catching.
 
 Routes return 401 unauthenticated rather than 404, so they are wired and
 protected. Tables reachable, no migration drift, 504 backend tests pass.
+
+---
+
+## 10. Phase 2 as built (backend)
+
+`POST labs/<id>/run/` → 202 with a run id and queue position.
+`GET labs/<id>/runs/<run_id>/` → state, output, position.
+`POST labs/<id>/submit/` → 201 with the submission.
+`GET labs/<id>/my-submissions/`.
+
+Celery had settings in this project but no app object, so no task could ever
+have run. `core/celery.py` now exists and `ccis-lab-worker.service` runs it at
+`--concurrency=2`, matching the core count — raising it past that does not add
+throughput, it adds queueing you cannot see.
+
+Runs live in the cache with a 600 s TTL, not Postgres. A class of 60 pressing
+Run all afternoon would otherwise write tens of thousands of rows nobody reads.
+Only submissions are durable.
+
+**Backpressure.** One run per student in flight; pressing Run again marks the
+previous one superseded and the worker skips it. The queue is therefore capped
+at the number of people in the room, and the student sees a position that counts
+down rather than a spinner — which is what stops the repeat-clicking that
+causes the collapse in the first place.
+
+**Submissions are judged on the server's output.** The code is re-run
+synchronously on submit and that result is stored. The student's last-seen
+output is kept beside it and `outputs_match` is set false when they disagree,
+which is a useful signal in itself.
+
+### Two bugs the tests caught
+
+The ticket counter seeded the key and then incremented it, so the first caller
+returned 1 while leaving the counter at 2. Every lab silently skipped a ticket
+and every queue position after it read one too high. `cache.add` returning
+False is the atomic part that makes the cold-key path correct.
+
+A test asserted that a student who has not joined gets 403. They get 404 —
+queryset scoping hides the lab entirely, which is better. The 403 branch is
+reached by an instructor viewing their own lab without a seat in it, and there
+is now a test for that path.
+
+### Verified on production
+
+Code reading stdin `3 4 5` went browser-shaped request → Celery → sandbox →
+`12`. Broker-backed, not eager. Worker and backend both active.
