@@ -18,6 +18,8 @@ const CodingChallengePage = lazy(() => import('./pages/CodingChallengePage'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const StudentDashboard = lazy(() => import('./pages/StudentDashboard'))
 const StudentLearningDashboard = lazy(() => import('./pages/StudentLearningDashboard'))
+const JoinLab = lazy(() => import('./pages/JoinLab'))
+const LabWorkspace = lazy(() => import('./pages/LabWorkspace'))
 const QuizTaking = lazy(() => import('./pages/QuizTaking'))
 const PathDetailEnhanced = lazy(() => import('./pages/PathDetailEnhanced'))
 const ModuleLearningEnhanced = lazy(() => import('./pages/ModuleLearningEnhanced'))
@@ -181,6 +183,22 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <CareerMap />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lab/join"
+                element={
+                  <ProtectedRoute>
+                    <JoinLab />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lab/:labId"
+                element={
+                  <ProtectedRoute>
+                    <LabWorkspace />
                   </ProtectedRoute>
                 }
               />
