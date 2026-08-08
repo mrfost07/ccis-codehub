@@ -216,8 +216,17 @@ class CodeExecutor:
         public_tests = [tc for tc in test_cases if not tc.get('is_hidden', False)]
         return self.run(language, code, public_tests)
 
-    def _run_single_with_cmd(self, cmd: list, stdin_data: str, expected: str, cwd: str) -> dict:
-        """Run one test case using an already-compiled command."""
+    def _run_single_with_cmd(self, cmd, stdin_data: str, expected: str, cwd: str) -> dict:
+        """Run one test case using an already-compiled command.
+
+        `cmd` is a list for the local path, or a sandbox handle (dict) when
+        PISTON_URL is configured. Everything above this method — wrapping,
+        comparison, hardcode detection — is identical either way, which is what
+        keeps the switch from changing a single grade.
+        """
+        if isinstance(cmd, dict) and cmd.get('sandbox'):
+            return self._run_single_sandboxed(cmd, stdin_data, expected)
+
         try:
             proc = subprocess.run(
                 cmd,
@@ -402,6 +411,13 @@ class CodeExecutor:
         if not compile_template:
             return None
 
+        # In the sandbox, compilation is part of each execution, so a compile
+        # error surfaces on the first test case and is propagated from there.
+        # Nothing to do up front.
+        from apps.learning import piston
+        if piston.enabled():
+            return None
+
         out_path = os.path.join(tmpdir, 'solution_out')
         classname = os.path.splitext(os.path.basename(src_path))[0]
 
@@ -421,8 +437,57 @@ class CodeExecutor:
             return None
         except subprocess.TimeoutExpired:
             return 'Compilation timed out'
+        except FileNotFoundError as e:
+            # A missing toolchain is a server fault, not a student's broken
+            # code. Production had no javac at all, and every Java submission
+            # would have been reported to the student as their compile error.
+            logger.error('compiler missing for %s: %s', language, e)
+            return f'The {language} compiler is not available on this server'
         except Exception as e:
             return str(e)
+
+    def _run_single_sandboxed(self, handle: dict, stdin_data: str, expected: str) -> dict:
+        """One test case, inside the sandbox.
+
+        Compilation happens per call here rather than once per submission —
+        Piston has no compile-once API. That is free for Python and JavaScript
+        and real for C++ and Java; if it ever hurts, the fix is to batch the
+        test cases into one execution, not to compile on the host.
+        """
+        from apps.learning import piston
+
+        try:
+            result = piston.execute(
+                handle['language'], handle['source'], stdin_data)
+        except piston.PistonUnavailable as exc:
+            # Fail closed. Falling back to the host would silently restore the
+            # hole this exists to close.
+            logger.error('sandbox unavailable: %s', exc)
+            return {
+                'passed': False, 'stdout': '', 'stderr': 'Execution service unavailable',
+                'error': 'sandbox_unavailable', 'expected': expected,
+            }
+
+        if result['compile_error']:
+            return {
+                'passed': False, 'stdout': '', 'stderr': result['compile_error'],
+                'error': 'compilation_error', 'expected': expected,
+            }
+        if result['timed_out']:
+            return {
+                'passed': False, 'stdout': '',
+                'stderr': f'Execution timed out after {TIMEOUT}s',
+                'error': 'timeout', 'expected': expected,
+            }
+
+        stdout = result['stdout']
+        return {
+            'passed': self._normalize_output(stdout) == self._normalize_output(expected),
+            'stdout': stdout,
+            'stderr': result['stderr'],
+            'error': None,
+            'expected': expected,
+        }
 
     # ── Auto-wrapping logic ──────────────────────────────────────────────
 
@@ -573,8 +638,17 @@ else console.log(_result);
 
     # ── Command building ────────────────────────────────────────────────
 
-    def _build_run_cmd(self, language: str, config: dict, src_path: str, tmpdir: str) -> list:
-        """Build the command list to run the compiled/interpreted code."""
+    def _build_run_cmd(self, language: str, config: dict, src_path: str, tmpdir: str):
+        """Build what it takes to run this submission once.
+
+        A command list on the host, or a sandbox handle carrying the source.
+        The caller treats both the same; only _run_single_with_cmd cares.
+        """
+        from apps.learning import piston
+        if piston.enabled():
+            with open(src_path, encoding='utf-8') as handle:
+                return {'sandbox': True, 'language': language, 'source': handle.read()}
+
         out_path = os.path.join(tmpdir, 'solution_out')
         classname = os.path.splitext(os.path.basename(src_path))[0]
 

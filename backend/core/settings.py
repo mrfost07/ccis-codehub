@@ -411,6 +411,11 @@ CORS_ALLOW_METHODS = [
 # Channels (WebSockets)
 # Use InMemoryChannelLayer in development (no Redis needed).
 # Set REDIS_URL in .env to switch to Redis-backed channels for production.
+# Execution sandbox. Unset means student code runs as a subprocess on this
+# server, which is not isolated — see apps/learning/piston.py. Production sets
+# it; local development and CI leave it unset so tests need no Docker.
+PISTON_URL = env('PISTON_URL', default='')
+
 _REDIS_URL = env('REDIS_URL', default='')
 if _REDIS_URL:
     CHANNEL_LAYERS = {
