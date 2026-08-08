@@ -15,11 +15,15 @@ from rest_framework.response import Response
 
 from apps.core.permissions import IsInstructorOrAdmin
 
-from .models import CodingLab, LabParticipant, LabProblem, LabProblemSet
+from . import execution
+from .models import (
+    LANGUAGES, CodingLab, LabParticipant, LabProblem, LabProblemSet, LabSubmission,
+)
 from .serializers import (
     CodingLabSerializer, LabParticipantSerializer, LabProblemSerializer,
-    LabProblemSetSerializer, LabProblemStudentSerializer,
+    LabProblemSetSerializer, LabProblemStudentSerializer, LabSubmissionSerializer,
 )
+from .tasks import execute_run
 
 
 def _is_owner(user, lab) -> bool:
@@ -171,6 +175,144 @@ class CodingLabViewSet(viewsets.ModelViewSet):
             'set': participant.problem_set.label,
             'problems': LabProblemStudentSerializer(problems, many=True).data,
         })
+
+    # ── running code ────────────────────────────────────────────────────
+
+    MAX_CODE_LENGTH = 50_000
+
+    def _participant(self, lab, user):
+        return LabParticipant.objects.filter(lab=lab, student=user).first()
+
+    def _validate_code(self, lab, request):
+        """Shared by run and submit. Returns (language, code, stdin) or Response."""
+        language = (request.data.get('language') or '').strip()
+        code = request.data.get('code') or ''
+        stdin = request.data.get('stdin') or ''
+
+        allowed = lab.languages or [key for key, _ in LANGUAGES]
+        if language not in allowed:
+            return None, Response(
+                {'detail': f'This lab allows: {", ".join(allowed)}.'},
+                status=status.HTTP_400_BAD_REQUEST)
+        if not code.strip():
+            return None, Response({'detail': 'There is no code to run.'},
+                                  status=status.HTTP_400_BAD_REQUEST)
+        if len(code) > self.MAX_CODE_LENGTH:
+            return None, Response({'detail': 'That is too much code to run.'},
+                                  status=status.HTTP_400_BAD_REQUEST)
+        return (language, code, stdin), None
+
+    @action(detail=True, methods=['post'])
+    def run(self, request, pk=None):
+        """Run the code and show what it printed. No grading, no expectation.
+
+        This is the "just a compiler" behaviour: unlimited, ungraded, and the
+        student decides when they are done.
+        """
+        lab = self.get_object()
+        participant = self._participant(lab, request.user)
+        if participant is None:
+            return Response({'detail': 'You have not joined this lab.'},
+                            status=status.HTTP_403_FORBIDDEN)
+        if lab.state not in ('running', 'review'):
+            return Response({'detail': 'This lab is not running.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        parsed, denied = self._validate_code(lab, request)
+        if denied:
+            return denied
+        language, code, stdin = parsed
+
+        record = execution.start(
+            lab_id=lab.id, participant_id=participant.id,
+            language=language, code=code, stdin=stdin,
+            problem_id=request.data.get('problem'))
+        execute_run.delay(record['id'])
+        return Response(execution.public(execution.get(record['id'])),
+                        status=status.HTTP_202_ACCEPTED)
+
+    @action(detail=True, methods=['get'], url_path='runs/(?P<run_id>[^/.]+)')
+    def run_status(self, request, pk=None, run_id=None):
+        lab = self.get_object()
+        participant = self._participant(lab, request.user)
+        record = execution.get(run_id)
+        if record is None:
+            return Response({'detail': 'That run has expired.'},
+                            status=status.HTTP_404_NOT_FOUND)
+        # A run belongs to the student who started it. Without this check the
+        # run id is a URL that shows somebody else's console.
+        owner = participant is not None and record['participant_id'] == str(participant.id)
+        if not (owner or _is_owner(request.user, lab)):
+            return Response({'detail': 'Not your run.'},
+                            status=status.HTTP_403_FORBIDDEN)
+        return Response(execution.public(record))
+
+    @action(detail=True, methods=['post'])
+    def submit(self, request, pk=None):
+        """Hand the work in.
+
+        The server re-runs the code and stores *its* output. The output in the
+        student's browser is a DOM node they can edit; if the instructor graded
+        that string the whole exercise would be theatre.
+        """
+        lab = self.get_object()
+        participant = self._participant(lab, request.user)
+        if participant is None:
+            return Response({'detail': 'You have not joined this lab.'},
+                            status=status.HTTP_403_FORBIDDEN)
+        if not lab.accepts_submissions:
+            return Response({'detail': 'Submissions are closed for this lab.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        problem = LabProblem.objects.filter(
+            id=request.data.get('problem'),
+            problem_set=participant.problem_set).first()
+        if problem is None:
+            return Response({'detail': 'That problem is not in your set.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if LabSubmission.objects.filter(
+                participant=participant, problem=problem, status='accepted').exists():
+            return Response({'detail': 'This problem has already been accepted.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        parsed, denied = self._validate_code(lab, request)
+        if denied:
+            return denied
+        language, code, stdin = parsed
+
+        # Re-run on the server. Synchronous: the student is waiting on this
+        # single decisive result, and a submission must never be recorded
+        # without the output it will be judged on.
+        from apps.learning.code_executor import CodeExecutor
+        outcome = CodeExecutor().run(
+            language, code, [{'input': stdin, 'expected_output': ''}])
+        first = (outcome.get('results') or [{}])[0]
+        server_output = first.get('stdout', '')
+        student_output = request.data.get('student_output') or ''
+
+        attempt = LabSubmission.objects.filter(
+            participant=participant, problem=problem).count() + 1
+        submission = LabSubmission.objects.create(
+            participant=participant, problem=problem, attempt_number=attempt,
+            language=language, code=code,
+            student_output=student_output,
+            server_output=server_output,
+            server_stderr=first.get('stderr', ''),
+            outputs_match=(student_output.strip() == server_output.strip()
+                           if student_output else True),
+        )
+        return Response(LabSubmissionSerializer(submission).data,
+                        status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['get'], url_path='my-submissions')
+    def my_submissions(self, request, pk=None):
+        lab = self.get_object()
+        participant = self._participant(lab, request.user)
+        if participant is None:
+            return Response({'detail': 'You have not joined this lab.'},
+                            status=status.HTTP_403_FORBIDDEN)
+        rows = participant.submissions.select_related('problem').order_by('-submitted_at')
+        return Response(LabSubmissionSerializer(rows, many=True).data)
 
     @action(detail=True, methods=['get'])
     def participants(self, request, pk=None):
