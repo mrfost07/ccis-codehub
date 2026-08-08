@@ -320,7 +320,7 @@ Piston**, start at Phase 0.
 | Phase | Delivers | Notes |
 |---|---|---|
 | **0. Sandbox** ✅ | Piston deployed, `CodeExecutor` routed through it, existing challenges still green | **Done** — see §8. Java now compiles. |
-| **1. Model + REST** | `apps/lab`, migrations, CRUD for labs/sets/problems, instructor-only writes | Permissions mirror `IsInstructorOrAdmin` |
+| **1. Model + REST** ✅ | `apps/lab`, migrations, CRUD for labs/sets/problems, join, instructor-only writes | **Done** — see §9 |
 | **2. Student workspace** | Join, statement/editor/console, Run via Celery, queue position | Feature-complete for one student |
 | **3. Realtime** | Presence channel, snapshot debounce, on-demand student streams | Where the scale work lives |
 | **4. Review** | Wall, filters, keyboard review, accept/return, profile write | The instructor half |
@@ -385,3 +385,57 @@ Cost: ~91 s for roughly a thousand sandboxed executions, about 90 ms each.
 need no Docker. When it is set and the sandbox cannot be reached, execution
 fails closed with `sandbox_unavailable` — it never falls back to the host,
 because a silent fallback would restore the hole on the day the container dies.
+
+---
+
+## 9. Phase 1 as built
+
+`apps/lab`, migration `0001_initial`, live on production. Five models as
+designed in §4. Endpoints under `/api/lab/`:
+
+| Route | Who | Notes |
+|---|---|---|
+| `labs/` CRUD | instructor, own labs only | students see only labs they joined, never a draft |
+| `labs/<id>/sets/` | owner | rejects a duplicate label |
+| `labs/<id>/transition/` | owner | forwards only; cannot start with no problems |
+| `labs/join/` | any student | idempotent; assigns a set |
+| `labs/<id>/my-problems/` | participant | their set only |
+| `labs/<id>/participants/` | owner | |
+| `problems/` CRUD | owner of the parent lab | |
+
+Three guards, each chosen from something this codebase has already shipped
+wrong:
+
+**The reference solution is absent from the student serializer**, not excluded
+by name. Quiz questions were once serialised with `fields = '__all__'` and
+handed `correct_answer` to anyone signed in; a blocklist silently readmits
+every field somebody adds later.
+
+**Acceptance is unique per (participant, problem) in the database**, as a
+partial constraint on `status='accepted'`. Awarding progress is not idempotent
+on its own and a double-clicked button is the ordinary way that goes wrong. A
+returned attempt does not consume the slot.
+
+**Statements are sanitised on write.** Instructors paste from the web, and an
+instructor account is not a licence to run script in a student's session.
+
+### What mutation testing changed
+
+Flipping the student serializer to the authoring one failed the answer-key test
+immediately, as intended. Removing the ownership check from `update()` failed
+**nothing** — every test stayed green.
+
+The reason: `get_queryset` already scopes labs to their owner, so another
+instructor 404s before `_is_owner` is consulted. The test asserted
+`403 or 404` and so could not tell which guard was working. It now asserts 404
+specifically, names queryset scoping as the primary guard, and exercises
+`_is_owner` directly — because that helper is what would still refuse the write
+if the scoping is ever widened for a shared instructor dashboard.
+
+The guard was real. The test was weaker than it looked, which is the failure
+mode worth catching.
+
+### Verified on production
+
+Routes return 401 unauthenticated rather than 404, so they are wired and
+protected. Tables reachable, no migration drift, 504 backend tests pass.
